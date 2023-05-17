@@ -33,9 +33,9 @@
    :short #\h
    :long "help")
   (:oname :verbose
-   :description "verbose"
+   :description "produce verbose output"
    :short #\v
-   :long "help")
+   :long "verbose")
   (:oname :version
    :description "print version information"
    :short #\V
@@ -75,7 +75,7 @@ Distributed under the terms of the MIT License"
       (handler-case
           (progn
             (format t "~A:~%" system)
-            (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "oras repo tags ghcr.io/ocicl/~A" (mangle system)) :output '(:string))) #'string-lessp))))
+            (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ghcr.io/ocicl/~A" (mangle system)) :output '(:string))) #'string-lessp))))
               (format t "~T~A~%" s)))
         (uiop/run-program:subprocess-error (e)
           (format t "~T~A not found~%" system)))
@@ -232,8 +232,8 @@ Distributed under the terms of the MIT License"
            (uiop:with-current-directory (dl-dir)
              (handler-case
                  (progn
-                   (debug-log (format nil "oras pull ~A" name))
-                   (uiop:run-program (format nil "oras pull ~A" name))
+                   (debug-log (format nil "ocicl-oras pull ~A" name))
+                   (uiop:run-program (format nil "ocicl-oras pull ~A" name))
                    (let ((fpath (car (uiop:directory-files dl-dir))))
                      (gunzip fpath "package.tar")
                      (let ((dirname (car (contents "package.tar"))))
@@ -255,11 +255,11 @@ Distributed under the terms of the MIT License"
              (uiop:with-current-directory (dl-dir)
                (handler-case
                    (progn
-                     (debug-log (format nil "oras pull ghcr.io/ocicl/~A:~A" (mangle name) version))
+                     (debug-log (format nil "ocicl-oras pull ghcr.io/ocicl/~A:~A" (mangle name) version))
                      (let ((sha256
                              (format nil "ghcr.io/ocicl/~A@sha256:~A" (mangle name)
                                      (extract-sha256
-                                      (uiop:run-program (format nil "oras pull ghcr.io/ocicl/~A:~A" (mangle name) version) :output '(:string))))))
+                                      (uiop:run-program (format nil "ocicl-oras pull ghcr.io/ocicl/~A:~A" (mangle name) version) :output '(:string))))))
                        (format t "; downloaded ~A~%" sha256)
                        (let ((fpath (car (uiop:directory-files dl-dir))))
                          (gunzip fpath "package.tar")
