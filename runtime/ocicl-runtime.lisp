@@ -23,9 +23,12 @@
 (require 'sb-posix)
 
 (defpackage #:ocicl-runtime
-  (:use #:cl))
+  (:use #:cl)
+  (:export #:*download*))
 
 (in-package #:ocicl-runtime)
+
+(defvar *download* t)
 
 (defun split-on-delimeter (line delim)
   (let ((start 0)
@@ -56,7 +59,7 @@
         (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))
     ht))
 
-(defun find-asdf-system-file (name)
+(defun find-asdf-system-file (name &optional (download? t))
   (unless *systems-dir*
     (let ((cwd (uiop:getcwd)))
       (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
@@ -73,7 +76,9 @@
     (if match
         (pathname
          (concatenate 'string (namestring *systems-dir*) (cdr match)))
-        nil)))
+        (when (and *download* download?)
+          (uiop:run-program (format nil "ocicl install ~A" name))
+          (find-asdf-system-file name nil)))))
 
 (defun system-definition-searcher (name)
   (let ((system-file (find-asdf-system-file name)))
