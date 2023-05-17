@@ -20,6 +20,7 @@
 ;;;; OTHER DEALINGS IN THE SOFTWARE.
 
 (require 'asdf)
+(require 'sb-posix)
 
 (defpackage #:ocicl-runtime
   (:use #:cl))
@@ -45,25 +46,30 @@
 
 (defvar *ocicl-systems* nil)
 (defvar *systems-dir* nil)
+(defvar *systems-csv* nil)
+(defvar *systems-csv-mtime* 0)
 
 (defun read-systems-csv ()
-  (let ((systems-file (merge-pathnames (uiop:getcwd) "systems.csv"))
-        (ht (make-hash-table :test #'equal)))
-    (when (probe-file systems-file)
-      (progn
-        (dolist (line (uiop:read-file-lines systems-file))
-          (let ((vlist (split-csv-line line)))
-            (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))
-            ))))
+  (let ((ht (make-hash-table :test #'equal)))
+    (dolist (line (uiop:read-file-lines *systems-csv*))
+      (let ((vlist (split-csv-line line)))
+        (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))
     ht))
 
 (defun find-asdf-system-file (name)
   (unless *systems-dir*
-    (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                         (uiop:getcwd))))
-  (unless *ocicl-systems*
-    (setq *ocicl-systems* (read-systems-csv)))
-  (let ((match (gethash name *ocicl-systems*)))
+    (let ((cwd (uiop:getcwd)))
+      (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+                                           cwd))
+      (setq *systems-csv* (merge-pathnames cwd "systems.csv"))))
+
+  (when (probe-file *systems-csv*)
+    (let ((mtime (sb-posix:stat-mtime (sb-posix:stat *systems-csv*))))
+      (when (> mtime *systems-csv-mtime*)
+        (setq *ocicl-systems* (read-systems-csv))
+        (setq *systems-csv-mtime* mtime))))
+
+  (let ((match (and *ocicl-systems* (gethash name *ocicl-systems*))))
     (if match
         (pathname
          (concatenate 'string (namestring *systems-dir*) (cdr match)))
