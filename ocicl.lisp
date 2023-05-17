@@ -25,6 +25,8 @@
 
 (defvar *verbose* nil)
 
+(defparameter +runtime+ (uiop:read-file-string "runtime/ocicl-runtime.lisp"))
+
 (define-opts
   (:oname :help
    :description "print this help text"
@@ -86,8 +88,13 @@ Distributed under the terms of the MIT License"
     ocicl-dir))
 
 (defun do-setup (args)
-  (let ((odir (get-ocicl-dir)))
-    ))
+  (let* ((odir (get-ocicl-dir))
+         (runtime-source (merge-pathnames odir "ocicl-runtime.lisp")))
+    (with-open-file (stream runtime-source
+                            :direction :output
+                            :if-exists :supersede)
+      (write-string +runtime+ stream)
+      (format t "Add the following to your ${HOME}/.sbclrc file:~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%~%" runtime-source runtime-source))))
 
 (defun do-install (args)
   ;; Make sure the systems directory exists
