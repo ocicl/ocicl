@@ -100,7 +100,7 @@ Distributed under the terms of the MIT License"
             (progn
               (format uiop:*stderr* "Error: version tag specified for system ~A.~%" system)
               (sb-ext:quit)))
-        (if (download-system system)
+        (unless (download-system system)
             (progn
               (format uiop:*stderr* "Error: system ~A not found.~%" system)
               (sb-ext:quit))
@@ -133,14 +133,21 @@ Distributed under the terms of the MIT License"
   (if args
       ;; Download the systems provided on the command line.
       (dolist (system args)
-        (let* ((slist (split-on-delimeter system #\:))
-               (name (car slist)))
-          (format t "; downloading ~A~%" system)
-          (if (download-system system)
-              (asdf:load-system name)
-              (progn
-                (format uiop:*stderr* "Error: system ~A not found.~%" system)
-                (sb-ext:quit)))))
+        (if (position #\@ system)
+            (progn
+              (format t "; downloading ~A~%" system)
+              (unless (download-object system)
+                (progn
+                  (format uiop:*stderr* "Error: can't download ~A.~%" system)
+                  (sb-ext:quit))))
+            (let* ((slist (split-on-delimeter system #\:))
+                   (name (car slist)))
+              (format t "; downloading ~A~%" system)
+              (if (download-system system)
+                  (asdf:load-system name)
+                  (progn
+                    (format uiop:*stderr* "Error: system ~A not found.~%" system)
+                    (sb-ext:quit))))))
       ;; Download all systems in systems.csv.
       (maphash (lambda (key value)
                  (declare (ignore key))
