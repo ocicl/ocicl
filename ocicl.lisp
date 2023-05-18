@@ -56,7 +56,8 @@
    :suffix "Choose from the following ocicl commands:
 
    install [SYSTEM[:VERSION]]...       Install systems
-   list SYSTEM...                      List system versions
+   latest [SYSTEM]...                  Install latest version of systems
+   list SYSTEM...                      List available system versions
    setup                               Mandatory ocicl configuration
 
 Distributed under the terms of the MIT License"
@@ -67,7 +68,7 @@ Distributed under the terms of the MIT License"
 
 (defun debug-log (s)
   (when *verbose*
-    (format t "~A~%" s)))
+    (format t "; ~A~%" s)))
 
 (defun do-list (args)
   (when args
@@ -78,6 +79,7 @@ Distributed under the terms of the MIT License"
             (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ghcr.io/ocicl/~A" (mangle system)) :output '(:string))) #'string-lessp))))
               (format t "~T~A~%" s)))
         (uiop/run-program:subprocess-error (e)
+          (declare (ignore e))
           (format t "~T~A not found~%" system)))
       (format t "~%"))))
 
@@ -87,7 +89,35 @@ Distributed under the terms of the MIT License"
     (uiop:ensure-all-directories-exist (list ocicl-dir))
     ocicl-dir))
 
+(defun do-latest (args)
+  ;; Make sure the systems directory exists
+  (uiop:ensure-all-directories-exist
+   (list *systems-dir*))
+  (if args
+      ;; Download latest systems provided on the command line.
+      (dolist (system args)
+        (if (position #\: system)
+            (progn
+              (format uiop:*stderr* "Error: version tag specified for system ~A.~%" system)
+              (sb-ext:quit)))
+        (if (download-system system)
+            (progn
+              (format uiop:*stderr* "Error: system ~A not found.~%" system)
+              (sb-ext:quit))
+            (asdf:load-system system)))
+      ;; Download latest versions of all systems.
+      (let ((blobs (make-hash-table :test #'equal)))
+        (maphash (lambda (key value)
+                   (setf (gethash (car value) blobs) key))
+                 *ocicl-systems*)
+        (maphash (lambda (key value)
+                   (declare (ignore value))
+                   (let ((system (extract-between-slash-and-at key)))
+                     (download-system system)))
+             blobs))))
+
 (defun do-setup (args)
+  (declare (ignore args))
   (let* ((odir (get-ocicl-dir))
          (runtime-source (merge-pathnames odir "ocicl-runtime.lisp")))
     (with-open-file (stream runtime-source
@@ -101,55 +131,59 @@ Distributed under the terms of the MIT License"
   (uiop:ensure-all-directories-exist
    (list *systems-dir*))
   (if args
+      ;; Download the systems provided on the command line.
       (dolist (system args)
         (let* ((slist (split-on-delimeter system #\:))
-               (name (car slist))
-               (version (or (cadr slist) "latest")))
+               (name (car slist)))
+          (format t "; downloading ~A~%" system)
           (if (download-system system)
               (asdf:load-system name)
               (progn
-                (format t "Error: system ~A not found.~%" system)
+                (format uiop:*stderr* "Error: system ~A not found.~%" system)
                 (sb-ext:quit)))))
+      ;; Download all systems in systems.csv.
       (maphash (lambda (key value)
+                 (declare (ignore key))
                  (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
                    (format t "; downloading ~A~%" (car value))
                    (download-object (car value))))
                *ocicl-systems*)))
 
 (defun main ()
-  (let ((args (uiop:command-line-arguments)))
 
-    (setf *random-state* (make-random-state t))
-    (setq *ocicl-systems* (read-systems-csv))
-    (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                         (uiop:getcwd)))
+  (setf *random-state* (make-random-state t))
+  (setq *ocicl-systems* (read-systems-csv))
+  (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+                                       (uiop:getcwd)))
 
-    (multiple-value-bind (options free-args)
-        (handler-case
-            (handler-bind ((unknown-option #'unknown-option))
-              (get-opts))
-          (missing-arg (condition)
-            (format t "fatal: option ~s needs an argument!~%"
-                    (option condition)))
-          (arg-parser-failed (condition)
-            (format t "fatal: cannot parse ~s as argument of ~s~%"
-                    (raw-arg condition)
-                    (option condition))))
-      (when-option (options :help)
-                   (usage))
-      (when-option (options :verbose)
-                   (setf *verbose* t))
-      (if (not (> (length free-args) 0))
-          (usage)
-          (let ((cmd (car free-args)))
-            (cond
-              ((string= cmd "setup")
-               (do-setup (cdr free-args)))
-              ((string= cmd "install")
-               (do-install (cdr free-args)))
-              ((string= cmd "list")
-               (do-list (cdr free-args)))
-              (t (usage))))))))
+  (multiple-value-bind (options free-args)
+      (handler-case
+          (handler-bind ((unknown-option #'unknown-option))
+            (get-opts))
+        (missing-arg (condition)
+          (format t "fatal: option ~s needs an argument!~%"
+                  (option condition)))
+        (arg-parser-failed (condition)
+          (format t "fatal: cannot parse ~s as argument of ~s~%"
+                  (raw-arg condition)
+                  (option condition))))
+    (when-option (options :help)
+                 (usage))
+    (when-option (options :verbose)
+                 (setf *verbose* t))
+    (if (not (> (length free-args) 0))
+        (usage)
+        (let ((cmd (car free-args)))
+          (cond
+            ((string= cmd "install")
+             (do-install (cdr free-args)))
+            ((string= cmd "latest")
+             (do-latest (cdr free-args)))
+            ((string= cmd "list")
+             (do-list (cdr free-args)))
+            ((string= cmd "setup")
+             (do-setup (cdr free-args)))
+            (t (usage)))))))
 
 (defun replace-plus-with-string (str)
   (with-output-to-string (s)
@@ -182,6 +216,12 @@ Distributed under the terms of the MIT License"
          (end (+ start 71))) ;; 7 for "sha256:" and 64 for the hash
     (when start
       (subseq str (+ start 7) end))))
+
+(defun extract-between-slash-and-at (input)
+  (let* ((reversed (reverse input))
+         (pos-at (position #\@ reversed))
+         (pos-slash (position #\/ reversed :start pos-at)))
+    (subseq input (- (length input) pos-slash) (- (length input) (1+ pos-at)))))
 
 (defun split-on-delimeter (line delim)
   (let ((start 0)
@@ -236,9 +276,8 @@ Distributed under the terms of the MIT License"
                    (uiop:run-program (format nil "ocicl-oras pull ~A" name))
                    (let ((fpath (car (uiop:directory-files dl-dir))))
                      (gunzip fpath "package.tar")
-                     (let ((dirname (car (contents "package.tar"))))
-                       (uiop:with-current-directory (*systems-dir*)
-                         (unpack-tarball (merge-pathnames dl-dir "package.tar"))))))
+                     (uiop:with-current-directory (*systems-dir*)
+                       (unpack-tarball (merge-pathnames dl-dir "package.tar")))))
                (uiop/run-program:subprocess-error (e)
                  (debug-log e)
                  nil))))
@@ -283,6 +322,7 @@ Distributed under the terms of the MIT License"
                     (handler-case
                         (cdr (download-system name))
                       (uiop/run-program:subprocess-error (e)
+                        (declare (ignore e))
                         nil))))))
 
 (defun system-definition-searcher (name)
