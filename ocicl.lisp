@@ -35,11 +35,7 @@
   (:oname :verbose
    :description "produce verbose output"
    :short #\v
-   :long "verbose")
-  (:oname :version
-   :description "print version information"
-   :short #\V
-   :long "version"))
+   :long "verbose"))
 
 (defun unknown-option (condition)
   (format t "warning: ~s option is unknown!~%" (option condition))
@@ -59,6 +55,7 @@
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions
    setup                               Mandatory ocicl configuration
+   version                             Show the ocicl version information
 
 Distributed under the terms of the MIT License"
    :usage-of "ocicl"
@@ -115,6 +112,12 @@ Distributed under the terms of the MIT License"
                    (let ((system (extract-between-slash-and-at key)))
                      (download-system system)))
              blobs))))
+
+(defun do-version (args)
+  (declare (ignore args))
+  (format t "ocicl version:   1.0.0~%")
+  (format t "Lisp runtime:    ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version))
+  (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
 (defun do-setup (args)
   (declare (ignore args))
@@ -190,6 +193,8 @@ Distributed under the terms of the MIT License"
              (do-list (cdr free-args)))
             ((string= cmd "setup")
              (do-setup (cdr free-args)))
+            ((string= cmd "version")
+             (do-version (cdr free-args)))
             (t (usage)))))))
 
 (defun replace-plus-with-string (str)
