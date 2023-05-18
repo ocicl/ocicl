@@ -74,8 +74,10 @@
 
   (let ((match (and *ocicl-systems* (gethash name *ocicl-systems*))))
     (if match
-        (pathname
-         (concatenate 'string (namestring *systems-dir*) (cdr match)))
+        (let ((pn (pathname (concatenate 'string (namestring *systems-dir*) (cdr match)))))
+          (when (and (not (probe-file pn)) *download*)
+            (uiop:run-program (format nil "ocicl install ~A" (car match))))
+          pn)
         (when (and *download* download?)
           (uiop:run-program (format nil "ocicl install ~A" name))
           (find-asdf-system-file name nil)))))
