@@ -4,7 +4,7 @@
 What is it?
 ------------
 ``ocicl`` is a modern alternative to quicklisp.  It is modern in the sense that:
-* all software is (bundled as OCI-compliant artifacts)[https://oras.land/] and distributed from an OCI-compliant registry (the github container registry).
+* all software is [bundled as OCI-compliant artifacts](https://oras.land/) and distributed from an OCI-compliant registry (the github container registry).
 * all software is distributed over secure (TLS) connections.
 * sigstore tooling is used ensure the integrity and authenticity of all software bundles.
 * all software bundles are project-local, making it easy to lock specific versions to your own projects.
