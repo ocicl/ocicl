@@ -247,10 +247,10 @@ welcome and appreciated!
 Tips and Troubleshooting
 ------------------------
 
-I find that telling ASDF to load from the current directory is
-convenient and have placed this in my ``.sbclrc`` file:
+You may find it convenient to tell ASDF to load from the current directory.
+Do this by placing the following in your ``.sbclrc`` file:
 ```
-(push (uiop:getcwd) asdf:*central-registry*)
+(pushnew (uiop:getcwd) asdf:*central-registry*)
 ```
 
 Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and
