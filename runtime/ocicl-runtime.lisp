@@ -24,11 +24,17 @@
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
-  (:export #:*download*))
+  (:export #:*download* #:*verbose*))
 
 (in-package #:ocicl-runtime)
 
 (defvar *download* t)
+(defvar *verbose* nil)
+
+(defvar *ocicl-systems* nil)
+(defvar *systems-dir* nil)
+(defvar *systems-csv* nil)
+(defvar *systems-csv-mtime* 0)
 
 (defun split-on-delimeter (line delim)
   (let ((start 0)
@@ -47,17 +53,18 @@
 (defun split-csv-line (line)
   (split-on-delimeter line #\,))
 
-(defvar *ocicl-systems* nil)
-(defvar *systems-dir* nil)
-(defvar *systems-csv* nil)
-(defvar *systems-csv-mtime* 0)
-
 (defun read-systems-csv ()
   (let ((ht (make-hash-table :test #'equal)))
     (dolist (line (uiop:read-file-lines *systems-csv*))
       (let ((vlist (split-csv-line line)))
         (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))
     ht))
+
+(defun ocicl-install (name)
+  (let* ((cmd (format nil "ocicl install ~A" name))
+         (output (uiop:run-program cmd :output '(:string))))
+    (when *verbose*
+      (format t "~A~%~A~%" cmd output))))
 
 (defun find-asdf-system-file (name &optional (download? t))
   (unless *systems-dir*
@@ -76,17 +83,18 @@
     (if match
         (let ((pn (pathname (concatenate 'string (namestring *systems-dir*) (cdr match)))))
           (when (and (not (probe-file pn)) *download*)
-            (uiop:run-program (format nil "ocicl install ~A" (car match))))
+            (ocicl-install (car match)))
           pn)
         (when (and *download* download?)
-          (uiop:run-program (format nil "ocicl install ~A" name))
+          (ocicl-install name)
           (find-asdf-system-file name nil)))))
 
 (defun system-definition-searcher (name)
-  (let ((system-file (find-asdf-system-file name)))
-    (when (and system-file
-               (string= (pathname-name system-file) name))
-      system-file)))
+  (unless (or (string= "asdf" name) (string= "uiop" name))
+    (let ((system-file (find-asdf-system-file name)))
+      (when (and system-file
+                 (string= (pathname-name system-file) name))
+        system-file))))
 
 (setf asdf:*system-definition-search-functions*
       (append asdf:*system-definition-search-functions*
