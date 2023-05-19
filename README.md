@@ -30,9 +30,9 @@ It will also install a helper program called ``ocicl-oras``.  The
 default value for ``DESTDIR`` is ``${HOME}/.local/bin``, but you can
 change it at install time like so:
 ```
-$ DESTDIR=\usr\local make install
+$ DESTDIR=/usr/local make install
 ```
-Make sure the ``${DESTDIR}\bin`` directory is on your path.
+Make sure the ``${DESTDIR}/bin`` directory is on your path.
 
 Now run ``ocicl setup``.  This is a mandatory step that installs the
 ``ocicl-runtime`` library, and suggests configurations for your
