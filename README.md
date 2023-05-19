@@ -60,6 +60,19 @@ directory contains the code you just downloaded, and ``systems.csv``
 contains a mapping of system names to OCI artifacts and ``.asd``
 files.
 
+```
+str.test, ghcr.io/ocicl/str@sha256:0903b59c33d3026ac55a6f4b25a79094d08e3110758d8ae728bf4188db659313, cl-str-20230511-b1c8380/str.test.asd
+str, ghcr.io/ocicl/str@sha256:0903b59c33d3026ac55a6f4b25a79094d08e3110758d8ae728bf4188db659313, cl-str-20230511-b1c8380/str.asd
+cl-ppcre, ghcr.io/ocicl/cl-ppcre@sha256:5274824d397fa197d5c7790344ace27f2a30fc34c6cadb0a9fcce7d1e4052486, cl-ppcre-20230511-b4056c5a/cl-ppcre.asd
+cl-ppcre-unicode, ghcr.io/ocicl/cl-ppcre@sha256:5274824d397fa197d5c7790344ace27f2a30fc34c6cadb0a9fcce7d1e4052486, cl-ppcre-20230511-b4056c5a/cl-ppcre-unicode.asd
+cl-unicode, ghcr.io/ocicl/cl-unicode@sha256:b61ac07aed06c926720e6a4c155fd0c9411b01a05ee7ebba55fca7df491880e5, cl-unicode-20230511-2790a6b/cl-unicode.asd
+flexi-streams, ghcr.io/ocicl/flexi-streams@sha256:091df0cda6006b19aa206b022bb6d06fd9d5e5787b6152b9f0ae6846926ac5e0, flexi-streams-20230511-74a1027/flexi-streams.asd
+flexi-streams-test, ghcr.io/ocicl/flexi-streams@sha256:091df0cda6006b19aa206b022bb6d06fd9d5e5787b6152b9f0ae6846926ac5e0, flexi-streams-20230511-74a1027/flexi-streams-test.asd
+trivial-gray-streams, ghcr.io/ocicl/trivial-gray-streams@sha256:e82a60fdccc33916f26b60a3af63ee110f0b364cc2af59eee4be86256e8ea2b6, trivial-gray-streams-20230511-2b3823e/trivial-gray-streams.asd
+trivial-gray-streams-test, ghcr.io/ocicl/trivial-gray-streams@sha256:e82a60fdccc33916f26b60a3af63ee110f0b364cc2af59eee4be86256e8ea2b6, trivial-gray-streams-20230511-2b3823e/trivial-gray-streams-test.asd
+cl-change-case, ghcr.io/ocicl/cl-change-case@sha256:61791ee49f0160adad694eedbe8804fe9bcebad54336b0fbb8ce1a82091e20fa, cl-change-case-0.2.0/cl-change-case.asd
+```
+
 The next time you try to load ``str``, ASDF will load the code that
 you've already downloaded and compiled.
 
