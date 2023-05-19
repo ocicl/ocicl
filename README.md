@@ -88,16 +88,16 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl - copyright (C) 2023 Anthony Green <green@moxielogic.com>
+ocicl 1.0.0 - copyright (C) 2023 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-h|--help] [-v|--verbose] command
 
 Available options:
-  -h, --help               print this help text
   -v, --verbose            produce verbose output
 
 Choose from the following ocicl commands:
 
+   help                                Print this help text
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions
