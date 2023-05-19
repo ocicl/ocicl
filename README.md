@@ -18,7 +18,8 @@ image.  It is responsible for finding and loading
 [ASDF](https://asdf.common-lisp.dev/) systems that you manage with the
 ``ocicl`` command line tool.
 
-``ocicl`` is under active development, and may not work for you.
+``ocicl`` is under active development, and may not work for you.  It
+currently requires SBCL and only works on Linux.
 
 Quick Start
 ------------
@@ -78,10 +79,10 @@ you've already downloaded and compiled.
 
 Now try deleting the ``systems`` directory, and loading ``str`` again
 as above.  ``ocicl`` will download the exact version specified in the
-``systems.csv`` file.  The idea here is that you could commit your
-``system.csv`` file with your source code, but not the ``systems``
-directory, and you would always run the versions you've locked to in
-that file.
+``systems.csv`` file.  The idea here is that you would commit your
+``systems.csv`` file to your project's source repo, but never the
+``systems`` directory.  When you run your program, you will always be
+using the library versions locked in your ``systems.csv`` file.
 
 Now let's try the ``ocicl`` command line tool.
 
@@ -153,6 +154,15 @@ version label in your ``ocicl install`` command.
 
 To update all systems in your ``systems.csv`` file to the latest
 version, run ``ocicl latest``.
+
+Systems
+-------
+
+Systems managed by ``ocicl`` are maintained in github, at
+``https://github.com/ocicl``.  Each system has its own source repo,
+and the ``README.org`` file contains everything required to build and
+publish to the OCI registry via github actions.  Contributions are
+welcome and appreciated!
 
 Troubleshooting
 ---------------
