@@ -139,7 +139,7 @@ Distributed under the terms of the MIT License"
         (if (position #\@ system)
             (progn
               (format t "; downloading ~A~%" system)
-              (unless (download-object system)
+              (unless (download-and-install system)
                 (progn
                   (format uiop:*stderr* "Error: can't download ~A.~%" system)
                   (sb-ext:quit))))
@@ -156,7 +156,7 @@ Distributed under the terms of the MIT License"
                  (declare (ignore key))
                  (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
                    (format t "; downloading ~A~%" (car value))
-                   (download-object (car value))))
+                   (download-and-install (car value))))
                *ocicl-systems*)))
 
 (defun main ()
@@ -276,7 +276,7 @@ Distributed under the terms of the MIT License"
                (format stream "~A, ~A, ~A~%" key (car value) (cdr value)))
              *ocicl-systems*)))
 
-(defun download-object (name)
+(defun download-and-install (name)
   (let ((dl-dir (get-temp-ocicl-dl-pathname)))
     (unwind-protect
          (progn
@@ -285,11 +285,12 @@ Distributed under the terms of the MIT License"
              (handler-case
                  (progn
                    (debug-log (format nil "ocicl-oras pull ~A" name))
-                   (uiop:run-program (format nil "ocicl-oras pull ~A" name))
-                   (let ((fpath (car (uiop:directory-files dl-dir))))
-                     (gunzip fpath "package.tar")
-                     (uiop:with-current-directory (*systems-dir*)
-                       (unpack-tarball (merge-pathnames dl-dir "package.tar")))))
+                   (let ((output (uiop:run-program (format nil "ocicl-oras pull ~A" name :output '(:string)))))
+                     (let ((fpath (car (uiop:directory-files dl-dir))))
+                       (gunzip fpath "package.tar")
+                       (uiop:with-current-directory (*systems-dir*)
+                         (unpack-tarball (merge-pathnames dl-dir "package.tar"))))
+                     output))
                (uiop/run-program:subprocess-error (e)
                  (debug-log e)
                  nil))))
@@ -338,9 +339,6 @@ Distributed under the terms of the MIT License"
                         nil))))))
 
 (defun system-definition-searcher (name)
-  "Like FIND-ASDF-SYSTEM-FILE, but this function can be used in
-ASDF:*SYSTEM-DEFINITION-SEARCH-FUNCTIONS*; it will only return system
-file names if they match NAME."
   (unless (or (string= name "asdf") (string= name "uiop"))
     (let ((system-file (find-asdf-system-file name)))
       (when (and system-file
