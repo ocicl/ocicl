@@ -20,7 +20,7 @@ image.  It is responsible for finding and loading
 
 The main innovation behind ``ocicl`` is the idea of applying the
 ecosystem of tooling and services from the world of application
-container images to ordinary tarballs of Lisp code.
+container images to ordinary tarballs of Lisp code. OCI + CL = ``ocicl``.
 
 ``ocicl`` is under active development.  It currently requires SBCL and
 only works on Linux, but adapting to other systems and platforms
