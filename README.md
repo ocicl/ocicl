@@ -23,9 +23,10 @@ exploding ecosystem of tooling and services related to the world of
 application container images.  However, we aren't dealing in container
 image artifacts here -- just ordinary tarballs of Lisp code.
 
-``ocicl`` is under active development, and may not work for you.  It
-currently requires SBCL and only works on Linux, but adapting to other
-systems and platforms .
+``ocicl`` is under active development.  It currently requires SBCL and
+only works on Linux, but adapting to other systems and platforms
+should not be difficult.  Feedback is welcome at
+https://github.com/ocicl/ocicl/issues.  Pull requests are even more welcome, at https://github.com/ocicl/ocicl/pulls!
 
 Quick Start
 ------------
