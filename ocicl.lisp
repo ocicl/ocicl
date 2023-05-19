@@ -28,10 +28,6 @@
 (defparameter +runtime+ (uiop:read-file-string "runtime/ocicl-runtime.lisp"))
 
 (define-opts
-  (:oname :help
-   :description "print this help text"
-   :short #\h
-   :long "help")
   (:oname :verbose
    :description "produce verbose output"
    :short #\v
@@ -48,9 +44,10 @@
 
 (defun usage ()
   (usage-describe
-   :prefix "ocicl - copyright (C) 2023 Anthony Green <green@moxielogic.com>"
+   :prefix "ocicl 1.0.0 - copyright (C) 2023 Anthony Green <green@moxielogic.com>"
    :suffix "Choose from the following ocicl commands:
 
+   help                                Print this help text
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions
@@ -177,14 +174,14 @@ Distributed under the terms of the MIT License"
           (format t "fatal: cannot parse ~s as argument of ~s~%"
                   (raw-arg condition)
                   (option condition))))
-    (when-option (options :help)
-                 (usage))
     (when-option (options :verbose)
                  (setf *verbose* t))
     (if (not (> (length free-args) 0))
         (usage)
         (let ((cmd (car free-args)))
           (cond
+            ((string= cmd "help")
+             (usage))
             ((string= cmd "install")
              (do-install (cdr free-args)))
             ((string= cmd "latest")
