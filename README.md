@@ -35,7 +35,7 @@ Make sure the ``${DESTDIR}\bin`` directory is on your path.
 
 Now run ``ocicl setup``.  This is a mandatory step that installs the
 ``ocicl-runtime`` library, and suggests configurations for your
-``${HOME}\.sbclrc`` file.
+``${HOME}/.sbclrc`` file.
 
 ```
 $ ocicl setup
