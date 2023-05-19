@@ -13,7 +13,7 @@ What is it?
 ``ocicl`` rhymes with
 "[ossicle](https://en.wikipedia.org/wiki/Ossicles)", a tiny bone
 embedded in your middle ear.  Like the ossicles in your ear, the
-``ocicle-runtime`` is a tiny library that is embedded in your lisp
+``ocicl-runtime`` is a tiny library that is embedded in your lisp
 image.  It is responsible for finding and loading
 [ASDF](https://asdf.common-lisp.dev/) systems that you manage with the
 ``ocicl`` command line tool.
