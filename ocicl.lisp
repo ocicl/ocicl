@@ -124,7 +124,7 @@ Distributed under the terms of the MIT License"
                             :direction :output
                             :if-exists :supersede)
       (write-string +runtime+ stream)
-      (format t "Add the following to your ${HOME}/.sbclrc file:~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%~%" runtime-source runtime-source))))
+      (format t "; Add the following to your ${HOME}/.sbclrc file:~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%~%" runtime-source runtime-source))))
 
 (defun do-install (args)
   ;; Make sure the systems directory exists
