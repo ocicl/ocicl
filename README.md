@@ -155,6 +155,86 @@ version label in your ``ocicl install`` command.
 To update all systems in your ``systems.csv`` file to the latest
 version, run ``ocicl latest``.
 
+You can change the default behaviour of downloading systems on demand
+by setting ``ocicl-runtime:*download*`` to nil.
+
+Security
+--------
+
+All system tarballs are digitally signed with the ocicl-tarball-signer
+key: B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8.
+
+You can download the unexpanded tarballs like so:
+```
+$ ocicl-oras pull ghcr.io/ocicl/str:latest
+Downloading 577fc7118b8a cl-str-20230511-b1c8380.tar.gz
+Downloaded  577fc7118b8a cl-str-20230511-b1c8380.tar.gz
+Pulled [registry] ghcr.io/ocicl/str:latest
+Digest: sha256:0903b59c33d3026ac55a6f4b25a79094d08e3110758d8ae728bf4188db659313
+
+$ ls -l
+total 32
+-rw-r--r--. 1 green green 24609 May 19 09:02 cl-str-20230511-b1c8380.tar.gz
+```
+
+Similarly, the signature is available by appending ``.sig`` to the system name.
+```
+$ ocicl-oras pull ghcr.io/ocicl/str.sig:latest
+Downloading 2a97da913ef7 cl-str-20230511-b1c8380.tar.gz.sig
+Downloaded  2a97da913ef7 cl-str-20230511-b1c8380.tar.gz.sig
+Pulled [registry] ghcr.io/ocicl/str.sig:latest
+Digest: sha256:47903679d96504c5e83f08f7d6dfc4e613e7ab968e44dc46cb13b29f7917ddea
+```
+
+You can verify the signature like so:
+```
+$ gpg --verify cl-str-20230511-b1c8380.tar.gz.sig cl-str-20230511-b1c8380.tar.gz
+gpg: Signature made Thu 11 May 2023 05:44:45 AM EDT
+gpg:                using RSA key B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8
+gpg: Good signature from "ocicl-tarball-signer" [ultimate]
+```
+
+These signatures are also archived in the
+[sigstore](https://www.sigstore.dev) [rekor transparency
+log](https://docs.sigstore.dev/rekor/overview/).  This gives you and
+your auditors confidence that the code you are running is what it
+claims to be.
+
+You can search for these signatures based on the sha of the tarball
+like so:
+```
+$ rekor-cli search --sha $(sha256sum cl-str-20230511-b1c8380.tar.gz)
+Found matching entries (listed by UUID):
+24296fb24b8ad77a6594635675d0e6365b89ee0d5e3b1ce823adb19c28aa3602c2537163710638d9
+
+$ rekor-cli get --uuid 24296fb24b8ad77a6594635675d0e6365b89ee0d5e3b1ce823adb19c28aa3602c2537163710638d9
+LogID: c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d
+Index: 20300488
+IntegratedTime: 2023-05-11T09:44:49Z
+UUID: 24296fb24b8ad77a6594635675d0e6365b89ee0d5e3b1ce823adb19c28aa3602c2537163710638d9
+Body: {
+  "RekordObj": {
+    "data": {
+      "hash": {
+        "algorithm": "sha256",
+        "value": "577fc7118b8a21285ad871dd44e4fe25126fd05d2d4fad52a4015d5a01788d44"
+      }
+    },
+    "signature": {
+      "content": "LS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KCmlRR3pCQUFCQ2dBZEZpRUV1V3JOdnpYRndhdUJXVysyMDYvaGlFT1h2Y2dGQW1SY3VRMEFDZ2tRMDYvaGlFT1gKdmNqcGh3d0FsSUJ6N3IrcnhZSml5dHhHZlFXMDJ6Z0tzQ1BKcC9RRXI1NUdIZjBQN3U0QlBod0ZmRlFRbWhRWQpsYndoclpjMEcvRFRXdm5vdzBOa0RTRXFBbVhtUjIyMzJOWDFEMVVBSEVRYWUzc3lhbld0aTd4ZEhLdXI3TE90CmsyRmFFMFl0VGt0a1RscDBzSGlxazliWHkzVVpqUHBFazBWZzZCaTM2QVUzVVFCMHFpc1dKQ2o4RGVLZnhSN1EKdkgvblo0MnJSMUNsTkRhdzBXQWc5eFR0WmNCSTRydEM4UXFIbWIzQ2N6elJ2WVM3T3V2VFRaM1h4NkNPQVFjUgpjVHNKa25qSGI4MXFQNFlBNDFiQ3l1L28xWGVCUmxIM1ZXVURyWHBoWEhETm1FcFFaTVFpWVBOYUl2Q1dOQ09lCkRqSFhLazk3NnFBcFVzVHBxcFRIdmgxUGNxSFpFeFdPRWQwSkxpR3BzZW9vODN4M1k0bTBDaXRBTDhDK2xzTk4KTGxWeFNCbmZ6STJVZnpBK3lWMFVVT1pHMXhJY1QzMVNaRGRZV1VKdG9OZmVuSnA0RTNXdlZzZXA3UDhXMXZxOApHY0RVU2lxT010ajFIdHhqTmdMTldCUk01aDNaMHhyaHQ0SjFRejArZHVESGxCOWJxeU9OS240eGtLZnBrWlRBCkRUakJkZTJlCj1DdS9LCi0tLS0tRU5EIFBHUCBTSUdOQVRVUkUtLS0tLQo=",
+      "format": "pgp",
+      "publicKey": {
+        "content": "LS0tLS1CRUdJTiBQR1AgUFVCTElDIEtFWSBCTE9DSy0tLS0tCgp4c0ROQkdSYnIrY0JEQUM5YUlXaElpc08zNjRCdnhYc093QjZwUklKWGQrbWJINHp1VXdRNHIrcmQvb3M0TG1SCkxaaVRDekVZbVMrcHhnUWQwb1haR2o5elZ3VzRYMndaVzI4K0RVRDljWnpHL1J6RkRHeExnZzc1d2dDYmp1czcKeVc0UmtQQkhYOXRsNUFuRHU0SjFKK01Ra3hyUEVHZFpFSVp2QVlKOVJFWDRDSVhHQUNjdXgyaGtaVUlTNVpxZQpvdjRwd1FReFhTNm5SOVpUOHpieWo1SkhQWmtRek02eU42c0F6aXFlUUZpK3pKdXJaTG9kdU9BbEs2Z3BjY1F1CkRnQ0JCM280S2cvSk5lZVB0VTlHYUxHSXB1ZGdxd0N2VHpSbUR0NUc5bjd0cVJaV0ZFMitxSmg5MVBFdzhyUjkKOG5NQWxZSFI1S3BJcUpwbldjOFRSME0yQ0tCOEd2UzNjS3E3NHYvQTZ5bUFPNzErbmVad3pxTENyTEsydllNeApHbjdOSUVKM0grRVFQcEplNGkrbWxoeGE5Rm1zMi9qSUdjemJMNGtSbGdqVE9wazFmOE4zaWZDbnp1YkpxQ3ZXCnZGbWMxM2I0eE9ic3BlWndjckk3Kzg2R092a2FaZk1ONWZweGt4U1lETStLSVEyZlNYcXp0ZGlHWDBVZEp3dG4KOEZhTlBnTUJvckFGMzAwQUVRRUFBYzBVYjJOcFkyd3RkR0Z5WW1Gc2JDMXphV2R1WlhMQ3dSRUVFd0VJQURzVwpJUVM1YXMyL05jWEJxNEZaYjdiVHIrR0lRNWU5eUFVQ1pGdXY1d0liQXdVTENRZ0hBZ0lpQWdZVkNna0lDd0lFCkZnSURBUUllQndJWGdBQUtDUkRUcitHSVE1ZTl5TEZ6Qy85TmJmVUIzYncyMUhHQStBTk03WHg5VVdpZVlNSzkKcWlFUUFyYVgvQm85cnl6c3ZtcnUxcDZYN2RsTmtoTEJzMWl1MFZ0eFB4SWhHdUdncHNPekV2N0Y3OFdvM0pwNQo4dVQ5cW5kelV2aXh2S2lFTTJsdzZHZWFrallCMjV4Zy9VSnpWNmxGYWhhcVZ6emhUSkovbkI5YU9jNDg1WjBpCnV1UnIxU3Nkb3VHbHdRTVZydktRbU1rMjlaTzlKcnNIUmxQR2hnY1p0K2J1bUJPdDNKZTQ0WGtkL0NtNDBxdXYKb2Mwb0FFNGN2c2JkSmE2d3EwODlQK3VPWFZNZlhpUDVBd3ZWSjYxQ2NEYWRJWk1kT29KYnc0b1k3V2dWS2NIWQpYd0tlS0NzOFpzRWs2OGlTRm1FQ3Q3THI4U2tENVcwRXY0QWV3clh4dEFXNElCYUtRaE1pSEZsQ2kvdzdLdjduCm1lM0t4Q1JEc0F4NEdld05iTXRaUjBnZHRwV21CWGVpRytROC8wZGdMUFRqRmFBWHFRQithUWNuMzFscnZCYVgKd0Jib3FtUlNtWDVwdk1uaHhiNSt0R0hsRU9QekMrZ0k0VU50cVZ4L1NIRCtSZHNNM0owd2huRjh3R09KWlRZUwo1WkxrZWR6Qjc3VEtzakNhci92Q2x5UTUvalIrck81VjlwSE93TTBFWkZ1djV3RU1BTUJkY1JYYUpCQ2V2dHV1CklnU3Nmc3hDb3NLRnJQN3JTdmN2bHlHT3pCVlBKT2JFbE5NbjVTOGNwZCtuMXcrQS9rdXFobUNHVmJjaHI2YkMKUERRbmJad2pwWUU3bGVISGtQT2tkT2JHY3VOWjZ1YVNsSktWcWg5aHpHeHZZUlhIMFhUSDNkb2NJTTdyRkdtOQpSMWdKcDhBNmtSbWg4ZVNSOWpMRWNhS2lRTUZPbEYzU3RFZms4VzFsZ0x2Z2VTVnJkc0s0Rnc3Ui9BRVlmek5xClpTZEdRYmx0WXkyekVKcG04M2QxN1BCZXN4eE5FdVNWYUlibCtqai9TLzVkL1h0OGVKdVJzbDVOeDdLSTRpenkKK1pFWkxOWkJZa3FzMTZsSnRva2oxclZOUitLWEtCN1pDenVacGxjYURJbExWMUN0YXFqVXpMazFlcVh0TXBZOQordTFocXd0em5vWnRsTTZTTmVYZnUzS3YzSFlaWUlJVGcrSDBLQVVnZko1S1F1YnNaN2dmSVpaMno0WkZHUHJPCllhWlRJQmNGMGlIbEhZWitPTVRONWpKR2VrU0NlTW0yVUZzZVBqSUtQdHhudTk0ajNDanhWbmlzZURzUkJja1oKcFRaY2VPNkZVa3pCYkltQ2FqNklZd2NmdFhBWVRFQjZXdzE0OUdFYnpONEVyV1pKaXdBUkFRQUJ3c0QyQkJnQgpDQUFnRmlFRXVXck52elhGd2F1QldXKzIwNi9oaUVPWHZjZ0ZBbVJicitjQ0d3d0FDZ2tRMDYvaGlFT1h2Y2lGCmxndi9URndrYXYzYWFFVnhvU0hDNDJzTGl0YmZGOC83YW53ZGZPZkhFdFVSejBmdk1vVEVsamdtS05jb3FQYkEKdkhJMmN1MXA3RTAvOXNZY0VTaXlPNzJVR29oWmZtaWFsTlhROE53TVcySzFnM1FZS0hKam55WWV2WnlkV3dlegpDbXovU0RpNXFBYmMzSVprTFZXRk5LOXdrenljVlhYcVB6ZnJzdDkyTXJ1ZktYSDc2eEExZlA2NXl6S21ZSW9WCnc3eHJkaGp2VzMvS0JHeU5iZHk0dmNucWdERUFCbWR5OUJxRkhKK0p4QnFIZXZKTjV6SXAySHFRK2x4YWVGYmgKQTllckJKYVMzNDU4eXVxd0FvTEJ4OURscHZYQzE2c3NXVVU3WGlJQ1pFb255aXVxQVN4QXMxZjk3SFNjVWx3UQpxWExLUURmZEFud25PeE9wcXFHS1E1M3FzN3UxdUJ0RzJrN0JQMmEwbE1EUW9Za1hoK2tPNTRVT0ZtS1lFNGdvCjE0SFdYSmc3S0Y5UjMxQ0ZrNXNGUU9yYmR1bCtoNC80VVRMSFhGTFBMVkkvTzYwZDNCNkd4cm91SlRSeWJDUHAKV0tvZjg0VGcyY1FiV2FmVko5bzlIbklwb2lPNGJCMVZrQndoM3E2TTE2L0kyWC9zNGhaVVNLODJYSWJ0TlFxRgpRZmxZCj1hbnlKCi0tLS0tRU5EIFBHUCBQVUJMSUMgS0VZIEJMT0NLLS0tLS0="
+      }
+    }
+  }
+}
+```
+
+Further explanation of the sigstore tooling and ecosystem is beyond
+the scope of this document, but you can read about it at
+[https://docs.sigstore.dev/](https://docs.sigstore.dev/).
+
 Systems
 -------
 
@@ -164,10 +244,17 @@ and the ``README.org`` file contains everything required to build and
 publish to the OCI registry via github actions.  Contributions are
 welcome and appreciated!
 
-Troubleshooting
----------------
+Tips and Troubleshooting
+------------------------
 
-Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and interesting log info.
+I find that telling ASDF to load from the current directory is
+convenient and have placed this in my ``.sbclrc`` file:
+```
+(push (uiop:getcwd) asdf:*central-registry*)
+```
+
+Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and
+interesting log info.
 
 Author and License
 -------------------
