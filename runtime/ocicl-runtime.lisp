@@ -77,7 +77,7 @@
     (let ((mtime (sb-posix:stat-mtime (sb-posix:stat *systems-csv*))))
       (when (> mtime *systems-csv-mtime*)
         (when *verbose*
-          (format t "; old csv mtime = ~A~%; new csv mtime = ~A~%" mtime))
+          (format t "; old csv mtime = ~A~%; new csv mtime = ~A~%" *systems-csv-mtime* mtime))
         (setq *ocicl-systems* (read-systems-csv))
         (setq *systems-csv-mtime* mtime))))
 
