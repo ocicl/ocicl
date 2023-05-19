@@ -235,6 +235,13 @@ Further explanation of the sigstore tooling and ecosystem is beyond
 the scope of this document, but you can read about it at
 [https://docs.sigstore.dev/](https://docs.sigstore.dev/).
 
+Self-Hosting
+------------
+
+[This section needs to be written on hosting the OCI content in your
+own registry -- something very easy to do, as there are many useful
+tools to borrow from the container world.]
+
 Systems
 -------
 
