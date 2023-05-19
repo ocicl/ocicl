@@ -18,8 +18,14 @@ image.  It is responsible for finding and loading
 [ASDF](https://asdf.common-lisp.dev/) systems that you manage with the
 ``ocicl`` command line tool.
 
+The main innovation behind ``ocicl`` is the idea of leveraging the
+exploding ecosystem of tooling and services related to the world of
+application container images.  However, we aren't dealing in container
+image artifacts here -- just ordinary tarballs of Lisp code.
+
 ``ocicl`` is under active development, and may not work for you.  It
-currently requires SBCL and only works on Linux.
+currently requires SBCL and only works on Linux, but adapting to other
+systems and platforms .
 
 Quick Start
 ------------
