@@ -6,11 +6,11 @@ What is it?
 ``ocicl`` is a modern alternative to quicklisp.  It is modern in the sense that:
 * all software is [bundled as OCI-compliant artifacts](https://oras.land/) and distributed from an OCI-compliant registry (the github container registry).
 * all software is distributed over secure (TLS) connections.
-* [sigstore](https://www.sigstore.dev/) tooling is used ensure the integrity and authenticity of all software bundles.
+* [sigstore](https://www.sigstore.dev/) tooling is used to ensure the integrity and authenticity of all software bundles.
 * all software bundles are project-local, making it easy to lock specific versions to your own projects.
 * all software bundles are built and published transparently using hosted CI infrastructure ([github actions](https://github.com/ocicl/ocicl-action)).
 
-``ocicl`` rhymes with
+``ocicl`` is pronounced like
 "[ossicle](https://en.wikipedia.org/wiki/Ossicles)", a tiny bone
 embedded in your middle ear.  Like the ossicles in your ear, the
 ``ocicl-runtime`` is a tiny library that is embedded in your lisp
