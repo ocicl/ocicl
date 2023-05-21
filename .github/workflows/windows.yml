@@ -9,9 +9,10 @@ on:
 jobs:
   build:
     runs-on: windows-2019
-    matrix:
-     include:
-       - SBCL_VERSION: 2.3.2
+    strategy:
+      matrix:
+       include:
+         - SBCL_VERSION: 2.3.2
     defaults:
       run:
         shell: msys2 {0}
