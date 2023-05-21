@@ -282,7 +282,7 @@ Distributed under the terms of the MIT License"
              (handler-case
                  (progn
                    (debug-log (format nil "ocicl-oras pull ~A" name))
-                   (let ((output (uiop:run-program (format nil "ocicl-oras pull ~A" name :output '(:string)))))
+                   (let ((output (uiop:run-program (format nil "ocicl-oras pull ~A" name) :output '(:string))))
                      (let ((fpath (car (uiop:directory-files dl-dir))))
                        (gunzip fpath "package.tar")
                        (uiop:with-current-directory (*systems-dir*)
