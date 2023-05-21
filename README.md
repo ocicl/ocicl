@@ -23,7 +23,7 @@ ecosystem of tooling and services from the world of application
 container images to ordinary tarballs of Lisp code. OCI + CL = ``ocicl``.
 
 ``ocicl`` is under active development.  It currently requires SBCL and
-only works on Linux, but adapting to other systems and platforms
+only works on Linux and Windows, but adapting to other systems and platforms
 should not be difficult.  Feedback is welcome at
 https://github.com/ocicl/ocicl/issues.  Pull requests are even more welcome, at https://github.com/ocicl/ocicl/pulls!
 
