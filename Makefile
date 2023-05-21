@@ -15,11 +15,11 @@ install:
 	echo $(OS)
 	echo $(detected_OS)
 ifeq ($(detected_OS),Windows)
-  echo "Installing for Windows..."
+	echo "Installing for Windows..."
 	cp ocicl.exe ${DESTDIR}/bin ;
 	cp oras_1.0.0_windows_amd64/oras.exe ${DESTDIR}/bin/ocicl-oras.exe
 else ifeq ($(detected_OS),Linux)
-  echo "Installing for Linux..."
+	echo "Installing for Linux..."
 	cp ocicl ${DESTDIR}/bin ;
 	tar xvf oras/oras_1.0.0_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
 	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
