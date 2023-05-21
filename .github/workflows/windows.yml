@@ -35,7 +35,7 @@ jobs:
       - name: Unzip file
         run: |
           Expand-Archive -Path oras/oras_1.0.0_windows_amd64.zip
-      shell: powershell
+        shell: powershell
       - name: Build and Install
         run: |
           export SBCL_HOME="/c/sbcl/PFiles/Steel Bank Common Lisp/"
