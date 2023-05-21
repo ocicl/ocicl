@@ -1,0 +1,43 @@
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main, windows ]
+  pull_request:
+    branches: [ main, windows ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2019
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          install: make
+      - name: download SBCL
+        run: wget https://downloads.sourceforge.net/project/sbcl/sbcl/2.2.5/sbcl-2.2.5-x86-64-windows-binary.msi
+      - name: install SBCL
+        # for unknown reason, msiexec pops up a window under msys2, so use cmd instead
+        shell: cmd
+        run: msiexec /a sbcl-2.2.5-x86-64-windows-binary.msi TARGETDIR=C:\sbcl /qn
+      - uses: actions/checkout@v3
+      - name: Build and Install
+        run: |
+          make
+          make install
+          ocicl setup > ~/.sbclrc
+          echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
+      - name: Test
+        run: |
+          mkdir test
+          cd test
+          ocicl install sento
+          cat systems.csv
+          ls -l systems
+          sbcl --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
+          sbcl --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
+          rm -rf systems
+          ocicl install
+          ocicl latest
