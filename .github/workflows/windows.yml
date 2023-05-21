@@ -33,9 +33,9 @@ jobs:
           export PATH="$SBCL_HOME":$PATH
           make
           make install
+          echo $PATH
           ocicl setup > ~/.sbclrc
           echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
-          echo $PATH
       - name: Test
         run: |
           mkdir test
