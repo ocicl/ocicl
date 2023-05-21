@@ -1,0 +1,61 @@
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main, windows ]
+  pull_request:
+    branches: [ main, windows ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2019
+    strategy:
+      matrix:
+       include:
+         - SBCL_VERSION: 2.3.2
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          install: make unzip
+      - name: download SBCL
+        run: wget https://downloads.sourceforge.net/project/sbcl/sbcl/${{ matrix.SBCL_VERSION }}/sbcl-${{ matrix.SBCL_VERSION }}-x86-64-windows-binary.msi
+      - name: install SBCL
+        # for unknown reason, msiexec pops up a window under msys2, so use cmd instead
+        shell: cmd
+        run: msiexec /a sbcl-${{ matrix.SBCL_VERSION }}-x86-64-windows-binary.msi TARGETDIR=C:\sbcl /qn
+      - name: make install directory
+        shell: cmd
+        run: |
+          mkdir C:\ocicl
+          mkdir C:\ocicl\bin
+      - uses: actions/checkout@v3
+      - name: Build and Install
+        run: |
+          export SBCL_HOME="/c/sbcl/PFiles/Steel Bank Common Lisp/"
+          export PATH="$SBCL_HOME":"/c/ocicl/bin":$PATH
+          ls -l oras
+          ls -l .
+          make
+          DESTDIR="/c/ocicl" EXE=.exe make install
+          echo $HOME
+          echo $PATH
+          ls -l /c/ocicl/bin
+          ocicl setup > ~/.sbclrc
+          echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
+      - name: Test
+        run: |
+          export SBCL_HOME="/c/sbcl/PFiles/Steel Bank Common Lisp/"
+          export PATH="$SBCL_HOME":"/c/ocicl/bin":$PATH
+          mkdir test
+          cd test
+          ocicl install sento
+          cat systems.csv
+          ls -l systems
+          sbcl --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
+          sbcl --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
+          rm -rf systems
+          ocicl install
+          ocicl latest
