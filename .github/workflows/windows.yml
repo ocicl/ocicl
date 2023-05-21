@@ -32,10 +32,16 @@ jobs:
           mkdir C:\ocicl
           mkdir C:\ocicl\bin
       - uses: actions/checkout@v3
+      - name: Unzip file
+        run: |
+          Expand-Archive -Path oras/oras_1.0.0_windows_amd64.zip
+      shell: powershell
       - name: Build and Install
         run: |
           export SBCL_HOME="/c/sbcl/PFiles/Steel Bank Common Lisp/"
           export PATH="$SBCL_HOME":"/c/ocicl/bin":$PATH
+          ls -l oras
+          ls -l .
           make
           DESTDIR="/c/ocicl" EXE=.exe make install
           echo $HOME
