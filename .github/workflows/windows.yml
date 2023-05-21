@@ -28,7 +28,9 @@ jobs:
         run: msiexec /a sbcl-${{ matrix.SBCL_VERSION }}-x86-64-windows-binary.msi TARGETDIR=C:\sbcl /qn
       - name: make install directory
         shell: cmd
-        run: mkdir C:\ocicl
+        run: |
+          mkdir C:\ocicl
+          mkdir C:\ocicl\bin
       - uses: actions/checkout@v3
       - name: Build and Install
         run: |
@@ -36,9 +38,9 @@ jobs:
           export PATH="$SBCL_HOME":"/c/ocicl/bin":$PATH
           make
           DESTIR="/c/ocicl/bin" make install
+          echo $HOME
           echo $PATH
           ls -l /c/ocicl/bin
-          echo $HOME
           ocicl setup > ~/.sbclrc
           echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
       - name: Test
