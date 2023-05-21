@@ -17,7 +17,7 @@ install:
 ifeq ($(detected_OS),Windows)
 	echo "Installing for Windows..."
 	cp ocicl.exe ${DESTDIR}/bin ;
-	unzip oras/oras_1.0.0_windows_amd64.zip
+	unzip oras/oras_1.0.0_windows_amd64.zip oras.exe
 	cp oras_1.0.0_windows_amd64/oras.exe ${DESTDIR}/bin/ocicl-oras.exe
 else ifeq ($(detected_OS),Linux)
 	echo "Installing for Linux..."
