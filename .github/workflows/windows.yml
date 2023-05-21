@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: msys2/setup-msys2@v2
         with:
-          install: make
+          install: make unzip
       - name: download SBCL
         run: wget https://downloads.sourceforge.net/project/sbcl/sbcl/${{ matrix.SBCL_VERSION }}/sbcl-${{ matrix.SBCL_VERSION }}-x86-64-windows-binary.msi
       - name: install SBCL
@@ -32,10 +32,6 @@ jobs:
           mkdir C:\ocicl
           mkdir C:\ocicl\bin
       - uses: actions/checkout@v3
-      - name: Unzip file
-        run: |
-          Expand-Archive -Path oras/oras_1.0.0_windows_amd64.zip
-        shell: powershell
       - name: Build and Install
         run: |
           export SBCL_HOME="/c/sbcl/PFiles/Steel Bank Common Lisp/"
