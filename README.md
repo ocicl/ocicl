@@ -48,7 +48,7 @@ Now run ``ocicl setup``.  This is a mandatory step that installs the
 
 ```
 $ ocicl setup
-Add the following to your ${HOME}/.sbclrc file:
+; Add the following to your ${HOME}/.sbclrc file:
 
 #-ocicl
 (when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
