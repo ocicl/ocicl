@@ -13,13 +13,13 @@ endif
 install:
 	mkdir -p ${DESTDIR}/bin || true ;
 	cp ocicl$ ${DESTDIR}/bin ;
-  echo $(OS)
-  echo $(detected_OS)
+	echo $(OS)
+	echo $(detected_OS)
 ifeq ($(detected_OS),Windows)
-  unzip oras_1.0.0_windows_amd64.zip
+	unzip oras_1.0.0_windows_amd64.zip
 	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
 else ifeq ($(detected_OS),Linux)
-  tar xvf oras/oras_1.0.0_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
+	tar xvf oras/oras_1.0.0_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
 	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
 endif
 	${DESTDIR}/bin/ocicl$ setup
