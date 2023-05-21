@@ -25,6 +25,7 @@ jobs:
           make
           make install
           ocicl setup > ~/.sbclrc
+          echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
         shell: bash
       - name: Test
         run: |
