@@ -37,7 +37,7 @@ jobs:
           export SBCL_HOME="/c/sbcl/PFiles/Steel Bank Common Lisp/"
           export PATH="$SBCL_HOME":"/c/ocicl/bin":$PATH
           make
-          DESTIR="/c/ocicl/bin" EXE=.exe make install
+          DESTDIR="/c/ocicl/bin" EXE=.exe make install
           echo $HOME
           echo $PATH
           ls -l /c/ocicl/bin
