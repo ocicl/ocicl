@@ -5,11 +5,11 @@ ocicl: *.lisp *.asd Makefile runtime/ocicl-runtime.lisp
 DESTDIR ?= ${HOME}/.local
 
 install:
-	@mkdir -p ${DESTDIR}/bin || true ;
-	@cp ocicl${EXE} ${DESTDIR}/bin ;
-	@tar xvf oras/oras_1.0.0_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
-	@mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
-	@${DESTDIR}/bin/ocicl${EXE} setup
+	mkdir -p ${DESTDIR}/bin || true ;
+	cp ocicl${EXE} ${DESTDIR}/bin ;
+	tar xvf oras/oras_1.0.0_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
+	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
+	${DESTDIR}/bin/ocicl${EXE} setup
 
 
 clean:
