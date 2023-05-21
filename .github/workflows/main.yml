@@ -1,0 +1,36 @@
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main, windows ]
+  pull_request:
+    branches: [ main, windows ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install SBCL
+        run: |
+          curl -L -O "https://downloads.sourceforge.net/project/sbcl/sbcl/2.3.4/sbcl-2.3.4-x86-64-linux-binary.tar.bz2"
+          tar -xf sbcl-2.3.4-x86-64-linux-binary.tar.bz2
+          cd sbcl-2.3.4-x86-64-linux
+          ./install.sh --prefix=$HOME/.local
+          cd ..
+          rm -rf sbcl-2.3.4-x86-64-linux-binary.tar.bz2 sbcl-2.3.4-x86-64-linux
+        shell: bash
+      - name: Build and Install
+        run: |
+          make
+          make install
+          ocicl setup > ~/.sbclrc
+        shell: bash
+      - name: Test
+        run: |
+          mkdir test
+          cd test
+          ocicl install sento
+          cat systems.csv
+          ls -l systems
+        shell: bash
