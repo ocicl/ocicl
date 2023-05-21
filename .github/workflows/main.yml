@@ -33,4 +33,6 @@ jobs:
           ocicl install sento
           cat systems.csv
           ls -l systems
+          sbcl --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
+          sbcl --non-interactive --eval "(asdf:load-system :woo)" --eval "(quit)"
         shell: bash
