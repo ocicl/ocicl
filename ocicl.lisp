@@ -195,11 +195,14 @@ Distributed under the terms of the MIT License"
             (t (usage)))))))
 
 (defun replace-plus-with-string (str)
-  (with-output-to-string (s)
-    (loop for c across str do
-      (if (char= c #\+)
-          (write-string "_plus_" s)
-          (write-char c s)))))
+  (let ((mangled (with-output-to-string (s)
+                    (loop for c across str do
+                          (if (char= c #\+)
+                              (write-string "_plus_" s)
+                            (write-char c s))))))
+    (if (char= (char mangled (- (length mangled) 1)) #\_)
+        (subseq mangled 0 (- (length mangled) 1))
+      mangled)))
 
 (defun mangle (str)
   (replace-plus-with-string str))
