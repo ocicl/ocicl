@@ -54,6 +54,8 @@
   (split-on-delimeter line #\,))
 
 (defun read-systems-csv ()
+  (when *verbose*
+    (format t "; loading ~A~%" *systems-csv*))
   (let ((ht (make-hash-table :test #'equal)))
     (dolist (line (uiop:read-file-lines *systems-csv*))
       (let ((vlist (split-csv-line line)))
@@ -85,6 +87,10 @@
   (let ((match (and *ocicl-systems* (gethash name *ocicl-systems*))))
     (if match
         (let ((pn (pathname (concatenate 'string (namestring *systems-dir*) (cdr match)))))
+          (when *verbose*
+            (progn
+              (format t "; checking for ~A~%" pn)
+              (print (probe-file pn))))
           (when (and (not (probe-file pn)) *download*)
             (ocicl-install (car match)))
           pn)
