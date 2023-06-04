@@ -1,7 +1,7 @@
 # ocicl
 > An ASDF system distribution and management tool for Common Lisp
 
-NOTE: To request additions to the ocicl repo, file a new issue here at [https://github.com/ocicl/request-system-additions-here](https://github.com/ocicl/request-system-additions-here/issues/new?assignees=&labels=&projects=&template=request.yml&title=%5BSystem+Request%5D%3A+).
+NOTE: To request additions to the ocicl repo, create an Issue at [https://github.com/ocicl/request-system-additions-here](https://github.com/ocicl/request-system-additions-here/issues/new?assignees=&labels=&projects=&template=request.yml&title=%5BSystem+Request%5D%3A+).
 
 What is it?
 ------------
