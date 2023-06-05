@@ -50,11 +50,14 @@ Now run ``ocicl setup``.  This is a mandatory step that installs the
 
 ```
 $ ocicl setup
-; Add the following to your ${HOME}/.sbclrc file:
+;; Add the following to your ${HOME}/.sbclrc file:
 
 #-ocicl
 (when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
   (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
+;; Any systems you install in /home/green/.local/share/ocicl/
+;; will be available globally unless you comment out this line:
+(asdf:initialize-source-registry '(:source-registry :ignore-inherited-configuration (:tree #P"/home/green/.local/share/ocicl/")))
 ```
 
 The default behavior for the runtime is to invoke ``ocicl`` when ASDF
