@@ -31,7 +31,11 @@
   (:oname :verbose
    :description "produce verbose output"
    :short #\v
-   :long "verbose"))
+   :long "verbose")
+  (:oname :global
+   :description "operate on the global system collection"
+   :short #\g
+   :long "global"))
 
 (defun unknown-option (condition)
   (format t "warning: ~s option is unknown!~%" (option condition))
@@ -162,41 +166,50 @@ Distributed under the terms of the MIT License"
 
 (defun main ()
 
-  (setf *random-state* (make-random-state t))
-  (setq *ocicl-systems* (read-systems-csv))
-  (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                       (uiop:getcwd)))
+  (let ((workdir (uiop:getcwd)))
 
-  (multiple-value-bind (options free-args)
-      (handler-case
-          (handler-bind ((unknown-option #'unknown-option))
-            (get-opts))
-        (missing-arg (condition)
-          (format t "fatal: option ~s needs an argument!~%"
-                  (option condition)))
-        (arg-parser-failed (condition)
-          (format t "fatal: cannot parse ~s as argument of ~s~%"
-                  (raw-arg condition)
-                  (option condition))))
-    (when-option (options :verbose)
-                 (setf *verbose* t))
-    (if (not (> (length free-args) 0))
-        (usage)
-        (let ((cmd (car free-args)))
-          (cond
-            ((string= cmd "help")
-             (usage))
-            ((string= cmd "install")
-             (do-install (cdr free-args)))
-            ((string= cmd "latest")
-             (do-latest (cdr free-args)))
-            ((string= cmd "list")
-             (do-list (cdr free-args)))
-            ((string= cmd "setup")
-             (do-setup (cdr free-args)))
-            ((string= cmd "version")
-             (do-version (cdr free-args)))
-            (t (usage)))))))
+    (multiple-value-bind (options free-args)
+        (handler-case
+            (handler-bind ((unknown-option #'unknown-option))
+              (get-opts))
+          (missing-arg (condition)
+                       (format t "fatal: option ~s needs an argument!~%"
+                               (option condition)))
+          (arg-parser-failed (condition)
+                             (format t "fatal: cannot parse ~s as argument of ~s~%"
+                                     (raw-arg condition)
+                                     (option condition))))
+      (when-option (options :verbose)
+                   (setf *verbose* t))
+      (when-option (options :global)
+                   (setf workdir (get-ocicl-dir)))
+
+      (let ((original-directory (uiop:getcwd)))
+        (unwind-protect
+            (progn
+              (uiop:chdir workdir)
+              (setf *random-state* (make-random-state t))
+              (setq *ocicl-systems* (read-systems-csv))
+              (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+                                                   (uiop:getcwd)))
+              (if (not (> (length free-args) 0))
+                  (usage)
+                (let ((cmd (car free-args)))
+                  (cond
+                   ((string= cmd "help")
+                    (usage))
+                   ((string= cmd "install")
+                    (do-install (cdr free-args)))
+                   ((string= cmd "latest")
+                    (do-latest (cdr free-args)))
+                   ((string= cmd "list")
+                    (do-list (cdr free-args)))
+                   ((string= cmd "setup")
+                    (do-setup (cdr free-args)))
+                   ((string= cmd "version")
+                    (do-version (cdr free-args)))
+                   (t (usage))))))
+          (uiop:chdir original-directory))))))
 
 (defun replace-plus-with-string (str)
   (let ((mangled (with-output-to-string (s)
