@@ -48,7 +48,7 @@
 
 (defun usage ()
   (usage-describe
-   :prefix "ocicl 1.0.0 - copyright (C) 2023 Anthony Green <green@moxielogic.com>"
+   :prefix "ocicl 1.0.1 - copyright (C) 2023 Anthony Green <green@moxielogic.com>"
    :suffix "Choose from the following ocicl commands:
 
    help                                Print this help text
@@ -116,7 +116,7 @@ Distributed under the terms of the MIT License"
 
 (defun do-version (args)
   (declare (ignore args))
-  (format t "ocicl version:   1.0.0~%")
+  (format t "ocicl version:   1.0.1~%")
   (format t "Lisp runtime:    ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version))
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
