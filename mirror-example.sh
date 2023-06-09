@@ -10,7 +10,7 @@
 system=""
 
 for system in $(curl -S https://raw.githubusercontent.com/ocicl/request-system-additions-here/main/all-ocicl-systems.txt); do
-    ocicl list $system | while IFS= read -r line; do
+    ocicl -r ghcr.io/ocicl list $system | while IFS= read -r line; do
         # Check if the line is empty or contains a colon (indicating a new project)
         if [[ -z $line || $line == *":" ]]; then
             # If line contains a colon, strip it and assign to project
@@ -28,4 +28,3 @@ for system in $(curl -S https://raw.githubusercontent.com/ocicl/request-system-a
         fi
     done
 done
-
