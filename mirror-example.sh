@@ -19,7 +19,7 @@ for system in $(curl -S https://raw.githubusercontent.com/ocicl/request-system-a
             else
                 system=""
             fi
-            # If line contains a version tag
+        # If line contains a version tag
         elif [[ -n $system ]]; then
             version=$(echo $line | awk '{ print $1 }')
             echo "Copying system and signature for $system:$version"
@@ -28,3 +28,4 @@ for system in $(curl -S https://raw.githubusercontent.com/ocicl/request-system-a
         fi
     done
 done
+

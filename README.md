@@ -269,10 +269,11 @@ Self-Hosting
 
 You may wish to self-host the ``ocicl`` registry.  This is easy, given
 that the registry is just a regular OCI-compatible artifact registry.
-You can use tools like ``skopeo`` to copy artifacts from the default
-registry, ``ghcr.io/ocicl``, into your own.  Or you may choose to run
-a local registry that does pull-through caching, like the [Zot
-registry](https://zotregistry.io).
+You can use tools like
+[``skopeo``](https://github.com/containers/skopeo) to copy artifacts
+from the default registry, ``ghcr.io/ocicl``, into your own.  Or you
+may choose to run a local registry that does pull-through caching,
+like the [Zot registry](https://zotregistry.io).
 
 The ``ocicl`` source distribution includes a sample shell script for
 mirroring systems from ``ghcr.io/ocicl`` into a locally-hosted OCI
@@ -285,9 +286,9 @@ Systems
 -------
 
 Systems managed by ``ocicl`` are maintained in github, at
-``https://github.com/ocicl``.  Each system has its own source repo,
-and the ``README.org`` file contains everything required to build and
-publish to the OCI registry via github actions.
+[https://github.com/ocicl](https://github.com/ocicl).  Each system has
+its own source repo, with a ``README.org`` file contains everything
+required to build and publish to the OCI registry via github actions.
 
 The list of ocicl systems is always available at
 [https://raw.githubusercontent.com/ocicl/request-system-additions-here/main/all-ocicl-systems.txt](https://raw.githubusercontent.com/ocicl/request-system-additions-here/main/all-ocicl-systems.txt).
