@@ -101,12 +101,14 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 1.0.0 - copyright (C) 2023 Anthony Green <green@moxielogic.com>
+ocicl 1.0.2 - copyright (C) 2023 Anthony Green <green@moxielogic.com>
 
-Usage: ocicl [-h|--help] [-v|--verbose] command
+Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
 Available options:
   -v, --verbose            produce verbose output
+  -g, --global             operate on the global system collection
+  -r, --registry REGISTRY  use alternate oci registry
 
 Choose from the following ocicl commands:
 
@@ -167,6 +169,20 @@ version label in your ``ocicl install`` command.
 
 To update all systems in your ``systems.csv`` file to the latest
 version, run ``ocicl latest``.
+
+To use an alternate OCI registry for any operation, use the
+``--registry`` option.  Using ``--registry`` with the ``setup``
+command will persist this registry choice for all future ``ocicl``
+invocations.
+
+All system downloads are recorded in the current working directory by
+default.  However, you may choose to download systems "globally" for
+the current user by using the ``--global`` option.  This is equivalent
+to temporarily changing directory to a user-global directory before
+performing any operation.  These "global" systems are available at
+runtime by making sure you tell ASDF to search the global directory.
+``ocicl setup`` will suggest changes to your ``.sbclrc`` file to
+enable this.
 
 You can change the default behaviour of downloading systems on demand
 by setting ``ocicl-runtime:*download*`` to nil.
@@ -251,9 +267,19 @@ the scope of this document, but you can read about it at
 Self-Hosting
 ------------
 
-[This section needs to be written on hosting the OCI content in your
-own registry -- something very easy to do, as there are many useful
-tools to borrow from the container world.]
+You may wish to self-host the ``ocicl`` registry.  This is easy, given
+that the registry is just a regular OCI-compatible artifact registry.
+You can use tools like ``skopeo`` to copy artifacts from the default
+registry, ``ghcr.io/ocicl``, into your own.  Or you may choose to run
+a local registry that does pull-through caching, like the [Zot
+registry](https://zotregistry.io).
+
+The ``ocicl`` source distribution includes a sample shell script for
+mirroring systems from ``ghcr.io/ocicl`` into a locally-hosted OCI
+registry.
+
+Be sure to run ``setup`` with the ``--registry`` option to make this
+new registry your default.
 
 Systems
 -------
