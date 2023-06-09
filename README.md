@@ -275,8 +275,9 @@ from the default registry, ``ghcr.io/ocicl``, into your own.  Or you
 may choose to run a local registry that does pull-through caching,
 like the [Zot registry](https://zotregistry.io).
 
-The ``ocicl`` source distribution includes a sample shell script for
-mirroring systems from ``ghcr.io/ocicl`` into a locally-hosted OCI
+The ``ocicl`` source distribution includes a [sample shell
+script](https://raw.githubusercontent.com/ocicl/ocicl/main/mirror-example.sh)
+for mirroring systems from ``ghcr.io/ocicl`` into a locally-hosted OCI
 registry.
 
 Be sure to run ``setup`` with the ``--registry`` option to make this
