@@ -287,8 +287,13 @@ Systems
 Systems managed by ``ocicl`` are maintained in github, at
 ``https://github.com/ocicl``.  Each system has its own source repo,
 and the ``README.org`` file contains everything required to build and
-publish to the OCI registry via github actions.  Contributions are
-welcome and appreciated!
+publish to the OCI registry via github actions.
+
+The list of ocicl systems is always available at
+[https://raw.githubusercontent.com/ocicl/request-system-additions-here/main/all-ocicl-systems.txt](https://raw.githubusercontent.com/ocicl/request-system-additions-here/main/all-ocicl-systems.txt).
+
+Contributions are welcome and appreciated!  See
+https://github.com/ocicl/request-system-additions-here for details.
 
 Tips and Troubleshooting
 ------------------------
