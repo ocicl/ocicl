@@ -23,6 +23,7 @@
 
 (in-package #:ocicl)
 
+(defvar *ocicl-registry* "ghcr.io/ocicl")
 (defvar *verbose* nil)
 
 (defparameter +runtime+ (uiop:read-file-string "runtime/ocicl-runtime.lisp"))
@@ -35,7 +36,14 @@
   (:oname :global
    :description "operate on the global system collection"
    :short #\g
-   :long "global"))
+   :long "global")
+  (:oname :registry
+   :description "use alternate oci registry"
+   :short #\r
+   :arg-parser (lambda (arg) (setf *ocicl-registry* arg))
+   :meta-var "REGISTRY"
+   :default "ghcr.io/ocicl"
+   :long "registry"))
 
 (defun unknown-option (condition)
   (format t "warning: ~s option is unknown!~%" (option condition))
@@ -48,7 +56,7 @@
 
 (defun usage ()
   (usage-describe
-   :prefix "ocicl 1.0.1 - copyright (C) 2023 Anthony Green <green@moxielogic.com>"
+   :prefix "ocicl 1.0.2 - copyright (C) 2023 Anthony Green <green@moxielogic.com>"
    :suffix "Choose from the following ocicl commands:
 
    help                                Print this help text
@@ -74,7 +82,7 @@ Distributed under the terms of the MIT License"
       (handler-case
           (progn
             (format t "~A:~%" system)
-            (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ghcr.io/ocicl/~A" (mangle system)) :output '(:string))) #'string-lessp))))
+            (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ~A/~A" *ocicl-registry* (mangle system)) :output '(:string))) #'string-lessp))))
               (format t "~T~A~%" s)))
         (uiop/run-program:subprocess-error (e)
           (declare (ignore e))
@@ -116,12 +124,18 @@ Distributed under the terms of the MIT License"
 
 (defun do-version (args)
   (declare (ignore args))
-  (format t "ocicl version:   1.0.1~%")
+  (format t "ocicl version:   1.0.2~%")
   (format t "Lisp runtime:    ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version))
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
 (defun do-setup (args)
   (declare (ignore args))
+
+  (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
+                          :direction :output
+                          :if-exists :supersede)
+                  (write-string *ocicl-registry* stream))
+
   (let* ((odir (get-ocicl-dir))
          (runtime-source (merge-pathnames odir "ocicl-runtime.lisp")))
     (with-open-file (stream runtime-source
@@ -165,6 +179,10 @@ Distributed under the terms of the MIT License"
                *ocicl-systems*)))
 
 (defun main ()
+
+  (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
+    (when (probe-file config-file)
+      (setf *ocicl-registry* (uiop:read-file-string config-file))))
 
   (let ((workdir (uiop:getcwd)))
 
@@ -324,11 +342,11 @@ Distributed under the terms of the MIT License"
              (uiop:with-current-directory (dl-dir)
                (handler-case
                    (progn
-                     (debug-log (format nil "ocicl-oras pull ghcr.io/ocicl/~A:~A" (mangle name) version))
+                     (debug-log (format nil "ocicl-oras pull ~A/~A:~A" *ocicl-registry* (mangle name) version))
                      (let ((sha256
-                             (format nil "ghcr.io/ocicl/~A@sha256:~A" (mangle name)
+                             (format nil "~A/~A@sha256:~A" *ocicl-registry* (mangle name)
                                      (extract-sha256
-                                      (uiop:run-program (format nil "ocicl-oras pull ghcr.io/ocicl/~A:~A" (mangle name) version) :output '(:string))))))
+                                      (uiop:run-program (format nil "ocicl-oras pull ~A/~A:~A" *ocicl-registry* (mangle name) version) :output '(:string))))))
                        (format t "; downloaded ~A~%" sha256)
                        (let ((fpath (car (uiop:directory-files dl-dir))))
                          (gunzip fpath "package.tar")
