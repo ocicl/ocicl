@@ -20,7 +20,6 @@
 ;;;; OTHER DEALINGS IN THE SOFTWARE.
 
 (require 'asdf)
-(require 'sb-posix)
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
@@ -34,7 +33,7 @@
 (defvar *ocicl-systems* nil)
 (defvar *systems-dir* nil)
 (defvar *systems-csv* nil)
-(defvar *systems-csv-mtime* 0)
+(defvar *systems-csv-timestamp* 0)
 
 (defun split-on-delimeter (line delim)
   (let ((start 0)
@@ -63,13 +62,14 @@
     ht))
 
 (defun ocicl-install (name)
-  (let* ((cmd (format nil "ocicl install ~A" name))
-         (output (uiop:run-program cmd :output '(:string))))
-    (setq *systems-csv-mtime* 0)
-    (when *verbose*
-      (format t "~A~%~A~%" cmd output))))
+  (let ((cmd (format nil "ocicl install ~A" name)))
+    (when *verbose* (format t "; running: ~A~%" cmd))
+    (let ((output (uiop:run-program cmd :output '(:string))))
+      (setq *systems-csv-timestamp* 0)
+      (when *verbose*
+        (format t "~A~%~A~%" cmd output)))))
 
-(defun find-asdf-system-file (name &optional (download? t))
+(defun find-asdf-system-file (name download-p)
   (unless *systems-dir*
     (let ((cwd (uiop:getcwd)))
       (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
@@ -77,30 +77,31 @@
       (setq *systems-csv* (merge-pathnames cwd "systems.csv"))))
 
   (when (probe-file *systems-csv*)
-    (let ((mtime (sb-posix:stat-mtime (sb-posix:stat *systems-csv*))))
-      (when (> mtime *systems-csv-mtime*)
-        (when *verbose*
-          (format t "; old csv mtime = ~A~%; new csv mtime = ~A~%" *systems-csv-mtime* mtime))
+    (let ((timestamp (file-write-date *systems-csv*)))
+      (when (> timestamp *systems-csv-timestamp*)
         (setq *ocicl-systems* (read-systems-csv))
-        (setq *systems-csv-mtime* mtime))))
+        (setq *systems-csv-timestamp* timestamp))))
 
   (let ((match (and *ocicl-systems* (gethash name *ocicl-systems*))))
     (if match
         (let ((pn (pathname (concatenate 'string (namestring *systems-dir*) (cdr match)))))
           (when *verbose*
-            (progn
-              (format t "; checking for ~A~%" pn)
-              (print (probe-file pn))))
-          (when (and (not (probe-file pn)) *download*)
-            (ocicl-install (car match)))
-          pn)
-        (when (and *download* download?)
+            (format t "; checking for ~A: " pn))
+          (let ((found (probe-file pn)))
+            (if found
+                (progn
+                  (when *verbose* (format t "found~%"))
+                  pn)
+              (when *verbose* (format t "missing~%"))
+              (when download-p
+                (ocicl-install (car match))))))
+        (when download-p
           (ocicl-install name)
           (find-asdf-system-file name nil)))))
 
 (defun system-definition-searcher (name)
   (unless (or (string= "asdf" name) (string= "uiop" name))
-    (let ((system-file (find-asdf-system-file name)))
+    (let ((system-file (find-asdf-system-file name *download*)))
       (when (and system-file
                  (string= (pathname-name system-file) name))
         system-file))))
