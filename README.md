@@ -1,16 +1,16 @@
 # ocicl
-> An ASDF system distribution and management tool for Common Lisp
+> A modern ASDF system distribution and management tool for Common Lisp
 
-NOTE: To request additions to the ocicl repo, create an Issue at [https://github.com/ocicl/request-system-additions-here](https://github.com/ocicl/request-system-additions-here/issues/new?assignees=&labels=&projects=&template=request.yml&title=%5BSystem+Request%5D%3A+).
+NOTE: To request additions to the ocicl repo, create an Issue [here](https://github.com/ocicl/request-system-additions-here/issues/new?assignees=&labels=&projects=&template=request.yml&title=%5BSystem+Request%5D%3A+).
 
 What is it?
 ------------
 ``ocicl`` is a modern alternative to quicklisp.  It is modern in the sense that:
-* all software is [bundled as OCI-compliant artifacts](https://oras.land/) and distributed from an OCI-compliant registry (the github container registry).
-* all software is distributed over secure (TLS) connections.
-* [sigstore](https://www.sigstore.dev/) tooling is used to ensure the integrity and authenticity of all software bundles.
-* all software bundles are project-local, making it easy to lock specific versions to your own projects.
-* all software bundles are built and published transparently using hosted CI infrastructure ([github actions](https://github.com/ocicl/ocicl-action)).
+* All software is [packaged as OCI-compliant artifacts](https://oras.land/) and distributed from an OCI-compliant registry (the GitHub container registry).
+* All software packages are securely distributed over TLS connections.
+* [sigstore](https://www.sigstore.dev/) is used to ensure the integrity and authenticity of all software packages.
+* Software packages are project-local by default, simplifying the process of tying specific versions to your projects.
+* All software packages are built and published transparently using hosted CI infrastructure ([github actions](https://github.com/ocicl/ocicl-action)).
 
 ``ocicl`` is pronounced like
 "[ossicle](https://en.wikipedia.org/wiki/Ossicles)", a tiny bone
@@ -22,7 +22,7 @@ image.  It is responsible for finding and loading
 
 The main innovation behind ``ocicl`` is the idea of applying the
 ecosystem of tooling and services from the world of application
-container images to ordinary tarballs of Lisp code. OCI + CL = ``ocicl``.
+container images to ordinary tarballs of Lisp code. In essence, OCI + CL = ``ocicl``.
 
 ``ocicl`` is under active development.  It currently requires SBCL and
 only works on Linux and Windows, but adapting to other systems and platforms
