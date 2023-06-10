@@ -142,7 +142,7 @@ Distributed under the terms of the MIT License"
                             :direction :output
                             :if-exists :supersede)
       (write-string +runtime+ stream)
-      (format t ";; Add the following to your ${HOME}/.sbclrc file:~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%" runtime-source runtime-source)
+      (format t ";; Add the following to your lisp startup file (.sbclrc or .eclrc):~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%" runtime-source runtime-source)
       (format t ";; Any systems you install in ~A~%;; will be available globally unless you comment out this line:~%" odir)
 
       (format t "(asdf:initialize-source-registry '(:source-registry :ignore-inherited-configuration (:tree ~S)))~%~%" odir))))
