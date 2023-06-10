@@ -29,8 +29,8 @@ with both [SBCL](https://www.sbcl.org/) and
 [ecl](https://gitlab.com/embeddable-common-lisp), however the
 ``ocicl`` tool currently must be built with SCBL on either Linux or
 Window.  Adapting to other systems and platforms should not be
-difficult, and pull requests are even more welcome at
-https://github.com/ocicl/ocicl/pulls!  Feedback is also welcome at
+difficult, and pull requests are welcome at
+https://github.com/ocicl/ocicl/pulls.  Feedback is also welcome at
 https://github.com/ocicl/ocicl/issues.
 
 Quick Start
