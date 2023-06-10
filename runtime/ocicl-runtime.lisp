@@ -92,9 +92,10 @@
                 (progn
                   (when *verbose* (format t "found~%"))
                   pn)
-              (when *verbose* (format t "missing~%"))
-              (when download-p
-                (ocicl-install (car match))))))
+              (progn
+                (when *verbose* (format t "missing~%"))
+                (when download-p
+                  (ocicl-install (car match)))))))
         (when download-p
           (ocicl-install name)
           (find-asdf-system-file name nil)))))
