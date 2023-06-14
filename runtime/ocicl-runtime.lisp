@@ -23,7 +23,7 @@
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
-  (:export #:*download* #:*verbose*))
+  (:export #:*download* #:*verbose* #:+version+))
 
 (in-package #:ocicl-runtime)
 

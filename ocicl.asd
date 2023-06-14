@@ -25,6 +25,7 @@
   :description "Common Lisp system management"
   :author "Anthony Green <green@moxielogic.com>"
   :license "MIT"
+  :version (:read-file-form "version.sexp")
   :serial t
   :components ((:file "package")
                (:file "unix-opts")

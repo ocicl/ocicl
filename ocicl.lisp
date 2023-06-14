@@ -26,7 +26,11 @@
 (defvar *ocicl-registry* "ghcr.io/ocicl")
 (defvar *verbose* nil)
 
-(defparameter +runtime+ (uiop:read-file-string "runtime/ocicl-runtime.lisp"))
+(defparameter +version+ (uiop:read-file-form "version.sexp"))
+(defparameter +runtime+
+  (concatenate 'string
+               (uiop:read-file-string "runtime/ocicl-runtime.lisp")
+               (format nil "~%(defparameter +version+ ~S)~%" +version+)))
 
 (define-opts
   (:oname :verbose
@@ -56,7 +60,7 @@
 
 (defun usage ()
   (usage-describe
-   :prefix "ocicl 1.0.2 - copyright (C) 2023 Anthony Green <green@moxielogic.com>"
+   :prefix (format nil "ocicl ~A - copyright (C) 2023 Anthony Green <green@moxielogic.com>" +version+)
    :suffix "Choose from the following ocicl commands:
 
    help                                Print this help text
@@ -124,7 +128,7 @@ Distributed under the terms of the MIT License"
 
 (defun do-version (args)
   (declare (ignore args))
-  (format t "ocicl version:   1.0.2~%")
+  (format t "ocicl version:   ~A~%" +version+)
   (format t "Lisp runtime:    ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version))
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
