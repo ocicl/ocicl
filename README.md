@@ -30,9 +30,9 @@ to work with the following Common Lisp implementations:
 - [ecl](https://gitlab.com/embeddable-common-lisp)
 - [SBCL](https://www.sbcl.org/)
 
-However, the ``ocicl`` tool currently must be built with SCBL on
-either Linux or Windows.  Adapting to other systems and platforms
-should not be difficult, and pull requests are welcome at
+However, the ``ocicl`` command-line tool currently must be built with
+SBCL on either Linux or Windows.  Adapting to other systems and
+platforms should not be difficult, and pull requests are welcome at
 https://github.com/ocicl/ocicl/pulls.  Feedback is also welcome at
 https://github.com/ocicl/ocicl/issues.
 
@@ -40,15 +40,13 @@ Quick Start
 ------------
 
 Install ``ocicl`` by running ``make`` in the source directory.  This
-will build the ``ocicl`` binary and install it in ``${DESTDIR}/bin``.
-It will also install a helper program called ``ocicl-oras``.  This is
-just the ``oras`` binary from the Open Source CNCF [oras
-project](https://oras.land). We use ``ocicl-oras`` as a helper program to
-interface with OCI registries.  The default value for ``DESTDIR`` is
-``${HOME}/.local/bin``, but you can change it at install time like so:
-```
-$ DESTDIR=/usr/local make install
-```
+will build the ``ocicl`` binary and running ``make install`` install
+it in ``${DESTDIR}/bin``.  It will also install a helper program
+called ``ocicl-oras``.  This is just the ``oras`` binary from the Open
+Source CNCF [oras project](https://oras.land). We use ``ocicl-oras``
+as a helper program to interface with OCI registries.  The default
+value for ``DESTDIR`` is ``${HOME}/.local/bin``, but you can change it
+at install time like so: ``` $ DESTDIR=/usr/local make install ```
 Make sure the ``${DESTDIR}/bin`` directory is on your path.
 
 Now run ``ocicl setup``.  This is a mandatory step that installs the
