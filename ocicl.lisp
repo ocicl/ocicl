@@ -99,16 +99,25 @@ Distributed under the terms of the MIT License"
     (uiop:ensure-all-directories-exist (list ocicl-dir))
     ocicl-dir))
 
+(defvar *loaded* (make-hash-table))
+
 (defun load-system (name)
-  (if *verbose*
-      (asdf:load-system name)
-    (let ((*load-verbose* nil)
-          (*compile-verbose* nil)
-          (*load-print* nil)
-          (*compile-print* nil))
-      (handler-bind ((warning #'muffle-warning))
-        (handler-bind ((sb-ext:compiler-note #'muffle-warning))
-          (asdf:load-system name))))))
+  (unless (gethash name *loaded*)
+    (setf (gethash name *loaded*) 1)
+    (let ((system (if *verbose*
+                      (asdf:find-system name)
+                      (let ((*load-verbose* nil)
+                            (*compile-verbose* nil)
+                            (*load-print* nil)
+                            (*compile-print* nil))
+                        (handler-bind ((warning #'muffle-warning))
+                          (handler-bind ((sb-ext:compiler-note #'muffle-warning))
+                            (asdf:find-system name)))))))
+      (dolist (s (asdf:component-depends-on 'asdf:prepare-op system))
+        (when (equal (car s) 'asdf/lisp-action:load-op)
+          (and (cadr s) (load-system (cadr s)))))
+      (dolist (s (asdf:component-sideway-dependencies system))
+        (load-system s)))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
