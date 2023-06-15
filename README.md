@@ -24,12 +24,14 @@ The main innovation behind ``ocicl`` is the idea of applying the
 ecosystem of tooling and services from the world of application
 container images to ordinary tarballs of Lisp code. In essence, OCI + CL = ``ocicl``.
 
-``ocicl`` is under active development.  The ``ocicl-runtime`` works
-with both [SBCL](https://www.sbcl.org/) and
-[ecl](https://gitlab.com/embeddable-common-lisp), however the
-``ocicl`` tool currently must be built with SCBL on either Linux or
-Window.  Adapting to other systems and platforms should not be
-difficult, and pull requests are welcome at
+``ocicl`` is under active development.  The ``ocicl-runtime`` is known
+to work with the following Common Lisp implementations:
+- [abcl](https://abcl.org)
+- [ecl](https://gitlab.com/embeddable-common-lisp)
+- [SBCL](https://www.sbcl.org/)
+However, the ``ocicl`` tool currently must be built with SCBL on
+either Linux or Windows.  Adapting to other systems and platforms
+should not be difficult, and pull requests are welcome at
 https://github.com/ocicl/ocicl/pulls.  Feedback is also welcome at
 https://github.com/ocicl/ocicl/issues.
 
