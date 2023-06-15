@@ -99,6 +99,17 @@ Distributed under the terms of the MIT License"
     (uiop:ensure-all-directories-exist (list ocicl-dir))
     ocicl-dir))
 
+(defun load-system (name)
+  (if *verbose*
+      (asdf:load-system name)
+    (let ((*load-verbose* nil)
+          (*compile-verbose* nil)
+          (*load-print* nil)
+          (*compile-print* nil))
+      (handler-bind ((warning #'muffle-warning))
+        (handler-bind ((sb-ext:compiler-note #'muffle-warning))
+          (asdf:load-system name))))))
+
 (defun do-latest (args)
   ;; Make sure the systems directory exists
   (uiop:ensure-all-directories-exist
@@ -114,7 +125,7 @@ Distributed under the terms of the MIT License"
             (progn
               (format uiop:*stderr* "Error: system ~A not found.~%" system)
               (sb-ext:quit))
-            (asdf:load-system system)))
+            (load-system system)))
       ;; Download latest versions of all systems.
       (let ((blobs (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
@@ -161,16 +172,14 @@ Distributed under the terms of the MIT License"
       (dolist (system args)
         (if (position #\@ system)
             (progn
-              (format t "; downloading ~A~%" system)
               (unless (download-and-install system)
                 (progn
                   (format uiop:*stderr* "Error: can't download ~A.~%" system)
                   (sb-ext:quit))))
             (let* ((slist (split-on-delimeter system #\:))
                    (name (car slist)))
-              (format t "; downloading ~A~%" system)
               (if (download-system system)
-                  (asdf:load-system name)
+                  (load-system name)
                   (progn
                     (format uiop:*stderr* "Error: system ~A not found.~%" system)
                     (sb-ext:quit))))))
