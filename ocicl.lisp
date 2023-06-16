@@ -1,5 +1,7 @@
 ;;; ocicl.lisp
 ;;;
+;;; SPDX-License-Identifier: MIT
+;;;
 ;;; Copyright (C) 2023  Anthony Green <green@moxielogic.com>
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining a copy
