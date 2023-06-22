@@ -107,7 +107,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 1.0.2 - copyright (C) 2023 Anthony Green <green@moxielogic.com>
+ocicl 1.0.9 - copyright (C) 2023 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -122,7 +122,7 @@ Choose from the following ocicl commands:
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions
-   setup                               Mandatory ocicl configuration
+   setup [GLOBALDIR]                   Mandatory ocicl configuration
    version                             Show the ocicl version information
 
 Distributed under the terms of the MIT License
@@ -188,7 +188,8 @@ to temporarily changing directory to a user-global directory before
 performing any operation.  These "global" systems are available at
 runtime by making sure you tell ASDF to search the global directory.
 ``ocicl setup`` will suggest changes to your ``.sbclrc`` file to
-enable this.
+enable this.  To change the default user-global directory, provide the
+optional ``GLOBALDIR`` argument when you invoke ``ocicl setup``.
 
 You can change the default behaviour of downloading systems on demand
 by setting ``ocicl-runtime:*download*`` to nil.

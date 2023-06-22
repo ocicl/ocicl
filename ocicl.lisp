@@ -26,6 +26,7 @@
 (in-package #:ocicl)
 
 (defvar *ocicl-registry* "ghcr.io/ocicl")
+(defvar *ocicl-globaldir* nil)
 (defvar *verbose* nil)
 
 (defparameter +version+ (uiop:read-file-form "version.sexp"))
@@ -60,6 +61,37 @@
      (when it
        ,@body)))
 
+(defun split-on-delimeter (line delim)
+  (let ((start 0)
+        (end 0)
+        (result '()))
+    (loop for c across line
+          for i from 0
+          do (if (char= c delim)
+                 (progn
+                   (setq end i)
+                   (push (string-trim " " (subseq line start end)) result)
+                   (setq start (+ i 1))))
+          finally (push (string-trim " " (subseq line start)) result))
+    (nreverse result)))
+
+(defun split-csv-line (line)
+  (split-on-delimeter line #\,))
+
+(defun split-lines (line)
+  (split-on-delimeter line #\Newline))
+
+(defun read-systems-csv ()
+  (let ((systems-file (merge-pathnames (uiop:getcwd) "systems.csv"))
+        (ht (make-hash-table :test #'equal)))
+    (when (probe-file systems-file)
+      (progn
+        (dolist (line (uiop:read-file-lines systems-file))
+          (let ((vlist (split-csv-line line)))
+            (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))
+            ))))
+    ht))
+
 (defun usage ()
   (usage-describe
    :prefix (format nil "ocicl ~A - copyright (C) 2023 Anthony Green <green@moxielogic.com>" +version+)
@@ -69,7 +101,7 @@
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions
-   setup                               Mandatory ocicl configuration
+   setup [GLOBALDIR]                   Mandatory ocicl configuration
    version                             Show the ocicl version information
 
 Distributed under the terms of the MIT License"
@@ -146,23 +178,41 @@ Distributed under the terms of the MIT License"
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
 (defun do-setup (args)
-  (declare (ignore args))
 
   (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
                           :direction :output
                           :if-exists :supersede)
                   (write-string *ocicl-registry* stream))
+  (if args
+    (let ((original-directory (uiop:getcwd)))
+      (unwind-protect
+          (handler-case
+              (progn
+                (uiop:chdir (car args))
+                (setf args (list (namestring (uiop:getcwd))))
+                (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")
+                                        :direction :output
+                                        :if-exists :supersede)
+                                (write-string (car args) stream)))
+            (error (e)
+              (declare (ignore e))
+              (format uiop:*stderr* "Error: directory ~A does not exist.~%" (car args))
+              (sb-ext:quit)))
+        (uiop:chdir original-directory)))
+    (let ((old-config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
+      (when (probe-file old-config-file)
+        (delete-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))))
 
   (let* ((odir (get-ocicl-dir))
+         (gdir (or (car args) odir))
          (runtime-source (merge-pathnames odir "ocicl-runtime.lisp")))
     (with-open-file (stream runtime-source
                             :direction :output
                             :if-exists :supersede)
       (write-string +runtime+ stream)
       (format t ";; Add the following to your lisp startup file (.sbclrc/.eclrc/.abclrc):~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%" runtime-source runtime-source)
-      (format t ";; Any systems you install in ~A~%;; will be available globally unless you comment out this line:~%" odir)
-
-      (format t "(asdf:initialize-source-registry '(:source-registry :ignore-inherited-configuration (:tree ~S)))~%~%" odir))))
+      (format t ";; Any systems you install in ~A~%;; will be available globally unless you comment out this line:~%" gdir)
+      (format t "(asdf:initialize-source-registry '(:source-registry :ignore-inherited-configuration (:tree ~S)))~%~%" gdir))))
 
 
 (defun do-install (args)
@@ -199,6 +249,10 @@ Distributed under the terms of the MIT License"
     (when (probe-file config-file)
       (setf *ocicl-registry* (uiop:read-file-string config-file))))
 
+  (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
+    (when (probe-file config-file)
+      (setf *ocicl-globaldir* (uiop:read-file-string config-file))))
+
   (let ((workdir (uiop:getcwd)))
 
     (multiple-value-bind (options free-args)
@@ -215,7 +269,7 @@ Distributed under the terms of the MIT License"
       (when-option (options :verbose)
                    (setf *verbose* t))
       (when-option (options :global)
-                   (setf workdir (get-ocicl-dir)))
+                   (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
 
       (let ((original-directory (uiop:getcwd)))
         (unwind-protect
@@ -284,37 +338,6 @@ Distributed under the terms of the MIT License"
          (pos-at (position #\@ reversed))
          (pos-slash (position #\/ reversed :start pos-at)))
     (subseq input (- (length input) pos-slash) (- (length input) (1+ pos-at)))))
-
-(defun split-on-delimeter (line delim)
-  (let ((start 0)
-        (end 0)
-        (result '()))
-    (loop for c across line
-          for i from 0
-          do (if (char= c delim)
-                 (progn
-                   (setq end i)
-                   (push (string-trim " " (subseq line start end)) result)
-                   (setq start (+ i 1))))
-          finally (push (string-trim " " (subseq line start)) result))
-    (nreverse result)))
-
-(defun split-csv-line (line)
-  (split-on-delimeter line #\,))
-
-(defun split-lines (line)
-  (split-on-delimeter line #\Newline))
-
-(defun read-systems-csv ()
-  (let ((systems-file (merge-pathnames (uiop:getcwd) "systems.csv"))
-        (ht (make-hash-table :test #'equal)))
-    (when (probe-file systems-file)
-      (progn
-        (dolist (line (uiop:read-file-lines systems-file))
-          (let ((vlist (split-csv-line line)))
-            (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))
-            ))))
-    ht))
 
 (defvar *ocicl-systems* nil)
 
