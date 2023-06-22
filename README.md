@@ -69,12 +69,19 @@ $ ocicl setup
 The default behavior for the runtime is to invoke ``ocicl`` when ASDF
 tries to load a system that it can't find.
 
-Try running this:
+If you are running behind a proxy, be sure to set your ``https_proxy``
+environment variable appropriately.  For instance, the following could
+be used for an authenticating proxy:
+```
+$ export https_proxy=https://username:password@myproxyhost:8080
+```
+
+Now try running this:
 ```
 $ sbcl --eval "(asdf:load-system :str)"
 ```
 
-Now look at your current directory.  You should see a directory called
+Look at your current directory.  You should see a directory called
 ``systems`` and a file called ``systems.csv``.  The ``systems``
 directory contains the code you just downloaded, and ``systems.csv``
 contains a mapping of system names to OCI artifacts and ``.asd``
