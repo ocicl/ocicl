@@ -7,8 +7,11 @@ DESTDIR ?= ${HOME}/.local
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
     detected_OS := Windows
 else
-    detected_OS := $(shell uname)  # same as "uname -s"
+    detected_OS := $(shell uname)# same as "uname -s"
+    UNAME_M := $(shell uname -m)
 endif
+
+
 
 install:
 	mkdir -p ${DESTDIR}/bin || true ;
@@ -19,6 +22,17 @@ ifeq ($(detected_OS),Windows)
 	cp ocicl.exe ${DESTDIR}/bin ;
 	unzip oras/oras_1.0.0_windows_amd64.zip oras.exe
 	cp oras.exe ${DESTDIR}/bin/ocicl-oras.exe
+else ifeq ($(detected_OS),Darwin)
+	echo "Installing for macOS $(UNAME_M)..."
+	cp ocicl ${DESTDIR}/bin ;
+ifeq ($(UNAME_M),x86_64)
+		tar xvf oras/oras_1.0.0_darwin_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
+else ifeq ($(UNAME_M),arm)
+		tar xvf oras/oras_1.0.0_darwin_arm64.tar.gz -C /tmp oras > /dev/null 2>&1;
+else
+		echo "Unsupport macOS type: $(UNAME_M)"
+endif
+	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
 else
 	echo "Installing for Linux..."
 	cp ocicl ${DESTDIR}/bin ;
