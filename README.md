@@ -314,13 +314,12 @@ https://github.com/ocicl/request-system-additions-here for details.
 Tips and Troubleshooting
 ------------------------
 
-You may find it convenient to tell ASDF to load from the current directory.
+* You may find it convenient to tell ASDF to load from the current directory.
 Do this by placing the following in your ``.sbclrc`` file:
 ```
 (pushnew (uiop:getcwd) asdf:*central-registry*)
 ```
-
-As an ``ocicl`` user, you may have had experience using quicklisp's
+* As an ``ocicl`` user, you may have had experience using quicklisp's
 ``local-projects`` mechanism, and are wondering how to do something
 similar.  ASDF itself provides a simple mechanism for searching a
 collection of subdirs for ``.asd`` files.  If, for instance, you had
@@ -329,8 +328,7 @@ a directory in which you cloned various lisp systems called
 ```
 (asdf:initialize-source-registry '(:source-registry :ignore-inherited-configuration (:tree #P"/path/to/my/local-projects/")))
 ```
-
-Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and
+* Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and
 interesting log info.
 
 Author and License
