@@ -32,7 +32,7 @@ to work with the following Common Lisp implementations:
 - [SBCL](https://www.sbcl.org/)
 
 However, the ``ocicl`` command-line tool currently must be built with
-SBCL on either Linux or Windows.  Adapting to other systems and
+SBCL on either Linux, Windows or MacOS.  Adapting to other systems and
 platforms should not be difficult, and pull requests are welcome at
 https://github.com/ocicl/ocicl/pulls.  Feedback is also welcome at
 https://github.com/ocicl/ocicl/issues.
