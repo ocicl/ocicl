@@ -25,10 +25,8 @@ ifeq ($(detected_OS),Windows)
 else ifeq ($(detected_OS),Darwin)
 	echo "Installing for macOS $(UNAME_M)..."
 	cp ocicl ${DESTDIR}/bin ;
-ifeq ($(UNAME_M),x86_64)
-		tar xvf oras/oras_1.0.0_darwin_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
-else ifeq ($(UNAME_M),arm)
-		tar xvf oras/oras_1.0.0_darwin_arm64.tar.gz -C /tmp oras > /dev/null 2>&1;
+ifneq (,$(findstring $(UNAME_M),x86_64 arm arm64))
+		tar xvf oras/oras_1.0.0_darwin_$(UNAME_M).tar.gz -C /tmp oras > /dev/null 2>&1;
 else
 		echo "Unsupport macOS type: $(UNAME_M)"
 endif
