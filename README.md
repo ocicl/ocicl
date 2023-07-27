@@ -302,7 +302,7 @@ Systems
 
 Systems managed by ``ocicl`` are maintained in github, at
 [https://github.com/ocicl](https://github.com/ocicl).  Each system has
-its own source repo, with a ``README.org`` file contains everything
+its own source repo, with a ``README.org`` file containing everything
 required to build and publish to the OCI registry via github actions.
 
 The list of ocicl systems is always available at
