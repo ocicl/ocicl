@@ -41,14 +41,15 @@ Quick Start
 ------------
 
 Install ``ocicl`` by running ``make`` in the source directory.  This
-will build the ``ocicl`` binary and running ``make install`` install
-it in ``${DESTDIR}/bin``.  It will also install a helper program
-called ``ocicl-oras``.  This is just the ``oras`` binary from the Open
-Source CNCF [oras project](https://oras.land). We use ``ocicl-oras``
-as a helper program to interface with OCI registries.  The default
-value for ``DESTDIR`` is ``${HOME}/.local/bin``, but you can change it
-at install time like so: ``` $ DESTDIR=/usr/local make install ```
-Make sure the ``${DESTDIR}/bin`` directory is on your path.
+will build the ``ocicl`` binary, and running ``make install`` will
+install it in ``${DESTDIR}/bin``.  It will also install a helper
+program called ``ocicl-oras``.  This is just the ``oras`` binary from
+the Open Source CNCF [oras project](https://oras.land). We use
+``ocicl-oras`` as a helper program to interface with OCI registries.
+The default value for ``DESTDIR`` is ``${HOME}/.local/bin``, but you
+can change it at install time like so: ``` $ DESTDIR=/usr/local make
+install ``` Make sure the ``${DESTDIR}/bin`` directory is on your
+path.
 
 Now run ``ocicl setup``.  This is a mandatory step that installs the
 ``ocicl-runtime`` library, and suggests configurations for your
