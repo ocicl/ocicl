@@ -34,7 +34,7 @@
                (:file "deflate")
                (:file "minitar")
                (:file "ocicl"))
-  :depends-on (:sb-posix :sb-bsd-sockets :sb-rotate-byte :sb-cltl2 :sb-introspect :sb-concurrency :sb-sprof)
+  :depends-on (:sb-posix :sb-bsd-sockets :sb-rotate-byte :sb-cltl2 :sb-introspect :sb-concurrency :sb-sprof :sb-md5)
   :build-operation "program-op"
   :build-pathname "ocicl"
   :entry-point "ocicl:main")
