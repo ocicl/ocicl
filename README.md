@@ -6,7 +6,7 @@ NOTE: To request additions to the ocicl repo, create an Issue [here](https://git
 What is it?
 ------------
 ``ocicl`` is a modern alternative to quicklisp.  It is modern in the sense that:
-* All software is [packaged as OCI-compliant artifacts](https://oras.land/) and distributed from an OCI-compliant registry (the GitHub container registry).
+* All software is [packaged as OCI-compliant artifacts](https://oras.land/) and distributed from mirrored OCI-compliant registries (the GitHub and Docker Hub Container Registries).
 * All software packages are securely distributed over TLS connections.
 * All connections respect ``https_proxy`` environment settings for authenticated proxy support.
 * [sigstore](https://www.sigstore.dev/) is used to ensure the integrity and authenticity of all software packages.
@@ -314,6 +314,10 @@ https://github.com/ocicl/request-system-additions-here for details.
 
 Tips and Troubleshooting
 ------------------------
+
+* In the unlikely event that ``ghcr.io`` is unreachable, all packages
+are also available at ``docker.io/ocicl``.  Switch registries by
+running ``ocicl setup -r docker.io/ocicl``.
 
 * You may find it convenient to tell ASDF to load from the current directory.
 Do this by placing the following in your ``.sbclrc`` file:
