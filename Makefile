@@ -20,13 +20,13 @@ install:
 ifeq ($(detected_OS),Windows)
 	echo "Installing for Windows..."
 	cp ocicl.exe ${DESTDIR}/bin
-	unzip oras/oras_1.0.0_windows_amd64.zip oras.exe
+	unzip oras/oras_1.0.1_windows_amd64.zip oras.exe
 	cp oras.exe ${DESTDIR}/bin/ocicl-oras.exe
 else ifeq ($(detected_OS),Darwin)
 	echo "Installing for macOS $(UNAME_M)..."
 	cp ocicl ${DESTDIR}/bin ;
 ifneq (,$(findstring $(UNAME_M),x86_64 arm arm64))
-		tar xvf oras/oras_1.0.0_darwin_$(UNAME_M).tar.gz -C /tmp oras > /dev/null 2>&1;
+		tar xvf oras/oras_1.0.1_darwin_$(UNAME_M).tar.gz -C /tmp oras > /dev/null 2>&1;
 else
 		echo "Unsupport macOS type: $(UNAME_M)"
 endif
@@ -34,7 +34,7 @@ endif
 else
 	echo "Installing for Linux..."
 	cp ocicl ${DESTDIR}/bin ;
-	tar xvf oras/oras_1.0.0_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
+	tar xvf oras/oras_1.0.1_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
 	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
 endif
 	${DESTDIR}/bin/ocicl setup
