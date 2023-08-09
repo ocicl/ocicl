@@ -247,7 +247,7 @@ Distributed under the terms of the MIT License"
 
   (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
     (when (probe-file config-file)
-      (setf *ocicl-registry* (uiop:read-file-string config-file))))
+      (setf *ocicl-registry* (string-trim '(#\Space #\Tab #\Newline #\Return) (uiop:read-file-string config-file)))))
 
   (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
     (when (probe-file config-file)
