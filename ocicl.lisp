@@ -25,6 +25,8 @@
 
 (in-package #:ocicl)
 
+(require 'sb-introspect)
+
 (defvar *ocicl-registry* "ghcr.io/ocicl")
 (defvar *ocicl-globaldir* nil)
 (defvar *verbose* nil)
