@@ -240,7 +240,7 @@ gpg: Good signature from "ocicl-tarball-signer" [ultimate]
 
 These signatures are also archived in the
 [sigstore](https://www.sigstore.dev) [rekor transparency
-log](https://docs.sigstore.dev/rekor/overview/).  This gives you and
+log](https://docs.sigstore.dev/logging/overview/).  This gives you and
 your auditors confidence that the code you are running is what it
 claims to be.
 
