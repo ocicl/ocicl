@@ -15,24 +15,25 @@ endif
 
 install:
 	mkdir -p ${DESTDIR}/bin || true ;
-	echo $(OS)
-	echo $(detected_OS)
 ifeq ($(detected_OS),Windows)
-	echo "Installing for Windows..."
+	@echo "Installing for Windows..."
 	cp ocicl.exe ${DESTDIR}/bin
 	unzip oras/oras_1.0.1_windows_amd64.zip oras.exe
 	cp oras.exe ${DESTDIR}/bin/ocicl-oras.exe
 else ifeq ($(detected_OS),Darwin)
-	echo "Installing for macOS $(UNAME_M)..."
+	@echo "Installing for macOS $(UNAME_M)..."
 	cp ocicl ${DESTDIR}/bin ;
-ifneq (,$(findstring $(UNAME_M),x86_64 arm arm64))
-		tar xvf oras/oras_1.0.1_darwin_$(UNAME_M).tar.gz -C /tmp oras > /dev/null 2>&1;
-else
-		echo "Unsupport macOS type: $(UNAME_M)"
-endif
+  case $(UNAME_M) in
+	  x86_64|amd64)
+			tar xvf oras/oras_1.0.1_darwin_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
+		arm64)
+			tar xvf oras/oras_1.0.1_darwin_arm64.tar.gz -C /tmp oras > /dev/null 2>&1;
+		*)
+			echo "Unsupport macOS type: $(UNAME_M)";
+  esac
 	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
 else
-	echo "Installing for Linux..."
+	@echo "Installing for Linux..."
 	cp ocicl ${DESTDIR}/bin ;
 	tar xvf oras/oras_1.0.1_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
 	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
