@@ -1,0 +1,42 @@
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main, windows ]
+  pull_request:
+    branches: [ main, windows ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install SBCL
+        run: |
+          curl -L -O "http://prdownloads.sourceforge.net/sbcl/sbcl-2.2.9-x86-64-darwin-binary.tar.bz2"
+          tar -xf sbcl-2.2.9-x86-64-darwin-binary.tar.bz2
+          cd sbcl-2.2.9-x86-64-darwin
+          ./install.sh --prefix=$HOME
+          cd ..
+          rm -rf sbcl-2.2.9-x86-64-darwin-binary.tar.bz2 sbcl-2.2.9-x86-64-darwin
+        shell: bash
+      - name: Build and Install
+        run: |
+          make
+          DESTDIR=$HOME make install
+          ocicl setup > ~/.sbclrc
+          echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
+        shell: bash
+      - name: Test
+        run: |
+          mkdir test
+          cd test
+          ocicl install sento
+          cat systems.csv
+          ls -l systems
+          sbcl --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
+          sbcl --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
+          rm -rf systems
+          ocicl install
+          ocicl latest
+        shell: bash
