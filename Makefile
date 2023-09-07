@@ -18,8 +18,7 @@ install:
 ifeq ($(detected_OS),Windows)
 	@echo "Installing for Windows..."
 	cp ocicl.exe ${DESTDIR}/bin
-	unzip oras/oras_1.0.1_windows_amd64.zip oras.exe
-	cp oras.exe ${DESTDIR}/bin/ocicl-oras.exe
+	sbcl --load install.lisp oras/oras_1.0.1_windows_amd64.gz ${DESTDIR}/bin/ocicl-oras.exe
 else ifeq ($(detected_OS),Darwin)
 	@echo "Installing for macOS $(UNAME_M)..."
 	cp ocicl ${DESTDIR}/bin ;
