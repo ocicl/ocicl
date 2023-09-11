@@ -35,3 +35,5 @@
 
 (let ((argv sb-ext:*posix-argv*))
   (gunzip (second argv) (third argv)))
+
+(sb-posix:exit 0)
