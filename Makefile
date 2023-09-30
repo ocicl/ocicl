@@ -2,7 +2,7 @@
 
 ocicl: *.lisp *.asd Makefile runtime/ocicl-runtime.lisp
 	rm -rf systems systems.csv;
-	sbcl --no-userinit --dynamic-space-size 2048 --eval "(require 'asdf)" --eval "(progn (push (uiop:getcwd) asdf:*central-registry*) (asdf:make :ocicl) (sb-ext:quit))"
+	sbcl --dynamic-space-size 2048 --no-userinit --eval "(require 'asdf)" --eval "(progn (push (uiop:getcwd) asdf:*central-registry*) (asdf:make :ocicl) (sb-ext:quit))"
 
 DESTDIR ?= ${HOME}/.local
 
