@@ -30,6 +30,7 @@
 (defvar *ocicl-registry* "ghcr.io/ocicl")
 (defvar *ocicl-globaldir* nil)
 (defvar *verbose* nil)
+(defvar *ocicl-systems* nil)
 
 (defparameter +version+ (uiop:read-file-form "version.sexp"))
 (defparameter +runtime+
