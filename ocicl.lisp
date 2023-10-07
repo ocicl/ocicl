@@ -27,9 +27,10 @@
 
 (require 'sb-introspect)
 
-(defvar *ocicl-registry* "ghcr.io/ocicl")
+(defvar *ocicl-registries* (list "ghcr.io/ocicl"))
 (defvar *ocicl-globaldir* nil)
 (defvar *verbose* nil)
+(defvar *ocicl-systems* nil)
 
 (defparameter +version+ (uiop:read-file-form "version.sexp"))
 (defparameter +runtime+
@@ -49,7 +50,7 @@
   (:oname :registry
    :description "use alternate oci registry"
    :short #\r
-   :arg-parser (lambda (arg) (setf *ocicl-registry* arg))
+   :arg-parser (lambda (arg) (setf *ocicl-registries* (list arg)))
    :meta-var "REGISTRY"
    :default "ghcr.io/ocicl"
    :long "registry"))
@@ -119,14 +120,16 @@ Distributed under the terms of the MIT License"
 (defun do-list (args)
   (when args
     (dolist (system args)
-      (handler-case
-          (progn
-            (format t "~A:~%" system)
-            (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ~A/~A" *ocicl-registry* (mangle system)) :output '(:string))) #'string-lessp))))
-              (format t "~T~A~%" s)))
-        (uiop/run-program:subprocess-error (e)
-          (declare (ignore e))
-          (format t "~T~A not found~%" system)))
+      (loop for registry in *ocicl-registries*
+            do (handler-case
+                   (progn
+                     (format t "~A(~A):~%" system registry)
+                     (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ~A/~A" registry (mangle system)) :output '(:string))) #'string-lessp))))
+                       (format t "~T~A~%" s))
+                     (return))
+                 (uiop/run-program:subprocess-error (e)
+                   (declare (ignore e))
+                   (format t "~T~A not found~%" system))))
       (format t "~%"))))
 
 (defun get-ocicl-dir ()
@@ -184,7 +187,7 @@ Distributed under the terms of the MIT License"
   (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
                           :direction :output
                           :if-exists :supersede)
-                  (write-string *ocicl-registry* stream))
+    (write-string (first *ocicl-registries*) stream))
   (if args
     (let ((original-directory (uiop:getcwd)))
       (unwind-protect
@@ -249,7 +252,13 @@ Distributed under the terms of the MIT License"
 
   (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
     (when (probe-file config-file)
-      (setf *ocicl-registry* (string-trim '(#\Space #\Tab #\Newline #\Return) (uiop:read-file-string config-file)))))
+      (setf *ocicl-registries*
+            (with-open-file (in config-file)
+              (loop for line = (read-line in nil nil)
+                    while line
+                    ;; skip comments
+                    unless (char= #\# (aref line 0))
+                      collect (string-trim '(#\Space #\Tab #\Newline #\Return) line))))))
 
   (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
     (when (probe-file config-file)
@@ -380,24 +389,26 @@ Distributed under the terms of the MIT License"
            (progn
              (uiop:ensure-all-directories-exist (list dl-dir))
              (uiop:with-current-directory (dl-dir)
-               (handler-case
-                   (progn
-                     (debug-log (format nil "ocicl-oras pull ~A/~A:~A" *ocicl-registry* (mangle name) version))
-                     (let ((sha256
-                             (format nil "~A/~A@sha256:~A" *ocicl-registry* (mangle name)
-                                     (extract-sha256
-                                      (uiop:run-program (format nil "ocicl-oras pull ~A/~A:~A" *ocicl-registry* (mangle name) version) :output '(:string))))))
-                       (format t "; downloaded ~A~%" sha256)
-                       (let ((fpath (car (uiop:directory-files dl-dir))))
-                         (gunzip fpath "package.tar")
-                         (let ((dirname (car (contents "package.tar"))))
-                           (uiop:with-current-directory (*systems-dir*)
-                             (unpack-tarball (merge-pathnames dl-dir "package.tar"))
-                             (dolist (s (find-asd-files (merge-pathnames dirname *systems-dir*)))
-                               (setf (gethash (pathname-name s) *ocicl-systems*) (cons sha256 (subseq (namestring s) (length (namestring *systems-dir*)))))))))))
-                 (uiop/run-program:subprocess-error (e)
-                   (debug-log e)
-                   nil))))
+               (loop for registry in *ocicl-registries*
+                     do (handler-case
+                            (progn
+                              (debug-log (format nil "ocicl-oras pull ~A/~A:~A" registry (mangle name) version))
+                              (let ((sha256
+                                      (format nil "~A/~A@sha256:~A" registry (mangle name)
+                                              (extract-sha256
+                                               (uiop:run-program (format nil "ocicl-oras pull ~A/~A:~A" registry (mangle name) version) :output '(:string))))))
+                                (format t "; downloaded ~A~%" sha256)
+                                (let ((fpath (car (uiop:directory-files dl-dir))))
+                                  (gunzip fpath "package.tar")
+                                  (let ((dirname (car (contents "package.tar"))))
+                                    (uiop:with-current-directory (*systems-dir*)
+                                      (unpack-tarball (merge-pathnames dl-dir "package.tar"))
+                                      (dolist (s (find-asd-files (merge-pathnames dirname *systems-dir*)))
+                                        (setf (gethash (pathname-name s) *ocicl-systems*) (cons sha256 (subseq (namestring s) (length (namestring *systems-dir*))))))
+                                      (return))))))
+                          (uiop/run-program:subprocess-error (e)
+                            (debug-log e)
+                            nil)))))
         (uiop:delete-directory-tree dl-dir :validate t)))
     (write-systems-csv)
     (gethash name *ocicl-systems*)))
