@@ -189,6 +189,11 @@ To use an alternate OCI registry for any operation, use the
 command will persist this registry choice for all future ``ocicl``
 invocations.
 
+While the `ocicl` cli tool only supports setting a single alternate
+registry, it's possible to use multiple registries by adding multiple
+entries to the `ocicl-registry.cfg` file in your `${XDG_DATA_DIR}/ocicl`
+directory.
+
 All system downloads are recorded in the current working directory by
 default.  However, you may choose to download systems "globally" for
 the current user by using the ``--global`` option.  This is equivalent
