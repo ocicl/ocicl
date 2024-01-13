@@ -293,7 +293,7 @@ You can use tools like
 [``skopeo``](https://github.com/containers/skopeo) to copy artifacts
 from the default registry, ``ghcr.io/ocicl``, into your own.  Or you
 may choose to run a local registry that does pull-through caching,
-like the [Zot registry](https://zotregistry.io).
+like the [Zot registry](https://zotregistry.dev).
 
 The ``ocicl`` source distribution includes a [sample shell
 script](https://raw.githubusercontent.com/ocicl/ocicl/main/mirror-example.sh)
