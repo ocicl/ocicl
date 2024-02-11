@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Copyright (C) 2023  Anthony Green <green@moxielogic.com>
+;;; Copyright (C) 2023, 2024  Anthony Green <green@moxielogic.com>
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;;; of this software and associated documentation files (the "Software"), to deal
@@ -97,7 +97,7 @@
 
 (defun usage ()
   (usage-describe
-   :prefix (format nil "ocicl ~A - copyright (C) 2023 Anthony Green <green@moxielogic.com>" +version+)
+   :prefix (format nil "ocicl ~A - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>" +version+)
    :suffix "Choose from the following ocicl commands:
 
    help                                Print this help text
@@ -133,6 +133,7 @@ Distributed under the terms of the MIT License"
       (format t "~%"))))
 
 (defun get-ocicl-dir ()
+  "Find the ocicl directory."
   (let ((ocicl-dir (merge-pathnames (make-pathname :directory '(:relative "ocicl"))
                                      (uiop:xdg-data-home))))
     (uiop:ensure-all-directories-exist (list ocicl-dir))
@@ -314,13 +315,23 @@ Distributed under the terms of the MIT License"
                     (loop for c across str do
                           (if (char= c #\+)
                               (write-string "_plus_" s)
-                            (write-char c s))))))
+                              (write-char c s))))))
+    (if (char= (char mangled (- (length mangled) 1)) #\_)
+        (subseq mangled 0 (- (length mangled) 1))
+      mangled)))
+
+(defun replace-slash-with-string (str)
+  (let ((mangled (with-output-to-string (s)
+                    (loop for c across str do
+                          (if (char= c #\/)
+                              (write-string "_slash_" s)
+                              (write-char c s))))))
     (if (char= (char mangled (- (length mangled) 1)) #\_)
         (subseq mangled 0 (- (length mangled) 1))
       mangled)))
 
 (defun mangle (str)
-  (replace-plus-with-string str))
+  (replace-slash-with-string (replace-plus-with-string str)))
 
 (defun get-temp-ocicl-dl-pathname ()
   (let ((rdir (format nil "ocicl-~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*))))

@@ -1,7 +1,8 @@
 # ocicl
 > A modern ASDF system distribution and management tool for Common Lisp
 
-NOTE: To request additions to the ocicl repo, create an Issue [here](https://github.com/ocicl/request-system-additions-here/issues/new?assignees=&labels=&projects=&template=request.yml&title=%5BSystem+Request%5D%3A+).
+NOTE: To request additions to the ocicl repo, create an Issue
+[here](https://github.com/ocicl/request-system-additions-here/issues/new?assignees=&labels=&projects=&template=request.yml&title=%5BSystem+Request%5D%3A+).
 
 What is it?
 ------------
@@ -115,7 +116,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 1.0.9 - copyright (C) 2023 Anthony Green <green@moxielogic.com>
+ocicl 1.0.20 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
