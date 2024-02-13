@@ -437,7 +437,8 @@ Distributed under the terms of the MIT License"
 
 (defun system-definition-searcher (name)
   (unless (or (string= name "asdf") (string= name "uiop"))
-    (let ((system-file (find-asdf-system-file name)))
+    (let* ((*verbose* (or *verbose* (and asdf:*verbose-out* t)))
+           (system-file (find-asdf-system-file name)))
       (when (and system-file
                  (string= (pathname-name system-file) name))
         system-file))))
