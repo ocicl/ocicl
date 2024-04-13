@@ -320,18 +320,8 @@ Distributed under the terms of the MIT License"
         (subseq mangled 0 (- (length mangled) 1))
       mangled)))
 
-(defun replace-slash-with-string (str)
-  (let ((mangled (with-output-to-string (s)
-                    (loop for c across str do
-                          (if (char= c #\/)
-                              (write-string "_slash_" s)
-                              (write-char c s))))))
-    (if (char= (char mangled (- (length mangled) 1)) #\_)
-        (subseq mangled 0 (- (length mangled) 1))
-      mangled)))
-
 (defun mangle (str)
-  (replace-slash-with-string (replace-plus-with-string str)))
+  (replace-plus-with-string (car (split-on-delimeter str #\/))))
 
 (defun get-temp-ocicl-dl-pathname ()
   (let ((rdir (format nil "ocicl-~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*))))
@@ -422,13 +412,13 @@ Distributed under the terms of the MIT License"
                             nil)))))
         (uiop:delete-directory-tree dl-dir :validate t)))
     (write-systems-csv)
-    (gethash name *ocicl-systems*)))
+    (gethash (mangle name) *ocicl-systems*)))
 
 (defun find-asdf-system-file (name)
   (pathname
    (concatenate 'string
                 (namestring *systems-dir*)
-                (or (cdr (gethash name *ocicl-systems*))
+                (or (cdr (gethash (mangle name) *ocicl-systems*))
                     (handler-case
                         (cdr (download-system name))
                       (uiop/run-program:subprocess-error (e)
