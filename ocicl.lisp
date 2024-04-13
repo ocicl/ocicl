@@ -405,7 +405,7 @@ Distributed under the terms of the MIT License"
                                     (uiop:with-current-directory (*systems-dir*)
                                       (unpack-tarball (merge-pathnames dl-dir "package.tar"))
                                       (dolist (s (find-asd-files (merge-pathnames dirname *systems-dir*)))
-                                        (setf (gethash (pathname-name s) *ocicl-systems*) (cons sha256 (subseq (namestring s) (length (namestring *systems-dir*))))))
+                                        (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons sha256 (subseq (namestring s) (length (namestring *systems-dir*))))))
                                       (return))))))
                           (uiop/run-program:subprocess-error (e)
                             (debug-log e)

@@ -116,7 +116,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 1.0.22 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 1.0.23 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
