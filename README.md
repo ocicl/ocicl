@@ -65,7 +65,7 @@ $ ocicl setup
   (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
 ;; Any systems you install in /home/green/.local/share/ocicl/
 ;; will be available globally unless you comment out this line:
-(asdf:initialize-source-registry '(:source-registry :ignore-inherited-configuration (:tree #P"/home/green/.local/share/ocicl/")))
+(asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree #P"/home/green/.local/share/ocicl/")))
 ```
 
 The default behavior for the runtime is to invoke ``ocicl`` when ASDF
@@ -116,7 +116,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 1.0.23 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.0.1 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -337,7 +337,7 @@ collection of subdirs for ``.asd`` files.  If, for instance, you had
 a directory in which you cloned various lisp systems called
 ``/path/to/my/local-projects``, you would configure ASDF thusly:
 ```
-(asdf:initialize-source-registry '(:source-registry :ignore-inherited-configuration (:tree #P"/path/to/my/local-projects/")))
+(asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree #P"/path/to/my/local-projects/")))
 ```
 * Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and
 interesting log info.
