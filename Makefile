@@ -21,6 +21,7 @@ ifeq ($(detected_OS),Windows)
 	@echo "Installing for Windows..."
 	cp ocicl.exe ${DESTDIR}/bin
 	sbcl --load install.lisp oras/oras_1.1.0_windows_amd64.gz ${DESTDIR}/bin/ocicl-oras.exe
+  ${DESTDIR}/bin/ocicl.exe setup
 else ifeq ($(detected_OS),Darwin)
 	@echo "Installing for macOS $(UNAME_M)..."
 	cp ocicl ${DESTDIR}/bin ;
@@ -35,6 +36,7 @@ else ifeq ($(detected_OS),Darwin)
 			echo "Unsupport macOS type: $(UNAME_M)"; \
 	esac; \
 	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
+  ${DESTDIR}/bin/ocicl setup
 else
 	@echo "Installing for Linux..."
 	cp ocicl ${DESTDIR}/bin ;
