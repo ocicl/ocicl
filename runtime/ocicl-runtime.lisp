@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Copyright (C) 2023  Anthony Green <green@moxielogic.com>
+;;; Copyright (C) 2023, 2024  Anthony Green <green@moxielogic.com>
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining
 ;;; a copy of this software and associated documentation files (the
@@ -53,6 +53,19 @@
           finally (push (string-trim " " (subseq line start)) result))
     (nreverse result)))
 
+(defun replace-plus-with-string (str)
+  (let ((mangled (with-output-to-string (s)
+                    (loop for c across str do
+                          (if (char= c #\+)
+                              (write-string "_plus_" s)
+                              (write-char c s))))))
+    (if (char= (char mangled (- (length mangled) 1)) #\_)
+        (subseq mangled 0 (- (length mangled) 1))
+      mangled)))
+
+(defun mangle (str)
+  (replace-plus-with-string (car (split-on-delimeter str #\/))))
+
 (defun split-csv-line (line)
   (split-on-delimeter line #\,))
 
@@ -86,7 +99,7 @@
         (setq *ocicl-systems* (read-systems-csv))
         (setq *systems-csv-timestamp* timestamp))))
 
-  (let ((match (and *ocicl-systems* (gethash name *ocicl-systems*))))
+  (let ((match (and *ocicl-systems* (gethash (mangle name) *ocicl-systems*))))
     (if match
         (let ((pn (pathname (concatenate 'string (namestring *systems-dir*) (cdr match)))))
           (when *verbose*
