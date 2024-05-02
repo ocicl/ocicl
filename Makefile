@@ -13,8 +13,6 @@ else
     UNAME_M := $(shell uname -m)
 endif
 
-
-
 install:
 	mkdir -p ${DESTDIR}/bin || true ;
 ifeq ($(detected_OS),Windows)
@@ -40,7 +38,16 @@ else ifeq ($(detected_OS),Darwin)
 else
 	@echo "Installing for Linux..."
 	cp ocicl ${DESTDIR}/bin ;
-	tar xvf oras/oras_1.1.0_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1;
+	@case ${UNAME_M} in \
+		x86_64|amd64) \
+			tar xvf oras/oras_1.1.0_linux_amd64.tar.gz -C /tmp oras > /dev/null 2>&1; \
+			;;\
+		arm64) \
+			tar xvf oras/oras_1.1.0_linux_arm64.tar.gz -C /tmp oras > /dev/null 2>&1; \
+			;;\
+		*) \
+			echo "Unsupport macOS type: $(UNAME_M)"; \
+	esac; \
 	mv /tmp/oras ${DESTDIR}/bin/ocicl-oras
 endif
 	${DESTDIR}/bin/ocicl setup
