@@ -101,6 +101,7 @@
    :suffix "Choose from the following ocicl commands:
 
    help                                Print this help text
+   changes [SYSTEM:VERSION]]...        Display changes
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions
@@ -138,6 +139,29 @@ Distributed under the terms of the MIT License"
                                      (uiop:xdg-data-home))))
     (uiop:ensure-all-directories-exist (list ocicl-dir))
     ocicl-dir))
+
+(setf *random-state* (make-random-state t))
+
+(defun random-base36-string ()
+  "Return a random base36 (0-9A-Z) string of 8 characters."
+  (format nil "~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*)))
+
+(defun get-changes (system version)
+  (let ((tmpdir (merge-pathnames (make-pathname :directory
+                                                (list :relative (random-base36-string)))
+                                 (uiop:temporary-directory))))
+    (uiop:ensure-all-directories-exist (list tmpdir))
+    (unwind-protect
+         (uiop:with-current-directory (tmpdir)
+           (loop for registry in *ocicl-registries*
+                 do (handler-case
+                        (progn
+                          (uiop:run-program (format nil "ocicl-oras pull ~A/~A-changes.txt:~A" registry (mangle system) version))
+                          (return-from get-changes (uiop:read-file-string (car (uiop:directory-files tmpdir)))))
+                      (error (e)
+                        ))))
+      (uiop:delete-directory-tree tmpdir :validate t))
+    (format nil "No documented changes for ~A:~A" system version)))
 
 (defun load-system (name)
   (if *verbose*
@@ -220,6 +244,78 @@ Distributed under the terms of the MIT License"
       (format t ";; Any systems you install in ~A~%;; will be available globally unless you comment out this line:~%" gdir)
       (format t "(asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree ~S)))~%~%" gdir))))
 
+(defun get-versions-since (system version)
+  (loop for registry in *ocicl-registries*
+        do (handler-case
+               (return-from get-versions-since
+                 (let* ((all-versions
+                          (nbutlast (cdr (sort
+                                          (split-lines
+                                           (uiop:run-program
+                                            (format nil "ocicl-oras repo tags ~A/~A" registry (mangle system)) :output '(:string)))
+                                          #'string-lessp))))
+                        (p (position version all-versions :test #'string=)))
+                   (when p
+                     (cdr (nthcdr p all-versions)))))
+             (uiop/run-program:subprocess-error (e)
+               (declare (ignore e))))))
+
+(defun format-line (part1 part2)
+  (let* ((base (format nil "~&==== ~A:~A " part1 part2))
+         (padding-length (max 0 (- 75 (length base))))
+         (padding (make-string padding-length :initial-element #\=)))
+    (concatenate 'string base padding)))
+
+(defun top-level-directory (path)
+  (let ((directory-list (pathname-directory (pathname path))))
+    (if (and directory-list (> (length directory-list) 1))
+        (second directory-list)
+        nil)))
+
+(defun read-file-from-directory (directory filename)
+  "Reads a file from the specified directory and filename, returning the content as a string."
+  (let ((full-path (uiop:merge-pathnames* filename directory)))
+    (uiop:read-file-string full-path)))
+
+(defun do-changes (args)
+  ;; Make sure the systems directory exists
+  (uiop:ensure-all-directories-exist
+   (list *systems-dir*))
+  (if args
+      ;; Report on all the systems provided on the command line.
+      (dolist (system-maybe-version args)
+        (let ((system (car (split-on-delimeter system-maybe-version #\:)))
+              (version (cadr (split-on-delimeter system-maybe-version #\:))))
+          (let ((asd (cdr (gethash system *ocicl-systems*))))
+            (when asd
+              (let ((version (or version
+                                 (let ((vfile (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory asd)))
+                                                                     (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                                                                            "_00_OCICL_VERSION"))))
+                                   (string-trim '(#\Space #\Tab #\Newline #\Return)
+                                                (uiop:read-file-string vfile))))))
+                (let ((versions (get-versions-since system version)))
+                  (dolist (v versions)
+                    (format t "~&~A~%~%~A~%~%" (format-line system v) (get-changes system v)))))))))
+      (let ((projects (make-hash-table :test #'equal)))
+        (maphash (lambda (key value)
+                   (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
+                                                         (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                                                                "_00_OCICL_VERSION"))
+                                  projects)
+                         key))
+                 *ocicl-systems*)
+        (maphash (lambda (key value)
+                   (handler-case
+                       (let ((version (string-trim '(#\Space #\Tab #\Newline #\Return)
+                                                   (uiop:read-file-string key))))
+                         (let ((versions (get-versions-since value version)))
+                           (if versions
+                               (dolist (v versions)
+                                 (format t "~&~A~%~%~A~%~%" (format-line key "") (get-changes value v)))
+                               (format t "~A~%" (format-line key "")))))
+                     (error (e) ())))
+                 projects))))
 
 (defun do-install (args)
   ;; Make sure the systems directory exists
@@ -297,6 +393,8 @@ Distributed under the terms of the MIT License"
                   (cond
                    ((string= cmd "help")
                     (usage))
+                   ((string= cmd "changes")
+                    (do-changes (cdr free-args)))
                    ((string= cmd "install")
                     (do-install (cdr free-args)))
                    ((string= cmd "latest")

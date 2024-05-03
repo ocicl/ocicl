@@ -116,7 +116,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 2.0.3 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.1.0 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -128,6 +128,7 @@ Available options:
 Choose from the following ocicl commands:
 
    help                                Print this help text
+   changes [SYSTEM:VERSION]]...        Display changes
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions
@@ -184,6 +185,11 @@ version label in your ``ocicl install`` command.
 
 To update all systems in your ``systems.csv`` file to the latest
 version, run ``ocicl latest``.
+
+However, before you update, you might be interested in understanding
+the impact any changes to systems you depend on.  ``ocicl changes``
+will display an AI-generated report summarizing the Key Changes and
+User Impact for every newer version of a system you depend on.
 
 To use an alternate OCI registry for any operation, use the
 ``--registry`` option.  Using ``--registry`` with the ``setup``
