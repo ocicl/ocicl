@@ -244,24 +244,44 @@ Distributed under the terms of the MIT License"
       (format t ";; Any systems you install in ~A~%;; will be available globally unless you comment out this line:~%" gdir)
       (format t "(asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree ~S)))~%~%" gdir))))
 
+(defun filter-strings (strings)
+  (remove-if (lambda (s) (string= s "latest"))
+             strings))
+
 (defun get-versions-since (system version)
   (loop for registry in *ocicl-registries*
         do (handler-case
                (return-from get-versions-since
                  (let* ((all-versions
-                          (nbutlast (cdr (sort
-                                          (split-lines
-                                           (uiop:run-program
-                                            (format nil "ocicl-oras repo tags ~A/~A" registry (mangle system)) :output '(:string)))
-                                          #'string-lessp))))
+                          (filter-strings
+                           (nbutlast (cdr (sort
+                                           (split-lines
+                                            (uiop:run-program
+                                             (format nil "ocicl-oras repo tags ~A/~A" registry (mangle system)) :output '(:string)))
+                                           #'string-lessp)))))
                         (p (position version all-versions :test #'string=)))
-                   (when p
-                     (cdr (nthcdr p all-versions)))))
+                   (when p (cdr (nthcdr p all-versions)))))
              (uiop/run-program:subprocess-error (e)
                (declare (ignore e))))))
 
-(defun format-line (part1 part2)
-  (let* ((base (format nil "~&==== ~A:~A " part1 part2))
+(defun number-to-ordinal-suffix (n)
+  "Convert an integer to a string with its ordinal suffix."
+  (cond ((member n '(11 12 13)) (format nil "~Dth" n))
+        ((= (mod n 10) 1) (format nil "~Dst" n))
+        ((= (mod n 10) 2) (format nil "~Dnd" n))
+        ((= (mod n 10) 3) (format nil "~Drd" n))
+        (t (format nil "~Dth" n))))
+
+(defun format-line (project-name nth-change version)
+  (let* ((base (format nil "~&==== ~A~A "
+                       project-name
+                       (if nth-change
+                           (format nil ": ~A change~A"
+                                   (number-to-ordinal-suffix nth-change)
+                                   (if version
+                                       (format nil " (~A)" version)
+                                       ""))
+                           "")))
          (padding-length (max 0 (- 75 (length base))))
          (padding (make-string padding-length :initial-element #\=)))
     (concatenate 'string base padding)))
@@ -277,6 +297,36 @@ Distributed under the terms of the MIT License"
   (let ((full-path (uiop:merge-pathnames* filename directory)))
     (uiop:read-file-string full-path)))
 
+(defun get-project-name (key-file)
+  (let ((tld (top-level-directory key-file)))
+    (handler-case
+        (let ((pfile (uiop:merge-pathnames* (make-pathname :directory `(:relative ,tld))
+                                            (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                                                   "_00_OCICL_NAME"))))
+          (string-trim '(#\Space #\Tab #\Newline #\Return)
+                       (uiop:read-file-string pfile)))
+      ;; If the tgz file doesn't include _00_OCICL_NAME, the infer it from the directory name.
+      (file-error (e)
+        (let ((last-dash-position (position #\- tld :from-end t)))
+          (cond
+            ((position #\. (subseq tld last-dash-position))
+             (subseq tld 0 last-dash-position))
+            (t
+             (subseq tld 0 (position #\- (subseq tld 0 last-dash-position)
+                                     :from-end t)))))))))
+
+(defun get-project-version (key-file)
+  (let ((tld (top-level-directory key-file)))
+    (handler-case
+        (let ((vfile (uiop:merge-pathnames* (make-pathname :directory `(:relative ,tld))
+                                            (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                                                   "_00_OCICL_VERSION"))))
+          (string-trim '(#\Space #\Tab #\Newline #\Return)
+                       (uiop:read-file-string vfile)))
+      (file-error (e)
+        ;; If the tgz file doesn't include _00_OCICL_VERSION, the infer it from the directory name.
+        (subseq tld (1+ (position #\- tld :from-end t)))))))
+
 (defun do-changes (args)
   ;; Make sure the systems directory exists
   (uiop:ensure-all-directories-exist
@@ -289,14 +339,12 @@ Distributed under the terms of the MIT License"
           (let ((asd (cdr (gethash system *ocicl-systems*))))
             (when asd
               (let ((version (or version
-                                 (let ((vfile (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory asd)))
-                                                                     (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
-                                                                                            "_00_OCICL_VERSION"))))
-                                   (string-trim '(#\Space #\Tab #\Newline #\Return)
-                                                (uiop:read-file-string vfile))))))
+                                 (get-project-version asd)))
+                    (project-name (get-project-name asd)))
                 (let ((versions (get-versions-since system version)))
-                  (dolist (v versions)
-                    (format t "~&~A~%~%~A~%~%" (format-line system v) (get-changes system v)))))))))
+                  (let ((nth-change 0))
+                    (dolist (v versions)
+                      (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes system v))))))))))
       (let ((projects (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
                    (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
@@ -305,16 +353,18 @@ Distributed under the terms of the MIT License"
                                   projects)
                          key))
                  *ocicl-systems*)
-        (maphash (lambda (key value)
-                   (handler-case
-                       (let ((version (string-trim '(#\Space #\Tab #\Newline #\Return)
-                                                   (uiop:read-file-string key))))
-                         (let ((versions (get-versions-since value version)))
-                           (if versions
-                               (dolist (v versions)
-                                 (format t "~&~A~%~%~A~%~%" (format-line key "") (get-changes value v)))
-                               (format t "~A~%" (format-line key "")))))
-                     (error (e) ())))
+        (maphash (lambda (skey value)
+                   (let ((key (subseq (namestring skey) 8)))
+                     (handler-case
+                         (let ((version (get-project-version key))
+                               (project-name (get-project-name key)))
+                           (let ((versions (get-versions-since value version)))
+                             (if versions
+                                 (let ((nth-change 0))
+                                   (dolist (v versions)
+                                     (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes value v))))
+                                 (when *verbose* (format t "~A~%" (format-line project-name nil nil))))))
+                       (error (e) ()))))
                  projects))))
 
 (defun do-install (args)
