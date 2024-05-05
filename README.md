@@ -13,6 +13,7 @@ What is it?
 * [sigstore](https://www.sigstore.dev/) is used to ensure the integrity and authenticity of all software packages.
 * Software packages are project-local by default, simplifying the process of tying specific versions to your projects.
 * All software packages are built and published transparently using hosted CI infrastructure ([github actions](https://github.com/ocicl/ocicl-action)).
+* LLM-generated summaries of changes between versions are available for all packages.
 
 ``ocicl`` is pronounced like
 "[ossicle](https://en.wikipedia.org/wiki/Ossicles)", a tiny bone
