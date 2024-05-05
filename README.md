@@ -186,15 +186,6 @@ version label in your ``ocicl install`` command.
 To update all systems in your ``systems.csv`` file to the latest
 version, run ``ocicl latest``.
 
-However, before you update, you might be interested in understanding
-the impact any changes to systems you depend on.  ``ocicl changes``
-will display an AI-generated report summarizing the Key Changes and
-User Impact for every newer version of a system you depend on.  If you
-specify versions along with system names, it will report on all of the
-changes since those versions up until ``latest``.  In some cases the
-description may be missing as they only started being generated as of
-May 2024.
-
 To use an alternate OCI registry for any operation, use the
 ``--registry`` option.  Using ``--registry`` with the ``setup``
 command will persist this registry choice for all future ``ocicl``
@@ -217,6 +208,22 @@ optional ``GLOBALDIR`` argument when you invoke ``ocicl setup``.
 
 You can change the default behaviour of downloading systems on demand
 by setting ``ocicl-runtime:*download*`` to nil.
+
+AI-Generated Change Summaries
+-----------------------------
+
+The `ocicl` tool can provide summaries of changes between versions of
+Lisp systems.  These summaries are produced by an LLM, and are
+designed to describe key changes and user impacts for newer versions
+of systems you depend on.
+
+* `ocicl changes`: describes every change for every newer version of systems `ocicl` has installed
+* `ocicl -v changes`: same, but provides verbose reporting on progress
+* `ocicl changes cl-chat`: describes changes for every newer version of `cl-chat`
+* `ocicl changes omg:20240427-5b316a0`: describes changes for every version of `omg` newer than `20240427-5b316a0`.
+
+In some cases the description may be missing as they only started
+being generated as of May 2024.
 
 Security
 --------
