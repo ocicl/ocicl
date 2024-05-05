@@ -101,7 +101,7 @@
    :suffix "Choose from the following ocicl commands:
 
    help                                Print this help text
-   changes [SYSTEM:VERSION]]...        Display changes
+   changes [SYSTEM[:VERSION]]...       Display changes
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions

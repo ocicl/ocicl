@@ -116,7 +116,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 2.1.0 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.1.2 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -128,7 +128,7 @@ Available options:
 Choose from the following ocicl commands:
 
    help                                Print this help text
-   changes [SYSTEM:VERSION]]...        Display changes
+   changes [SYSTEM[:VERSION]]...       Display changes
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
    list SYSTEM...                      List available system versions
