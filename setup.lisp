@@ -1,9 +1,16 @@
+(print "A")
 (require 'asdf)
+(print "B")
 (require 'uiop)
+(print "C")
 (load "package.lisp")
+(print "D")
 (in-package :ocicl)
+(print "E")
 (load "deflate.lisp")
+(print "F")
 (load "minitar.lisp")
+(print "G")
 
 (eval-when
     (:load-toplevel :execute)
