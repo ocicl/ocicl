@@ -38,8 +38,7 @@ jobs:
           export PATH="$SBCL_HOME":"/c/ocicl/bin":$PATH
           ls -l oras
           ls -l .
-          make
-          DESTDIR="/c/ocicl" EXE=.exe make install
+          sbcl --load setup.lisp
           echo $HOME
           echo $PATH
           ls -l /c/ocicl/bin
@@ -48,7 +47,7 @@ jobs:
       - name: Test
         run: |
           export SBCL_HOME="/c/sbcl/PFiles/Steel Bank Common Lisp/"
-          export PATH="$SBCL_HOME":"/c/ocicl/bin":$PATH
+          export PATH="$SBCL_HOME":"%UserProfile%\AppData\Local\ocicl\":$PATH
           mkdir test
           cd test
           ocicl install sento
