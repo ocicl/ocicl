@@ -1,3 +1,4 @@
+(require 'uiop)
 (load "package.lisp")
 (in-package :ocicl)
 (load "deflate.lisp")
