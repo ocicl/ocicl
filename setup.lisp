@@ -9,7 +9,8 @@
     (:load-toplevel :execute)
   (progn
     (defconstant +destdir+ (if (uiop:os-windows-p)
-                               "%UserProfile%\\AppData\\Local\\ocicl\\"
+                               (format nil "~A\\AppData\\Local\\ocicl\\"
+                                       (uiop:getenv "UserProfile")))
                                "~/.local/"))
     (defconstant +ocicl-bin-name+ (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))))
 
