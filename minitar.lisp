@@ -1,7 +1,7 @@
 #|
   This file was copied from Zach Beane's quicklisp project.
 
-  Copyright © 2010 Zachary Beane <zach@quicklisp.org>
+  Copyright © 2010, 2024 Zachary Beane <zach@quicklisp.org>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -48,6 +48,12 @@
         (incf offset +block-size+))
     vector))
 
+(defun ascii-subseq (vector start end)
+  (let ((string (make-string (- end start))))
+    (loop for i from 0
+          for j from start below end
+          do (setf (char string i) (code-char (aref vector j))))
+    string))
 
 (defun decode-pax-header-record (vector offset)
   "Decode VECTOR as pax extended header data. Returns the keyword and
@@ -84,13 +90,6 @@ value it specifies as multiple values."
   any."
   (let ((header-alist (decode-pax-header vector)))
     (cdr (assoc "path" header-alist :test 'equal))))
-
-(defun ascii-subseq (vector start end)
-  (let ((string (make-string (- end start))))
-    (loop for i from 0
-          for j from start below end
-          do (setf (char string i) (code-char (aref vector j))))
-    string))
 
 (defun block-asciiz-string (block start length)
   (let* ((end (+ start length))

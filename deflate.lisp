@@ -561,6 +561,12 @@ lit-decode-tree and dist-decode-tree."
 ;;; ZLIB - RFC 1950 handling
 ;;;
 
+(defun parse-zlib-checksum (input-stream)
+  (+ (* (read-byte input-stream) 256 256 256)
+     (* (read-byte input-stream) 256 256)
+     (* (read-byte input-stream) 256)
+     (read-byte input-stream)))
+
 (defun parse-zlib-header (input-stream)
   "Parse a ZLIB-style header as per RFC 1950 from the input-stream and
 return the compression-method, compression-level dictionary-id and flags
@@ -579,12 +585,6 @@ and signals a zlib-decompression-error in case of corruption."
               dict
               (ldb (byte 2 6) flags)))))
 
-(defun parse-zlib-checksum (input-stream)
-  (+ (* (read-byte input-stream) 256 256 256)
-     (* (read-byte input-stream) 256 256)
-     (* (read-byte input-stream) 256)
-     (read-byte input-stream)))
-
 (defun parse-zlib-footer (input-stream)
   "Parse the ZLIB-style footer as per RFC 1950 from the input-stream and
 return the Adler-32 checksum contained in the footer as its return value."
@@ -599,6 +599,27 @@ return the Adler-32 checksum contained in the footer as its return value."
 
 (defconstant +gzip-header-id2+ 139
   "GZIP Header Magic Value ID2 as per RFC 1952.")
+
+(defun parse-gzip-mtime (input-stream)
+  (let ((time (+ (read-byte input-stream)
+                 (* (read-byte input-stream) 256)
+                 (* (read-byte input-stream) 256 256)
+                 (* (read-byte input-stream) 256 256 256))))
+    (if (zerop time)
+        nil
+        (+ time 2208988800))))
+
+(defun parse-gzip-extra (input-stream)
+  (let* ((length (+ (read-byte input-stream) (* (read-byte input-stream) 256)))
+         (result (make-array length :element-type '(unsigned-byte 8))))
+    (read-sequence result input-stream)
+    result))
+
+(defun parse-gzip-string (input-stream)
+  (with-output-to-string (string)
+    (loop for value = (read-byte input-stream)
+          until (zerop value)
+          do (write-char (code-char value) string))))
 
 (defun parse-gzip-header (input-stream)
   "Parse a GZIP-style header as per RFC 1952 from the input-stream and
@@ -647,27 +668,6 @@ values or flags."
             (unless (zerop (ldb (byte 1 1) flags))
               (+ (read-byte input-stream)
                  (* (read-byte input-stream 256)))))))
-
-(defun parse-gzip-mtime (input-stream)
-  (let ((time (+ (read-byte input-stream)
-                 (* (read-byte input-stream) 256)
-                 (* (read-byte input-stream) 256 256)
-                 (* (read-byte input-stream) 256 256 256))))
-    (if (zerop time)
-        nil
-        (+ time 2208988800))))
-
-(defun parse-gzip-extra (input-stream)
-  (let* ((length (+ (read-byte input-stream) (* (read-byte input-stream) 256)))
-         (result (make-array length :element-type '(unsigned-byte 8))))
-    (read-sequence result input-stream)
-    result))
-
-(defun parse-gzip-string (input-stream)
-  (with-output-to-string (string)
-    (loop for value = (read-byte input-stream)
-          until (zerop value)
-          do (write-char (code-char value) string))))
 
 (defun parse-gzip-checksum (input-stream)
   (+ (read-byte input-stream)
