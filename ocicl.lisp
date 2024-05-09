@@ -119,19 +119,22 @@ Distributed under the terms of the MIT License"
     (format t "; ~A~%" s)))
 
 (defun do-list (args)
-  (when args
-    (dolist (system args)
-      (loop for registry in *ocicl-registries*
-            do (handler-case
-                   (progn
-                     (format t "~A(~A):~%" system registry)
-                     (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ~A/~A" registry (mangle system)) :output '(:string))) #'string-lessp))))
-                       (format t "~T~A~%" s))
-                     (return))
-                 (uiop/run-program:subprocess-error (e)
-                   (declare (ignore e))
-                   (format t "~T~A not found~%" system))))
-      (format t "~%"))))
+  (handler-case
+      (when args
+        (dolist (system args)
+          (loop for registry in *ocicl-registries*
+                do (handler-case
+                       (progn
+                         (format t "~A(~A):~%" system registry)
+                         (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ~A/~A" registry (mangle system)) :output '(:string))) #'string-lessp))))
+                           (format t "~T~A~%" s))
+                         (return))
+                     (uiop/run-program:subprocess-error (e)
+                       (declare (ignore e))
+                       (format t "~T~A not found~%" system))))
+          (format t "~%")))
+    (sb-int:broken-pipe (e)
+      ())))
 
 (defun get-ocicl-dir ()
   "Find the ocicl directory."
