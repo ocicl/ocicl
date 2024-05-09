@@ -340,14 +340,13 @@ Distributed under the terms of the MIT License"
         (let ((system (car (split-on-delimeter system-maybe-version #\:)))
               (version (cadr (split-on-delimeter system-maybe-version #\:))))
           (let ((asd (cdr (gethash system *ocicl-systems*))))
-            (when asd
-              (let ((version (or version
-                                 (get-project-version asd)))
-                    (project-name (get-project-name asd)))
+            (let ((version (or version
+                               (and asd (get-project-version asd))))
+                  (project-name (or (and asd (get-project-name asd)) system)))
                 (let ((versions (get-versions-since system version)))
                   (let ((nth-change 0))
                     (dolist (v versions)
-                      (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes system v))))))))))
+                      (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes system v)))))))))
       (let ((projects (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
                    (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
