@@ -42,9 +42,9 @@ https://github.com/ocicl/ocicl/issues.
 Quick Start
 ------------
 
-Install ``ocicl`` by running ``make`` in the source directory.  This
-will build the ``ocicl`` binary, and running ``make install`` will
-install it in ``~/.local/bin`` on non-Windows systems, and
+Install ``ocicl`` by running ``sbcl --load setup.lisp`` in the source
+directory.  This will build and install the ``ocicl`` binary in
+``~/.local/bin`` on non-Windows systems, and
 ``%UserProfile%\AppData\Local\ocicl\`` on Windows.  It will also
 install a helper program called ``ocicl-oras``.  This is just the
 ``oras`` binary from the Open Source CNCF [oras
@@ -115,7 +115,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 2.1.2 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.1.3 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
