@@ -22,8 +22,7 @@ jobs:
         shell: bash
       - name: Build and Install
         run: |
-          make
-          DESTDIR=$HOME make install
+          sbcl --load setup.lisp
           ocicl setup > ~/.sbclrc
           echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
         shell: bash
