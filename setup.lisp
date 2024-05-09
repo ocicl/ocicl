@@ -93,7 +93,7 @@
       ((uiop:os-macosx-p)
        (install-oras (format nil "oras_1.1.0_darwin_~A.tar.gz" arch)))
       ((uiop:os-windows-p)
-       (install-oras (format nil "oras_1.1.0_windows_~A.tar.gz" arch))
+       (install-oras (format nil "oras_1.1.0_windows_amd64.tar.gz"))
        (format t "~%~%Be sure to add ~A\\AppData\\Local\\ocicl\\ to your path!~%~%"
                (uiop:getenv "UserProfile")))
       ((uiop:os-unix-p)
