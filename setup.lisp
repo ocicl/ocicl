@@ -82,7 +82,6 @@
       (uiop:delete-directory-tree tmpdir :validate t))))
 
 (defun install-ocicl ()
-  (print +destdir+)
   (let ((bindir (merge-pathnames (make-pathname :directory '(:relative "bin")) +destdir+)))
     (uiop:ensure-all-directories-exist (list bindir))
     (uiop:copy-file +ocicl-bin-name+ (merge-pathnames +ocicl-bin-name+ bindir))
