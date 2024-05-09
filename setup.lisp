@@ -3,12 +3,13 @@
 (load "deflate.lisp")
 (load "minitar.lisp")
 
-(defconstant +destdir+ (or (uiop:getenv "DESTDIR")
-                            "~/.local/"))
-
-(uiop:xdg-data-pathname)
-
-(defconstant +ocicl-bin-name+ (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))
+(eval-when
+    (:load-toplevel :execute)
+  (progn
+    (defconstant +destdir+ (if (uiop:os-windows-p)
+                               "%UserProfile%\AppData\Local\ocicl\"
+                               "~/.local/"))
+    (defconstant +ocicl-bin-name+ (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))))
 
 (defmacro safe-delete-file (filename)
   (let ((filename (pathname filename)))
@@ -62,6 +63,7 @@
                             (merge-pathnames
                              tgz-file (make-pathname :directory '(:relative "oras")))
                             (uiop:getcwd))))
+    (uiop:ensure-all-directories-exist (list bindir))
     (unwind-protect
          (progn
            (uiop:ensure-all-directories-exist (list tmpdir))
@@ -71,12 +73,19 @@
              (uiop:copy-file
               (format nil "oras~A" (if (uiop:os-windows-p) ".exe" ""))
               (merge-pathnames (format nil "ocicl-oras~A" (if (uiop:os-windows-p) ".exe" ""))
-                               (merge-pathnames (make-pathname :directory '(:relative "bin")) +destdir+)))))
+                               (merge-pathnames (make-pathname :directory '(:relative "bin")) +destdir+)))
+             (unless (uiop:os-windows-p)
+               (uiop:run-program (format nil "chmod +x ~A" (merge-pathnames "ocicl-oras"
+                                                                            (merge-pathnames (make-pathname :directory '(:relative "bin")) +destdir+)))))))
       (uiop:delete-directory-tree tmpdir :validate t))))
 
 (defun install-ocicl ()
+  (print +destdir+)
   (let ((bindir (merge-pathnames (make-pathname :directory '(:relative "bin")) +destdir+)))
-    (uiop:copy-file +ocicl-bin-name+ (merge-pathnames +ocicl-bin-name+ bindir)))
+    (uiop:ensure-all-directories-exist (list bindir))
+    (uiop:copy-file +ocicl-bin-name+ (merge-pathnames +ocicl-bin-name+ bindir))
+    (unless (uiop:os-windows-p)
+      (uiop:run-program (format nil "chmod +x ~A" (merge-pathnames +ocicl-bin-name+ bindir)))))
   (let ((arch (if (find :X86-64 *features*) "amd64" "arm64")))
     (cond
       ((uiop:os-macosx-p)
