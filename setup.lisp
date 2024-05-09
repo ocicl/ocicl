@@ -97,7 +97,7 @@
        (format t "~%~%Be sure to add ~A\\AppData\\Local\\ocicl\\ to your path!~%~%"
                (uiop:getenv "UserProfile")))
       ((uiop:os-unix-p)
-       (install-oras (format nil "oras_1.1.0_linux_~A.tar.gz" arch)))))
+       (install-oras (format nil "oras_1.1.0_linux_~A.tar.gz" arch))))))
 
 
 (make-ocicl)
