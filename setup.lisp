@@ -1,3 +1,4 @@
+(require 'asdf)
 (require 'uiop)
 (load "package.lisp")
 (in-package :ocicl)
