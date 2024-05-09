@@ -10,7 +10,7 @@
   (progn
     (defconstant +destdir+ (if (uiop:os-windows-p)
                                (format nil "~A\\AppData\\Local\\ocicl\\"
-                                       (uiop:getenv "UserProfile")))
+                                       (uiop:getenv "UserProfile"))
                                "~/.local/"))
     (defconstant +ocicl-bin-name+ (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))))
 
