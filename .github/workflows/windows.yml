@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build and Install
         run: |
-          dir c:\sbcl\PFiles
-          c:\sbcl\Pfiles\sbcl.exe --load setup.lisp
+          dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
+          c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --load setup.lisp
           %UserProfile%\AppData\Local\ocicl\ocicl.exe setup
         shell: cmd
