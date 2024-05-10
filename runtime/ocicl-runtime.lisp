@@ -81,10 +81,11 @@
 (defun ocicl-install (name)
   (let ((cmd (format nil "ocicl install ~A" name)))
     (when *verbose* (format t "; running: ~A~%" cmd))
-    (let ((output (uiop:run-program cmd :output '(:string) :error-output *error-output*)))
-      (setq *systems-csv-timestamp* 0)
-      (when *verbose*
-        (format t "~A~%~A~%" cmd output)))))
+    (let ((output (uiop:run-program cmd
+                                    :output (if *verbose* *standard-output*
+                                                '(:string))
+                                    :error-output *error-output*)))
+      (setq *systems-csv-timestamp* 0))))
 
 (defun find-asdf-system-file (name download-p)
   (unless *systems-dir*
