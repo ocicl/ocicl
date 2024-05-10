@@ -79,7 +79,7 @@
     ht))
 
 (defun ocicl-install (name)
-  (let ((cmd (format nil "ocicl install ~A" name)))
+  (let ((cmd (format nil "ocicl ~A install ~A" (if *verbose* "-v" "") name)))
     (when *verbose* (format t "; running: ~A~%" cmd))
     (let ((output (uiop:run-program cmd
                                     :output (if *verbose* *standard-output*
