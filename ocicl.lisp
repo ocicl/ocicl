@@ -104,6 +104,7 @@
    changes [SYSTEM[:VERSION]]...       Display changes
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
+   libyear                             Calculate the libyear dependency freshness metric
    list SYSTEM...                      List available system versions
    setup [GLOBALDIR]                   Mandatory ocicl configuration
    version                             Show the ocicl version information
@@ -300,6 +301,26 @@ Distributed under the terms of the MIT License"
   (let ((full-path (uiop:merge-pathnames* filename directory)))
     (uiop:read-file-string full-path)))
 
+(defun parse-date-to-universal-time (date-string)
+  "Converts a date string in the format YYYYMMDD to universal time."
+  (let ((year (parse-integer date-string :start 0 :end 4))
+        (month (parse-integer date-string :start 4 :end 6))
+        (day (parse-integer date-string :start 6 :end 8)))
+    (encode-universal-time 0 0 0 day month year 0))) ; Assumes time at 00:00:00
+
+(defun get-project-date (key-file)
+  (let ((dpos (search "-20" key-file :test #'string=)))
+    (if dpos
+        (parse-date-to-universal-time (subseq key-file (1+ dpos) (+ dpos 9))))))
+
+(defun difference-in-years (time1 time2)
+  "Calculate the difference in years between two universal times."
+  (float
+   (let ((seconds-per-year 31557600)) ; 365.25 days per year * 24 hours/day * 60 minutes/hour * 60 seconds/minute
+     (/ (abs (- time1 time2)) seconds-per-year))))
+
+(float (difference-in-years (get-project-date "sdffsf-20220523/dff.asd") (get-project-date "sdffsf-20240423/dff.asd")))
+
 (defun get-project-name (key-file)
   (let ((tld (top-level-directory key-file)))
     (handler-case
@@ -329,6 +350,44 @@ Distributed under the terms of the MIT License"
       (file-error (e)
         ;; If the tgz file doesn't include _00_OCICL_VERSION, the infer it from the directory name.
         (subseq tld (1+ (position #\- tld :from-end t)))))))
+
+(defun round-up-to-decimal (number decimal-places)
+  (let* ((adjustment (expt 10 (- decimal-places)))
+         (adjusted-number (+ number (* 0.5 adjustment))))
+    (format nil "~,vf" decimal-places adjusted-number)))
+
+(defun do-libyear ()
+  (let ((projects (make-hash-table :test #'equal)))
+    (maphash (lambda (key value)
+               (setf (gethash (namestring (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
+                                                                 (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                                                                        "_00_OCICL_VERSION")))
+                              projects)
+                     key))
+             *ocicl-systems*)
+    (let ((age 0))
+      (maphash (lambda (skey value)
+                 (let* ((asd (cdr (gethash value *ocicl-systems*)))
+                        (version (get-project-version asd))
+                        (project-name (get-project-name asd)))
+                   (let* ((newer-versions (get-versions-since value version))
+                          (most-recent-version (car (last newer-versions)))
+                          (using-date (get-project-date skey)))
+                     (if (and using-date
+                              most-recent-version
+                              (string= (subseq most-recent-version 0 2) "20"))
+                         (let ((p-age
+                                 (difference-in-years (parse-date-to-universal-time
+                                                       (subseq most-recent-version 0 8))
+                                                      using-date)))
+                           (format t "~A~20T~A libyears (~A days)~%" project-name
+                                   (round-up-to-decimal p-age 2)
+                                   (round-up-to-decimal (* p-age 365.25) 2))
+                           (incf age p-age))))))
+               projects)
+      (format t "~&~%TOTAL libyears: ~A (~A days)~%"
+              (round-up-to-decimal age 2)
+              (round-up-to-decimal (* age 365.25) 2)))))
 
 (defun do-changes (args)
   ;; Make sure the systems directory exists
@@ -445,6 +504,8 @@ Distributed under the terms of the MIT License"
                   (cond
                    ((string= cmd "help")
                     (usage))
+                   ((string= cmd "libyear")
+                    (do-libyear))
                    ((string= cmd "changes")
                     (do-changes (cdr free-args)))
                    ((string= cmd "install")

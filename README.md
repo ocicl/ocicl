@@ -115,7 +115,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 2.1.6 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.1.7 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -130,6 +130,7 @@ Choose from the following ocicl commands:
    changes [SYSTEM[:VERSION]]...       Display changes
    install [SYSTEM[:VERSION]]...       Install systems
    latest [SYSTEM]...                  Install latest version of systems
+   libyear                             Calculate the libyear dependency freshness metric
    list SYSTEM...                      List available system versions
    setup [GLOBALDIR]                   Mandatory ocicl configuration
    version                             Show the ocicl version information
@@ -227,6 +228,29 @@ OCI registry.
 
 In some cases the description may be missing as they only started
 being generated as of May 2024.
+
+Dependency Freshness
+--------------------
+
+`ocicl` can compute the [libyear](https://libyear.com) dependency
+freshness metric for the projects on which you depend.  It is a single
+number telling you how up-to-date your dependencies are.  The libyear
+value for a single project indicates the time between your version and
+the most recent version.
+
+```
+$ ocicl libyear
+OMGlib              0.02 libyears (6.01 days)
+cl-opengl           0.02 libyears (7.01 days)
+lqn                 0.01 libyears (1.00 days)
+openapi-generator   0.01 libyears (1.00 days)
+trivial-arguments   0.01 libyears (3.01 days)
+graven-image        0.01 libyears (2.01 days)
+cl-oju              0.02 libyears (4.01 days)
+py4cl2-cffi         0.02 libyears (6.01 days)
+
+TOTAL libyears: 0.09 (30.06 days)
+```
 
 Security
 --------
