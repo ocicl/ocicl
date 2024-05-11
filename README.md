@@ -51,6 +51,13 @@ install a helper program called ``ocicl-oras``.  This is just the
 project](https://oras.land). We use ``ocicl-oras`` as a helper program
 to interface with OCI registries.
 
+The `setup.lisp` script will build an `ocicl` binary with 3072MB of
+dynamic memory space.  If you need a different amount, run it like so:
+```
+sbcl --eval "(defconstant +dynamic-space-size+ 2048)" --load setup.lisp
+```
+
+
 Now run ``ocicl setup``.  This is a mandatory step that installs the
 ``ocicl-runtime`` library, and suggests configurations for your
 ``${HOME}/.sbclrc`` file.

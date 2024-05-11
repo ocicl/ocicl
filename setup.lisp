@@ -46,7 +46,10 @@
       (safe-delete-file "ocicl")
       (safe-delete-file "systems.csv")
       (safe-delete-directory "systems/")
-      (uiop:run-program "sbcl --dynamic-space-size 3072 --no-userinit --eval \"(require 'asdf)\" --eval \"(progn (push (uiop:getcwd) asdf:*central-registry*) (asdf:make :ocicl) (sb-ext:quit))\"" :output *standard-output* :error *error-output*))))
+      (uiop:run-program
+       (format nil "sbcl --dynamic-space-size ~A --no-userinit --eval \"(require 'asdf)\" --eval \"(progn (push (uiop:getcwd) asdf:*central-registry*) (asdf:make :ocicl) (sb-ext:quit))\""
+               (if (boundp '+dynamic-space-size+) (symbol-value '+dynamic-space-size+) 3072))
+       :output *standard-output* :error *error-output*))))
 
 (setf *random-state* (make-random-state t))
 
