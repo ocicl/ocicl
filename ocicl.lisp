@@ -167,16 +167,14 @@ Distributed under the terms of the MIT License"
       (uiop:delete-directory-tree tmpdir :validate t))
     (format nil "No documented changes for ~A:~A" system version)))
 
-(defun load-system (name)
-  (if *verbose*
-      (asdf:load-system name)
-      (let ((*load-verbose* nil)
-            (*compile-verbose* nil)
-            (*load-print* nil)
-            (*compile-print* nil))
-        (handler-bind ((warning #'muffle-warning))
-          (handler-bind ((sb-ext:compiler-note #'muffle-warning))
-            (asdf:load-system name))))))
+(defun download-system-dependencies (name)
+  (let ((*load-verbose* *verbose*)
+        (*load-print* *verbose*))
+    (let* ((s (asdf:find-system name))
+           (deps (asdf:system-depends-on s)))
+      (dolist (d deps)
+        (unless (listp d)
+          (download-system-dependencies d))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
@@ -193,7 +191,7 @@ Distributed under the terms of the MIT License"
             (progn
               (format uiop:*stderr* "Error: system ~A not found.~%" system)
               (sb-ext:quit))
-            (load-system system)))
+            (download-system-dependencies system)))
       ;; Download latest versions of all systems.
       (let ((blobs (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
@@ -444,7 +442,7 @@ Distributed under the terms of the MIT License"
             (let* ((slist (split-on-delimeter system #\:))
                    (name (car slist)))
               (if (download-system system)
-                  (load-system name)
+                  (download-system-dependencies name)
                   (progn
                     (format uiop:*stderr* "Error: system ~A not found.~%" system)
                     (sb-ext:quit))))))

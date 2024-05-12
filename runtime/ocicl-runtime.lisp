@@ -113,7 +113,8 @@
               (progn
                 (when *verbose* (format t "missing~%"))
                 (when download-p
-                  (ocicl-install (car match)))))))
+                  (ocicl-install (car match))
+                  (find-asdf-system-file name nil))))))
         (when download-p
           (ocicl-install name)
           (find-asdf-system-file name nil)))))
