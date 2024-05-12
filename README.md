@@ -122,7 +122,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 2.1.8 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.2.0 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -162,12 +162,7 @@ $ ocicl install
 You can download additional systems like so:
 ```
 $ ocicl install trivial-garbage
-; downloading trivial-garbage
-; downloaded ghcr.io/ocicl/trivial-garbage@sha256:1eaadc3a546aaad7b452197663d9baece7a7e11beac6beb7db5b5faf4e74d541
-; compiling file "/home/green/test/systems/trivial-garbage-20230511-b3af9c0/trivial-garbage.lisp" (written 19 MAY 2023 08:34:59 AM):
-
-; wrote /home/green/.cache/common-lisp/sbcl-2.3.2-linux-x64/home/green/test/systems/trivial-garbage-20230511-b3af9c0/trivial-garbage-tmpMQBOWYP9.fasl
-; compilation finished in 0:00:00.007
+; downloaded ghcr.io/ocicl/trivial-garbage@sha256:a85dcf4110ad60ae9f6c70970acceb2bf12402ce5326891643d35506059afb1d
 ```
 
 This downloads the latest version of trivial-garbage, which is the OCI
