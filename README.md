@@ -204,6 +204,7 @@ are available at runtime using the following heuristic:
 - If the system is available locally, then it is loaded from from the local `systems` directory.
 - Else if the system is available in the global `systems` directory, it loaded from there.
 - Otherwise, if `ocicl-runtime:*download*` is non-nil, then the system is downloaded and installed locally.
+
 To change the default user-global directory, provide the
 optional ``GLOBALDIR`` argument when you invoke ``ocicl setup``.
 
