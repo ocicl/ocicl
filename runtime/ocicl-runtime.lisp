@@ -34,10 +34,15 @@
 (defvar *download* t)
 (defvar *verbose* nil)
 
-(defvar *ocicl-systems* nil)
-(defvar *systems-dir* nil)
-(defvar *systems-csv* nil)
-(defvar *systems-csv-timestamp* 0)
+(defvar *local-ocicl-systems* nil)
+(defvar *local-systems-dir* nil)
+(defvar *local-systems-csv* nil)
+(defvar *local-systems-csv-timestamp* 0)
+
+(defvar *global-ocicl-systems* nil)
+(defvar *global-systems-dir* nil)
+(defvar *global-systems-csv* nil)
+(defvar *global-systems-csv-timestamp* 0)
 
 (defun split-on-delimeter (line delim)
   (let ((start 0)
@@ -69,11 +74,11 @@
 (defun split-csv-line (line)
   (split-on-delimeter line #\,))
 
-(defun read-systems-csv ()
+(defun read-systems-csv (systems-csv)
   (when *verbose*
-    (format t "; loading ~A~%" *systems-csv*))
+    (format t "; loading ~A~%" systems-csv))
   (let ((ht (make-hash-table :test #'equal)))
-    (dolist (line (uiop:read-file-lines *systems-csv*))
+    (dolist (line (uiop:read-file-lines systems-csv))
       (let ((vlist (split-csv-line line)))
         (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))
     ht))
@@ -85,36 +90,58 @@
                       :output (if *verbose* *standard-output*
                                   '(:string))
                       :error-output *error-output*))
-  (setq *systems-csv-timestamp* 0))
+  (setq *local-systems-csv-timestamp* 0))
+
+(defun get-ocicl-dir ()
+  "Find the ocicl directory."
+  (let ((ocicl-dir (merge-pathnames (make-pathname :directory '(:relative "ocicl"))
+                                     (uiop:xdg-data-home))))
+    (uiop:ensure-all-directories-exist (list ocicl-dir))
+    ocicl-dir))
 
 (defun find-asdf-system-file (name download-p)
-  (unless *systems-dir*
+  (unless *local-systems-dir*
     (let ((cwd (uiop:getcwd)))
-      (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+      (setq *local-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
                                            cwd))
-      (setq *systems-csv* (merge-pathnames cwd "systems.csv"))))
+      (setq *local-systems-csv* (merge-pathnames cwd "systems.csv"))))
 
-  (when (probe-file *systems-csv*)
-    (let ((timestamp (file-write-date *systems-csv*)))
-      (when (> timestamp *systems-csv-timestamp*)
-        (setq *ocicl-systems* (read-systems-csv))
-        (setq *systems-csv-timestamp* timestamp))))
+  (unless *global-systems-dir*
+    (let* ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg"))
+           (globaldir (if (probe-file config-file)
+                          (uiop:ensure-absolute-pathname (uiop:read-file-line config-file))
+                          (get-ocicl-dir))))
 
-  (let ((match (and *ocicl-systems* (gethash (mangle name) *ocicl-systems*))))
-    (if match
-        (let ((pn (pathname (concatenate 'string (namestring *systems-dir*) (cdr match)))))
-          (when *verbose*
-            (format t "; checking for ~A: " pn))
-          (let ((found (probe-file pn)))
-            (if found
-                (progn
-                  (when *verbose* (format t "found~%"))
-                  pn)
-              (progn
-                (when *verbose* (format t "missing~%"))
-                (when download-p
-                  (ocicl-install (car match))
-                  (find-asdf-system-file name nil))))))
+      (setq *global-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+                                                  globaldir))
+      (setq *global-systems-csv* (merge-pathnames globaldir "systems.csv")))
+
+    (when (probe-file *local-systems-csv*)
+      (let ((timestamp (file-write-date *local-systems-csv*)))
+        (when (> timestamp *local-systems-csv-timestamp*)
+          (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
+          (setq *local-systems-csv-timestamp* timestamp))))
+
+    (when (probe-file *global-systems-csv*)
+      (let ((timestamp (file-write-date *global-systems-csv*)))
+        (when (> timestamp *global-systems-csv-timestamp*)
+          (setq *global-ocicl-systems* (read-systems-csv *global-systems-csv*))
+          (setq *global-systems-csv-timestamp* timestamp)))))
+
+  (labels ((try-load (systems systems-dir)
+             (let ((match (and systems (gethash (mangle name) systems))))
+               (if match
+                   (let ((pn (pathname (concatenate 'string (namestring systems-dir) (cdr match)))))
+                     (when *verbose*
+                       (format t "; checking for ~A: " pn))
+                     (let ((found (probe-file pn)))
+                       (if found
+                           (progn
+                             (when *verbose* (format t "found~%"))
+                             pn)
+                           (when *verbose* (format t "missing~%")))))))))
+    (or (try-load *local-ocicl-systems* *local-systems-dir*)
+        (try-load *global-ocicl-systems* *global-systems-dir*)
         (when download-p
           (ocicl-install name)
           (find-asdf-system-file name nil)))))

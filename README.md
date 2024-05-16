@@ -69,9 +69,6 @@ $ ocicl setup
 #-ocicl
 (when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
   (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
-;; Any systems you install in /home/green/.local/share/ocicl/
-;; will be available globally unless you comment out this line:
-(asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree #P"/home/green/.local/share/ocicl/")))
 ```
 
 The default behavior for the runtime is to invoke ``ocicl`` when ASDF
@@ -202,10 +199,12 @@ All system downloads are recorded in the current working directory by
 default.  However, you may choose to download systems "globally" for
 the current user by using the ``--global`` option.  This is equivalent
 to temporarily changing directory to a user-global directory before
-performing any operation.  These "global" systems are available at
-runtime by making sure you tell ASDF to search the global directory.
-``ocicl setup`` will suggest changes to your ``.sbclrc`` file to
-enable this.  To change the default user-global directory, provide the
+performing any operation with the `ocicl` cli.  These "global" systems
+are available at runtime using the following heuristic:
+- If the system is available locally, then it is loaded from from the local `systems` directory.
+- Else if the system is available in the global `systems` directory, it loaded from there.
+- Otherwise, if `ocicl-runtime:*download*` is non-nil, then the system is downloaded and installed locally.
+To change the default user-global directory, provide the
 optional ``GLOBALDIR`` argument when you invoke ``ocicl setup``.
 
 You can change the default behaviour of downloading systems on demand

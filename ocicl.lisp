@@ -242,9 +242,7 @@ Distributed under the terms of the MIT License"
                             :direction :output
                             :if-exists :supersede)
       (write-string +runtime+ stream)
-      (format t ";; Add the following to your lisp startup file (.sbclrc/.eclrc/.abclrc):~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%" runtime-source runtime-source)
-      (format t ";; Any systems you install in ~A~%;; will be available globally unless you comment out this line:~%" gdir)
-      (format t "(asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree ~S)))~%~%" gdir))))
+      (format t ";; Add the following to your lisp startup file (.sbclrc/.eclrc/.abclrc):~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%" runtime-source runtime-source))))
 
 (defun filter-strings (strings)
   (remove-if (lambda (s) (string= s "latest"))
