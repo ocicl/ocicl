@@ -144,6 +144,7 @@
         (try-load *global-ocicl-systems* *global-systems-dir*)
         (when download-p
           (ocicl-install name)
+          (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
           (find-asdf-system-file name nil)))))
 
 (defun system-definition-searcher (name)
