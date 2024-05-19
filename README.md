@@ -64,7 +64,8 @@ Now run ``ocicl setup``.  This is a mandatory step that installs the
 
 ```
 $ ocicl setup
-;; Add the following to your ${HOME}/.sbclrc file:
+;; Add the following to your lisp startup file
+;; (~/.sbclrc, ~/.eclrc, ~/.abclrc or ~/.roswell/init.lisp):
 
 #-ocicl
 (when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
@@ -119,7 +120,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 2.3.1 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.3.2 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
