@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Copyright (C) 2023  Anthony Green <green@moxielogic.com>
+;;; Copyright (C) 2023, 2024  Anthony Green <green@moxielogic.com>
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;;; of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@
                (:file "unix-opts")
                (:file "deflate")
                (:file "minitar")
+               (:file "wua")
                (:file "ocicl"))
   :depends-on (:sb-posix :sb-bsd-sockets :sb-rotate-byte :sb-cltl2 :sb-introspect :sb-concurrency :sb-sprof :sb-md5 :sb-introspect)
   :build-operation "program-op"

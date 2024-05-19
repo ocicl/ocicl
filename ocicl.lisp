@@ -453,69 +453,72 @@ Distributed under the terms of the MIT License"
                *ocicl-systems*)))
 
 (defun main ()
+  (handler-case
+      (with-user-abort:with-user-abort
 
-  (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
-    (when (probe-file config-file)
-      (setf *ocicl-registries*
-            (with-open-file (in config-file)
-              (loop for line = (read-line in nil nil)
-                    while line
-                    ;; skip comments
-                    unless (char= #\# (aref line 0))
-                      collect (string-trim '(#\Space #\Tab #\Newline #\Return) line))))))
+       (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
+         (when (probe-file config-file)
+           (setf *ocicl-registries*
+                 (with-open-file (in config-file)
+                                 (loop for line = (read-line in nil nil)
+                                       while line
+                                       ;; skip comments
+                                       unless (char= #\# (aref line 0))
+                                       collect (string-trim '(#\Space #\Tab #\Newline #\Return) line))))))
 
-  (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
-    (when (probe-file config-file)
-      (setf *ocicl-globaldir* (uiop:ensure-absolute-pathname (uiop:read-file-line config-file)))))
+       (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
+         (when (probe-file config-file)
+           (setf *ocicl-globaldir* (uiop:ensure-absolute-pathname (uiop:read-file-line config-file)))))
 
-  (let ((workdir (uiop:getcwd)))
+       (let ((workdir (uiop:getcwd)))
 
-    (multiple-value-bind (options free-args)
-        (handler-case
-            (handler-bind ((unknown-option #'unknown-option))
-              (get-opts))
-          (missing-arg (condition)
-                       (format t "fatal: option ~s needs an argument!~%"
-                               (option condition)))
-          (arg-parser-failed (condition)
-                             (format t "fatal: cannot parse ~s as argument of ~s~%"
-                                     (raw-arg condition)
-                                     (option condition))))
-      (when-option (options :verbose)
-                   (setf *verbose* t))
-      (when-option (options :global)
-                   (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
+         (multiple-value-bind (options free-args)
+             (handler-case
+                 (handler-bind ((unknown-option #'unknown-option))
+                   (get-opts))
+               (missing-arg (condition)
+                            (format t "fatal: option ~s needs an argument!~%"
+                                    (option condition)))
+               (arg-parser-failed (condition)
+                                  (format t "fatal: cannot parse ~s as argument of ~s~%"
+                                          (raw-arg condition)
+                                          (option condition))))
+           (when-option (options :verbose)
+                        (setf *verbose* t))
+           (when-option (options :global)
+                        (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
 
-      (let ((original-directory (uiop:getcwd)))
-        (unwind-protect
-            (progn
-              (uiop:chdir workdir)
-              (setf *random-state* (make-random-state t))
-              (setq *ocicl-systems* (read-systems-csv))
-              (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                                   (uiop:getcwd)))
-              (if (not (> (length free-args) 0))
-                  (usage)
-                (let ((cmd (car free-args)))
-                  (cond
-                   ((string= cmd "help")
-                    (usage))
-                   ((string= cmd "libyear")
-                    (do-libyear))
-                   ((string= cmd "changes")
-                    (do-changes (cdr free-args)))
-                   ((string= cmd "install")
-                    (do-install (cdr free-args)))
-                   ((string= cmd "latest")
-                    (do-latest (cdr free-args)))
-                   ((string= cmd "list")
-                    (do-list (cdr free-args)))
-                   ((string= cmd "setup")
-                    (do-setup (cdr free-args)))
-                   ((string= cmd "version")
-                    (do-version (cdr free-args)))
-                   (t (usage))))))
-          (uiop:chdir original-directory))))))
+           (let ((original-directory (uiop:getcwd)))
+             (unwind-protect
+                 (progn
+                   (uiop:chdir workdir)
+                   (setf *random-state* (make-random-state t))
+                   (setq *ocicl-systems* (read-systems-csv))
+                   (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+                                                        (uiop:getcwd)))
+                   (if (not (> (length free-args) 0))
+                       (usage)
+                     (let ((cmd (car free-args)))
+                       (cond
+                        ((string= cmd "help")
+                         (usage))
+                        ((string= cmd "libyear")
+                         (do-libyear))
+                        ((string= cmd "changes")
+                         (do-changes (cdr free-args)))
+                        ((string= cmd "install")
+                         (do-install (cdr free-args)))
+                        ((string= cmd "latest")
+                         (do-latest (cdr free-args)))
+                        ((string= cmd "list")
+                         (do-list (cdr free-args)))
+                        ((string= cmd "setup")
+                         (do-setup (cdr free-args)))
+                        ((string= cmd "version")
+                         (do-version (cdr free-args)))
+                        (t (usage))))))
+               (uiop:chdir original-directory))))))
+    (with-user-abort:user-abort () (sb-ext:exit :code 130))))
 
 (defun replace-plus-with-string (str)
   (let ((mangled (with-output-to-string (s)
@@ -584,6 +587,7 @@ Distributed under the terms of the MIT License"
                          (unpack-tarball (merge-pathnames dl-dir "package.tar"))))
                      output))
                (uiop/run-program:subprocess-error (e)
+                 (format t "Error downloading and installing ~A~%" name)
                  (debug-log e)
                  nil))))
       (uiop:delete-directory-tree dl-dir :validate t))))
@@ -615,6 +619,7 @@ Distributed under the terms of the MIT License"
                                         (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons sha256 (subseq (namestring s) (length (namestring *systems-dir*))))))
                                       (return))))))
                           (uiop/run-program:subprocess-error (e)
+                            (format t "Error downloading ~A~%" name)
                             (debug-log e)
                             nil)))))
         (uiop:delete-directory-tree dl-dir :validate t)))
