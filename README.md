@@ -70,6 +70,7 @@ $ ocicl setup
 #-ocicl
 (when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
   (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
+(push (uiop:getcwd) asdf:*central-registry*)
 ```
 
 The default behavior for the runtime is to invoke ``ocicl`` when ASDF
