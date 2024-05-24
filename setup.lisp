@@ -8,10 +8,13 @@
 (eval-when
     (:load-toplevel :execute)
   (progn
-    (defconstant +destdir+ (if (uiop:os-windows-p)
-                               (format nil "~A\\AppData\\Local\\ocicl\\"
-                                       (uiop:getenv "UserProfile"))
-                               "~/.local/"))
+    (defconstant +destdir+ (cond
+                             ((uiop:os-windows-p)
+                              (format nil "~A\\AppData\\Local\\ocicl\\"
+                                      (uiop:getenv "UserProfile")))
+                             ((uiop:getenv "HOMEBREW_PREFIX")
+                              (uiop:getenv "HOMEBREW_PREFIX"))
+                             (t "~/.local/")))
     (defconstant +ocicl-bin-name+ (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))))
 
 (defmacro safe-delete-file (filename)
