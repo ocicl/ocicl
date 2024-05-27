@@ -42,7 +42,7 @@ https://github.com/ocicl/ocicl/issues.
 Quick Start
 ------------
 
-You can install ocicl one of two ways: with
+You can install `ocicl` one of two ways: with
 [homebrew](https://brew.sh) or from source.
 
 For [homebrew](https://brew.sh) on Linux, Windows WSL, or macOS,
