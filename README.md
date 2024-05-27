@@ -42,7 +42,33 @@ https://github.com/ocicl/ocicl/issues.
 Quick Start
 ------------
 
-Install ``ocicl`` by running ``sbcl --load setup.lisp`` in the source
+You can install ocicl one of two ways: with
+[homebrew](https://brew.sh) or from source.
+
+For [homebrew](https://brew.sh) on Linux, Windows WSL, or macOS,
+install and configure `ocicl` as follows:
+```
+green@fedora:~$ brew install ocicl
+==> Downloading https://ghcr.io/v2/homebrew/core/ocicl/manifests/2.3.4
+########################################################################################################################################## 100.0%
+==> Fetching ocicl
+==> Downloading https://ghcr.io/v2/homebrew/core/ocicl/blobs/sha256:fe9b2d51c012851588baef450ff39b453526a7fc2c5df38e9071fc253b136150
+########################################################################################################################################## 100.0%
+==> Pouring ocicl--2.3.4.x86_64_linux.bottle.tar.gz
+🍺  /home/linuxbrew/.linuxbrew/Cellar/ocicl/2.3.4: 8 files, 36.4MB
+==> Running `brew cleanup ocicl`...
+green@fedora:~$ ocicl setup
+;; Add the following to your lisp startup file
+;; (~/.sbclrc, ~/.eclrc, ~/.abclrc or ~/.roswell/init.lisp):
+
+#-ocicl
+(when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
+  (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
+(push (uiop:getcwd) asdf:*central-registry*)
+```
+
+
+To install from source, run ``sbcl --load setup.lisp`` in the source
 directory.  This will build and install the ``ocicl`` binary in
 ``~/.local/bin`` on non-Windows systems, and
 ``%UserProfile%\AppData\Local\ocicl\`` on Windows.  It will also
