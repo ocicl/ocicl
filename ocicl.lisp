@@ -32,8 +32,9 @@
 (defvar *verbose* nil)
 (defvar *ocicl-systems* nil)
 
-(defconstant +version+ #.(uiop:read-file-form "version.sexp"))
-(defconstant +runtime+
+(defparameter +version+ #.(uiop:read-file-form "version.sexp"))
+
+(defparameter +runtime+
   (concatenate 'string
                #.(uiop:read-file-string "runtime/ocicl-runtime.lisp")
                (format nil "~%(defconstant +version+ ~S)~%" +version+)))
