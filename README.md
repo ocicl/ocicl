@@ -147,7 +147,7 @@ Now let's try the ``ocicl`` command line tool.
 
 ```
 $ ocicl help
-ocicl 2.3.4 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.3.5 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -238,6 +238,9 @@ optional ``GLOBALDIR`` argument when you invoke ``ocicl setup``.
 
 You can change the default behaviour of downloading systems on demand
 by setting ``ocicl-runtime:*download*`` to nil.
+
+To get a list of all of the systems already downloaded (both locally
+and globally), call `(ocicl-runtime:system-list)`.
 
 AI-Generated Change Summaries
 -----------------------------

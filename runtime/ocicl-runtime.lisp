@@ -27,7 +27,7 @@
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
-  (:export #:*download* #:*verbose* #:+version+))
+  (:export #:*download* #:*verbose* #:+version+ #:system-list))
 
 (in-package #:ocicl-runtime)
 
@@ -99,7 +99,7 @@
     (uiop:ensure-all-directories-exist (list ocicl-dir))
     ocicl-dir))
 
-(defun find-asdf-system-file (name download-p)
+(defun initialize-globals ()
   (unless *local-systems-dir*
     (let ((cwd (uiop:getcwd)))
       (setq *local-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
@@ -114,20 +114,22 @@
 
       (setq *global-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
                                                   globaldir))
-      (setq *global-systems-csv* (merge-pathnames globaldir "systems.csv")))
+      (setq *global-systems-csv* (merge-pathnames globaldir "systems.csv"))))
 
-    (when (probe-file *local-systems-csv*)
-      (let ((timestamp (file-write-date *local-systems-csv*)))
-        (when (> timestamp *local-systems-csv-timestamp*)
-          (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
-          (setq *local-systems-csv-timestamp* timestamp))))
+  (when (probe-file *local-systems-csv*)
+    (let ((timestamp (file-write-date *local-systems-csv*)))
+      (when (> timestamp *local-systems-csv-timestamp*)
+        (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
+        (setq *local-systems-csv-timestamp* timestamp))))
 
-    (when (probe-file *global-systems-csv*)
-      (let ((timestamp (file-write-date *global-systems-csv*)))
-        (when (> timestamp *global-systems-csv-timestamp*)
-          (setq *global-ocicl-systems* (read-systems-csv *global-systems-csv*))
-          (setq *global-systems-csv-timestamp* timestamp)))))
+  (when (probe-file *global-systems-csv*)
+    (let ((timestamp (file-write-date *global-systems-csv*)))
+      (when (> timestamp *global-systems-csv-timestamp*)
+        (setq *global-ocicl-systems* (read-systems-csv *global-systems-csv*))
+        (setq *global-systems-csv-timestamp* timestamp)))))
 
+(defun find-asdf-system-file (name download-p)
+  (initialize-globals)
   (labels ((try-load (systems systems-dir)
              (let ((match (and systems (gethash (mangle name) systems))))
                (if match
@@ -158,5 +160,13 @@
 (setf asdf:*system-definition-search-functions*
       (append asdf:*system-definition-search-functions*
               (list 'system-definition-searcher)))
+
+(defun system-list ()
+  (initialize-globals)
+  (append (loop for key being the hash-keys of *local-ocicl-systems*
+                collect key)
+          (when *global-ocicl-systems*
+            (loop for key being the hash-keys of *global-ocicl-systems*
+                  collect key))))
 
 (pushnew :OCICL *features*)
