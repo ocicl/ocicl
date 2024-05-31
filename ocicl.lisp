@@ -174,7 +174,7 @@ Distributed under the terms of the MIT License"
     (let* ((s (asdf:find-system name))
            (deps (asdf:system-depends-on s)))
       (dolist (d deps)
-        (unless (listp d)
+        (unless (or (listp d) (string= "sb-" (subseq d 0 3)))
           (download-system-dependencies d))))))
 
 (defun do-latest (args)
