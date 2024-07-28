@@ -34,6 +34,8 @@
 (defvar *download* t)
 (defvar *verbose* nil)
 
+(defconstant +version+ "UNKNOWN")
+
 (defvar *local-ocicl-systems* nil)
 (defvar *local-systems-dir* nil)
 (defvar *local-systems-csv* nil)
@@ -83,7 +85,20 @@
         (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))
     ht))
 
+(defun check-ocicl-version ()
+  (let ((ocicl-version-output (uiop:run-program "ocicl version"
+                                                :output '(:string)
+                                                :error-output *error-output*))
+        (ocicl-version-string (format nil "ocicl version:   ~A~%"  ocicl-runtime:+version+)))
+    (unless (string= ocicl-version-string (subseq ocicl-version-output 0 (length ocicl-version-string)))
+      (format t "~&; ***************************************************************~%")
+      (format t "; WARNING: Your ocicl binary and ocicl-runtime are out of sync.~%")
+      (format t ";          Run `ocicl setup` and restart.~%")
+      (format t "; ***************************************************************~%")
+      (terpri))))
+
 (defun ocicl-install (name)
+  (check-ocicl-version)
   (let ((cmd (format nil "ocicl ~A install ~A" (if *verbose* "-v" "") name)))
     (when *verbose* (format t "; running: ~A~%" cmd))
     (uiop:run-program cmd

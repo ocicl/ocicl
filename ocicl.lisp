@@ -35,9 +35,14 @@
 (defparameter +version+ #.(uiop:read-file-form "version.sexp"))
 
 (defparameter +runtime+
-  (concatenate 'string
-               #.(uiop:read-file-string "runtime/ocicl-runtime.lisp")
-               (format nil "~%(defconstant +version+ ~S)~%" +version+)))
+  (let* ((runtime #.(uiop:read-file-string "runtime/ocicl-runtime.lisp"))
+         (start (search "UNKNOWN" runtime)))
+    (if start
+        (concatenate 'string
+                     (subseq runtime 0 start)
+                     +version+
+                     (subseq runtime (+ start 7)))
+        runtime)))
 
 (define-opts
   (:oname :verbose
