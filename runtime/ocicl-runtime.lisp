@@ -27,13 +27,13 @@
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
-  (:export #:*download* #:*verbose* #:+version+ #:system-list))
+  (:export #:*download* #:*verbose* #:*force-global* #:+version+ #:system-list))
 
 (in-package #:ocicl-runtime)
 
 (defvar *download* t)
 (defvar *verbose* nil)
-
+(defvar *force-global* nil)
 (defconstant +version+ "UNKNOWN")
 
 (defvar *local-ocicl-systems* nil)
@@ -99,7 +99,10 @@
 
 (defun ocicl-install (name)
   (check-ocicl-version)
-  (let ((cmd (format nil "ocicl ~A install ~A" (if *verbose* "-v" "") name)))
+  (let ((cmd (format nil "ocicl ~A ~A install ~A"
+                     (if *verbose* "-v" "")
+                     (if *force-global* "--global" "")
+                     name)))
     (when *verbose* (format t "; running: ~A~%" cmd))
     (uiop:run-program cmd
                       :output (if *verbose* *standard-output*
