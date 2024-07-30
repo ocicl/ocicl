@@ -407,7 +407,7 @@ running ``ocicl setup -r docker.io/ocicl``.
 * You may find it convenient to tell ASDF to load from the current directory.
 Do this by placing the following in your ``.sbclrc`` file:
 ```
-(pushnew (uiop:getcwd) asdf:*central-registry*)
+(pushnew (uiop:getcwd) asdf:*central-registry* :test 'equalp)
 ```
 * As an ``ocicl`` user, you may have had experience using quicklisp's
 ``local-projects`` mechanism, and are wondering how to do something
