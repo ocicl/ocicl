@@ -12,8 +12,8 @@
                              ((uiop:os-windows-p)
                               (format nil "~A\\AppData\\Local\\ocicl\\"
                                       (uiop:getenv "UserProfile")))
-                             ((uiop:getenv "OCICL_PREFIX")
-                              (uiop:getenv "OCICL_PREFIX"))
+                             ((uiop:getenvp "OCICL_PREFIX")
+                              (uiop:ensure-directory-pathname (uiop:getenv "OCICL_PREFIX")))
                              (t "~/.local/")))
     (defconstant +ocicl-bin-name+ (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))))
 
