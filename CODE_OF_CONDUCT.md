@@ -1,4 +1,4 @@
-[!NOTE]
+![NOTE]
 The following "Code of Conduct" applies to the `ocicl` project as a
 whole, not just this one repo.  Thanks!
 
