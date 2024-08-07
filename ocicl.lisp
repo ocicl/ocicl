@@ -219,7 +219,7 @@ Distributed under the terms of the MIT License"
 
   (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
                           :direction :output
-                          :if-exists :supersede)
+                          :if-exists nil)
     (write-string (first *ocicl-registries*) stream))
   (if args
     (let ((original-directory (uiop:getcwd)))
