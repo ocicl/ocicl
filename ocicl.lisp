@@ -216,11 +216,11 @@ Distributed under the terms of the MIT License"
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
 (defun do-setup (args)
-
-  (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
-                          :direction :output
-                          :if-exists nil)
-    (write-string (first *ocicl-registries*) stream))
+  (unless (probe-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg"))
+    (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
+                            :direction :output
+                            :if-exists :error)
+      (write-string (first *ocicl-registries*) stream)))
   (if args
     (let ((original-directory (uiop:getcwd)))
       (unwind-protect
