@@ -221,30 +221,32 @@ Distributed under the terms of the MIT License"
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
 (defun do-setup (args)
-  (unless (probe-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg"))
-    (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
-                            :direction :output
-                            :if-exists :error)
-      (write-string (first *ocicl-registries*) stream)))
+  (if (or *force*
+          (not (probe-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg"))))
+      (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
+                              :direction :output
+                              :if-exists :overwrite)
+        (write-string (first *ocicl-registries*) stream))
+      (format t ";; Preserving existing ~A~%;; Use setup's --force option to override.~%~%" (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
   (if args
-    (let ((original-directory (uiop:getcwd)))
-      (unwind-protect
-          (handler-case
-              (progn
-                (uiop:chdir (car args))
-                (setf args (list (namestring (uiop:getcwd))))
-                (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")
-                                        :direction :output
-                                        :if-exists :supersede)
-                                (write-string (car args) stream)))
-            (error (e)
-              (declare (ignore e))
-              (format uiop:*stderr* "Error: directory ~A does not exist.~%" (car args))
-              (sb-ext:quit)))
-        (uiop:chdir original-directory)))
-    (let ((old-config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
-      (when (probe-file old-config-file)
-        (delete-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))))
+      (let ((original-directory (uiop:getcwd)))
+        (unwind-protect
+             (handler-case
+                 (progn
+                   (uiop:chdir (car args))
+                   (setf args (list (namestring (uiop:getcwd))))
+                   (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")
+                                           :direction :output
+                                           :if-exists :supersede)
+                     (write-string (car args) stream)))
+               (error (e)
+                 (declare (ignore e))
+                 (format uiop:*stderr* "Error: directory ~A does not exist.~%" (car args))
+                 (sb-ext:quit)))
+          (uiop:chdir original-directory)))
+      (let ((old-config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
+        (when (probe-file old-config-file)
+          (delete-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))))
 
   (let* ((odir (get-ocicl-dir))
          (gdir (or (car args) odir))

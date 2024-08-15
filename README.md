@@ -67,7 +67,6 @@ green@fedora:~$ ocicl setup
 (push (uiop:getcwd) asdf:*central-registry*)
 ```
 
-
 To install from source, run ``sbcl --load setup.lisp`` in the source
 directory.  This will build and install the ``ocicl`` binary in
 ``~/.local/bin`` on non-Windows systems, and
@@ -224,7 +223,8 @@ version, run ``ocicl latest``.
 To use an alternate OCI registry for any operation, use the
 ``--registry`` option.  Using ``--registry`` with the ``setup``
 command will persist this registry choice for all future ``ocicl``
-invocations.
+invocations.  Subsequent uses of ``setup`` will preserve existing
+registry choices unless the ``--force`` option used.
 
 While the `ocicl` cli tool only supports setting a single alternate
 registry, it's possible to use multiple registries by adding multiple
