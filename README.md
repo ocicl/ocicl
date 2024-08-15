@@ -211,7 +211,7 @@ version label in your ``ocicl install`` command.  For example:
 ``ocicl install trivial-garbage:20230511-b3af9c0`` or
 ``ocicl install str:latest``.
 
-Running ``ocicl install SYSYTEMNAME` with no version will do nothing
+Running ``ocicl install SYSYTEMNAME`` with no version will do nothing
 if any version of ``SYSTEMNAME`` is already installed (unless
 ``--force`` is specified).  However, if a system version is specified
 (including ``latest``) then ``ocicl install`` will always download and
