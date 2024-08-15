@@ -225,7 +225,7 @@ Distributed under the terms of the MIT License"
           (not (probe-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg"))))
       (with-open-file (stream (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")
                               :direction :output
-                              :if-exists :overwrite)
+                              :if-exists :supersede)
         (write-string (first *ocicl-registries*) stream))
       (format t ";; Preserving existing ~A~%;; Use setup's --force option to override.~%~%" (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
   (if args
@@ -472,12 +472,13 @@ Distributed under the terms of the MIT License"
        (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
          (when (probe-file config-file)
            (setf *ocicl-registries*
-                 (with-open-file (in config-file)
-                                 (loop for line = (read-line in nil nil)
-                                       while line
-                                       ;; skip comments
-                                       unless (char= #\# (aref line 0))
-                                       collect (string-trim '(#\Space #\Tab #\Newline #\Return) line))))))
+                 (or (with-open-file (in config-file)
+                       (loop for line = (read-line in nil nil)
+                             while line
+                             ;; skip comments
+                             unless (char= #\# (aref line 0))
+                               collect (string-trim '(#\Space #\Tab #\Newline #\Return) line)))
+                     *ocicl-registries*))))
 
        (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
          (when (probe-file config-file)
