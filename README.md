@@ -146,13 +146,13 @@ using the library versions locked in your ``systems.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-$ ocicl help
-ocicl 2.3.8 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.3.10 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
-Usage: ocicl [-v|--verbose] [-g|--global] [-r|--registry REGISTRY] command
+Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY] command
 
 Available options:
   -v, --verbose            produce verbose output
+  -f, --force              force action
   -g, --global             operate on the global system collection
   -r, --registry REGISTRY  use alternate oci registry
 
@@ -208,7 +208,15 @@ without release tags.  In this case, the version label represents the
 build date and the git commit hash (b3af9c0).
 
 To install any specific version of a system, just use the appropriate
-version label in your ``ocicl install`` command.
+version label in your ``ocicl install`` command.  For example:
+``ocicl install trivial-garbage:20230511-b3af9c0`` or
+``ocicl install str:latest``.
+
+Running ``ocicl install SYSYTEMNAME` with no version will do nothing
+if any version of ``SYSTEMNAME`` is already installed (unless
+``--force`` is specified).  However, if a system version is specified
+(including ``latest``) then ``ocicl install`` will always download and
+install the system, even if it already exists on disk.
 
 To update all systems in your ``systems.csv`` file to the latest
 version, run ``ocicl latest``.
