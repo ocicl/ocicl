@@ -34,7 +34,7 @@
   (let ((newest-time 0)
         newest-file)
     (dolist (pattern patterns (values newest-time newest-file))
-      (let ((files (uiop:directory-files pattern)))
+      (let ((files (uiop:directory-files #p"." pattern)))
         (dolist (file files)
           (let ((time (safe-timestamp file)))
             (when (and time (> time newest-time))
