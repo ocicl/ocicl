@@ -145,7 +145,7 @@ using the library versions locked in your ``systems.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.3.11 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.4.0 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -428,6 +428,10 @@ a directory in which you cloned various lisp systems called
 ```
 * Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and
 interesting log info.
+
+* ``ocicl`` is bundled with ``asdf`` version 3.3.5.  You can delete it
+from the directory containing ``ocicl-runtime.lisp`` if you do not
+want this version to be loaded by the runtime at startup.
 
 Author and License
 -------------------
