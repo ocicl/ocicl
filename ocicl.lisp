@@ -45,6 +45,8 @@
                      (subseq runtime (+ start 7)))
         runtime)))
 
+(defparameter +asdf+ #.(uiop:read-file-string "runtime/asdf.lisp"))
+
 (define-opts
   (:oname :verbose
    :description "produce verbose output"
@@ -250,7 +252,12 @@ Distributed under the terms of the MIT License"
 
   (let* ((odir (get-ocicl-dir))
          (gdir (or (car args) odir))
-         (runtime-source (merge-pathnames odir "ocicl-runtime.lisp")))
+         (runtime-source (merge-pathnames odir "ocicl-runtime.lisp"))
+         (asdf-source (merge-pathnames odir "asdf.lisp")))
+    (with-open-file (stream asdf-source
+                            :direction :output
+                            :if-exists :supersede)
+      (write-string +asdf+ stream))
     (with-open-file (stream runtime-source
                             :direction :output
                             :if-exists :supersede)

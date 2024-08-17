@@ -23,7 +23,8 @@
 ;;; ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 ;;; OTHER DEALINGS IN THE SOFTWARE.
 
-(require 'asdf)
+(when (probe-file (merge-pathnames "asdf.lisp" *load-truename*))
+  (load (merge-pathnames "asdf.lisp" *load-truename*)))
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
