@@ -429,7 +429,7 @@ a directory in which you cloned various lisp systems called
 * Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and
 interesting log info.
 
-* ``ocicl`` is bundled with ``asdf`` version 3.3.5.  You can delete it
+* ``ocicl`` is bundled with ``asdf`` version 3.3.7.  You can delete it
 from the directory containing ``ocicl-runtime.lisp`` if you do not
 want this version to be loaded by the runtime at startup.
 
