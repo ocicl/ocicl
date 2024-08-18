@@ -145,7 +145,7 @@ using the library versions locked in your ``systems.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.4.2 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.4.3 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY] command
 
