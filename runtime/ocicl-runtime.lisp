@@ -23,8 +23,24 @@
 ;;; ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 ;;; OTHER DEALINGS IN THE SOFTWARE.
 
-(when (probe-file (merge-pathnames "asdf.lisp" *load-truename*))
-  (load (merge-pathnames "asdf.lisp" *load-truename*)))
+;;; Check if the ASDF version is satisfied. Compile/load the bundled ASDF version if not.
+(require 'asdf)
+(unless (asdf:version-satisfies (asdf:asdf-version) "3.3.5")
+  (let* ((asdf-file (merge-pathnames "asdf.lisp" *load-truename*))
+         (orig-asdf-fasl (compile-file-pathname asdf-file))
+         (asdf-fasl (make-pathname :defaults orig-asdf-fasl
+                                   :name (format nil "asdf-~A-~A-~A"
+                                                 (lisp-implementation-type)
+                                                 (lisp-implementation-version)
+                                                 (machine-type)))))
+    (handler-bind ((warning #'muffle-warning))
+      (cond
+        ((probe-file asdf-fasl)
+         (load asdf-fasl :verbose nil))
+        ((probe-file asdf-file)
+         (load (compile-file asdf-file :verbose nil :output-file asdf-fasl) :verbose nil))))
+    (unless (asdf:version-satisfies (asdf:asdf-version) "3.3.5")
+      (warn "OCICL: ASDF version not satisfied. Found v~A but v3.3.5 is required." (asdf:asdf-version)))))
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
