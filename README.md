@@ -430,8 +430,9 @@ a directory in which you cloned various lisp systems called
 interesting log info.
 
 * ``ocicl`` is bundled with ``asdf`` version 3.3.7.  You can delete it
-from the directory containing ``ocicl-runtime.lisp`` if you do not
-want this version to be loaded by the runtime at startup.
+(along with any fasl files) from the directory containing
+``ocicl-runtime.lisp`` if you do not want this version to be loaded by
+the runtime at startup.
 
 Author and License
 -------------------
