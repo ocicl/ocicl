@@ -1,7 +1,7 @@
 # ocicl
 > A modern ASDF system distribution and management tool for Common Lisp
 
-NOTE: To request additions to the ocicl repo, create an Issue
+NOTE: To request additions to the ``ocicl`` repo, create an Issue
 [here](https://github.com/ocicl/request-system-additions-here/issues/new?assignees=&labels=&projects=&template=request.yml&title=%5BSystem+Request%5D%3A+).
 
 What is it?
@@ -145,7 +145,7 @@ using the library versions locked in your ``systems.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.4.0 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.4.2 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -442,4 +442,4 @@ and is distributed under the terms of the MIT license.
 
 This software includes Lisp source code files written by Zachary
 Beane, Mark Karpov, Ava Fox, and PMSF IT Consulting Pierre R. Mai.
-See the ocicl source files for details.
+See the ``ocicl`` source files for details.
