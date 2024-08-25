@@ -298,8 +298,9 @@ TOTAL libyears: 0.09 (30.06 days)
 Security
 --------
 
-All system tarballs are digitally signed with the ocicl-tarball-signer
-key: B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8.
+All system tarballs have their sha256sum digest digitally signed with
+the ocicl-tarball-signer key:
+B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8.
 
 You can download the unexpanded tarballs like so:
 ```
@@ -314,18 +315,18 @@ total 32
 -rw-r--r--. 1 green green 24609 May 19 09:02 cl-str-20230511-b1c8380.tar.gz
 ```
 
-Similarly, the signature is available by appending ``.sig`` to the system name.
+Similarly, the signature is available by appending ``.sha256sum.sig`` to the system name.
 ```
-$ ocicl-oras pull ghcr.io/ocicl/str.sig:latest
-Downloading 2a97da913ef7 cl-str-20230511-b1c8380.tar.gz.sig
-Downloaded  2a97da913ef7 cl-str-20230511-b1c8380.tar.gz.sig
+$ ocicl-oras pull ghcr.io/ocicl/str.sha256sum.sig:latest
+Downloading 2a97da913ef7 cl-str-20230511-b1c8380.tar.gz.sha256sum.sig
+Downloaded  2a97da913ef7 cl-str-20230511-b1c8380.tar.gz.sha256sum.sig
 Pulled [registry] ghcr.io/ocicl/str.sig:latest
 Digest: sha256:47903679d96504c5e83f08f7d6dfc4e613e7ab968e44dc46cb13b29f7917ddea
 ```
 
 You can verify the signature like so:
 ```
-$ gpg --verify cl-str-20230511-b1c8380.tar.gz.sig cl-str-20230511-b1c8380.tar.gz
+$ sha256sum cl-str-20230511-b1c8380.tar.gz | gpg --verify cl-str-20230511-b1c8380.tar.gz.sha256sum.sig -
 gpg: Signature made Thu 11 May 2023 05:44:45 AM EDT
 gpg:                using RSA key B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8
 gpg: Good signature from "ocicl-tarball-signer" [ultimate]
@@ -337,10 +338,10 @@ log](https://docs.sigstore.dev/logging/overview/).  This gives you and
 your auditors confidence that the code you are running is what it
 claims to be.
 
-You can search for these signatures based on the sha of the tarball
+You can search for these signatures based on the sha of the sha of the tarball
 like so:
 ```
-$ rekor-cli search --sha $(sha256sum cl-str-20230511-b1c8380.tar.gz)
+$ rekor-cli search --sha $(sha256sum cl-str-20230511-b1c8380.tar.gz | sha256sum -)
 Found matching entries (listed by UUID):
 24296fb24b8ad77a6594635675d0e6365b89ee0d5e3b1ce823adb19c28aa3602c2537163710638d9
 
