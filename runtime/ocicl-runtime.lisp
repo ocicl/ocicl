@@ -25,6 +25,9 @@
 
 ;;; Check if the ASDF version is satisfied. Compile/load the bundled ASDF version if not.
 (require 'asdf)
+
+;; Except that clasp and ECL need their own ASDFs for now.
+#-(or clasp ecl)
 (unless (asdf:version-satisfies (asdf:asdf-version) "3.3.5")
   (let* ((asdf-file (merge-pathnames "asdf.lisp" *load-truename*))
          (orig-asdf-fasl (compile-file-pathname asdf-file))
@@ -41,6 +44,11 @@
          (load (compile-file asdf-file :verbose nil :output-file asdf-fasl) :verbose nil))))
     (unless (asdf:version-satisfies (asdf:asdf-version) "3.3.5")
       (warn "OCICL: ASDF version not satisfied. Found v~A but v3.3.5 is required." (asdf:asdf-version)))))
+
+;; Temporary fix for a mysterious problem
+#+clasp
+(when (find-package :sb-bsd-sockets)
+  (asdf:register-immutable-system :sb-bsd-sockets))
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
