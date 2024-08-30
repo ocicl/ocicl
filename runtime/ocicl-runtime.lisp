@@ -60,6 +60,7 @@
 (defvar *verbose* nil)
 (defvar *force-global* nil)
 (defconstant +version+ "UNKNOWN")
+(defconstant +required-programs+ (list "ocicl" "ocicl-oras"))
 
 (defvar *local-ocicl-systems* nil)
 (defvar *local-systems-dir* nil)
@@ -110,7 +111,26 @@
         (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))
     ht))
 
+(defun check-if-program-exists (program-name)
+  "Check if PROGRAM-NAME exists and is executable."
+  (multiple-value-bind
+	(out error exit-code)
+      (uiop:run-program program-name :force-shell nil :ignore-error-status t)
+    (declare (ignore out error))
+    (not (= exit-code 127))))
+
+(defun warn-if-program-doesnt-exist (program-name)
+  "If VERBOSE, print a warning if PROGRAM-NAME doesn't exist or isn't executable."
+  (unless (and *verbose* (check-if-program-exists program-name))
+    (format t "; WARNING: '~A' couldn't be found!~%" program-name)))
+
+(defun warn-if-missing-required-programs ()
+  "Invoke WARN-IF-PROGRAM-DOESNT-EXIST on +REQUIRED-PROGRAMS+"
+  (dolist (program +required-programs+)
+    (warn-if-program-doesnt-exist program)))
+
 (defun check-ocicl-version ()
+  (warn-if-missing-required-programs)
   (let ((ocicl-version-output (uiop:run-program "ocicl version"
                                                 :output '(:string)
                                                 :error-output *error-output*))
@@ -128,7 +148,9 @@
                      (if *verbose* "-v" "")
                      (if *force-global* "--global" "")
                      name)))
-    (when *verbose* (format t "; running: ~A~%" cmd))
+    (warn-if-missing-required-programs)
+    (when *verbose*
+      (format t "; running: ~A~%" cmd))
     (uiop:run-program cmd
                       :output (if *verbose* *standard-output*
                                   '(:string))
