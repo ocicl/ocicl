@@ -116,12 +116,15 @@
   (multiple-value-bind (out error exit-code)
       (uiop:run-program program-name :force-shell nil :ignore-error-status t)
     (declare (ignore out error))
-    (not (= exit-code 127))))
+    (not (or (= exit-code 127) (= exit-code 126)))))
 
 (defun warn-if-program-doesnt-exist (program-name)
   "If VERBOSE, print a warning if PROGRAM-NAME doesn't exist or isn't executable."
-  (unless (and *verbose* (check-if-program-exists program-name))
-    (format t "; WARNING: '~A' couldn't be found!~%" program-name)))
+  (when (and *verbose* (not (check-if-program-exists program-name)))
+    (format t "~&; ***************************************************************~%")
+    (format t "; WARNING: `~A` could not be found!~%" program-name)
+    (format t "; ***************************************************************~%")
+    (terpri)))
 
 (defun warn-if-missing-required-programs ()
   "Invoke WARN-IF-PROGRAM-DOESNT-EXIST on +REQUIRED-PROGRAMS+."
