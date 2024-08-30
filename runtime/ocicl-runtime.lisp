@@ -113,8 +113,7 @@
 
 (defun check-if-program-exists (program-name)
   "Check if PROGRAM-NAME exists and is executable."
-  (multiple-value-bind
-	(out error exit-code)
+  (multiple-value-bind (out error exit-code)
       (uiop:run-program program-name :force-shell nil :ignore-error-status t)
     (declare (ignore out error))
     (not (= exit-code 127))))
@@ -125,7 +124,7 @@
     (format t "; WARNING: '~A' couldn't be found!~%" program-name)))
 
 (defun warn-if-missing-required-programs ()
-  "Invoke WARN-IF-PROGRAM-DOESNT-EXIST on +REQUIRED-PROGRAMS+"
+  "Invoke WARN-IF-PROGRAM-DOESNT-EXIST on +REQUIRED-PROGRAMS+."
   (dolist (program +required-programs+)
     (warn-if-program-doesnt-exist program)))
 
