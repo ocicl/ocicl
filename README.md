@@ -64,7 +64,8 @@ green@fedora:~$ ocicl setup
 #-ocicl
 (when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
   (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
-(push (uiop:getcwd) asdf:*central-registry*)
+(asdf:initialize-source-registry
+  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
 ```
 
 To install from source, run ``sbcl --load setup.lisp`` in the source
@@ -95,7 +96,8 @@ $ ocicl setup
 #-ocicl
 (when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
   (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
-(push (uiop:getcwd) asdf:*central-registry*)
+(asdf:initialize-source-registry
+  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
 ```
 
 The default behavior for the runtime is to invoke ``ocicl`` when ASDF
@@ -416,7 +418,8 @@ running ``ocicl setup -r docker.io/ocicl``.
 * You may find it convenient to tell ASDF to load from the current directory.
 Do this by placing the following in your ``.sbclrc`` file:
 ```
-(pushnew (uiop:getcwd) asdf:*central-registry* :test 'equalp)
+(asdf:initialize-source-registry
+  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
 ```
 * As an ``ocicl`` user, you may have had experience using quicklisp's
 ``local-projects`` mechanism, and are wondering how to do something
