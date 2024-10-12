@@ -514,7 +514,6 @@ Distributed under the terms of the MIT License"
              (unwind-protect
                  (progn
                    (uiop:chdir workdir)
-                   (setf *random-state* (make-random-state t))
                    (setq *ocicl-systems* (read-systems-csv))
                    (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
                                                         (uiop:getcwd)))
