@@ -153,11 +153,12 @@ Distributed under the terms of the MIT License"
 (defun get-ocicl-dir ()
   "Find the ocicl directory."
   (let ((ocicl-dir (merge-pathnames (make-pathname :directory '(:relative "ocicl"))
-                                     (uiop:xdg-data-home))))
+                                    (uiop:xdg-data-home))))
     (uiop:ensure-all-directories-exist (list ocicl-dir))
     ocicl-dir))
 
-(setf *random-state* (make-random-state t))
+(eval-when (:load-toplevel :execute)
+  (setf *random-state* (make-random-state t)))
 
 (defun random-base36-string ()
   "Return a random base36 (0-9A-Z) string of 8 characters."
