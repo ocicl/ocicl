@@ -1,8 +1,8 @@
-;;; package.asd
+;;; package.lisp
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Copyright (C) 2023  Anthony Green <green@moxielogic.com>
+;;; Copyright (C) 2023, 2024  Anthony Green <green@moxielogic.com>
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;;; of this software and associated documentation files (the "Software"), to deal
