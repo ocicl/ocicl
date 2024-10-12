@@ -335,8 +335,6 @@ Distributed under the terms of the MIT License"
    (let ((seconds-per-year 31557600)) ; 365.25 days per year * 24 hours/day * 60 minutes/hour * 60 seconds/minute
      (/ (abs (- time1 time2)) seconds-per-year))))
 
-(float (difference-in-years (get-project-date "sdffsf-20220523/dff.asd") (get-project-date "sdffsf-20240423/dff.asd")))
-
 (defun get-project-name (key-file)
   (let ((tld (top-level-directory key-file)))
     (handler-case
