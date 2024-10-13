@@ -643,7 +643,7 @@ Distributed under the terms of the MIT License"
             (tar-simple-extract:simple-extract-archive a :directory dl-dir))
           manifest-digest))))
 
-(defun download-and-install (name)
+(defun download-and-install (fullname)
   (let ((dl-dir (get-temp-ocicl-dl-pathname)))
     (unwind-protect
          (progn
@@ -651,15 +651,13 @@ Distributed under the terms of the MIT License"
            (uiop:with-current-directory (dl-dir)
              (handler-case
                  (progn
-                   (debug-log (format nil "ocicl-oras pull ~A" name))
-                   (let ((output (uiop:run-program (format nil "ocicl-oras pull ~A" name) :output '(:string))))
-                     (let ((fpath (car (uiop:directory-files dl-dir))))
-                       (gunzip fpath "package.tar")
-                       (uiop:with-current-directory (*systems-dir*)
-                         (unpack-tarball (merge-pathnames dl-dir "package.tar"))))
-                     output))
-               (uiop/run-program:subprocess-error (e)
-                 (format t "Error downloading and installing ~A~%" name)
+                   (debug-log #?"attempting to pull ${fullname}")
+                   (cl-ppcre:register-groups-bind (registry name digest)
+                       ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
+                     (let ((manifest-digest (get-blob registry name #?"sha256:${digest}" dl-dir)))
+                       (copy-directory:copy dl-dir *systems-dir*))))
+               (dexador.error:http-request-forbidden (e)
+                 (format t "; error downloading and installing ~A~%" fullname)
                  (debug-log e)
                  nil))))
       (uiop:delete-directory-tree dl-dir :validate t))))
