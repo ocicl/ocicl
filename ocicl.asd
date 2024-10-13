@@ -30,12 +30,8 @@
   :version (:read-file-form "version.sexp")
   :serial t
   :components ((:file "package")
-               (:file "unix-opts")
-               (:file "deflate")
-               (:file "minitar")
-               (:file "wua")
                (:file "ocicl"))
-  :depends-on (:dexador :cl-json :cl-interpol :tar :tar/simple-extract :copy-directory :sb-posix :sb-bsd-sockets :sb-rotate-byte :sb-cltl2 :sb-introspect :sb-concurrency :sb-sprof :sb-md5 :sb-introspect)
+  :depends-on (:with-user-abort :unix-opts :dexador :cl-json :cl-interpol :tar :tar/simple-extract :copy-directory :sb-posix :sb-bsd-sockets :sb-rotate-byte :sb-cltl2 :sb-introspect :sb-concurrency :sb-sprof :sb-md5 :sb-introspect)
   :build-operation "program-op"
   :build-pathname "ocicl"
   :entry-point "ocicl:main")

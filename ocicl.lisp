@@ -49,20 +49,20 @@
 
 (defparameter +asdf+ #.(uiop:read-file-string "runtime/asdf.lisp"))
 
-(define-opts
-  (:oname :verbose
+(opts:define-opts
+  (:name :verbose
    :description "produce verbose output"
    :short #\v
    :long "verbose")
-  (:oname :force
+  (:name :force
    :description "force action"
    :short #\f
    :long "force")
-  (:oname :global
+  (:name :global
    :description "operate on the global system collection"
    :short #\g
    :long "global")
-  (:oname :registry
+  (:name :registry
    :description "use alternate oci registry"
    :short #\r
    :arg-parser (lambda (arg) (setf *ocicl-registries* (list arg)))
@@ -111,7 +111,7 @@
     ht))
 
 (defun usage ()
-  (usage-describe
+  (opts:describe
    :prefix (format nil "ocicl ~A - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>" +version+)
    :suffix "Choose from the following ocicl commands:
 
@@ -522,14 +522,14 @@ Distributed under the terms of the MIT License"
          (multiple-value-bind (options free-args)
              (handler-case
                  (handler-bind ((unknown-option #'unknown-option))
-                   (get-opts))
-               (missing-arg (condition)
-                            (format t "fatal: option ~s needs an argument!~%"
-                                    (option condition)))
-               (arg-parser-failed (condition)
-                                  (format t "fatal: cannot parse ~s as argument of ~s~%"
-                                          (raw-arg condition)
-                                          (option condition))))
+                   (opts:get-opts))
+               (opts:missing-arg (condition)
+                 (format t "fatal: option ~s needs an argument!~%"
+                         (option condition)))
+               (opts:arg-parser-failed (condition)
+                 (format t "fatal: cannot parse ~s as argument of ~s~%"
+                         (raw-arg condition)
+                         (option condition))))
            (when-option (options :verbose)
                         (setf *verbose* t))
            (when-option (options :force)

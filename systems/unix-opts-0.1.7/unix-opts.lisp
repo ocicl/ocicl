@@ -23,12 +23,32 @@
 ;;; OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 ;;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-(in-package #:ocicl)
+(defpackage   :unix-opts
+  (:nicknames :opts)
+  (:use       #:common-lisp)
+  (:export    #:unknown-option
+              #:missing-arg
+              #:arg-parser-failed
+              #:missing-required-option
+              #:use-value
+              #:skip-option
+              #:reparse-arg
+              #:option
+              #:missing-options
+              #:exit
+              #:raw-arg
+              #:define-opts
+              #:argv
+              #:get-opts
+              #:describe)
+  (:shadow    #:describe))
+
+(in-package #:unix-opts)
 
 (defclass option ()
-  ((oname
-    :initarg  :oname
-    :accessor oname
+  ((name
+    :initarg  :name
+    :accessor name
     :documentation "keyword that will be included in list returned by
 `get-opts' function if this option is given by user")
    (description
@@ -87,12 +107,12 @@ an argument, but there is no such argument given."))
   (:report (lambda (c s)
              (format s "missing required options: ~{\"~a\"~^, ~}"
                      (mapcar (lambda (opt)
-                               (with-slots (short long oname) opt
+                               (with-slots (short long name) opt
                                  (apply #'format nil
                                         (cond
                                           (long (list "--~A" long))
                                           (short (list "-~A" short))
-                                          (t (list "~A" oname))))))
+                                          (t (list "~A" name))))))
                              (missing-options c)))))
   (:documentation "This condition is thrown when required options are missing."))
 
@@ -113,7 +133,7 @@ an argument, it's given but cannot be parsed by argument parser."))
 
 (defun add-option (&rest args)
   "Register an option according to ARGS."
-  (let ((oname        (getf args :oname))
+  (let ((name        (getf args :name))
         (description (getf args :description "?"))
         (short       (getf args :short))
         (long        (getf args :long))
@@ -122,7 +142,7 @@ an argument, it's given but cannot be parsed by argument parser."))
         (meta-var    (getf args :meta-var "ARG")))
     (unless (or short long)
       (error "at least one form of the option must be provided"))
-    (check-type oname        keyword)
+    (check-type name        keyword)
     (check-type description string)
     (check-type short       (or null character))
     (check-type long        (or null string))
@@ -130,7 +150,7 @@ an argument, it's given but cannot be parsed by argument parser."))
     (check-type meta-var    string)
     (check-type required    boolean)
     (push (make-instance 'option
-                         :oname        oname
+                         :name        name
                          :description description
                          :short       short
                          :long        long
@@ -143,10 +163,10 @@ an argument, it's given but cannot be parsed by argument parser."))
   "Define command line options. Arguments of this macro must be plists
 containing various parameters. Here we enumerate all allowed parameters:
 
-:ONAME—keyword that will be included in list returned by GET-OPTS function if
+:NAME—keyword that will be included in list returned by GET-OPTS function if
 actual option is supplied by user.
 
-:DESCRIPTION—description of the option (it will be used in USAGE-DESCRIBE
+:DESCRIPTION—description of the option (it will be used in DESCRIBE
 function). This argument is optional, but it's recommended to supply it.
 
 :SHORT—single character, short variant of the option. You may omit this
@@ -286,7 +306,7 @@ to `nil')"
        (required (loop :with table = (make-hash-table)
                        :for option :in *options*
                        :when (required option)
-                         :do (setf (gethash (oname option) table) option)
+                         :do (setf (gethash (name option) table) option)
                        :finally (return table)))
        poption-name
        poption-raw
@@ -306,12 +326,12 @@ to `nil')"
                (use-value (values)
                  (loop :for option :in missing
                        :for value :in values
-                       :do (push (oname option) options)
+                       :do (push (name option) options)
                        :do (push value options))))))
          (values (nreverse options)
                  (nreverse free-args))))
-    (labels ((push-option (oname value)
-               (push oname options)
+    (labels ((push-option (name value)
+               (push name options)
                (push value options)
                (setf poption-name nil))
              (process-arg (arg)
@@ -334,12 +354,12 @@ to `nil')"
                (let ((option (find-option opt)))
                  (if option
                      (let ((parser (arg-parser option)))
-                       (remhash (oname option) required)
+                       (remhash (name option) required)
                        (if parser
-                           (setf poption-name   (oname option)
+                           (setf poption-name   (name option)
                                  poption-raw    opt
                                  poption-parser parser)
-                           (push-option (oname option) t)))
+                           (push-option (name option) t)))
                      (restart-case
                          (error 'unknown-option
                                 :option opt)
@@ -433,7 +453,7 @@ it gets too long. MARGIN specifies margin."
                   (setf last-newline i))
                 (princ str s)))))))
 
-(defun usage-describe (&key prefix suffix usage-of args (stream *standard-output*))
+(defun describe (&key prefix suffix usage-of args (stream *standard-output*))
   "Return string describing options of the program that were defined with
 `define-opts' macro previously. You can supply PREFIX and SUFFIX arguments
 that will be printed before and after options respectively. If USAGE-OF is

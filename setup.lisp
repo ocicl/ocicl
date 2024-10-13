@@ -1,9 +1,5 @@
 (require 'asdf)
 (require 'uiop)
-(load "package.lisp")
-(in-package :ocicl)
-(load "deflate.lisp")
-(load "minitar.lisp")
 
 (eval-when
     (:load-toplevel :execute)

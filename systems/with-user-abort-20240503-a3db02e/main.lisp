@@ -1,22 +1,3 @@
-#|
-with-user-abort code copied from ava fox's with-user-abort project.
-
-(asdf:defsystem #:with-user-abort
-  :description "provides an easy way to catch ctrl+c. useful for making binaries."
-  :author "ava fox"
-  :license  "BSD 3-Clause"
-  :version "0.1"
-  :serial t
-  :components ((:file "package")
-	       (:file "main")))
-|#
-
-(in-package :cl-user)
-(defpackage with-user-abort
-  (:use :cl)
-  (:export :user-abort
-	   :with-user-abort))
-
 (in-package :with-user-abort)
 
 (eval-when (compile load eval)
@@ -50,6 +31,6 @@ with-user-abort code copied from ava fox's with-user-abort project.
 (defmacro with-user-abort (&body body)
   "execute BODY, signalling user-abort if the interrupt signal is received"
   `(handler-bind ((#.(get-implementation-condition)
-
+		   
 		   #'user-abort))
      ,@body))

@@ -1,0 +1,31 @@
+language: lisp
+sudo: required
+
+env:
+  matrix:
+    - LISP=abcl
+    - LISP=sbcl
+    - LISP=sbcl32
+    - LISP=ccl
+    - LISP=ccl32
+    - LISP=clisp
+    - LISP=clisp32
+
+install:
+  - if [ -x ./install.sh ] && head -2 ./install.sh | grep '^# cl-travis' > /dev/null;
+    then
+      ./install.sh;
+    else
+      curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | sh;
+    fi
+
+before_script:
+  - echo "(defsystem :dummy-cl-travis-system)" > ~/lisp/dummy-cl-travis-system.asd
+
+script:
+  - cl -e '(asdf:load-system :unix-opts-tests)
+           (unix-opts:run-tests)'
+    [ $? -eq 1 ]
+
+notifications:
+  email: false
