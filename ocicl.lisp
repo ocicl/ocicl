@@ -706,7 +706,7 @@ Distributed under the terms of the MIT License"
                 (or (cdr (gethash (mangle name) *ocicl-systems*))
                     (handler-case
                         (cdr (download-system name))
-                      (uiop/run-program:subprocess-error (e)
+                      (error (e)
                         (declare (ignore e))
                         nil))))))
 
