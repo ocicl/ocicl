@@ -60,7 +60,7 @@
 (defvar *verbose* nil)
 (defvar *force-global* nil)
 (defconstant +version+ "UNKNOWN")
-(defconstant +required-programs+ (list "ocicl" "ocicl-oras"))
+(defconstant +required-programs+ (list "ocicl"))
 
 (defvar *local-ocicl-systems* nil)
 (defvar *local-systems-dir* nil)
