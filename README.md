@@ -7,7 +7,7 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
 What is it?
 ------------
 ``ocicl`` is a modern alternative to quicklisp.  It is modern in the sense that:
-* All software is [packaged as OCI-compliant artifacts](https://oras.land/) and distributed from mirrored OCI-compliant registries (the GitHub and Docker Hub Container Registries).
+* All software is [packaged as OCI-compliant artifacts](https://github.com/opencontainers/) and distributed from mirrored OCI-compliant registries (the GitHub and Docker Hub Container Registries).
 * All software packages are securely distributed over TLS connections.
 * All connections respect ``https_proxy`` environment settings for authenticated proxy support.
 * [sigstore](https://www.sigstore.dev/) is used to ensure the integrity and authenticity of all software packages.
@@ -71,11 +71,7 @@ green@fedora:~$ ocicl setup
 To install from source, run ``sbcl --load setup.lisp`` in the source
 directory.  This will build and install the ``ocicl`` binary in
 ``~/.local/bin`` on non-Windows systems, and
-``%UserProfile%\AppData\Local\ocicl\`` on Windows.  It will also
-install a helper program called ``ocicl-oras``.  This is just the
-``oras`` binary from the Open Source CNCF [oras
-project](https://oras.land). We use ``ocicl-oras`` as a helper program
-to interface with OCI registries.
+``%UserProfile%\AppData\Local\ocicl\`` on Windows.
 
 The `setup.lisp` script will build an `ocicl` binary with 3072MB of
 dynamic memory space.  If you need a different amount, run it like so:
@@ -304,9 +300,9 @@ All system tarballs have their sha256sum digest digitally signed with
 the ocicl-tarball-signer key:
 B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8.
 
-You can download the unexpanded tarballs like so:
+You can download the unexpanded tarballs using skopeo or oras like so:
 ```
-$ ocicl-oras pull ghcr.io/ocicl/str:latest
+$ oras pull ghcr.io/ocicl/str:latest
 Downloading 577fc7118b8a cl-str-20230511-b1c8380.tar.gz
 Downloaded  577fc7118b8a cl-str-20230511-b1c8380.tar.gz
 Pulled [registry] ghcr.io/ocicl/str:latest
@@ -319,7 +315,7 @@ total 32
 
 Similarly, the signature is available by appending ``.sha256sum.sig`` to the system name.
 ```
-$ ocicl-oras pull ghcr.io/ocicl/str.sha256sum.sig:latest
+$ oras pull ghcr.io/ocicl/str.sha256sum.sig:latest
 Downloading 2a97da913ef7 cl-str-20230511-b1c8380.tar.gz.sha256sum.sig
 Downloaded  2a97da913ef7 cl-str-20230511-b1c8380.tar.gz.sha256sum.sig
 Pulled [registry] ghcr.io/ocicl/str.sig:latest
