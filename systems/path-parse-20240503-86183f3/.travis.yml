@@ -1,0 +1,44 @@
+language: common-lisp
+sudo: false
+
+env:
+  global:
+    - PATH=~/.roswell/bin:$PATH
+    - ROSWELL_BRANCH=master
+    - ROSWELL_INSTALL_DIR=$HOME/.roswell
+    - COVERAGE_EXCLUDE=t
+  matrix:
+    - LISP=sbcl-bin COVERALLS=true
+    - LISP=ccl-bin
+    - LISP=abcl
+
+install:
+  # Roswell & coveralls
+  - curl -L https://raw.githubusercontent.com/snmsts/roswell/$ROSWELL_BRANCH/scripts/install-for-ci.sh | sh
+  - git clone https://github.com/fukamachi/cl-coveralls ~/lisp/cl-coveralls
+
+cache:
+  directories:
+    - $HOME/.roswell
+    - $HOME/.config/common-lisp
+
+before_script:
+  - ros --version
+  - ros config
+
+script:
+  - ros -e '(ql:quickload (list :fiveam :cl-coveralls))'
+        -e '(setf fiveam:*debug-on-error* t
+                  fiveam:*debug-on-failure* t)'
+        -e '(setf *debugger-hook*
+                  (lambda (c h)
+                    (declare (ignore h))
+                    (print c)
+                    (uiop:quit -1)))'
+        -e '(ql:quickload :path-parse-test)'
+        -e '(coveralls:with-coveralls ()
+              (path-parse-test:run-tests))'
+
+notifications:
+  email:
+    - eudoxiahp@gmail.com

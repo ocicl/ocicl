@@ -1,0 +1,35 @@
+;;; -*- mode: common-lisp -*-
+(:api-version "0.3")
+
+(:source "quicklisp"
+ :type :ql-clpi
+ :url "https://quicklisp.common-lisp-project-index.org/")
+
+;; Needed because QL's list of dependencies misses these. They are dependencies
+;; of 40ants-doc-full (to actually generate the documentation).
+(:system "40ants-doc-full")
+(:system "3bmd")
+(:system "3bmd-ext-code-blocks")
+(:system "closer-mop")
+(:system "swank")
+(:system "cl-ppcre")
+(:system "cl-ppcre-unicode")
+(:system "ironclad")
+(:system "cl-fad")
+(:system "str")
+(:system "dexador")
+(:system "commondoc-markdown")
+(:system "spinneret")
+(:system "log4cl")
+(:system "tmpdir")
+(:system "trivial-extract")
+(:system "lass")
+(:system "xml-emitter")
+(:system "stem")
+(:system "jonathan")
+(:system "slynk")
+
+;; Needed to build cl-unicode
+(:system "flexi-streams")
+
+(:asd "tar-file.asd")

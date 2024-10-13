@@ -1,0 +1,41 @@
+* Original TODO from MGL-PAX
+;;;; - locative aliases for docstrings (object[s] -> class)
+;;;;
+;;;; - add method-combination locative
+;;;;
+;;;; - esrap is slow with allegro cl
+;;;;
+;;;; - link to doc instead of including it if it is referenced
+;;;;   multiple times? Which one is the master? Heuristically, the
+;;;;   references from sections in the same package are to be
+;;;;   preferred.
+;;;;
+;;;; - todo/comment locative?
+;;;;
+;;;; - defining link ids doesn't work in function docstrings because
+;;;;   it's translated to a list item
+;;;;
+;;;; - autolinking to the hyperspec
+;;;;
+;;;; - fake/override documentation for existing stuff
+;;;;
+;;;; - pretty print lambda-lists (including default values) and values
+;;;;   of variables
+;;;;
+;;;; - make the the documentation generation code easier to understand
+;;;;
+;;;; - add [link name][(FOO VARIABLE)] kind of link (maybe with a
+;;;;   retitling-locative? [FOO][(RETITLE "link name" VARIABLE)])
+;;;;
+;;;; - port the hyperspec to pax (copyright on lispworks' version is
+;;;;   restrictive, allegro?)
+;;;;
+;;;; - with *DOCUMENT-DOWNCASE-UPPERCASE-CODE* T, noninterned stuff is
+;;;;   not downcased, which leads to having to mix casing up in the
+;;;;   docstring.
+;;;;
+;;;; - don't list unexported superclasses?
+;;;;
+;;;; - include signalled errors in transcript?
+;;;;
+;;;; - macro names in the docstring link back to their own bullet

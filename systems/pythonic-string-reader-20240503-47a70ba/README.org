@@ -1,0 +1,92 @@
+
+* Pythonic String Reader
+
+This is a piece of code stolen from Yury Sulsky which has been slightly
+modified/improved by myself.  It sets up some reader macros that make it simpler
+to input string literals which contain backslashes and double quotes.  This is
+very useful for writing complicated docstrings and, as it turns out, writing
+code that contains string literals that contain code themselves.
+
+** Enabling the syntax
+
+Pythonic String Reader is implemented using modern read-table management
+libraries like Named Readtables, so it should be even more unintrusive than it
+was originally designed.
+
+To use the this read macro, you can simply use the readtable
+=pythonic-string-syntax= in the package by putting the following at the
+beginning of your files:
+
+#+begin_src lisp
+(in-readtable pythonic-string-syntax)
+#+end_src
+
+Or use any of the ways Named Readtables allows you to define and combine
+readtables, for instance:
+
+#+begin_src lisp
+(defreadtable my-readtable
+  (:merge :standard)
+  (:merge pythonic-string-syntax))
+#+end_src
+
+... or ...
+
+#+begin_src lisp
+(defreadtable my-readtable
+  (:merge :standard)
+  (:macro-char #\" #'pythonic-string-reader::read-multiline-string t))
+
+(in-readtable my-readtable)
+#+end_src
+
+*** I don't want to use Named Readtables
+
+To enable the reader syntax, run =enable-pythonic-string-syntax= and to disable
+use =disable-pythonic-string-syntax=.
+
+** Usage
+
+The string reader will treat any bit of code that contains three consecutive
+double quotes specially.  If it finds three consecutive double quotes, it will
+start reading and won't stop until it finds another three consecutive double
+quotes.  All text in between is taken as literal.  It is impossible to escape
+anything.
+
+As an extension, if the reader finds four consecutive double quotes (i.e. it
+finds the opening three double quotes, then finds one more immediately after
+those), it will do the same as above, except it will not end until it reaches
+another four consecutive double quotes.  This is particularly useful if you want
+to trick your text editor into treating the string you are writing as normal
+code instead of a string.
+
+*** Examples
+
+Note that in these examples I still balance quotes.  This is needed so that
+Slime doesn't get confused and think there is still input to be had.  This is
+not the case when code is loaded or compiled using the =load= or =compile-file=
+commands (which is what users will experience).
+
+#+begin_src
+CL-USER> """ hello\ """
+" hello\\ "
+CL-USER> """ hello\ """" "
+" "
+CL-USER> """hello"""
+"hello"
+CL-USER> """ \ """
+" \\ "
+CL-USER> """ " " """
+" \" \" "
+CL-USER> """" hello """"
+" hello "
+CL-USER> """" hello """ " """"
+" hello \"\"\" \" "
+#+end_src
+
+** TODO
+
+Perhaps I will integrate with CL-Syntactic-Sugar in the future, as that used to
+be a way to wrangle all of these reader macros in a sane way.  I feel like
+Named-Readtables has accomplished this in a cleaner way though.
+

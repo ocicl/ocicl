@@ -140,6 +140,16 @@ Distributed under the terms of the MIT License"
         (subseq str 0 pos)
         str)))
 
+(defun get-bearer-token (registry system)
+  (handler-case
+      (let* ((server (get-up-to-first-slash registry)))
+        (cdr (assoc :token
+                    (cl-json:decode-json-from-string
+                     (dex:get #?"https://${server}/token?scope=repository:ocicl/${system}:pull")))))
+    (error (e)
+      (declare (ignore e))
+      nil)))
+
 (defun do-list (args)
   (handler-case
       (when args
@@ -147,10 +157,7 @@ Distributed under the terms of the MIT License"
           (loop for registry in *ocicl-registries*
                 do (handler-case
                        (let ((server (get-up-to-first-slash registry)))
-                         (let* ((token
-                                  (cdr (assoc :token
-                                              (cl-json:decode-json-from-string
-                                               (dex:get #?"https://${server}/token?scope=repository:ocicl/${system}:pull")))))
+                         (let* ((token (get-bearer-token registry system))
                                 (tags
                                   (sort
                                    (cdr (assoc :tags
@@ -490,6 +497,7 @@ Distributed under the terms of the MIT License"
                *ocicl-systems*)))
 
 (defun main ()
+  (setf *random-state* (make-random-state t))
   (handler-case
       (with-user-abort:with-user-abort
 
@@ -610,6 +618,31 @@ Distributed under the terms of the MIT License"
                (format stream "~A, ~A, ~A~%" key (car value) (cdr value)))
              *ocicl-systems*)))
 
+(defun get-manifest (registry system tag)
+  (let ((token (get-bearer-token registry system))
+        (server (get-up-to-first-slash registry)))
+    (multiple-value-bind (body status response-headers)
+        (dex:get #?"https://${server}/v2/ocicl/${system}/manifests/${tag}"
+                 :force-string t
+                 :headers `(("Authorization" . ,#?"Bearer ${token}")
+                            ("Accept" . "application/vnd.oci.image.manifest.v1+json")
+                            ("Accept" . "application/vnd.oci.image.index.v1+json")))
+      (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers)))))
+
+(defun get-blob (registry system tag dl-dir)
+  (let* ((token (get-bearer-token registry system))
+         (server (get-up-to-first-slash registry)))
+    (multiple-value-bind (manifest manifest-digest)
+        (get-manifest registry system tag)
+      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
+             (input (dex:get #?"https://${server}/v2/ocicl/${system}/blobs/${digest}"
+                             :force-binary t
+                             :want-stream t
+                             :headers `(("Authorization" . ,#?"Bearer ${token}")))))
+          (tar:with-open-archive (a input)
+            (tar-simple-extract:simple-extract-archive a :directory dl-dir))
+          manifest-digest))))
+
 (defun download-and-install (name)
   (let ((dl-dir (get-temp-ocicl-dl-pathname)))
     (unwind-protect
@@ -648,22 +681,18 @@ Distributed under the terms of the MIT License"
                      (loop for registry in *ocicl-registries*
                            do (handler-case
                                   (progn
-                                    (debug-log (format nil "ocicl-oras pull ~A/~A:~A" registry (mangle name) version))
-                                    (let ((sha256
-                                            (format nil "~A/~A@sha256:~A" registry (mangle name)
-                                                    (extract-sha256
-                                                     (uiop:run-program (format nil "ocicl-oras pull ~A/~A:~A" registry (mangle name) version) :output '(:string))))))
-                                      (format t "; downloaded ~A~%" sha256)
-                                      (let ((fpath (car (uiop:directory-files dl-dir))))
-                                        (gunzip fpath "package.tar")
-                                        (let ((dirname (car (contents "package.tar"))))
-                                          (uiop:with-current-directory (*systems-dir*)
-                                            (unpack-tarball (merge-pathnames dl-dir "package.tar"))
-                                            (dolist (s (find-asd-files (merge-pathnames dirname *systems-dir*)))
-                                              (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons sha256 (subseq (namestring s) (length (namestring *systems-dir*))))))
-                                            (return))))))
-                                (uiop/run-program:subprocess-error (e)
-                                  (format t "Error downloading ~A~%" name)
+                                    (debug-log (format nil "attempting to pull ~A/~A:~A" registry (mangle name) version))
+                                    (let ((manifest-digest (get-blob registry (mangle name) version dl-dir)))
+                                      (format t "; downloaded ~A@~A~%" name manifest-digest)
+                                      (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
+                                             (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
+                                                                                (uiop:split-string (namestring abs-dirname) :separator (list (uiop:directory-separator-for-host))))))))
+                                        (copy-directory:copy dl-dir *systems-dir*)
+                                        (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
+                                          (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${system}@${manifest-digest}" (subseq (namestring s) (length (namestring *systems-dir*))))))))
+                                    (return))
+                                (dexador.error:http-request-forbidden (e)
+                                  (format t "; error downloading ~A~%" name)
                                   (debug-log e)
                                   nil)))))
               (uiop:delete-directory-tree dl-dir :validate t)))
