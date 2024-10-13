@@ -143,7 +143,7 @@ using the library versions locked in your ``systems.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.4.3 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.5.0 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -300,7 +300,7 @@ All system tarballs have their sha256sum digest digitally signed with
 the ocicl-tarball-signer key:
 B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8.
 
-You can download the unexpanded tarballs using skopeo or oras like so:
+You can download the unexpanded tarballs using [skopeo](https://github.com/containers/skopeo) or [oras](https://oras.land/) like so:
 ```
 $ oras pull ghcr.io/ocicl/str:latest
 Downloading 577fc7118b8a cl-str-20230511-b1c8380.tar.gz
