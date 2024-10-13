@@ -298,15 +298,16 @@ Distributed under the terms of the MIT License"
   (loop for registry in *ocicl-registries*
         do (handler-case
                (return-from get-versions-since
-                 (let* ((all-versions
-                          (filter-strings
-                           (nbutlast (cdr (sort
-                                           (split-lines
-                                            (uiop:run-program
-                                             (format nil "ocicl-oras repo tags ~A/~A" registry (mangle system)) :output '(:string)))
-                                           #'string-lessp)))))
-                        (p (position version all-versions :test #'string=)))
-                   (when p (cdr (nthcdr p all-versions)))))
+                 (let ((server (get-up-to-first-slash registry)))
+                   (let* ((token (get-bearer-token registry system))
+                          (all-versions
+                            (filter-strings
+                             (cdr (assoc :tags
+                                         (cl-json:decode-json-from-string
+                                          (dex:get #?"https://${server}/v2/ocicl/${system}/tags/list"
+                                                   :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
+                          (p (position version all-versions :test #'string=)))
+                     (when p (cdr (nthcdr p all-versions))))))
              (uiop/run-program:subprocess-error (e)
                (declare (ignore e))))))
 
