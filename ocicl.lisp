@@ -666,6 +666,7 @@ Distributed under the terms of the MIT License"
 (defun download-system (system)
   (let* ((slist (split-on-delimeter system #\:))
          (name (car slist))
+         (mangled-name (mangle name))
          (version (or (cadr slist) "latest")))
     (if (and (eq (length slist) 1) (gethash name *ocicl-systems*) (not *force*))
         (progn
@@ -680,15 +681,15 @@ Distributed under the terms of the MIT License"
                      (loop for registry in *ocicl-registries*
                            do (handler-case
                                   (progn
-                                    (debug-log (format nil "attempting to pull ~A/~A:~A" registry (mangle name) version))
-                                    (let ((manifest-digest (get-blob registry (mangle name) version dl-dir)))
+                                    (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
+                                    (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
                                       (format t "; downloaded ~A@~A~%" name manifest-digest)
                                       (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
                                              (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
                                                                                 (uiop:split-string (namestring abs-dirname) :separator (list (uiop:directory-separator-for-host))))))))
                                         (copy-directory:copy dl-dir *systems-dir*)
                                         (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
-                                          (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${system}@${manifest-digest}" (subseq (namestring s) (length (namestring *systems-dir*))))))))
+                                          (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}" (subseq (namestring s) (length (namestring *systems-dir*))))))))
                                     (return))
                                 (dexador.error:http-request-forbidden (e)
                                   (format t "; error downloading ~A~%" name)
