@@ -9,7 +9,7 @@ What is it?
 ``ocicl`` is a modern alternative to quicklisp.  It is modern in the sense that:
 * All software is [packaged as OCI-compliant artifacts](https://github.com/opencontainers/) and distributed from mirrored OCI-compliant registries (the GitHub and Docker Hub Container Registries).
 * All software packages are securely distributed over TLS connections.
-* All connections respect ``https_proxy`` environment settings for authenticated proxy support.
+* All connections respect ``HTTPS_PROXY`` environment settings for authenticated proxy support.
 * [sigstore](https://www.sigstore.dev/) is used to ensure the integrity and authenticity of all software packages.
 * Software packages are project-local by default, simplifying the process of tying specific versions to your projects.
 * All software packages are built and published transparently using hosted CI infrastructure ([github actions](https://github.com/ocicl/ocicl-action)).
