@@ -617,7 +617,8 @@ Distributed under the terms of the MIT License"
                           :if-exists :supersede)
     (maphash (lambda (key value)
                (format stream "~A, ~A, ~A~%" key (car value) (cdr value)))
-             *ocicl-systems*)))
+             *ocicl-systems*))
+  (debug-log "wrote new systems.csv"))
 
 (defun get-manifest (registry system tag)
   (let ((token (get-bearer-token registry system))
@@ -689,6 +690,7 @@ Distributed under the terms of the MIT License"
                                                                                 (uiop:split-string (namestring abs-dirname) :separator (list (uiop:directory-separator-for-host))))))))
                                         (copy-directory:copy dl-dir *systems-dir*)
                                         (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
+                                          (debug-log #?"registering ${s}")
                                           (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}" (subseq (namestring s) (length (namestring *systems-dir*))))))))
                                     (return))
                                 (dexador.error:http-request-forbidden (e)
