@@ -190,21 +190,21 @@ Distributed under the terms of the MIT License"
   (format nil "~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*)))
 
 (defun get-changes (system version)
-  (let ((tmpdir (merge-pathnames (make-pathname :directory
-                                                (list :relative (random-base36-string)))
-                                 (uiop:temporary-directory))))
-    (uiop:ensure-all-directories-exist (list tmpdir))
-    (unwind-protect
-         (uiop:with-current-directory (tmpdir)
-           (loop for registry in *ocicl-registries*
-                 do (handler-case
-                        (progn
-                          (uiop:run-program (format nil "ocicl-oras pull ~A/~A-changes.txt:~A" registry (mangle system) version))
-                          (return-from get-changes (uiop:read-file-string (car (uiop:directory-files tmpdir)))))
-                      (error (e)
-                        ))))
-      (uiop:delete-directory-tree tmpdir :validate t))
-    (format nil "No documented changes for ~A:~A" system version)))
+  (loop for registry in *ocicl-registries*
+        do (handler-case
+               (progn
+                 (let* ((token (get-bearer-token registry system))
+                        (server (get-up-to-first-slash registry)))
+                   (multiple-value-bind (manifest manifest-digest)
+                       (get-manifest registry #?"${system}-changes.txt" version)
+                     (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
+                            (changes (dex:get #?"https://${server}/v2/ocicl/${system}-changes.txt/blobs/${digest}"
+                                              :force-string t
+                                              :headers `(("Authorization" . ,#?"Bearer ${token}")))))
+                       (return-from get-changes changes)))))
+             (error (e)
+               )))
+  (format nil "No documented changes for ~A:~A" system version))
 
 (defun download-system-dependencies (name)
   (let ((*load-verbose* *verbose*)
@@ -445,7 +445,7 @@ Distributed under the terms of the MIT License"
                 (let ((versions (get-versions-since system version)))
                   (let ((nth-change 0))
                     (dolist (v versions)
-                      (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes system v)))))))))
+                      (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle system) v)))))))))
       (let ((projects (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
                    (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
@@ -463,7 +463,7 @@ Distributed under the terms of the MIT License"
                              (if versions
                                  (let ((nth-change 0))
                                    (dolist (v versions)
-                                     (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes value v))))
+                                     (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle value) v))))
                                  (when *verbose* (format t "~A~%" (format-line project-name nil nil))))))
                        (error (e) ()))))
                  projects))))
