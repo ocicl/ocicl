@@ -1,0 +1,1655 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.1 Transitional//EN"
+    "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+ <head>
+ <title>CL-JSON</title>
+ <style type="text/css">
+   body { color:black; padding-left:10px; padding-right:10px }
+
+   .header { font-variant:small-caps; margin-top:2em; margin-bottom:2.5em }
+   .header h1 { font-size:xx-large; margin-bottom:6px }
+   .header h2 { font-size:large; margin-top:0 }
+
+   .toc ol.toc-divisions { counter-reset:D }
+   .toc ol.toc-sections { counter-reset:S }
+   .toc ol > li { display:block }
+   .toc ol.toc-divisions > li:before { content:counter(D) ". ";
+                                       counter-increment:D }
+   .toc ol.toc-sections > li:before { content:counter(D) "." counter(S) ". ";
+                                      counter-increment:S }
+
+   h2.section { font-size:x-large; text-decoration:underline; margin-top:2em }
+
+   p.api { margin-bottom:0; padding-left:.5em; border-left:6px solid #888 }
+   code.api { margin-left:2em; font-family:sans-serif; font-style:italic }
+
+   .api-name { font-family:monospace; font-style:normal; font-weight:bold }
+   .lambda-kwd { font-family:monospace; font-weight:bold }
+   .arg-key { font-family:sans-serif; font-variant:small-caps }
+   .arg-name { font-family:sans-serif; font-style:italic }
+   .other-name { font-family:monospace; font-style:italic }
+   .accessory { margin-left:1.5em }
+
+   .json { font-family:inherit !important; text-decoration:underline }
+   .json-literal { font-family:monospace }
+
+   p.docstring { margin-top:.25em; padding-left:.5em; border-left:6px solid #888 }
+
+   var { font-family:serif; font-style:italic }
+
+   dfn { font-family:inherit !important; font-style:italic }
+
+   div.api_docstring { border-left:6px solid #888 }
+   div.api_docstring p { border-left:none }
+
+   table.json-lisp-mapping { margin-bottom:2.5em }
+   .json-lisp-mapping th { padding-left:1em; padding-right:1em }
+   .json-lisp-mapping td { padding-left:1em; padding-right:1em;
+                           border-top: 1px solid gray }
+   .json-lisp-mapping .map { text-align:center;
+                             border-left: 1px solid gray;
+                             border-right: 1px solid gray }
+   .json-lisp-mapping .cc { font-size:x-small; font-weight:normal }
+   .json-lisp-mapping .lisp-type { font-family:inherit !important }
+   .json-lisp-mapping .lisp { font-family:monospace; font-variant:small-caps }
+
+   .example { margin-left:5%; margin-right:5%; padding:.75em;
+              background-color: #ddd }
+   .example .in-code { font-family:monospace; font-size:smaller; margin-top:1.5em; }
+   .example .in-code:first-child { margin-top:0 }
+   .example .value:before { content:"=\3e "; padding-right:1em;
+                            font-family:sans-serif; font-style:italic }
+   .example .value { margin-bottom:.25em; margin-top:0;
+                     font-family:monospace; font-size:smaller; font-style:oblique }
+   .example .output:before { content:"\3e\3e "; padding-right:1em;
+                             font-family:sans-serif; font-style:italic;
+                             color:black }
+   .example .output { margin-bottom:.25em; margin-top:0;
+                      font-family:monospace; font-size:smaller; color:#810 }
+
+   .example .cont { position:absolute; right:10%; color:#108 }
+   .example .comment { position:absolute; left:50%; color:#888 }
+
+   .rationale { font-size:smaller }
+   .rationale strong:first-child { margin-right:1.5em }
+
+   dl.restarts dd { margin-left:0; margin-top:.25em }
+   dl.restarts dd:first-child { margin-top:0 }
+   dl.restarts dt { margin-left:1.5em }
+
+   .license-text { margin-left:5%; margin-right:5%; padding:.75em;
+                   font-size:smaller }
+   .license-text .disclaimer { font-variant:small-caps;
+                               text-transform:lowercase }
+   .license-text .disclaimer span { text-transform:capitalize }
+   .license-text .disclaimer dfn { font-style:normal;
+                                   text-transform:capitalize }
+ </style>
+ <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"/>
+</head>
+
+<body>
+
+
+
+<div class="header">
+  <h1>CL-JSON</h1>
+  <h2>A JSON parser and generator in Common-Lisp</h2>
+</div>
+
+
+<div class="toc">
+  <ol class="toc-divisions">
+    <li><a href="#Q-AND-A">Q&amp;A</a></li>
+    <li><a href="#USER-GUIDE">User Guide</a>
+      <ol class="toc-sections">
+        <li><a href="#DEFAULT-OPERATION">The default encoder / decoder</a></li>
+        <li><a href="#CLOS-DECODER">The CLOS decoder</a>
+          <ul><li><a href="#PROPERTIES-OF-FLUID-OBJECTS">Properties of fluid objects</a></li></ul>
+        </li>
+        <li><a href="#SECURITY-CONSIDERATIONS">Security considerations</a></li>
+        <li><a href="#DECODER-CUSTOMIZATION">Customizing the decoder</a></li>
+        <li><a href="#STREAMING-API">Customizing the encoder</a></li>
+        <li><a href="#CAMEL-CASE-TRANSLATION">Camel case translation</a></li>
+        <li><a href="#ERROR-HANDLING">Error handling</a></li>
+        <li><a href="#UTILITIES">Utilities</a>
+          <ul><li><a href="#JSON-BIND">JSON-Bind</a></li>
+            <li><a href="#JSON-RPC">JSON-RPC</a></li>
+            <li><a href="#JSONP">JSONP</a></li></ul>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#MAILING-LISTS">Mailing Lists</a></li>
+    <li><a href="#LICENSE">License</a></li>
+  </ol>
+</div>
+
+
+  <h2 class="section"><a name="Q-AND-A"></a> Q&amp;A </h2>
+
+<h3>What does CL-JSON do?</h3>
+<p>CL-JSON provides an encoder of Lisp objects to JSON format and a corresponding decoder of JSON data to Lisp objects.  Both the encoder and the decoder are highly customizable; at the same time, the default settings ensure a very simple mode of operation, similar to that provided by <a href="http://common-lisp.net/project/yason/">YASON</a> or <a href="http://marijn.haverbeke.nl/st-json/">ST-JSON</a>. CL-JSON is well tested and the automated testcases includes the <a href="http://www.json.org/JSON_checker/">JSON_checker</a> tests.</p>
+
+<h3>What is JSON?</h3>
+<p><a href="http://www.json.org">JSON</a> is a language independent text format for data-interchange. It has very good open-source and commercial support in many languages. JSON is especially convenient in web applications, since it is a subset of the literal object notation of <a href="http://www.json.org/js.html">ECMAScript</a>. A technique called <a href="#JSONP">JSONP</a> can be used to do cross-domain Ajax.</p>
+
+<h3>Why not use XML instead?</h3>
+<p>Some find JSON lighter and more simple, see this <a href="http://www.json.org/xml.html">comparison</a>.</p>
+
+<h3>Why not use s-expressions instead?</h3>
+<ul>
+  <li><p>Many people find parentheses difficult, but brackets and braces easy. That has led to many implementations of JSON. There is no format based on s-expressions implemented in over 20 languages (yet!).</p></li>
+  <li><p>A simple and very fast JSON parser in JavaScript looks like this:</p>
+    <div class="example">
+      <pre class="in-code">eval('(' + aJSONText + ')')</pre></div>
+    <p>Even a seasoned lisper may find it difficult to make a shorter JavaScript parser for s-expressions.</p></li>
+</ul>
+
+<h3>How do I download CL-JSON?</h3>
+
+<p>The repo is now on git and hosted on  <a href="https://github.com/hankhero/cl-json">github</a>
+<p>An older <a href="http://www.darcs.net/">Darcs</a> repository is also available with changes up to October 2012, but will be deprecated. <a href="http://common-lisp.net/cgi-bin/darcsweb.cgi?r=cl-json-cl-json;a=summary">Browse patches</a>
+<div class="example"><pre class="in-code">
+darcs get http://common-lisp.net/project/cl-json/darcs/cl-json
+</pre></div>
+<p>The prefered way to install is with quicklisp or the git-repo.</p>
+<p>Releases can be downloaded <a href="http://www.cliki.net/cl-json">here</a>.</p>
+<h3>History</h3>
+<ul>
+<li>2006 First version by Henrik Hjelte.</li>
+<li>2007-2008 Version 0.3.1</li>
+<li>2009 Major update by Boris Smilga, adding lots of features. Version 0.4.0</li>
+<li>aug 2009 safe-json-intern and simplified-camel-case-to-lisp. </li>
+<li>dec 2009 New alternative encoder, the explicit sexp-encoder. Not documented below, but with testcases.</li>
+<li>june 2011 Json-rpc version 2 format by Robert Goldman. Version 0.4.1</li>
+<li>2012 Move to git and github. READ-free, by Robert Goldman. Version 0.5.0</li>
+
+</ul>
+
+<h3>Status</h3>
+<p>One known bug (see testmisc.lisp (test json-bind-in-bind-bug)).</p>
+<p>A bit faster decoder performance in 0.3 version, a darcs repo is available (<a href="http://common-lisp.net/project/cl-json/darcs/cl-json-03-branch" title="Premature optimization is the root of all evil">old version</a>).</p>
+
+  <h2 class="section"><a name="USER-GUIDE"></a> User Guide </h2>
+
+
+  <h3 class="section"><a name="DEFAULT-OPERATION"></a> The default encoder / decoder </h3>
+
+<p>The basic functionality is provided by the two functions <code class="api-name">encode-json</code> and <code class="api-name">decode-json</code> (all Lisp names in this Manual <!-- except those in the section <a href="#JSON-RPC"><cite>JSON-RPC</cite></a> --> are available in the package <code class="api-name">JSON</code>).  Under the default semantics they implement the following mapping between Lisp and JSON values:</p>
+
+
+
+<table class="json-lisp-mapping">
+  <tr><th>Lisp</th><th class="map"></th>
+    <th>JSON<span class="cc"><br/>
+      (capitalized names refer to productions in
+        <a href="http://www.ietf.org/rfc/rfc4627.txt">RFC 4627</a>)
+      </span></th></tr>
+  <tr><td><code class="lisp-type">integer</code></td>
+  <td class="map">&harr;</td>
+    <td><code class="json">Number</code>, with no
+      <code class="json">Frac</code> or <code class="json">Exp</code>
+      parts</td></tr>
+  <tr><td><code class="lisp-type">float</code></td>
+  <td class="map">&harr;</td>
+    <td rowspan="2"><code class="json">Number</code>, with
+      <code class="json">Frac</code> or <code class="json">Exp</code>
+      parts</td></tr>
+  <tr><td><code class="lisp-type">rational</code></td>
+  <td class="map">&rarr;<span class="cc">   </span></td>
+  </tr>
+  <tr><td>the value <code class="lisp">t</code></td>
+  <td class="map">&harr;</td>
+    <td><code class="json-literal">true</code></td></tr>
+  <tr><td rowspan="2">the value <code class="lisp">nil</code></td>
+  <td class="map">&harr;</td>
+    <td><code class="json-literal">null</code></td></tr>
+  <tr>
+  <td class="map">&larr;<span class="cc">   </span></td>
+    <td><code class="json-literal">false</code></td></tr>
+  <tr><td>any other <code class="lisp-type">symbol</code></td>
+  <td class="map">&rarr;<span class="cc"> <br/>with identifier name translation </span></td>
+    <td rowspan="2"><code class="json">String</code></td></tr>
+  <tr><td><code class="lisp-type">character</code></td>
+  <td class="map">&rarr;<span class="cc">   </span></td>
+    </tr>
+  <tr><td><code class="lisp-type">string</code></td>
+  <td class="map">&harr;</td>
+    <td><code class="json">String</code><br/>
+      <span class="cc">(except <code class="json">Object</code>
+        member keys)</span></td></tr>
+  <tr><td><code class="lisp-type">list</code><br/>
+      <span class="cc">(except association lists)</span></td>
+  <td class="map">&harr;</td>
+    <td rowspan="2"><code class="json">Array</code></td></tr>
+  <tr><td>any other <code class="lisp-type">sequence</code></td>
+  <td class="map">&rarr;<span class="cc">   </span></td>
+  </tr>
+  <tr><td>association list</td>
+  <td class="map">&harr;</td>
+    <td rowspan="3"><code class="json">Object</code></td></tr>
+  <tr><td><code class="lisp-type">hash-table</code></td>
+  <td class="map">&rarr;<span class="cc">   </span></td>
+  </tr>
+  <tr><td><code class="lisp-type">standard-object</code><br/>
+      <span class="cc">(in implementations with MOP)</span></td>
+  <td class="map">&rarr;<span class="cc">   </span></td>
+  </tr>
+  <tr><td><code class="lisp-type">symbol</code></td>
+  <td class="map">&larr;<span class="cc"> <br/>interned in <code class="lisp">*json-symbols-package*</code><br/>with identifier name translation </span></td>
+    <td><code class="json">String</code> as an
+      <code class="json">Object</code> member key</td></tr>
+</table>
+
+
+  <div class="api_docstring">
+  <p class="api">
+[generic function]
+<code class='api'><span class='api-name'>encode-json</span>
+<span class='arg-name'>object</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>stream</span>
+</code>
+  </p>
+<p class='docstring'>
+Write a JSON representation of <span class='arg-name'>object</span> to <span class='arg-name'>stream</span> and
+return <span class='other-name'>nil</span>.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>decode-json</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>stream</span>
+</code>
+  </p>
+<p class='docstring'>
+Read a JSON <span class='json'>Value</span> from <span class='arg-name'>stream</span> and return the corresponding Lisp value.
+</p>
+  </div>
+
+<p>If <code class="arg-name">stream</code> is omitted it defaults to <code class="other-name">*json-output*</code> for the encoder, <code class="other-name">*json-input*</code> for the decoder.  The initial values of these variables are synonym streams to <code class="other-name">*standard-output*</code> and <code class="other-name">*standard-input*</code> respectively.</p>
+
+  <div class="api_docstring">
+  <p class="api">[variable]
+    <code class='api'><span class="api-name"> *json-output* </span></code></p>
+<p class='docstring'>
+The default output stream for encoding operations.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[variable]
+    <code class='api'><span class="api-name"> *json-input* </span></code></p>
+<p class='docstring'>
+The default input stream for decoding operations.
+</p>
+  </div>
+
+<div class="example">
+<pre class="in-code">
+(json:encode-json
+  '#( ((foo . (1 2 3)) (bar . t) (baz . #\!))
+      "quux" 4/17 4.25))
+</pre>
+<pre class="output">[{"foo":[1,2,3],"bar":true,"baz":"!"},"quux",0.23529412,4.25]</pre>
+<pre class="value">NIL</pre>
+</div>
+
+
+<p>Some parameters which influence the encoding and decoding of symbols are:</p>
+
+  <div class="api_docstring">
+  <p class="api">[variable]
+    <code class='api'><span class="api-name"> *json-symbols-package* </span></code></p>
+<p class='docstring'>
+The package where JSON <span class='json'>Object</span> keys etc. are interned.
+Default <span class='other-name'>keyword</span>, <span class='other-name'>nil</span> = use current <span class='other-name'>*package*</span>.
+</p>
+  </div>
+
+<div class="example">
+<pre class="in-code">
+(with-input-from-string
+    (s "{\"foo\": [1, 2, 3], \"bar\": true, \"baz\": \"!\"}")
+  (json:decode-json s))
+</pre>
+<pre class="value">((:FOO 1 2 3) (:BAR . T) (:BAZ . "!"))</pre>
+<pre class="in-code">
+(with-input-from-string
+    (s "{\"foo\": [1, 2, 3], \"bar\": true, \"baz\": \"!\"}")
+  (let ((json:*json-symbols-package* 'json-test))
+    (json:decode-json s)))    
+</pre>
+<pre class="value">((JSON-TEST::FOO 1 2 3) (JSON-TEST::BAR . T) (JSON-TEST::BAZ . "!"))</pre>
+<pre class="in-code">
+(with-input-from-string
+    (s "{\"foo\": [1, 2, 3], \"bar\": true, \"baz\": \"!\"}")
+  (let ((json:*json-symbols-package* nil))
+    (json:decode-json s)))
+</pre>
+<pre class="value">((FOO 1 2 3) (BAR . T) (BAZ . "!"))</pre>
+</div>
+
+  <div class="api_docstring">
+  <p class="api">[variable]
+    <code class='api'><span class="api-name"> *json-identifier-name-to-lisp* </span></code></p>
+<p class='docstring'>
+Designator for a function which maps string (a JSON <span class='json'>Object</span> key) to
+string (name of a Lisp symbol).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[variable]
+    <code class='api'><span class="api-name"> *lisp-identifier-name-to-json* </span></code></p>
+<p class='docstring'>
+Designator for a function which maps string (name of a Lisp symbol)
+to string (e. g. JSON <span class='json'>Object</span> key).
+</p>
+  </div>
+
+<p>The last two variables are initially bound to <code class="api-name">#'camel-case-to-lisp</code> and <code class="api-name">#'lisp-to-camel-case</code>, respectively.  For a description of these functions, see <a href="#CAMEL-CASE-TRANSLATION"><cite>Camel case translation</cite></a> below.</p>
+
+<p>Note also that the format of Lisp floats decoded from JSON input is controlled by the system variable <code class="other-name">*read-default-float-format*</code> in the same manner as for the Lisp reader.  (But cf. <a href="#ERROR-HANDLING"><cite>Error handling</cite></a>.) </p>
+
+
+<p>CL-JSON also provides the following shortcut functions:</p>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>encode-json-to-string</span>
+<span class='arg-name'>object</span>
+</code>
+  </p>
+<p class='docstring'>
+Return the JSON representation of <span class='arg-name'>object</span> as a string.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>encode-json-alist</span>
+<span class='arg-name'>alist</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>stream</span>
+</code>
+  </p>
+<p class='docstring'>
+Write the JSON representation (<span class='json'>Object</span>) of <span class='arg-name'>alist</span> to <span class='arg-name'>stream</span> (or to
+<span class='other-name'>*json-output*</span>).  Return <span class='other-name'>nil</span>.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>encode-json-alist-to-string</span>
+<span class='arg-name'>alist</span>
+</code>
+  </p>
+<p class='docstring'>
+Return the JSON representation (<span class='json'>Object</span>) of <span class='arg-name'>alist</span> as a string.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>encode-json-plist</span>
+<span class='arg-name'>plist</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>stream</span>
+</code>
+  </p>
+<p class='docstring'>
+Write the JSON representation (<span class='json'>Object</span>) of <span class='arg-name'>plist</span> to <span class='arg-name'>stream</span> (or to
+<span class='other-name'>*json-output*</span>).  Return <span class='other-name'>nil</span>.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>encode-json-plist-to-string</span>
+<span class='arg-name'>plist</span>
+</code>
+  </p>
+<p class='docstring'>
+Return the JSON representation (<span class='json'>Object</span>) of <span class='arg-name'>plist</span> as a string.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>decode-json-strict</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>stream</span>
+</code>
+  </p>
+<p class='docstring'>
+Same as <span class='api-name'>decode-json</span>, but allow only <span class='json'>Object</span>s or <span class='json'>Array</span>s on the top
+level, no junk afterwards.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>decode-json-from-string</span>
+<span class='arg-name'>json-string</span>
+</code>
+  </p>
+<p class='docstring'>
+Read a JSON <span class='json'>Value</span> from <span class='arg-name'>json-string</span> and return the corresponding
+Lisp value.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>decode-json-from-source</span>
+<span class='arg-name'>source</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>decoder</span>
+</code>
+  </p>
+<p class='docstring'>
+Decode a JSON <span class='json'>Value</span> from <span class='arg-name'>source</span> using the value of <span class='arg-name'>decoder</span> (default
+<span class='api-name'>'decode-json</span>) as decoder function.  If the <span class='arg-name'>source</span> is a string, the
+input is from this string; if it is a pathname, the input is from the
+file that it names; otherwise, a stream is expected as <span class='arg-name'>source</span>.
+</p>
+  </div>
+
+
+  <h3 class="section"><a name="CLOS-DECODER"></a> The CLOS decoder </h3>
+
+<p>It is possible to switch CL-JSON into a mode where <code class="json">Array</code>s are decoded to Lisp vectors rather than lists, and <code class="json">Object</code>s are decoded to CLOS objects in the manner described below.  Switching between this mode (&ldquo;CLOS semantics&rdquo;) and the default &ldquo;list semantics&rdquo; is done using the following functions:</p>
+
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>set-decoder-simple-clos-semantics</span>
+</code>
+  </p>
+
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>set-decoder-simple-list-semantics</span>
+</code>
+  </p>
+
+<p>Either semantics can be made to hold temporarily in a dynamic environment while <code class="arg-name">body</code> is being executed:
+
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>with-decoder-simple-clos-semantics</span>
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>with-decoder-simple-list-semantics</span>
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+
+<p>As a general rule, under the CLOS semantics a JSON <code class="json">Object</code> datum <var>D</var> is decoded to an instance <var>F</var> of an anonymous class <var>K</var>.  Such a class does not have a name which could be used as a method specializer, however, the user can always assume that <var>K</var> is a subclass of <code class="api-name">fluid-object</code> and an instance of the metaclass <code class="api-name">fluid-class</code>; that it has at least the slots named by the keys in <var>D</var> (which are decoded to symbols in the usual manner); and that in <var>F</var> these slots are bound to Lisp images of the corresponding JSON <code class="json">Value</code>s, and any other slot is unbound:</p>
+
+<div class="example">
+<pre class="in-code">
+(json:with-decoder-simple-clos-semantics
+  (let ((json:*json-symbols-package* nil))
+    (let ((x (json:decode-json-from-string
+               "{\"foo\": [1, 2, 3], \"bar\": true,
+                 \"baz\": \"!\"}")))
+      (with-slots (foo bar baz) x
+        (values x foo bar baz)))))
+</pre>
+<pre class="value">#&lt;AN INSTANCE OF ANONYMOUS FLUID-CLASS&gt;</pre>
+<pre class="value">#(1 2 3)</pre>
+<pre class="value">T</pre>
+<pre class="value">"!"</pre>
+</div>
+
+
+<p>Beyond this, CL-JSON provides a means for the remote party to specify the class (or the superclasses) of the decoded CLOS object.  This is done by supplying the JSON <code class="json">Object</code> with appropriate metadata, called that <code class="json">Object</code>'s <dfn>prototype</dfn>.  The prototype is the <code class="json">Member</code> of the <code class="json">Object</code> whose key matches <code class="api-name">*prototype-name*</code>&mdash;more precisely, whose key decodes to a symbol <var>S</var> such that <code>(string= (symbol-name <var>S</var>) (symbol-name json:*prototype-name*))</code>.</p>
+
+<div class="api_docstring">
+  <p class="api">[variable]
+    <code class='api'><span class="api-name"> *prototype-name* </span></code></p>
+<p class="docstring">
+  Must have a symbol for value, the default is <code class='other-name'>json:prototype</code>.  If the value is <code class='other-name'>nil</code> then no member of an <code class="json">Object</code> is to be treated as the prototype (not even one whose key otherwise matches <code class='other-name'>nil</code>).
+</p>
+</div>
+
+<p class="rationale"><strong>Note:</strong> The default prototype name, <i>prototype</i> has been chosen so that it would not, in all likelihood, interfere with programs' naming schemes in a JavaScript remote party.  As this name has special meaning within JavaScript, it is unlikely that it would be used for a user-level member.  Users of CL-JSON are, of course, free to assign another name that better suits their own needs.</p>
+
+<p>The <code class="json">Value</code> of the prototype must be either a <code class="json">String</code>, or an <code class="json">Object</code> whose (undecoded) keys include <code class="json-literal">"lispPackage"</code>, <code class="json-literal">"lispClass"</code>, and <code class="json-literal">"lispSuperclasses"</code>.  All <code class="json">Member</code>s with other keys are ignored.  The <code class="json">Value</code> for any of <code class="json-literal">"lispPackage"</code>, <code class="json-literal">"lispClass"</code>, and <code class="json-literal">"lispSuperclasses"</code> may be <code class="json-literal">null</code> which is equivalent to omitting that <code class="json">Member</code>.  A prototype <var>S</var> which is a <code class="json">String</code> (rather than an <code class="json">Object</code>) is equivalent to a prototype that has only the <code class="json">Member</code> <code class="json-literal">"lispClass":<var>S</var></code>.  An <code class="json">Object</code> altogether lacking a prototype is equivalent to it having a prototype with all the three meaningful members omitted.  With the foregoing exceptions, the <code class="json">Value</code>s for <code class="json-literal">"lispPackage"</code> and <code class="json-literal">"lispClass"</code> should be <code class="json">String</code>s, and the <code class="json">Value</code> for <code class="json-literal">"lispSuperclasses"</code> an <code class="json">Array</code> of <code class="json">String</code>s.</p>
+
+<p>The <code class="json">Value</code> for <code class="json-literal">"lispPackage"</code> is decoded as symbol and passed to <code class="api-name">find-package</code> to obtain a package, <var>P</var>.  The <code class="json">Value</code> for <code class="json-literal">"lispClass"</code>, <code class="json">Member</code>s of the <code class="json">Value</code> for <code class="json-literal">"lispSuperclasses"</code>, and the keys of the encompassing <code class="json">Object</code> are then decoded as symbols in the package <var>P</var>.  (If <code class="json-literal">"lispPackage"</code> is <code class="json-literal">null</code> or missing, they are interned according to the generic rule, i. e. in <code class="api-name">*json-symbols-package*</code>.)</p>
+
+<p>If the prototype has a <code class="json-literal">"lispClass"</code> member, its decoded value must name an existing class <var>K</var>.  The encompassing <code class="json">Object</code>, <var>D</var>, is then decoded to an instance of <var>K</var>.  The <code class="json">Value</code>s of all <code class="json">Member</code>s of <var>D</var> whose keys, when decoded, yield names of slots in <var>K</var> are assigned to those slots.  All other <code class="json">Member</code>s are discarded.  Also, if <var>K</var> has a slot whose name is the same as <code class="api-name">*prototype-name*</code> that slot shall be bound to an instance of <code class="api-name">prototype</code> which describes the prototype in the JSON <code class="json">Object</code>.</p>
+
+<div class="example">
+<pre class="in-code">
+(in-package cl-user)
+</pre>
+<pre class="value">#&lt;PACKAGE "COMMON-LISP-USER"&gt;</pre>
+
+<pre class="in-code">
+(defclass sample () (foo bar))
+</pre>
+<pre class="value">#&lt;STANDARD-CLASS SAMPLE&gt;</pre>
+
+<pre class="in-code">
+(json:with-decoder-simple-clos-semantics
+  (let ((x (json:decode-json-from-string
+            "{\"foo\": [1, 2, 3], \"bar\": true, \"baz\": \"!\",
+              \"prototype\": {\"lispPackage\": \"clUser\",
+                              \"lispClass\": \"sample\"}}")))
+      (with-slots (foo bar) x
+        (values x (class-of x) foo bar (slot-exists-p x 'baz)))))
+</pre>
+<pre class="value">#&lt;A SAMPLE&gt;</pre>
+<pre class="value">#&lt;STANDARD-CLASS SAMPLE&gt;</pre>
+<pre class="value">#(1 2 3)</pre>
+<pre class="value">T</pre>
+<pre class="value">NIL</pre>
+</div>
+
+<p>By way of exception, if the decoded value for <code class="json-literal">"lispClass"</code> is <code class="other-name">common-lisp:hash-table</code>, <code class="other-name">common-lisp:cons</code>, or <code class="other-name">common-lisp:list</code> then the encompassing <code class="json">Object</code> shall be decoded, respectively, to a hash table, an association list, or a property list with the keys and values decoded from the keys and values of the encompassing <code class="json">Object</code>.  (The prototype member itself shall be discarded.)</p>
+
+<div class="example">
+<pre class="in-code">
+(let ((json:*json-symbols-package* 'cl-user))
+ (json:with-decoder-simple-clos-semantics
+   (let ((x (json:decode-json-from-string
+             "{\"foo\": [1, 2, 3], \"bar\": true, \"baz\": \"!\",
+               \"prototype\": \"hashTable\"}")))
+     (loop for v being each hash-value of x
+       collect v))))
+</pre>
+<pre class="value">("!" #(1 2 3) T) <span class="comment">; or in another order</span></pre>
+
+<pre class="in-code">
+(json:with-decoder-simple-clos-semantics
+  (json:decode-json-from-string
+    "{\"foo\": [1, 2, 3], \"bar\": true, \"baz\": \"!\",
+      \"prototype\": {\"lispPackage\": \"jsonTest\",
+                      \"lispClass\": \"list\"}}"))
+</pre>
+<pre class="value">(JSON-TEST::FOO #(1 2 3) JSON-TEST::BAR T JSON-TEST::BAZ "!")</pre>
+</div>
+
+<p>If the prototype has no <code class="json-literal">"lispClass"</code> but has <code class="json-literal">"lispSuperclasses"</code>, the <code class="json">Value</code> of the latter is decoded as a list of symbols which must name existing classes <var>L<sub>1</sub></var>, ... <var>L<sub>n</sub></var>, <var>n</var> &ge; 0.  The encompassing <code class="json">Object</code>, <var>D</var>, is then decoded to a fluid object <var>F</var> whose class <var>K</var> has all the classes <var>L<sub>1</sub></var>, ... <var>L<sub>n</sub></var> as its direct superclasses.  Unless any of the classes <var>L<sub>1</sub></var>, ... <var>L<sub>n</sub></var> is a subclass of <code class="api-name">fluid-object</code>, <var>K</var> shall be additionally a direct subclass of <code class="api-name">fluid-object</code>.  Slots corresponding to all <code class="json">Member</code>s of <var>D</var> (except the prototype itself) shall be bound in <var>F</var>.</p>
+
+<div class="example">
+<pre class="in-code">
+(defclass sample-2 ()
+  ((frob :initform 'xyzzy)))
+</pre>
+<pre class="value">#&lt;STANDARD-CLASS SAMPLE-2&gt;</pre>
+
+<pre class="in-code">
+(json:with-decoder-simple-clos-semantics
+  (let ((json:*json-symbols-package* nil))
+    (let ((x (json:decode-json-from-string
+               "{\"foo\": [1, 2, 3], \"bar\": true, \"baz\": \"!\",
+                 \"prototype\":
+                    {\"lispSuperclasses\": [\"sample2\"]}}")))
+      (with-slots (foo frob) x
+        (values x foo frob)))))
+</pre>
+<pre class="value">#&lt;AN INSTANCE OF ANONYMOUS FLUID-CLASS&gt;</pre>
+<pre class="value">#(1 2 3)</pre>
+<pre class="value">XYZZY</pre>
+</div>
+
+<p>If the prototype has both <code class="json-literal">"lispClass"</code> and <code class="json-literal">"lispSuperclasses"</code>, the latter member is disregarded.</p>
+
+  <p class="api">[standard class]
+    <code class='api'><span class="api-name"> prototype </span></code>
+<span class='accessory'>(precedence list: <code class='other-name'>prototype</code>, <code class='other-name'>standard-object</code>, <code class='other-name'>t</code>)</span>
+  </p>
+
+  <div class="api_docstring">
+  <p class="api">
+[generic function]
+<code class='api'><span class='api-name'>make-object-prototype</span>
+<span class='arg-name'>object</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>slot-names</span>
+</code>
+  </p>
+<p class='docstring'>
+Return a <span class='api-name'>prototype</span> describing the <span class='arg-name'>object</span>'s class or
+superclasses, and the package into which the names of the class /
+superclasses and of the <span class='arg-name'>object</span>'s slots are to be interned.
+</p>
+  </div>
+
+
+  <h4 class="section"><a name="PROPERTIES-OF-FLUID-OBJECTS"></a> Properties of fluid objects </h4>
+
+<p>Fluid objects are quite like <a href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_s.htm#standard_object">standard objects</a> in most respects.  However, any fluid object has <code class="api-name">fluid-class</code> as its metaclass, and missing slots in such fluid instances are not distinguished from unbound slots.  Namely, if <var>F</var> is a fluid instance of class <var>K</var>, and <var>R</var> is a slot name such that <code>(slot-exists-p <var>F</var> <var>R</var>)</code> gives <code class="other-name">nil</code> then:
+<ul>
+  <li><code>(slot-boundp <var>F</var> <var>R</var>)</code> gives <code class="other-name">nil</code> as well (instead of raising an error);</li>
+  <li><code>(slot-value <var>F</var> <var>R</var>)</code> signals an error of type <code class="other-name">unbound-slot</code>;</li>
+  <li><code>(slot-makunbound <var>F</var> <var>R</var>)</code> does nothing and returns <var>F</var>;</li>
+  <li>for any Lisp value <var>X</var>, <code>(setf (slot-value <var>F</var> <var>R</var>) <var>X</var>)</code> adds the slot <var>R</var> to the class <var>K</var> and then sets its value in <var>F</var> to <var>X</var>.</li>
+</ul>
+This makes fluid objects somewhat like objects in prototype-based languages, in that the user may add new slots to an object without concerning himself with the object's class membership.  Yet fluid objects are little more that &ldquo;poor man's JavaScript&rdquo; as there are no real prototype mechanisms.  Moreover, Lisp implementations usually employ optimizations geared toward more traditional CLOS techniques which can actually cause less than ideal performance in programs with fluid objects.  Thus, fluid objects should generally be considered an experimental feature and used with proper care.</p>
+
+  <p class="api">[standard class]
+    <code class='api'><span class="api-name"> fluid-object </span></code>
+<span class='accessory'>(precedence list: <code class='other-name'>fluid-object</code>, <code class='other-name'>standard-object</code>, <code class='other-name'>t</code>)</span>
+  </p>
+
+  <p class="api">[standard class]
+    <code class='api'><span class="api-name"> fluid-class </span></code>
+<span class='accessory'>(precedence list: <code class='other-name'>fluid-class</code>, <code class='other-name'>standard-class</code>, <code class='other-name'>class</code>, <code class='other-name'>standard-object</code>, <code class='other-name'>t</code>)</span>
+  </p>
+
+
+<p>The CLOS decoder maintains a separate fluid class for each combination of superclasses in prototypes sent in by remote parties.  I. e., if the prototypes of two incoming JSON <code class="json">Objects</code> <var>D<sub>1</sub></var> and <var>D<sub>2</sub></var> have <code class="json-literal">"lispSuperclasses"</code> members whose values decode to non-<code class="api-name">equal</code> lists of symbols then the fluid objects <var>F<sub>1</sub></var> and <var>F<sub>2</sub></var> decoded from <var>D<sub>1</sub></var> and <var>D<sub>2</sub></var> shall belong to different fluid classes.  This behaviour is implemented by the generic function <code class="api-name">make-object</code>.</p>
+
+  <div class="api_docstring">
+  <p class="api">
+[generic function]
+<code class='api'><span class='api-name'>make-object</span>
+<span class='arg-name'>bindings</span>
+<span class='arg-name'>class</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>superclasses</span>
+</code>
+  </p>
+<p class='docstring'>
+If <span class='arg-name'>class</span> is not <span class='other-name'>nil</span>, create an instance of that
+class.  Otherwise, create a fluid object whose class has the given
+<span class='arg-name'>superclasses</span> (null list by default).  In either case, populate the
+resulting object using <span class='arg-name'>bindings</span> (an alist of slot names and
+values).
+</p>
+  </div>
+
+<p>To maintain the mapping between lists of superclass names and fluid classes, the decoder maintains a class registry.  Thus, using fluid objects makes the CLOS decoder essentially thread-unsafe.  (If every incoming JSON <code class="json">Object</code> is guaranteed to have a prototype with a <code class="json-literal">"lispClass"</code> member then there are no fluid objects and thread safety is ensured.)  If the user wishes to employ fluid objects in a threaded environment it is advisable to wrap the body of entry-point functions in <code class="api-name">with-local-class-registry</code>.</p>
+
+  <div class="api_docstring">
+  <p class="api">[variable]
+    <code class='api'><span class="api-name"> *class-registry* </span></code></p>
+<p class='docstring'>
+A list of anonymous fluid classes, one member for every distinct
+combination of direct superclasses.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>clear-class-registry</span>
+</code>
+  </p>
+<p class='docstring'>
+Reset the <span class='other-name'>*class-registry*</span> to <span class='other-name'>nil</span>.
+</p>
+  </div>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>with-local-class-registry</span>
+(<span class='lambda-kwd'>&amp;key</span> <span class='arg-name'>inherit</span>)
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+<p class='docstring'>
+Run <span class='arg-name'>body</span> in a dynamic environment where <span class='other-name'>*class-registry*</span> is a temporary local list.  If <span class='arg-name'>:inherit</span> is non-null, the local registry shall initially have the same content as the exterior <span class='other-name'>*class-registry*</span>, otherwise it shall be <span class='other-name'>nil</span>.
+</p>
+</div>
+
+  <h4 class="section"><a name="SECURITY-CONSIDERATIONS"></a> Security considerations </h4>
+
+<p><code class="api-name">Make-object</code> also allows to implement security restrictions in an environment where uncontrolled class instantiation may have undesirable side effects.  Ordinarily, nothing prevents the CLOS decoder from processing an incoming datum like</p>
+
+<pre class="example">{"prototype": {"lispPackage": "worldDestruction",
+               "lispClass": "tickingBomb"},
+ "timeout": 10,
+ "setOffImmediatelyOnInstantiation": true}</pre>
+
+<p>If a careless and/or malevolent remote party manages to sneak in such a request the calamitous results will not be late in coming.  However, as the decoding of every input <code class="json">Object</code> eventually involves a call to <code class="api-name">make-object</code>, a safeguard may take the form simply of a  method of that generic function:</p>
+
+<div class="example">
+<pre class="in-code">
+(define-condition json-security-violation (error)
+  ((bindings :reader json-security-violation-bindings :initarg :bindings)
+   (class :reader json-security-violation-class :initarg :class))
+  (:report
+   (lambda (sv stream)
+     (with-slots (bindings class) sv
+       (format stream "Incoming JSON Object ~S in the class ~S ~
+                       violates security restrictions."
+               (json:encode-json-to-string bindings)
+               class)))))
+</pre>
+<pre class="value">JSON-SECURITY-VIOLATION</pre>
+
+<pre class="in-code">
+(defmethod json:make-object :before
+    (bindings (class (eql world-destruction:ticking-bomb))
+     &amp;optional superclasses)
+  (error 'json-security-violation :bindings bindings :class class))
+</pre>
+<pre class="value">#&lt;STANDARD-METHOD JSON:MAKE-OBJECT <span class="cont">&hellip;</span>
+        :BEFORE (T (EQL WORLD-DESTRUCTION:TICKING-BOMB))&gt;</pre>
+
+<pre class="in-code">
+(json:with-decoder-simple-clos-semantics 
+  (json:decode-json-from-string
+    "{\"prototype\": {\"lispPackage\": \"worldDestruction\",
+                      \"lispClass\": \"tickingBomb\"},
+      \"timeout\": 10,
+      \"setOffImmediatelyOnInstantiation\": true}"))
+</pre>
+<pre class="output">Error in JSON:MAKE-OBJECT: Incoming JSON Object <span class="cont">&hellip;</span>
+        "{\"timeout\":10,\"setOffImmediatelyOnInstantiation\":true}" <span class="cont">&hellip;</span>
+        in the class WORLD-DESTRUCTION:TICKING-BOMB <span class="cont">&hellip;</span>
+        violates security restrictions.</pre>
+</div>
+
+<p>By using multiple methods with carefully adjusted specializers and qualifiers the user shall be able to create arbitrarily sophisticated security policies.</p>
+
+<p><code class="api-name">JSON-INTERN</code> is the default function for translating json-keys to values. The default json-intern is not safe. Interns of many 
+unique symbols could potentially use a lot of memory.
+An attack could exploit this by submitting something that is passed
+through cl-json that has many very large, unique symbols. You may
+want to use the function <code class="api-name">SAFE-JSON-INTERN</code> or some other mechanism for security reasons.</p>
+
+  <h3 class="section"><a name="DECODER-CUSTOMIZATION"></a> Customizing the decoder </h3>
+
+<p>More arbitrary changes to decoder semantics can be made via the customization API.  It is an event-driven API not unlike <a href="http://www.cafeconleche.org/books/xmljava/chapters/ch06.html">SAX</a>: certain variables can be set (or dynamically bound) to handler functions which are invoked, in sequence, as the parser encounters various syntactic elements of JSON on the input stream.  JSON well-formedness is checked by the underlying parser, while the handlers are free to dispose of the (known clean) data in any way the user may find fit.</p>
+
+<p>Handlers fall into three overall categories: <dfn>constructors</dfn>, which can be further subdivided into <dfn>atomic constructors</dfn> and <dfn>aggregate constructors</dfn>; <dfn>aggregate initializers</dfn>; and <dfn>member handlers</dfn>.  An atomic constructor is invoked when the parser encounters an atomic datum (<code class="json">Number</code> or <code class="json">Boolean</code>), is passed the token which constitutes the datum, and is supposed to return the Lisp value that corresponds to the datum.  An aggregate initializer is invoked when the parser encounters the beginning of an aggregate datum (<code class="json">String</code>, <code class="json">Array</code> or <code class="json">Object</code>).  Similarly, an aggregate constructor is invoked at the end of a well-formed aggregate datum, and is supposed to return the Lisp value that corresponds to the whole aggregate.  A member handler is invoked when the parser reads past a member of an <code class="json">Array</code>, or a key or value of an <code class="json">Object</code>; it is passed the value which the constructor for that member datum had freshly returned.  Handlers for <code class="json">Character</code>s of <code class="json">String</code>s are somewhat specific in that they are passed characters rather than decoded values but otherwise they fall neatly with member handlers.  The value of the last constructor to return is also the return value of <code class="api-name">decode-json</code>.</p>
+
+<p>As a trivial example, if every handler has the value of <code>(constantly t)</code>, the decoder semantics is that of a simple validator: it returns <code class="other-name">t</code> if JSON input is well-formed, and signals error otherwise (see also under <a href="#ERROR-HANDLING"><cite>Error handling</cite></a>).</p>
+
+
+<p>Macros which set or bind handlers (and other customization parameters) take their arguments in the form of property lists where each customizaion parameter is indicated by its distinctive keyword.  E. g., <code class="arg-key">:integer</code> and <code class="arg-key">:boolean</code> are the respective indicator keywords for the variables <code class="api-name">*integer-handler*</code> and <code class="api-name">*boolean-handler*</code>.  Accordingly, the macro form <code>(json:bind-custom-vars (:boolean <var>X</var> :integer <var>Y</var>) <var>Z</var>)</code> expands to <code>(let ((json:*boolean-handler* <var>X</var>) (json:*integer-handler* <var>Y</var>)) <var>Z</var>)</code>.  Descriptions of customization parameters below always specify the corresponding keyword, and descriptions of macro APIs use the parameter name <code class="arg-name">customizations</code> whereever a property list is expected.</p>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>with-shadowed-custom-vars</span>
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+<p class="docstring">Execute <code class="arg-name">body</code> in a dynamic environment where the names of all existing customization parameters are re-bound to fresh locations.  The initial values of the parameters are taken from the exterior environment at runtime.</p>
+</div>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>bind-custom-vars</span>
+(<span class='lambda-kwd'>&amp;rest</span> <span class='arg-name'>customizations</span>)
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+<p class="docstring">Execute <code class="arg-name">body</code> in a dynamic environment where customization parameters are bound as specified by <code class="arg-name">customizations</code>.</p>
+</div>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>set-custom-vars</span>
+<span class='lambda-kwd'>&amp;rest</span>
+<span class='arg-name'>customizations</span>
+</code>
+  </p>
+<p class="docstring">Globally set customization parameters according to <code class="arg-name">customizations</code>.  If used within a dynamic environment established by <code class="api-name">with-shadowed-custom-vars</code> or <code class="api-name">bind-custom-vars</code>, the extent of the assignment is limited by that form.</p>
+</div>
+
+
+<p>The following parameters identify the constructor handlers for atomic data:</p>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *boolean-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:boolean</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of 1 string argument (boolean token).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *integer-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:integer</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of 1 string argument (integer token).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *real-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:real</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of 1 string argument (real token).
+</p>
+  </div>
+
+
+<p>For <code class="json">String</code>s, three handlers (an initializer, a member handler, and a constructor) are used:</p>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *beginning-of-string-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:beginning-of-string</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of no arguments (called at encountering
+an opening quote for a <span class='json'>String</span>).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *string-char-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:string-char</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of 1 character argument (<span class='json'>String</span> char).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *end-of-string-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:end-of-string</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of no arguments (called at encountering
+a closing quote for a <span class='json'>String</span>).
+</p>
+  </div>
+
+<p>Note that escape sequences in <code class="json">String</code>s are resolved by the underlying decoder, and a <code class="api-name">*string-char-handler*</code> normally receives nothing but characters.  However, limitations of the Lisp implementation running CL-JSON can prevent it from resolving a perfectly well-formed escape sequence (e. g., in CMUCL which does not support Unicode).  Situations of this kind are discussed below in the section <a href="#ERROR-HANDLING"><cite>Error handling</cite></a>.</p>
+
+
+<p>For <code class="json">Array</code>s, three handlers are used as well:</p>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *beginning-of-array-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:beginning-of-array</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of no arguments (called at encountering
+an opening bracket for an <span class='json'>Array</span>).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *array-member-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:array-member</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of 1 arbitrary argument (decoded member
+of <span class='json'>Array</span>).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *end-of-array-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:end-of-array</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of no arguments (called at encountering
+a closing bracket for an <span class='json'>Array</span>).
+</p>
+  </div>
+
+<p>For <code class="json">Object</code>s, it is the same thing except that there are two member handlers, one for keys and another one for values, invoked alternately:</p>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *beginning-of-object-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:beginning-of-object</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of no arguments (called at encountering
+an opening brace for an <span class='json'>Object</span>).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *object-key-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:object-key</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of 1 string argument (decoded member key
+of <span class='json'>Object</span>).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *object-value-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:object-value</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of 1 arbitrary argument (decoded member
+value of <span class='json'>Object</span>).
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *end-of-object-handler* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:end-of-object</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of no arguments (called at encountering
+a closing brace for an <span class='json'>Object</span>).
+</p>
+  </div>
+
+
+<p>If the user wished to map JSON structure to Lisp structure, with only these 13 handlers he would have to maintain cumbersome stacking infrastructure, pushing at the beginning and popping at the end of every aggregate datum.  CL-JSON has a means to circumvent this hindrance: the user is given an option to indicate any number of dynamic variables <var>V<sub>1</sub></var>, ... <var>V<sub>n</sub></var> as having <dfn>aggregate scope</dfn>.  This has the effect that the ensemble of handlers invoked for any particular aggregate datum on the input are called in a dynamic environment where the names <var>V<sub>1</sub></var>, ... <var>V<sub>n</sub></var> are bound to fresh locations.  Hence, an aggregate-scope variable can be initialized by an initializer handler, updated by member handlers, and finally used to calculate the return value of the constructor.  If several aggregate data are nested, the handlers for interior data work on their own copy of the variable without fear of clobbering the value of the same for exterior data.  Handler code can be thus written in terms of individual levels rather than complex nested structures.</p>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *aggregate-scope-variables* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:aggregate-scope</code>)</span>
+  </p>
+<p class='docstring'>
+A list of symbols naming dynamic variables which should be re-bound
+in the scope of every JSON aggregate value (<span class='json'>Object</span>, <span class='json'>Array</span> or <span class='json'>String</span>).
+</p>
+  </div>
+
+<p>Aggregate-scope variables on inner levels initially inherit their values from the immediately outer level, so it is possible to pass information down from level to level.  In the following example, the variable <code class="other-name">count</code> is reset to 0 at the beginning of every aggregate, while <code class="other-name">level</code> is incremented from outer to inner levels.</p>
+
+<div class="example">
+<pre class="in-code">
+(defparameter level -1
+  "Level of nesting in JSON structure.")
+</pre>
+<pre class="value">LEVEL</pre>
+
+<pre class="in-code">
+(defparameter count -1
+  "Count of members in JSON structure.")
+</pre>
+<pre class="value">COUNT</pre>
+
+<pre class="in-code">
+(defun format-with-indent (control &amp;rest args)
+  (format t "~&amp;~0,1,V,V@A~?" level #\Tab "" control args))
+</pre>
+<pre class="value">FORMAT-WITH-INDENT</pre>
+
+<pre class="in-code">
+(defun report-atom (token)
+  (format-with-indent "~Ctoken: ~S~%" #\Tab token)
+  'atom)
+</pre>
+<pre class="value">REPORT-ATOM</pre>
+
+<pre class="in-code">
+(defun report-push ()
+  (incf level)
+  (setq count 0)
+  (format-with-indent "beginning of aggregate~%"))
+</pre>
+<pre class="value">REPORT-PUSH</pre>
+
+<pre class="in-code">
+(defun report-member (member)
+  (format-with-indent "~:R member: ~A~%"
+                      (incf count) member))
+</pre>
+<pre class="value">REPORT-MEMBER</pre>
+
+<pre class="in-code">
+(defun report-pop ()
+  (format-with-indent "end of aggregate~%")
+  (list 'aggregate count))
+</pre>
+<pre class="value">REPORT-POP</pre>
+
+<pre class="in-code">
+(json:bind-custom-vars
+    (:integer              #'report-atom
+     :real                 #'report-atom
+     :boolean              #'report-atom
+     :beginning-of-array   #'report-push
+     :array-member         #'report-member
+     :end-of-array         #'report-pop
+     :beginning-of-string  #'report-push
+     :string-char          #'report-atom
+     :end-of-string        #'report-pop
+     :beginning-of-object  #'report-push
+     :object-key           (constantly t)
+     :object-value         #'report-member
+     :end-of-object        #'report-pop
+     :aggregate-scope      (list 'level 'count))
+  (json:decode-json-from-string
+    "{\"foo\": [10, 20, 50], \"bar\": true}"))
+</pre>
+<pre class="output">beginning of aggregate</pre>
+<pre class="output">	beginning of aggregate</pre>
+<pre class="output">		token: #\f</pre>
+<pre class="output">		token: #\o</pre>
+<pre class="output">		token: #\o</pre>
+<pre class="output">	end of aggregate</pre>
+<pre class="output">	beginning of aggregate</pre>
+<pre class="output">		token: "10"</pre>
+<pre class="output">	first member: ATOM</pre>
+<pre class="output">		token: "20"</pre>
+<pre class="output">	second member: ATOM</pre>
+<pre class="output">		token: "50"</pre>
+<pre class="output">	third member: ATOM</pre>
+<pre class="output">	end of aggregate</pre>
+<pre class="output">first member: (AGGREGATE 3)</pre>
+<pre class="output">	beginning of aggregate</pre>
+<pre class="output">		token: #\b</pre>
+<pre class="output">		token: #\a</pre>
+<pre class="output">		token: #\r</pre>
+<pre class="output">	end of aggregate</pre>
+<pre class="output">	token: "true"</pre>
+<pre class="output">second member: ATOM</pre>
+<pre class="output">end of aggregate</pre>
+<pre class="value">(AGGREGATE 2)</pre>
+</div>
+
+<p>Further, it is possible to re-bind variables while parsing some kinds of aggregate data but not the others:</p>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *array-scope-variables* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:array-scope</code>)</span>
+  </p>
+<p class='docstring'>
+A list of symbols naming dynamic variables which should be re-bound
+in the scope of every JSON <span class='json'>Array</span>.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *object-scope-variables* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:object-scope</code>)</span>
+  </p>
+<p class='docstring'>
+A list of symbols naming dynamic variables which should be re-bound
+in the scope of every JSON <span class='json'>Object</span>.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *string-scope-variables* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:string-scope</code>)</span>
+  </p>
+<p class='docstring'>
+A list of symbols naming dynamic variables which should be re-bound
+in the scope of every JSON <span class='json'>String</span>.
+</p>
+  </div>
+
+
+<p>When using one of the standard semantics, the following parameter allows to determine the type of sequence to which <code class="json">Array</code>s are decoded.  The default value is <code class="other-name">list</code> for the list semantics, and <code class="other-name">vector</code> for the CLOS semantics.</p>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *json-array-type* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:array-type</code>)</span>
+  </p>
+<p class='docstring'>
+The Lisp sequence type to which JSON <span class='json'>Array</span>s are to be coerced.
+</p>
+  </div>
+
+
+<p>Finally, the user can change the decoder function for member data of the current aggregate.  The name <code class="api-name">*internal-decoder*</code> is included in the default list of <code class="api-name">*aggregate-scope-variables*</code> under both predefined semantics, and so this variable can be assigned locally without affecting the decoding of the outer levels of data.  If it is set outside of any handler, the value is used to decode all members of top-level aggregates.</p>
+
+  <div class="api_docstring">
+  <p class="api">[custom variable]
+    <code class='api'><span class="api-name"> *internal-decoder* </span></code>
+<span class='accessory'>(indicator: <code class='arg-key'>:internal-decoder</code>)</span>
+  </p>
+<p class='docstring'>
+Designator for a function of 1 stream argument called (instead of
+<span class='api-name'>decode-json</span>) to decode a member of an <span class='json'>Array</span> or of an <span class='json'>Object</span>.
+</p>
+  </div>
+
+<p>The following macros can be used to construct decoder functions acceptable as values of <code class="api-name">*internal-decoder*</code>:
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>custom-decoder</span>
+<span class='lambda-kwd'>&amp;rest</span>
+<span class='arg-name'>customizations</span>
+</code>
+  </p>
+<p class="docstring">Construct a decoder function whose semantics is determined by the given <code class="arg-name">customizations</code>.</p>
+</div>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>current-decoder</span>
+<span class='lambda-kwd'>&amp;rest</span>
+<span class='arg-name'>keys</span>
+</code>
+  </p>
+<p class="docstring">Capture the current (execution-time) decoder semantics and construct a decoder function which restores the captured semantics in the extent of its call.  The <code class="arg-name">keys</code> must be valid indicators of custom variables.  If some <code class="arg-name">keys</code> are supplied then the values of only the corresponding variables are captured; otherwise the values of all
+19
+custom variables are captured.</p>
+</div>
+
+
+<p>The following example demonstrates how a simplified version of the macro <a href="#JSON-BIND"><code class="api-name">json-bind</code></a> can be written with the help of <code class="api-name">*internal-decoder*</code>.</p>
+
+<div class="example">
+<pre class="in-code">
+(defmacro simple-json-bind ((&amp;rest vars) stream &amp;body body)
+  (let ((cur-dec (gensym))
+        (key-handler
+         `(lambda (json-string)
+            (let ((lisp-string
+                   (funcall json:*json-identifier-name-to-lisp*
+                            json-string)))
+              ;; On recognizing a variable name, the key handler sets
+              ;; the value handler to be a function which,
+              ;; in its turn, assigns the decoded value to the
+              ;; corresponding variable.  If no variable name matches
+              ;; the key, the value handler is set to skip the value.
+              (json:set-custom-vars
+                  :object-value
+                    (cond
+                      ,@(loop for var in vars
+                          collect
+                           `((string= lisp-string ,(symbol-name var))
+                             (lambda (value)
+                               (setq ,var value))))
+                      (t (constantly t))))))))
+    `(let ((,cur-dec (json:current-decoder))
+           ,@vars)
+       (json:bind-custom-vars
+           (:internal-decoder ,cur-dec
+            :beginning-of-object (constantly t)
+            :object-key ,key-handler
+            :end-of-object (constantly t))
+         (json:decode-json ,stream))
+       ,@body)))
+</pre>
+<pre class="value">SIMPLE-JSON-BIND</pre>
+
+<pre class="in-code">
+(pprint
+ (macroexpand-1
+  '(simple-json-bind (foo bar) s
+     (format t "Foo is ~A.~%Bar is ~A.~%" foo bar))))
+</pre>
+<pre class="output">(LET ((#:G762 (JSON:CURRENT-DECODER))</pre>
+<pre class="output">      FOO BAR)</pre>
+<pre class="output">  (JSON:BIND-CUSTOM-VARS</pre>
+<pre class="output">      (:INTERNAL-DECODER #:G762</pre>
+<pre class="output">       :BEGINNING-OF-OBJECT (CONSTANTLY T)</pre>
+<pre class="output">       :OBJECT-KEY</pre>
+<pre class="output">         (LAMBDA (JSON-STRING)</pre>
+<pre class="output">           (LET ((LISP-STRING</pre>
+<pre class="output">                  (FUNCALL JSON:*JSON-IDENTIFIER-NAME-TO-LISP*</pre>
+<pre class="output">                           JSON-STRING)))</pre>
+<pre class="output">             (JSON:SET-CUSTOM-VARS</pre>
+<pre class="output">                 :OBJECT-VALUE</pre>
+<pre class="output">                   (COND ((STRING= LISP-STRING "FOO")</pre>
+<pre class="output">                          (LAMBDA (VALUE) (SETQ FOO VALUE)))</pre>
+<pre class="output">                         ((STRING= LISP-STRING "BAR")</pre>
+<pre class="output">                          (LAMBDA (VALUE) (SETQ BAR VALUE)))</pre>
+<pre class="output">                         (T (CONSTANTLY T))))))</pre>
+<pre class="output">       :END-OF-OBJECT (CONSTANTLY T))</pre>
+<pre class="output">    (JSON:DECODE-JSON S))</pre>
+<pre class="output">  (FORMAT T "Foo is ~A.~%Bar is ~A.~%" FOO BAR))</pre>
+
+<pre class="in-code">
+(json:with-decoder-simple-list-semantics
+  (with-input-from-string
+      (s "{\"foo\": [1, 2, 3], \"baz\": {\"foo\": \"!\"},
+           \"bar\": true}")
+    (simple-json-bind (foo bar) s
+      (format t "Foo is ~A.~%Bar is ~A.~%" foo bar))))
+</pre>
+<pre class="output">Foo is (1 2 3).</pre>
+<pre class="output">Bar is T.</pre>
+<pre class="value">NIL</pre>
+</div>
+
+
+  <h3 class="section"><a name="STREAMING-API"></a> Customizing the encoder </h3>
+
+<p>Encoding being much more user-driven than decoding, the customization API for the encoder boils down to just a few macros and functions, geared to generating aggregate data.  They implement a sequential producer which emits JSON data upon user request, rather than in the course of traversing Lisp data structures.  As with <code class="api-name">encode-json</code>, the optional <code class="arg-name">stream</code> argument in these macros and functions defaults to <code class="api-name">*json-output*</code>.</p>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>with-array</span>
+(<span class='lambda-kwd'>&amp;optional</span> <span class='arg-name'>stream</span>)
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+<p class='docstring'>
+Open a JSON <span class='json'>Array</span>, run <span class='arg-name'>body</span>, then close the <span class='json'>Array</span>.  Inside the <span class='arg-name'>body</span>, <span class='api-name'>as-array-member</span> or <span class='api-name'>encode-array-member</span> should be called to encode <span class='json'>Member</span>s of the <span class='json'>Array</span>.
+</p>
+</div>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>as-array-member</span>
+(<span class='lambda-kwd'>&amp;optional</span> <span class='arg-name'>stream</span>)
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+<p class='docstring'>
+<span class='arg-name'>Body</span> should be a program which encodes exactly one JSON datum to <span class='arg-name'>stream</span>.  <span class='api-name'>As-array-member</span> ensures that the datum is properly formatted as a <span class='json'>Member</span> of an <span class='json'>Array</span>, i. e. separated by comma from any preceding or following <span class='json'>Member</span>.
+</p>
+</div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>encode-array-member</span>
+<span class='arg-name'>object</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>stream</span>
+</code>
+  </p>
+<p class='docstring'>
+Encode <span class='arg-name'>object</span> as the next <span class='json'>Member</span> of the innermost JSON <span class='json'>Array</span> opened
+with <span class='api-name'>with-array</span> in the dynamic context.  <span class='arg-name'>Object</span> is encoded using the
+<span class='api-name'>encode-json</span> generic function, so it must be of a type for which an
+<span class='api-name'>encode-json</span> method is defined.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>stream-array-member-encoder</span>
+<span class='arg-name'>stream</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>encoder</span>
+</code>
+  </p>
+<p class='docstring'>
+Return a function which takes an argument and encodes it to <span class='arg-name'>stream</span>
+as a <span class='json'>Member</span> of an <span class='json'>Array</span>.  The encoding function is taken from the
+value of <span class='arg-name'>encoder</span> (default is <span class='api-name'>#'encode-json</span>).
+</p>
+  </div>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>with-object</span>
+(<span class='lambda-kwd'>&amp;optional</span> <span class='arg-name'>stream</span>)
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+<p class='docstring'>
+Open a JSON <span class='json'>Object</span>, run <span class='arg-name'>body</span>, then close the <span class='json'>Object</span>.  Inside the <span class='arg-name'>body</span>, <span class='api-name'>as-object-member</span> or <span class='api-name'>encode-object-member</span> should be called to encode <span class='json'>Member</span>s of the <span class='json'>Object</span>.
+</p>
+</div>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>as-object-member</span>
+(<span class='arg-name'>key</span> <span class='lambda-kwd'>&amp;optional</span> <span class='arg-name'>stream</span>)
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+<p class='docstring'>
+<span class='arg-name'>Body</span> should be a program which writes exactly one JSON datum to <span class='arg-name'>stream</span>.  <span class='api-name'>As-object-member</span> ensures that the datum is properly formatted as a <span class='json'>Member</span> of an <span class='json'>Object</span>, i. e. preceded by the (encoded) <span class='arg-name'>key</span> and colon, and separated by comma from any preceding or following <span class='json'>Member</span>.
+</p>
+</div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>encode-object-member</span>
+<span class='arg-name'>key</span>
+<span class='arg-name'>value</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>stream</span>
+</code>
+  </p>
+<p class='docstring'>
+Encode <span class='arg-name'>key</span> and <span class='arg-name'>value</span> as a <span class='json'>Member</span> pair of the innermost JSON <span class='json'>Object</span>
+opened with <span class='api-name'>with-object</span> in the dynamic context.  <span class='arg-name'>Key</span> and <span class='arg-name'>value</span> are
+encoded using the <span class='api-name'>encode-json</span> generic function, so they both must be
+of a type for which an <span class='api-name'>encode-json</span> method is defined.  If <span class='arg-name'>key</span> does not
+encode to a <span class='json'>String</span>, its JSON representation (as a string) is encoded
+over again.
+</p>
+  </div>
+
+  <div class="api_docstring">
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>stream-object-member-encoder</span>
+<span class='arg-name'>stream</span>
+<span class='lambda-kwd'>&amp;optional</span>
+<span class='arg-name'>encoder</span>
+</code>
+  </p>
+<p class='docstring'>
+Return a function which takes two arguments and encodes them to
+<span class='arg-name'>stream</span> as a <span class='json'>Member</span> of an <span class='json'>Object</span> (<span class='json'>String</span> : <span class='json'>Value</span> pair).
+</p>
+  </div>
+
+<div class="example">
+<pre class="in-code">
+(defpackage foo (:use) (:export #:foo #:bar #:baz))
+</pre>
+<pre class="value">#&lt;PACKAGE "FOO"&gt;</pre>
+
+<pre class="in-code">
+(defvar foo:foo '(1 2 3))
+</pre>
+<pre class="value">FOO:FOO</pre>
+
+<pre class="in-code">
+(defvar foo:bar "!")
+</pre>
+<pre class="value">FOO:BAR</pre>
+
+<pre class="in-code">
+(defun foo:bar ()
+  foo:bar)
+</pre>
+<pre class="value">FOO:BAR</pre>
+
+<pre class="in-code">
+(json:with-array ()
+  (json:as-array-member ()
+    (json:with-object ()
+      (do-external-symbols (sym (find-package "FOO"))
+        (json:as-object-member (sym)
+          (json:with-object ()
+            (if (boundp sym)
+                (let ((value (symbol-value sym)))
+                  (json:encode-object-member 'val value)))
+            (if (fboundp sym)
+                (json:encode-object-member 'fun t))))))))
+</pre>
+<pre class="output">[{"bar":{"val":"!","fun":true},"baz":{},"foo":{"val":[1,2,3]}}]</pre>
+<pre class="value">NIL</pre>
+</div>
+
+  <h3 class="section"><a name="CAMEL-CASE-TRANSLATION"></a> Camel case translation </h3>
+
+<p>The aim of the functions described in this section is to provide a reasonable mapping between identifier naming conventions&mdash;from JavaScript to Lisp and back again.  Names are regarded as consisting of pieces that, in Lisp, are always uppercase and joined with hyphens, and in JavaScript (and other C-like languages), either joined with underscores or capitalized and joined solid.  Plus signs are used in Lisp to mark constants, which corresponds to the all-caps convention in C-like languages.</p>
+
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>simplified-camel-case-to-lisp</span>
+<span class='arg-name'>string</span>
+</code>
+  </p>
+<p>Inserts - between lowercase and uppercase chars. Ignores _ + * and several consecutive uppercase.</p>
+
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>camel-case-to-lisp</span>
+<span class='arg-name'>string</span>
+</code>
+  </p>
+
+  <p class="api">
+[function]
+<code class='api'><span class='api-name'>lisp-to-camel-case</span>
+<span class='arg-name'>string</span>
+</code>
+  </p>
+
+<p>The functions are not strictly inverse.  While <code>(lisp-to-camel-case (camel-case-to-lisp <var>S</var>))</code> is <code class="api-name">string=</code> to <var>S</var> for every <var>S</var> which is a valid JavaScript identifier name, <code>(camel-case-to-lisp (lisp-to-camel-case <var>R</var>))</code> is not guaranteed to preserve <var>R</var> even if <var>R</var> is a valid Lisp identifier name.  The use of <code class="api-name">camel-case-to-lisp</code> and <code class="api-name">lisp-to-camel-case</code> is best explained by some examples:</p>
+
+<div class="example">
+<pre class="in-code">(json:lisp-to-camel-case "HELLO-KEY")</pre>
+<pre class="value">"helloKey"</pre>
+
+<pre class="in-code">(json:camel-case-to-lisp "HiStartsWithUpperCase")</pre>
+<pre class="value">"*HI-STARTS-WITH-UPPER-CASE"</pre>
+
+<pre class="in-code">(json:camel-case-to-lisp "joined_by_underscore")</pre>
+<pre class="value">"JOINED--BY--UNDERSCORE"</pre>
+
+<pre class="in-code">(json:camel-case-to-lisp "JSONAllCapitals")</pre>
+<pre class="value">"+JSON+-ALL-CAPITALS"</pre>
+
+<pre class="in-code">(json:lisp-to-camel-case "+TWO-WORDS+")</pre>
+<pre class="value">"TWO_WORDS"</pre>
+
+<pre class="in-code">(json:camel-case-to-lisp "camelCase_Mixed_4_PARTS")</pre>
+<pre class="value">"CAMEL-CASE--*MIXED--+4-PARTS+"</pre>
+</div>
+
+
+  <h3 class="section"><a name="ERROR-HANDLING"></a> Error handling </h3>
+
+
+<p>The standard encoder does not cover the complete set of Lisp data types: structures, functions, complex numbers, and cons pairs which are not lists and not members of a valid alist are only some of the unencodable data types.  Attempting to encode any such data results in an error.</p>
+
+<div class="api_docstring">
+  <p class="api">[condition]
+    <code class='api'><span class="api-name"> unencodable-value-error </span></code>
+<span class='accessory'>(precedence list: <code class='other-name'>unencodable-value-error</code>, <code class='other-name'>type-error</code>, <code class='other-name'>error</code>, <code class='other-name'>serious-condition</code>, <code class='other-name'>condition</code>, <code class='other-name'>t</code>)</span>
+  </p>
+<p class="docstring">Signalled when a datum is passed to <code class="api-name">encode-json</code> (or another encoder function) which actually cannot be encoded.  As with any <code class="other-name">type-error</code>, the accessors <code class="api-name">type-error-datum</code> and <code class="api-name">type-error-expected-type</code> can be used on a condition of this class to get the offending datum and the expected type (however, the latter is always <code class="other-name">t</code>).</p>
+</div>
+
+<p>Whenever an <code class="other-name">unencodable-value-error</code> is signalled, CL-JSON provides a restart called <code class="other-name">substitute-printed-representation</code> which, if invoked, prints a representation of the offending datum to a string (with <code class="other-name">*print-escape*</code> bound to <code class="other-name">nil</code>) and encodes that string instead of the datum.</p>
+
+<div class="example">
+<pre class="in-code">
+(defstruct frob xyzzy)
+</pre>
+<pre class="value">FROB</pre>
+
+<pre class="in-code">
+(handler-bind
+    ((json:unencodable-value-error
+      (lambda (err)
+        (declare (ignore err))
+        (invoke-restart 'json:substitute-printed-representation))))
+  (json:encode-json
+    '(#S(frob) ((foo . #C(1 1)) (bar . (baz . quux))))))
+</pre>
+<pre class="output">["#S(FROB :XYZZY NIL)",{"foo":"#C(1 1)","bar":"(BAZ . QUUX)"}]</pre>
+<pre class="value">NIL</pre>
+</div>
+
+
+<p>The encoder also signals an <code class="other-name">error</code> if any macro or function for encoding <code class="json">Member</code>s of aggregates (such as <code class="api-name">as-object-member</code>) is called outside of dynamic environment established by <code class="api-name">with-array</code> or <code class="api-name">with-object</code>, or in inappropriate environment.</p>
+
+
+<p>More numerous are situations in which an error is caused by input to the decoder.  The most straightforward case is when data sent in by the remote party is not well-formed JSON.  This results in a <code class="other-name">json-syntax-error</code> being signalled.  (Some syntax errors, e. g. missing right brackets, result in <code class="other-name">end-of-file</code> instead.)</p>
+
+  <p class="api">[condition]
+    <code class='api'><span class="api-name"> json-syntax-error </span></code>
+<span class='accessory'>(precedence list: <code class='other-name'>json-syntax-error</code>, <code class='other-name'>simple-error</code>, <code class='other-name'>simple-condition</code>, <code class='other-name'>stream-error</code>, <code class='other-name'>error</code>, <code class='other-name'>serious-condition</code>, <code class='other-name'>condition</code>, <code class='other-name'>t</code>)</span>
+  </p>
+
+
+<p>However, even well-formed JSON is not guaranteed to decode.  Two common kinds of error situations result from implementation restrictions on character codes and on floating-point reals.  If the decoder encounters in a JSON string an escape sequence <code class="json-literal">\u<var>XXXX</var></code> where <var>XXXX</var> is the hexadecimal presentation of a number <var>N</var> which either exceeds the implementation's <code class="other-name">char-code-limit</code> or for which <code class="api-name">code-char</code> returns <code class="other-name">nil</code>, then the following condition is signalled:</p>
+
+  <p class="api">[condition]
+    <code class='api'><span class="api-name"> no-char-for-code </span></code>
+<span class='accessory'>(precedence list: <code class='other-name'>no-char-for-code</code>, <code class='other-name'>error</code>, <code class='other-name'>serious-condition</code>, <code class='other-name'>condition</code>, <code class='other-name'>t</code>)</span>
+  </p>
+
+<p>In this situation a handler for <code class="other-name">no-char-for-code</code> may invoke the following restarts:</p>
+
+<dl class="restarts">
+  <dd><code><span class="other-name">substitute-char</span> <span class="arg-name">char</span></code></dd>
+  <dt>Continue the execution as if the given <span class="arg-name">char</span>, rather than the escaped char, had been read.</dt>
+  <dd><code class="other-name">pass-code</code></dd>
+  <dt>Continue the execution using the code itself in place of the character.  The code is subsequently passed to the <code class="other-name">*string-char-handler*</code>, so using this restart only has sense if the handler groks character codes (the standard handler doesn't).</dt>
+</dl>
+
+<p>Likewise, the underlying Lisp system can fail to handle floats which are not representable in the current <code class="other-name">*read-default-float-format*</code> (e. g. <code class="json-literal">2.065e444</code> is non-representable even in the <code class="other-name">long-float</code> format in most contemporary Lisps).  If such a datum is encountered in JSON input, an <code class="other-name">arithmetic-error</code> is signalled.  CL-JSON provides three restarts to correct such cases:</p>
+
+<dl class="restarts">
+  <dd><code><span class="other-name">bignumber-string</span> <span class="lambda-keyword">&amp;optional</span> <span class="arg-name">prefix</span></code></dd>
+  <dt>Instead of number, use a string which is the concatenation of <span class="arg-name">prefix</span> and the number token that caused the error.  The default value for <span class="arg-name">prefix</span> is <code>"BIGNUMBER:"</code>.</dt>
+  <dd><code class="other-name">rational-approximation</code></dd>
+  <dt>Parse the number token into parts, read them as integers, and combine the integers using only rational operations.  Use the resulting rational number in place of float.  (E. g., <code class="json-literal">2.065e444</code> would be converted to the value of the expression <code>(* (+ 2 (* 65 (expt 10 -3))) (expt 10 444))</code>.)</dt>
+  <dd><code><span class="other-name">placeholder</span> <span class="arg-name">value</span></code></dd>
+  <dt>Use <code class="arg-name">value</code> in place of the float.  E. g., one might wish to use <code class="other-name">:infinity</code> if the error in question is a <code class="other-name">float-overflow</code>.</dt>
+</dl>
+
+
+<p>The CLOS decoder can run into errors due to invalid data in a prototype:
+  <ul>
+    <li>If a prototype is neither an <code class="json">Object</code> nor a <code class="json">String</code>, or if a <code class="json">Member</code> of a prototype <code class="json">Object</code> does not have the correct type of <code class="json">Value</code> (<code class="json-literal">null</code> or <code class="json">String</code> for <code class="json-literal">"lispPackage"</code> and <code class="json-literal">"lispClass"</code>, <code class="json-literal">null</code> or <code class="json">Array</code> of <code class="json">String</code>s for <code class="json-literal">"lispSuperclasses"</code>), a <code class="other-name">type-error</code> is signalled.</li>
+    <li>If a prototype specifies a non-<code class="json-literal">null</code> package name which does not name a registered package, a <code class="other-name">package-error</code> is signalled.</li>
+    <li>If a prototype specifies a non-<code class="json-literal">null</code> class name or a <code class="json">Member</code> of the superclasses <code class="json">Array</code> which does not name an existing class, a <code class="other-name">cell-error</code> is signalled.</li>
+  </ul>
+  These situations, as well as <code class="other-name">json-syntax-error</code> are considered fatal, and so no restarts are provided by CL-JSON.</p>
+
+
+  <h3 class="section"><a name="UTILITIES"></a> Utilities </h3>
+
+  <h4 class="section"><a name="JSON-BIND"></a> JSON-Bind </h4>
+
+<div class="api_docstring">
+  <p class="api">[macro]
+<code class='api'><span class='api-name'>json-bind</span>
+(<span class='lambda-kwd'>&amp;rest</span> <span class='arg-name'>vars</span>)
+<span class='arg-name'>json-source</span>
+<span class='lambda-kwd'>&amp;body</span>
+<span class='arg-name'>body</span>
+</code>
+  </p>
+<p class="docstring">The stream, string, or file <code class="arg-name">json-source</code> should give off a JSON object hierarchy for which <code class="arg-name">vars</code> are structured keys.  The <code class="json">Value</code>s corresponding to these keys are decoded using the current decoder, <code class="arg-name">vars</code> are bound to the decoded values, and <code class="arg-name">body</code> is executed in the resulting lexical environment.</p>
+</div>
+
+<p>By &ldquo;object hierarchy&rdquo;, we understand a tree of nested JSON <code class="json">Object</code>s (without intervening <code class="json">Array</code>s).  Structured keys are symbols whose names consist of parts separated by periods and serve as paths into this tree.  In an <code class="json">Object</code> <var>D</var>, one-part name <var>S</var> (without any periods) refers to the <code class="json">Value</code> <var>E</var> whose corresponding key <var>R</var> is such that <code>(string= (funcall *json-identifier-to-lisp* <var>R</var>) <var>S</var>)</code>.  If <var>E</var> is also an <code class="json">Object</code>, the path <code><var>S</var>.<var>T</var></code> refers to the same sub-datum within <var>D</var> which <var>T</var> refers to within <var>E</var>.  If any part of the structured name fails to match a member key at its level of object nesting, or if any non-final part of the structured name refers to a non-<code class="json">Object</code>, then that variable shall be bound to <code class="other-name">nil</code> in the scope of <code class="api-name">json-bind</code>.</p>
+
+<div class="example">
+<pre class="in-code">
+(let ((dentition
+       "{\"DugongDugon\":
+          {\"upper\":
+            {\"incisors\":2, \"canines\":0,
+             \"premolars\":3, \"molars\":3},
+           \"lower\":
+            {\"incisors\":3, \"canines\":1,
+             \"premolars\":3, \"molars\":3}},
+         \"Notoryctes\":
+          {\"upper\":
+            {\"incisors\":4, \"canines\":1,
+             \"premolars\":2, \"molars\":4},
+           \"lower\":
+            {\"incisors\":3, \"canines\":1,
+             \"premolars\":3, \"molars\":4}},
+         \"DasypusHybridus\":
+          {\"upper\":6, \"lower\":8}}"))
+  (json:with-decoder-simple-list-semantics
+    (json:json-bind (*notoryctes.lower.incisors
+                     *dugong-dugon.lower.incisors
+                     *notoryctes.lower
+                     *dasypus-hybridus)
+        dentition
+      (flet ((count-teeth (jaw)
+              (* (loop for (k . v) in jaw summing v) 2)))
+        (format t "Armadillos have ~D teeth.~%"
+                (count-teeth *dasypus-hybridus))
+        (format t "Marsupial moles have ~D teeth in the lower jaw.~%"
+                (count-teeth *notoryctes.lower)))
+      (let ((delta
+              (- *notoryctes.lower.incisors
+                 *dugong-dugon.lower.incisors)))
+        (format t "Marsupial moles have ~[less~;as many~;more~] ~
+                   lower incisors ~:[than~;as~] dugongs.~%"
+                (1+ (signum delta)) (zerop delta))))))
+</pre>
+<pre class="output">Armadillos have 28 teeth.</pre>
+<pre class="output">Marsupial moles have 22 teeth in the lower jaw.</pre>
+<pre class="output">Marsupial moles have as many lower incisors as dugongs.</pre>
+<pre class="value">NIL</pre>
+</div>
+
+
+  <h4 class="section"><a name="JSON-RPC"></a> JSON-RPC </h4>
+
+<p><a href="http://en.wikipedia.org/wiki/JSON-RPC">JSON-RPC</a> is a lightweight remote procedure call protocol similar to XML-RPC.  CL-JSON contains some code that implements  the version 1.1 Working draft of the JSON-RPC specification (available as <a href="http://json-rpc.org/wd/JSON-RPC-1-1-WD-20060807.html">Working Draft 7 August 2006</a>). Just plug it into your http server of choice. See the file json-rpc and the package <code class="api-name">JSON-RPC</code>.</p>
+
+  <h4 class="section"><a name="JSONP"></a> JSONP </h4>
+<p> JSONP or JSON with Padding is a technique that allows cross-domain function calls. A remote function call looks like this: your javascript code insert a "script" html tag to the page you are visiting. The url of this script tag is your remote server. You also send the name of a callback function to the server as a query string parameter. The browser expects the script tag to retrieve some javascript code from your server. The JSON reponse from your can be turned into a proper javascript function call statement by prepending the name of the callback function first and then wrapping the JSON chunk inside a pair of parentheses. CL-JSON doesn't have any special code to do JSONP, it is more an issue of simple coding with your web server.
+
+
+  <h2 class="section"><a name="MAILING-LISTS"></a> Mailing Lists </h2>
+<ul>
+  <li>
+    <a href="http://www.common-lisp.net/mailman/listinfo/cl-json-devel">
+    cl-json-devel</a><br/>for developers and users.</li>
+  <li>
+    <a href="http://www.common-lisp.net/mailman/listinfo/cl-json-announce">
+      cl-json-announce</a><br/>for announcements.</li>
+</ul>
+
+
+  <h2 class="section"><a name="LICENSE"></a> License </h2>
+
+<p>Copyright &copy; 2006-2008 Henrik Hjelte.<br/>
+  Copyright &copy; 2008 Hans H&uuml;bner.</p>
+
+<p>This work is licensed under the terms of the <a href="http://www.opensource.org/licenses/mit-license.html">MIT / X Consortium license</a>, reproduced below.  Mr. H&uuml;bner's copyright applies to the code of the streaming API borrowed from his program <a href="http://common-lisp.net/project/yason/">YASON</a> and transferred under this license with his permission.</p>
+
+<div class="license-text">
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+&ldquo;Software&rdquo;), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.</p>
+
+<p class="disclaimer">
+  <span>THE <dfn>SOFTWARE</dfn> IS PROVIDED &ldquo;AS IS&rdquo;, WITHOUT
+WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
+AND NONINFRINGEMENT.</span>
+  <span>IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE <dfn>SOFTWARE</dfn> OR THE USE OR OTHER DEALINGS IN THE
+<dfn>SOFTWARE</dfn>.</span>
+</p>
+</div>
+
+
+</body>
+</html>

@@ -1,0 +1,1275 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html> 
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <title>CL-UNICODE - A portable Unicode library for Common Lisp</title>
+  <style type="text/css">
+  pre { padding:5px; background-color:#e0e0e0 }
+  h3, h4 { text-decoration: underline; }
+  a { text-decoration: none; padding: 1px 2px 1px 2px; }
+  a:visited { text-decoration: none; padding: 1px 2px 1px 2px; }
+  a:hover { text-decoration: none; padding: 1px 1px 1px 1px; border: 1px solid #000000; } 
+  a:focus { text-decoration: none; padding: 1px 2px 1px 2px; border: none; }
+  a.none { text-decoration: none; padding: 0; }
+  a.none:visited { text-decoration: none; padding: 0; } 
+  a.none:hover { text-decoration: none; border: none; padding: 0; } 
+  a.none:focus { text-decoration: none; border: none; padding: 0; } 
+  a.noborder { text-decoration: none; padding: 0; } 
+  a.noborder:visited { text-decoration: none; padding: 0; } 
+  a.noborder:hover { text-decoration: none; border: none; padding: 0; } 
+  a.noborder:focus { text-decoration: none; border: none; padding: 0; }  
+  pre.none { padding:5px; background-color:#ffffff }
+  </style>
+</head>
+
+<body bgcolor=white>
+
+<h2> CL-UNICODE - A portable Unicode library for Common Lisp</h2>
+
+<blockquote>
+<br>&nbsp;<br><h3><a name=abstract class=none>Abstract</a></h3>
+
+CL-UNICODE is a library which provides Common Lisp implementations
+with knowledge about Unicode characters including their name, their
+general category, the scripts and blocks they belong to, their
+numerical value, and several other properties.  It also provides the
+ability to replace the standard syntax for reading Lisp characters
+with one that is Unicode-aware and is used to
+enhance <a href="http://weitz.de/cl-ppcre/">CL-PPCRE</a>
+with <a href="http://weitz.de/cl-ppcre/#unicode">Unicode
+properties</a>.
+<p>
+CL-UNICODE is based on Unicode 5.1.
+<p>
+The code comes with
+a <a
+href="http://www.opensource.org/licenses/bsd-license.php">BSD-style
+license</a> so you can basically do with it whatever you want.
+
+<p>
+<font color=red>Download shortcut:</font> <a href="http://weitz.de/files/cl-unicode.tar.gz">http://weitz.de/files/cl-unicode.tar.gz</a>.
+</blockquote>
+
+<br>&nbsp;<br><h3><a class=none name="contents">Contents</a></h3>
+<ol>
+  <li><a href="#download">Download and installation</a>
+  <li><a href="#support">Support</a>
+  <li><a href="#ref">Function and variable reference</a>
+    <ol>
+      <li><a href="#specific">Specific character properties</a>
+      <li><a href="#general">General character properties</a>
+      <li><a href="#symbols">Property symbols and look-up</a>
+      <li><a href="#names">Character names</a>
+      <li><a href="#syntax">Alternative reader syntax</a>
+      <li><a href="#misc">Miscellaneous</a>
+    </ol>
+  <li><a href="#index">Symbol index</a>
+  <li><a href="#ack">Acknowledgements</a>
+</ol>
+
+<br>&nbsp;<br><h3><a class=none name="download">Download and installation</a></h3>
+
+CL-UNICODE together with this documentation can be downloaded from <a
+href="http://weitz.de/files/cl-unicode.tar.gz">http://weitz.de/files/cl-unicode.tar.gz</a>. The
+current version is 0.1.4.
+<p>
+The library comes with a system definition
+for <a href="http://www.cliki.net/asdf">ASDF</a> and you compile and
+load it in the usual way.  It depends
+on <a href="http://weitz.de/cl-ppcre/">CL-PPCRE</a>.
+<p>
+CL-UNICODE builds parts of its source code automatically the first
+time it is compiled.  This is done by parsing several Unicode data
+files which are included with the distribution and might take some
+time.  This happens only once.
+<a href="http://weitz.de/flexi-streams/">FLEXI-STREAMS</a> is needed
+for this process, but it is not used anymore once CL-UNICODE has been built.
+<p>
+You can run a test suite which tests most aspects of the library with
+<pre>
+(asdf:oos 'asdf:test-op :cl-unicode)
+</pre>
+(Some of these tests are expected to fail if your Lisp has
+a <em>very</em> low <code>CHAR-CODE-LIMIT</code> like for example
+CMUCL.)
+
+<br>&nbsp;<br><h3><a name="support" class=none>Support</a></h3>
+
+The development version of cl-unicode can be
+found <a href="https://github.com/edicl/cl-unicode" target="_new">on
+github</a>.  Please use the github issue tracking system to submit bug
+reports.  Patches are welcome, please
+use <a href="https://github.com/edicl/cl-unicode/pulls">GitHub pull
+requests</a>.  If you want to make a change,
+please <a href="http://weitz.de/patches.html" target="_new">read this
+first</a>.
+
+<br>&nbsp;<br><h3><a class=none name="ref">Function and variable reference</a></h3>
+
+<h4><a name="specific" class=none>Specific character properties</a></h4>
+
+<!-- Entry for GENERAL-CATEGORY -->
+
+<p><br>[Generic function]<br><a class=none name='general-category'><b>general-category</b> <i>c</i> =&gt; <i>name, symbol</i></a>
+<blockquote><br>
+
+Returns the general category of a character as a
+string.  <code><i>c</i></code> can be the character's code point (a positive integer) or
+a (Lisp) character assuming its character code is also its Unicode
+code point.  The second return value is the <a href="#symbols">property symbol</a> of the
+category.
+<pre>
+CL-USER 1 > (general-category #\A)
+"Lu"
+CL-UNICODE-NAMES::LU
+
+CL-USER 2 > (general-category #\-)
+"Pd"
+CL-UNICODE-NAMES::PD
+
+CL-USER 3 > (general-category #\8)
+"Nd"
+CL-UNICODE-NAMES::ND
+</pre>
+<p>
+See also <a href="#general-categories"><code>GENERAL-CATEGORIES</code></a>.
+
+</blockquote>
+
+<!-- End of entry for GENERAL-CATEGORY -->
+
+<!-- Entry for SCRIPT -->
+
+<p><br>[Generic function]<br><a class=none name='script'><b>script</b> <i>c</i> =&gt; <i>name, symbol</i></a>
+<blockquote><br>
+
+Returns the script of a character as a string or
+<code>NIL</code> if there is no script for that particular character.  <code><i>c</i></code> can be the
+character's code point (a positive integer) or a (Lisp) character
+assuming its character code is also its Unicode code point.  The
+second return value (if there is one) is the <a href="#symbols">property symbol</a> of the
+script.
+<pre>
+CL-USER 1 > (script #\B)
+"Latin"
+CL-UNICODE-NAMES::LATIN
+
+CL-USER 2 > (script (code-char #x5d0))
+"Hebrew"
+CL-UNICODE-NAMES::HEBREW
+</pre>
+See also <a href="#scripts"><code>SCRIPTS</code></a>.
+
+</blockquote>
+
+<!-- End of entry for SCRIPT -->
+
+
+<!-- Entry for CODE-BLOCK -->
+
+<p><br>[Generic function]<br><a class=none name='code-block'><b>code-block</b> <i>c</i> =&gt; <i>name, symbol</i></a>
+<blockquote><br>
+
+Returns the block of a character as a string or <code>NIL</code>
+if there is no block for that particular character.  <code><i>c</i></code> can be the
+character's code point (a positive integer) or a (Lisp) character
+assuming its character code is also its Unicode code point.  The
+second return value (if there is one) is the <a href="#symbols">property symbol</a> of the
+block.
+<pre>
+CL-USER 1 > (code-block #\a)
+"Basic Latin"
+CL-UNICODE-NAMES::BASICLATIN
+
+CL-USER 2 > (code-block #\&auml;)
+"Latin-1 Supplement"
+CL-UNICODE-NAMES::LATIN1SUPPLEMENT
+</pre>
+See also <a href="#code-blocks"><code>CODE-BLOCKS</code></a>.
+
+</blockquote>
+
+<!-- End of entry for CODE-BLOCK -->
+
+
+
+<!-- Entry for HAS-BINARY-PROPERTY -->
+
+<p><br>[Generic function]<br><a class=none name='has-binary-property'><b>has-binary-property</b> <i>c property</i> =&gt; <i>generalized-boolean</i></a>
+<blockquote><br>
+
+Checks whether a character has the binary property
+<code><i>property</i></code>.  <code><i>c</i></code> can be the character's code point (a positive integer)
+or a (Lisp) character assuming its character code is also its Unicode
+code point.  <code><i>property</i></code> can be a string naming the property or the
+corresponding <a href="#symbols">property symbol</a>.  If a true value is returned, it is the
+<a href="#symbols">property symbol</a>.
+<pre>
+CL-USER 1 > (has-binary-property #\Space "White_Space")
+CL-UNICODE-NAMES::WHITESPACE
+
+CL-USER 2 > (has-binary-property #\F "ASCII_Hex_Digit")
+CL-UNICODE-NAMES::ASCIIHEXDIGIT
+
+CL-USER 3 > (has-binary-property #\- "Dash")
+CL-UNICODE-NAMES::DASH
+
+CL-USER 4 > (has-binary-property #\= "Dash")
+NIL
+</pre>
+See also <a href="#binary-properties"><code>BINARY-PROPERTIES</code></a>.
+
+</blockquote>
+
+<!-- End of entry for HAS-BINARY-PROPERTY -->
+
+
+<!-- Entry for NUMERIC-TYPE -->
+
+<p><br>[Generic function]<br><a class=none name='numeric-type'><b>numeric-type</b> <i>c</i> =&gt; <i>name, symbol</i></a>
+<blockquote><br>
+
+Returns the numeric type of a character (one of <code>"Decimal"</code>, <code>"Digit"</code>, or
+<code>"Numeric"</code>) as a string or <code>NIL</code> if that particular
+character has no numeric type.  <code><i>c</i></code> can be the
+character's code point (a positive integer) or a (Lisp) character
+assuming its character code is also its Unicode code point.  The
+second return value (if there is one) is
+the <a href="#symbols">property symbol</a> of the numeric type.
+<pre>
+CL-USER 1 > (numeric-type #\3)
+"Decimal"
+CL-UNICODE-NAMES::DECIMAL
+
+CL-USER 2 > (numeric-type (<a class=none href="#character-named">character-named</a> "VULGAR FRACTION THREE QUARTERS"))
+"Numeric"
+CL-UNICODE-NAMES::NUMERIC
+
+CL-USER 3 > (numeric-type #\z)
+NIL
+NIL
+</pre>
+</blockquote>
+
+<!-- End of entry for NUMERIC-TYPE -->
+
+<!-- Entry for NUMERIC-VALUE -->
+
+<p><br>[Generic function]<br><a class=none name='numeric-value'><b>numeric-value</b> <i>c</i> =&gt; <i>number-or-nil</i></a>
+<blockquote><br>
+
+Returns the numeric value of a character as a Lisp rational
+or <code>NIL</code> (for <em>NaN</em>).  <code><i>c</i></code> can be
+the character's code point (a positive integer) or a (Lisp) character
+assuming its character code is also its Unicode code point.
+<pre>
+CL-USER 1 > (numeric-value #\3)
+3
+
+CL-USER 2 > (numeric-value (<a class=none href="#character-named">character-named</a> "VULGAR FRACTION THREE QUARTERS"))
+3/4
+
+CL-USER 3 > (numeric-value #\z)
+NIL
+</pre>
+</blockquote>
+
+<!-- End of entry for NUMERIC-VALUE -->
+
+
+<!-- Entry for BIDI-CLASS -->
+
+<p><br>[Generic function]<br><a class=none name='bidi-class'><b>bidi-class</b> <i>c</i> =&gt; <i>name, symbol</i></a>
+<blockquote><br>
+
+Returns the bidirectional (<em>Bidi</em>) class of a
+character as a string or <code>NIL</code> if there is no bidirectional class for
+that particular character.  <code><i>c</i></code> can be the character's code point (a
+positive integer) or a (Lisp) character assuming its character code
+is also its Unicode code point.  The second return value (if there is
+one) is the <a href="#symbols">property symbol</a> of the class.
+<pre>
+CL-USER 1 > (bidi-class #\Space)
+"WS"
+CL-UNICODE-NAMES::WS
+
+CL-USER 2 > (bidi-class #\A)
+"L"
+CL-UNICODE-NAMES::L
+
+CL-USER 3 > (bidi-class (<a class=none href="#character-named">character-named</a> "HEBREW LETTER ALEF"))
+"R"
+CL-UNICODE-NAMES::R
+</pre>
+See also <a href="#bidi-classes"><code>BIDI-CLASSES</code></a>.
+</blockquote>
+
+<!-- End of entry for BIDI-CLASS -->
+
+
+
+<!-- Entry for BIDI-MIRRORING-GLYPH -->
+
+<p><br>[Function]<br><a class=none name='bidi-mirroring-glyph'><b>bidi-mirroring-glyph</b> <i>c <tt>&amp;key</tt> want-code-point-p</i> =&gt; <i>char-or-code-point</i></a>
+<blockquote><br>
+
+Returns the Bidi mirroring glyph for a character if the character
+has the <em>BidiMirrored</em> property and an appropriate mirroring glyph
+is defined.  <code><i>c</i></code> can be the character's code point (a positive integer)
+or a (Lisp) character assuming its character code is also its Unicode
+code point.
+<p>
+Returns the code point instead of the character if <code><i>want-code-point-p</i></code>
+is true.  This can be especially useful for Lisp implementations where
+<code>CHAR-CODE-LIMIT</code> is smaller than <a href="#+code-point-limit+"><code>+CODE-POINT-LIMIT+</code></a>.
+<pre>
+CL-USER 1 > (bidi-mirroring-glyph #\[)
+#\]
+
+CL-USER 2 > (bidi-mirroring-glyph #\])
+#\[
+
+CL-USER 3 > (bidi-mirroring-glyph #\|)
+NIL
+</pre>
+</blockquote>
+
+<!-- End of entry for BIDI-MIRRORING-GLYPH -->
+
+
+<!-- Entry for LOWERCASE-MAPPING -->
+
+<p><br>[Function]<br><a class=none name='lowercase-mapping'><b>lowercase-mapping</b> <i>c <tt>&amp;key</tt> want-code-point-p</i> =&gt; <i>char-or-code-point</i></a>
+<blockquote><br>
+
+Returns the simple lowercase mapping of a character.  <code><i>c</i></code> can be the
+character's code point (a positive integer) or a (Lisp) character
+assuming its character code is also its Unicode code point.  Returns
+the character itself if no such mapping is explicitly defined.  Note
+that case mapping only makes sense for characters with the <em>LC</em>
+property.
+<p>
+Returns the code point instead of the character if <code><i>want-code-point-p</i></code>
+is true.  This can be especially useful for Lisp implementations where
+<code>CHAR-CODE-LIMIT</code> is smaller than <a href="#+code-point-limit+"><code>+CODE-POINT-LIMIT+</code></a>.
+<pre>
+CL-USER 1 > (lowercase-mapping #\&Auml;)
+#\&auml;
+
+CL-USER 2 > (<a href="#unicode-name" class=none>unicode-name</a> (lowercase-mapping (<a href="#character-named" class=none>character-named</a> "GEORGIAN CAPITAL LETTER AN")))
+"GEORGIAN SMALL LETTER AN"
+
+CL-USER 3 > (lowercase-mapping (<a href="#character-named" class=none>character-named</a> "LATIN CAPITAL LETTER SHARP S"))
+#\&szlig;
+</pre>
+</blockquote>
+
+<!-- End of entry for LOWERCASE-MAPPING -->
+
+
+
+<!-- Entry for UPPERCASE-MAPPING -->
+
+<p><br>[Function]<br><a class=none name='uppercase-mapping'><b>uppercase-mapping</b> <i>c <tt>&amp;key</tt> want-code-point-p</i> =&gt; <i>char-or-code-point</i></a>
+<blockquote><br>
+
+Returns the simple uppercase mapping of a character.  <code><i>c</i></code> can be the
+character's code point (a positive integer) or a (Lisp) character
+assuming its character code is also its Unicode code point.  Returns
+the character itself if no such mapping is explicitly defined.  Note
+that case mapping only makes sense for characters with the <em>LC</em>
+property.
+<p>
+Returns the code point instead of the character if <code><i>want-code-point-p</i></code>
+is true.  This can be especially useful for Lisp implementations where
+<code>CHAR-CODE-LIMIT</code> is smaller than <a href="#+code-point-limit+"><code>+CODE-POINT-LIMIT+</code></a>.
+<pre>
+CL-USER 1 > (uppercase-mapping #\s)
+#\S
+
+CL-USER 2 > (<a href="#unicode-name" class=none>unicode-name</a> (uppercase-mapping (<a href="#character-named" class=none>character-named</a> "GLAGOLITIC SMALL LETTER AZU")))
+"GLAGOLITIC CAPITAL LETTER AZU"
+</pre>
+</blockquote>
+
+<!-- End of entry for UPPERCASE-MAPPING -->
+
+
+
+
+
+<!-- Entry for TITLECASE-MAPPING -->
+
+<p><br>[Function]<br><a class=none name='titlecase-mapping'><b>titlecase-mapping</b> <i>c <tt>&amp;key</tt> want-code-point-p</i> =&gt; <i>char-or-code-point</i></a>
+<blockquote><br>
+
+Returns the simple titlecase mapping of a character.  <code><i>c</i></code> can be the
+character's code point (a positive integer) or a (Lisp) character
+assuming its character code is also its Unicode code point.  Returns
+the character itself if no such mapping is explicitly defined.  Note
+that case mapping only makes sense for characters with the <em>LC</em>
+property.
+<p>
+Returns the code point instead of the character if <code><i>want-code-point-p</i></code>
+is true.  This can be especially useful for Lisp implementations where
+<code>CHAR-CODE-LIMIT</code> is smaller than <a href="#+code-point-limit+"><code>+CODE-POINT-LIMIT+</code></a>.
+<pre>
+CL-USER 1 > (<a href="#unicode-name" class=none>unicode-name</a> (titlecase-mapping (char-code (<a href="#character-named" class=none>character-named</a> "LATIN SMALL LETTER DZ WITH CARON"))))
+"LATIN CAPITAL LETTER D WITH SMALL LETTER Z WITH CARON"
+
+CL-USER 2 > (<a href="#unicode-name" class=none>unicode-name</a> (uppercase-mapping (char-code (<a href="#character-named" class=none>character-named</a> "LATIN SMALL LETTER DZ WITH CARON"))))
+"LATIN CAPITAL LETTER DZ WITH CARON"
+</pre>
+</blockquote>
+
+<!-- End of entry for TITLECASE-MAPPING -->
+
+<!-- Entry for COMBINING-CLASS -->
+
+<p><br>[Generic function]<br><a class=none name='combining-class'><b>combining-class</b> <i>c</i> =&gt; <i>class</i></a>
+<blockquote><br>
+
+Returns the combining class of a character as a non-negative
+integer.  <code><i>c</i></code> can be the character's code point (a
+positive integer) or a (Lisp) character assuming its character code is
+also its Unicode code point.
+<pre>
+CL-USER 1 > (combining-class #\~)
+0
+
+CL-USER 2 > (combining-class (<a href="#character-named" class=none>character-named</a> "COMBINING TILDE OVERLAY"))
+1
+
+CL-USER 3 > (combining-class (<a href="#character-named" class=none>character-named</a> "NON-SPACING DOUBLE OVERSCORE"))
+230
+</pre>
+</blockquote>
+
+<!-- End of entry for COMBINING-CLASS -->
+
+
+
+<!-- Entry for AGE -->
+
+<p><br>[Generic function]<br><a class=none name='age'><b>age</b> <i>c</i> =&gt; <i>age</i></a>
+<blockquote><br>
+
+Returns the <em>age</em> of a character or <code>NIL</code> if there
+is no age entry for that particular character.  The <em>age</em> of a character
+is a list of two integers denoting the major and minor number of the
+Unicode version where the character first appeared.  <code><i>c</i></code> can be the
+character's code point (a positive integer) or a (Lisp) character
+assuming its character code is also its Unicode code point.
+<pre>
+CL-USER 1 > (age #\K)
+(1 1)
+
+CL-USER 2 > (age (<a href="#character-named" class=none>character-named</a> "HANGUL SYLLABLE PWILH"))
+(2 0)
+
+CL-USER 3 > (age (<a href="#character-named" class=none>character-named</a> "LATIN CAPITAL LETTER SHARP S"))
+(5 1)
+</pre>
+</blockquote>
+
+<!-- End of entry for AGE -->
+
+<!-- Entry for GENERAL-CATEGORIES -->
+
+<p><br>[Function]<br><a class=none name='general-categories'><b>general-categories</b> <i></i> =&gt; <i>list</i></a>
+<blockquote><br>
+
+Returns a sorted list of all general categories known to
+CL-UNICODE.  These are the possible return values of
+<a href="#general-category"><code>GENERAL-CATEGORY</code></a>.
+<pre>
+CL-USER 1 > (general-categories)
+("Cc" "Cf" "Cn" "Co" "CS" "Ll" "Lm" "Lo" "Lt" "Lu" "Mc" "Me" "Mn" "Nd" "Nl" "No"
+ "Pc" "Pd" "Pe" "Pf" "Pi" "Po" "Ps" "Sc" "Sk" "Sm" "So" "Zl" "Zp" "Zs")
+</pre>
+
+</blockquote>
+
+<!-- End of entry for GENERAL-CATEGORIES -->
+
+<!-- Entry for SCRIPTS -->
+
+<p><br>[Function]<br><a class=none name='scripts'><b>scripts</b> <i></i> =&gt; <i>list</i></a>
+<blockquote><br>
+
+Returns a sorted list of all scripts known to CL-UNICODE.  These
+are the possible return values of <a href="#script"><code>SCRIPT</code></a>.
+
+</blockquote>
+
+<!-- End of entry for SCRIPTS -->
+
+
+<!-- Entry for CODE-BLOCKS -->
+
+<p><br>[Function]<br><a class=none name='code-blocks'><b>code-blocks</b> <i></i> =&gt; <i>list</i></a>
+<blockquote><br>
+
+Returns a sorted list of all blocks known to CL-UNICODE.  These are
+the possible return values of <a href="#code-block"><code>CODE-BLOCK</code></a>.
+
+</blockquote>
+
+<!-- End of entry for CODE-BLOCKS -->
+
+<!-- Entry for BINARY-PROPERTIES -->
+
+<p><br>[Function]<br><a class=none name='binary-properties'><b>binary-properties</b> <i></i> =&gt; <i>list</i></a>
+<blockquote><br>
+
+Returns a sorted list of all binary properties known to CL-UNICODE.
+These are the allowed second arguments (modulo <a href="#canonicalize-name">canonicalization</a>) to
+<a href="#has-binary-property"><code>HAS-BINARY-PROPERTY</code></a>.
+<pre>
+CL-USER 1 > (binary-properties)
+("ASCII_Hex_Digit"
+ "BidiMirrored"
+ "Bidi_Control"
+ "Dash"
+ "Deprecated"
+ "Diacritic"
+ "Extender"
+ "Hex_Digit"
+ "Hyphen"
+ "Ideographic"
+ "IDS_Binary_Operator"
+ "IDS_Trinary_Operator"
+ "Join_Control"
+ "Logical_Order_Exception"
+ "Other_Alphabetic"
+ "Other_Default_Ignorable_Code_Point"
+ "Other_Grapheme_Extend"
+ "Other_ID_Continue"
+ "Other_ID_Start"
+ "Other_Lowercase"
+ "Other_Math"
+ "Other_Uppercase"
+ "Pattern_Syntax"
+ "Pattern_White_Space"
+ "Quotation_Mark"
+ "Radical"
+ "Soft_Dotted"
+ "STerm"
+ "Terminal_Punctuation"
+ "Unified_Ideograph"
+ "Variation_Selector"
+ "White_Space")
+</pre>
+</blockquote>
+
+<!-- End of entry for BINARY-PROPERTIES -->
+
+
+
+<!-- Entry for BIDI-CLASSES -->
+
+<p><br>[Function]<br><a class=none name='bidi-classes'><b>bidi-classes</b> <i></i> =&gt; <i>list</i></a>
+<blockquote><br>
+
+Returns a sorted list of all Bidi classes known to CL-UNICODE.
+These are the possible return values of <a href="#bidi-class"><code>BIDI-CLASS</code></a>.
+<pre>
+CL-USER 1 > (bidi-classes)
+("AL" "AN" "B" "BN" "CS" "EN" "ES" "ET" "L" "LRE" "LRO" "NSM" "ON" "PDF" "R" "RLE" "RLO" "S" "WS")
+</pre>
+</blockquote>
+
+<!-- End of entry for BIDI-CLASSES -->
+
+
+
+<h4><a name="general" class=none>General character properties</a></h4>
+
+
+<!-- Entry for HAS-PROPERTY -->
+
+<p><br>[Function]<br><a class=none name='has-property'><b>has-property</b> <i>c property</i> =&gt; <i>generalized-boolean</i></a>
+<blockquote><br>
+
+Checks whether a character has the named
+property <code><i>property</i></code>.  <code><i>property</i></code>
+can be a string naming a property (which will be used for look-up
+after <a href="#canonicalize-name">canonicalization</a>) or it can be
+a <a href="#symbols">property symbol</a>
+(see <a href="#property-symbol"><code>PROPERTY-SYMBOL</code></a>).  <code><i>c</i></code>
+can be the character's code point (a positive integer) or a (Lisp)
+character assuming its character code is also its Unicode code point.
+<p>
+<em>Properties</em> in the sense of CL-UNICODE can be names
+of <a href="#general-category">general
+categories</a>, <a href="#script">scripts</a>, <a href="#code-block">blocks</a>, <a href="#has-binary-property">binary
+properties</a>, or <a href="#bidi-class">Bidi classes</a>, amongst
+other things.  If there are a block and a script with the same name
+(like, say, <code>&quot;Cyrillic&quot;</code>), the bare name denotes the script.
+Prepend <code>&quot;Block:&quot;</code> to the name to refer to the block.  (You
+can also prepend <code>&quot;Script:&quot;</code> to refer to the script
+unambiguously.)  Names of Bidi classes must be prepended with
+<code>&quot;BidiClass:&quot;</code> if there's a potential for ambiguity.
+<p>
+This function also recognizes several aliases for properties (like
+<code>&quot;Symbol&quot;</code> for <code>&quot;S&quot;</code>) and
+you can, as in Perl, prepend block names
+with <code>&quot;In&quot;</code> instead
+of <code>&quot;Block:&quot;</code> and most other properties with
+<code>&quot;Is&quot;</code>.  See <a href="#recognized-properties"><code>RECOGNIZED-PROPERTIES</code></a>.
+<p>
+Signals an error if no property named <code><i>property</i></code> was found.
+<pre>
+CL-USER 1 > (has-property #\A "L")
+T
+
+CL-USER 2 > (has-property #\A "Letter")
+T
+
+CL-USER 3 > (has-property #\A "LC")
+T
+
+CL-USER 4 > (has-property #\A "CasedLetter")
+T
+
+CL-USER 5 > (has-property #\A "Lu")
+T
+
+CL-USER 6 > (has-property #\A "UppercaseLetter")
+T
+
+CL-USER 7 > (has-property #\A "IsUppercaseLetter")
+T
+
+CL-USER 8 > (has-property #\A "LowercaseLetter")
+NIL
+
+CL-USER 9 > (has-property #\A "Latin")
+T
+
+CL-USER 10 > (has-property #\A "Script:Latin")
+T
+
+CL-USER 11 > (has-property #\A "Script:Hebrew")
+NIL
+
+CL-USER 12 > (has-property #\A "Basic Latin")
+T
+
+CL-USER 13 > (has-property #\A "Block:BasicLatin")
+T
+
+CL-USER 14 > (has-property #\A "InBasicLatin")
+T
+
+CL-USER 15 > (has-property #\A "Block:Arabic")
+NIL
+
+CL-USER 16 > (has-property #\A "WhiteSpace")
+NIL
+
+CL-USER 17 > (has-property #\A "HexDigit")
+CL-UNICODE-NAMES::HEXDIGIT
+
+CL-USER 18 > (has-property #\A "BidiClass:L")
+T
+
+CL-USER 19 > (has-property #\A "BidiClass:Left-to-Right")
+T
+
+CL-USER 20 > (has-property #\A "LeftToRight")
+T
+
+CL-USER 21 > (has-property #\A "Any")
+T
+
+CL-USER 22 > (has-property #\A "Assigned")
+T
+
+CL-USER 23 > (has-property #\A "Unassigned")
+NIL
+
+CL-USER 24 > (has-property #\A "ASCII")
+T
+</pre>
+See also <a href="#property-test"><code>PROPERTY-TEST</code></a>.
+
+</blockquote>
+
+<!-- End of entry for HAS-PROPERTY -->
+
+
+<!-- Entry for PROPERTY-TEST -->
+
+<p><br>[Generic function]<br><a class=none name='property-test'><b>property-test</b> <i>property <tt>&amp;key</tt> errorp</i> =&gt; <i>function</i></a>
+<blockquote><br>
+
+Returns a unary function which can test code points
+or Lisp characters for the named property <code><i>property</i></code>.  <code><i>property</i></code> is interpreted
+as in <a href="#has-property"><code>HAS-PROPERTY</code></a> and <a href="#property-test"><code>PROPERTY-TEST</code></a> is actually used internally by
+<a href="#has-property"><code>HAS-PROPERTY</code></a> but might come
+in handy if you need a faster way to test
+for <code><i>property</i></code> (as you're saving the time to look up
+the property).
+<p>
+Returns <code>NIL</code> if no property named <code><i>property</i></code> was found or signals an error if
+<code><i>errorp</i></code> is true.
+<pre>
+CL-USER 1 > (let ((ascii-tester (property-test "ASCII_Hex_Digit")))
+              (count-if 'identity (map 'list ascii-tester "ALEF")))
+3
+</pre>
+See also <a href="http://weitz.de/cl-ppcre/">CL-PPCRE</a>'s <a href="http://weitz.de/cl-ppcre/#create-optimized-test-function"><code>CREATE-OPTIMIZED-TEST-FUNCTION</code></a>.
+</blockquote>
+
+<!-- End of entry for PROPERTY-TEST -->
+
+
+
+<!-- Entry for LIST-ALL-CHARACTERS -->
+
+<p><br>[Function]<br><a class=none name='list-all-characters'><b>list-all-characters</b> <i>property <tt>&amp;key</tt> want-code-point-p</i> =&gt; <i>list</i></a>
+<blockquote><br>
+
+Lists all character (ordered by code point) which have the
+property <code><i>property</i></code> where <code><i>property</i></code> is interpreted as in <a href="#has-property"><code>HAS-PROPERTY</code></a>.
+If <code><i>want-code-point-p</i></code> is true, a list of code points instead of a list
+of characters is returned.  (If <code>CHAR-CODE-LIMIT</code> is smaller than
+<a href="#+code-point-limit+"><code>+CODE-POINT-LIMIT+</code></a> in your Lisp implementation, the list of code
+points can actually be longer than the list of characters.).
+<pre>
+CL-USER 1 > (mapcar '<a href="#unicode-name" class=none>unicode-name</a> (list-all-characters "Grapheme_Link" :want-code-point-p t))
+("DEVANAGARI SIGN VIRAMA"
+ "BENGALI SIGN VIRAMA"
+ "GURMUKHI SIGN VIRAMA"
+ "GUJARATI SIGN VIRAMA"
+ "ORIYA SIGN VIRAMA"
+ "TAMIL SIGN VIRAMA"
+ "TELUGU SIGN VIRAMA"
+ "KANNADA SIGN VIRAMA"
+ "MALAYALAM SIGN VIRAMA"
+ "SINHALA SIGN AL-LAKUNA"
+ "THAI CHARACTER PHINTHU"
+ "TIBETAN MARK HALANTA"
+ "MYANMAR SIGN VIRAMA"
+ "MYANMAR SIGN ASAT"
+ "TAGALOG SIGN VIRAMA"
+ "HANUNOO SIGN PAMUDPOD"
+ "KHMER SIGN COENG"
+ "BALINESE ADEG ADEG"
+ "SUNDANESE SIGN PAMAAEH"
+ "SYLOTI NAGRI SIGN HASANTA"
+ "SAURASHTRA SIGN VIRAMA"
+ "REJANG VIRAMA"
+ "KHAROSHTHI VIRAMA")
+</pre>
+</blockquote>
+
+<!-- End of entry for LIST-ALL-CHARACTERS -->
+
+
+<!-- Entry for RECOGNIZED-PROPERTIES -->
+
+<p><br>[Function]<br><a class=none name='recognized-properties'><b>recognized-properties</b> <i><tt>&amp;optional</tt> all</i> =&gt; <i>list</i></a>
+<blockquote><br>
+
+Returns a list of all property names known to CL-UNICODE.  These
+are the allowed second arguments (modulo <a href="#canonicalize-name">canonicalization</a>) to
+<a href="#has-property"><code>HAS-PROPERTY</code></a>.
+If <code><i>all</i></code> is true, known aliases
+(like <em>Letter</em> for
+<em>L</em>) are also included.
+<pre>
+CL-USER 1 > (length (recognized-properties t))
+996
+</pre>
+</blockquote>
+
+<!-- End of entry for RECOGNIZED-PROPERTIES -->
+
+
+
+
+<h4><a name="symbols" class=none>Property symbols and look-up</a></h4>
+
+
+
+<!-- Entry for PROPERTY-SYMBOL -->
+
+<p><br>[Function]<br><a class=none name='property-symbol'><b>property-symbol</b> <i>name</i> =&gt; <i>symbol, name</i></a>
+<blockquote><br>
+
+Returns a symbol in the <code>CL-UNICODE-NAMES</code> package (which is only
+used for this purpose) which can stand in for the string
+<code><i>name</i></code> in look-ups.  The symbol's name is the result of
+<a href="#canonicalize-name">canonicalizing</a> and then
+upcasing <code><i>name</i></code>.
+<p>
+A symbol returned by this function is only really useful and only
+actually a property symbol if the second return value is true.
+<p>
+All exported functions of CL-UNICODE which return strings which are
+property names return the corresponding property symbol as their
+second return value.  All exported functions of CL-UNICODE which
+accept property names as arguments will also accept property symbols.
+<pre>
+CL-USER 1 > (property-symbol "XID_Start")
+CL-UNICODE-NAMES::XIDSTART
+"XIDStart"
+
+CL-USER 2 > (property-symbol "Foo")
+CL-UNICODE-NAMES::FOO
+NIL
+</pre>
+See also <a href="#property-name"><code>PROPERTY-NAME</code></a>.
+</blockquote>
+
+<!-- End of entry for PROPERTY-SYMBOL -->
+
+
+
+<!-- Entry for PROPERTY-NAME -->
+
+<p><br>[Function]<br><a class=none name='property-name'><b>property-name</b> <i>symbol</i> =&gt; <i>name-or-nil</i></a>
+<blockquote><br>
+
+Returns a name (not <em>the</em> name) for a <a href="#property-symbol">property symbol</a>
+<code><i>symbol</i></code> if it is known to CL-UNICODE.  Note that
+<pre>
+(STRING= (PROPERTY-NAME (PROPERTY-SYMBOL &lt;string&gt;)) &lt;string&gt;)
+</pre>
+is not necessarily true even if the property name is not <code>NIL</code> while
+<pre>
+(EQ (PROPERTY-SYMBOL (PROPERTY-NAME &lt;symbol&gt;)) &lt;symbol&gt;)
+</pre>
+always holds if there is a property name for <code>&lt;symbol&gt;</code>.
+<pre>
+CL-USER 1 > (property-name 'cl-unicode-names::asciihexdigit)
+"ASCII_Hex_Digit"
+</pre>
+See also <a href="#property-symbol"><code>PROPERTY-SYMBOL</code></a>.
+</blockquote>
+
+<!-- End of entry for PROPERTY-NAME -->
+
+
+
+<!-- Entry for CANONICALIZE-NAME -->
+
+<p><br>[Function]<br><a class=none name='canonicalize-name'><b>canonicalize-name</b> <i>name</i> =&gt; <i>name'</i></a>
+<blockquote><br>
+
+Converts the string <code><i>name</i></code> into
+a <em>canonicalized</em> name which can be used for unambiguous
+look-ups by removing all whitespace, hyphens, and underline
+characters.
+<p>
+Tries not to remove hyphens preceded by spaces or underlines if this
+could lead to ambiguities as described in
+<a href="http://unicode.org/unicode/reports/tr18/#Name_Properties">http://unicode.org/unicode/reports/tr18/#Name_Properties</a>.
+<p>
+All CL-UNICODE functions which accept string <em>names</em> for characters
+or properties will canonicalize the name first using this function and
+will then look up the name case-insensitively.
+<pre>
+CL-USER 1 > (canonicalize-name "Left-to-Right")
+"LefttoRight"
+
+CL-USER 2 > (canonicalize-name "Left_To_Right")
+"LeftToRight"
+
+CL-USER 3 > (string-equal * **)
+T
+
+CL-USER 4 > (canonicalize-name "TIBETAN LETTER A")
+"TIBETANLETTERA"
+
+CL-USER 5 > (canonicalize-name "TIBETAN LETTER -A")
+"TIBETANLETTER -A"
+
+CL-USER 6 > (canonicalize-name (canonicalize-name "TIBETAN LETTER A"))
+"TIBETANLETTERA"
+
+CL-USER 7 > (canonicalize-name (canonicalize-name "TIBETAN LETTER -A"))
+"TIBETANLETTER -A"
+
+CL-USER 8 > (canonicalize-name "Tibetan_Letter_-A")
+"TibetanLetter -A"
+</pre>
+Note that the preceding chracter is relevant in the ambiguous cases (but
+there are only three of them):
+<pre>
+CL-USER 8 > (char= (<a href="#character-named" class=none>character-named</a> "TibetanLetter A") (<a href="#character-named" class=none>character-named</a> "TibetanLetter -A"))
+NIL
+
+CL-USER 9 > (char= (<a href="#character-named" class=none>character-named</a> "TibetanLetterA") (<a href="#character-named" class=none>character-named</a> "TibetanLetter-A"))
+T
+</pre>
+</blockquote>
+
+<!-- End of entry for CANONICALIZE-NAME -->
+
+
+
+<h4><a name="names" class=none>Character names</a></h4>
+
+
+<!-- Entry for UNICODE-NAME -->
+
+<p><br>[Generic function]<br><a class=none name='unicode-name'><b>unicode-name</b> <i>c</i> =&gt; <i>name-or-nil</i></a>
+<blockquote><br>
+
+Returns the Unicode name of a character as a string
+or <code>NIL</code> if there is no name for that particular
+character.  <code><i>c</i></code> can be the character's code point (a
+positive integer) or a (Lisp) character assuming its character code is
+also its Unicode code point.
+<pre>
+CL-USER 1 > (unicode-name #\&szlig;)
+"LATIN SMALL LETTER SHARP S"
+
+CL-USER 2 > (unicode-name #\&uuml;)
+"LATIN SMALL LETTER U WITH DIAERESIS"
+
+CL-USER 3 > (unicode-name #xd4db)
+"HANGUL SYLLABLE PWILH"
+</pre>
+</blockquote>
+
+<!-- End of entry for UNICODE-NAME -->
+
+
+
+<!-- Entry for UNICODE1-NAME -->
+
+<p><br>[Generic function]<br><a class=none name='unicode1-name'><b>unicode1-name</b> <i>c</i> =&gt; <i>name-or-nil</i></a>
+<blockquote><br>
+
+Returns the Unicode&nbsp;1.0 name of a character as a string
+or <code>NIL</code> if there is no name for that particular character.
+This name is only non-<code>NIL</code> if it is significantly
+different from the Unicode name
+(see <a href="#unicode-name"><code>UNICODE-NAME</code></a>).  For
+control characters, sometimes the ISO&nbsp;6429 name is returned
+instead.
+<p>
+<code><i>c</i></code> can be the character's code point (a positive
+integer) or a (Lisp) character assuming its character code is also its
+Unicode code point.
+<pre>
+CL-USER 1 > (<a href="#unicode-name" class=none>unicode-name</a> (code-char 1))
+NIL
+
+CL-USER 2 > (unicode1-name (code-char 1))
+"START OF HEADING"
+
+CL-USER 3 > (<a href="#unicode-name" class=none>unicode-name</a> (code-char #x67e))
+"ARABIC LETTER PEH"
+
+CL-USER 4 > (unicode1-name (code-char #x67e))
+"ARABIC LETTER TAA WITH THREE DOTS BELOW"
+</pre>
+</blockquote>
+
+<!-- End of entry for UNICODE1-NAME -->
+
+<!-- Entry for CHARACTER-NAMED -->
+
+<p><br>[Function]<br><a class=none name='character-named'><b>character-named</b> <i>name <tt>&amp;key</tt> want-code-point-p try-unicode1-names-p try-abbreviations-p scripts-to-try try-hex-notation-p try-lisp-names-p</i> =&gt; <i>char-or-code-point</i></a>
+<blockquote><br>
+
+Returns the character which has the name <code><i>name</i></code> (a string) by
+looking up the Unicode name (see <a href="#unicode-name"><code>UNICODE-NAME</code></a>).
+<p>
+If <code><i>try-unicode1-names</i></code> is true, the Unicode&nbsp;1.0 name (see
+<a href="#unicode1-name"><code>UNICODE1-NAME</code></a>) will be used as a fallback.
+<p>
+If <code><i>try-abbreviations-p</i></code> is true, <code><i>name</i></code> is treated as an abbreviation as
+follows: If <code><i>name</i></code> contains a colon, it is interpreted as
+<code>&quot;&lt;script&gt;:&lt;short-name&gt;&quot;</code> and the function tries to look up, in turn,
+the characters named <code>&quot;&lt;script&gt; &lt;size&gt; LETTER &lt;short-name&gt;&quot;</code>,
+<code>&quot;&lt;script&gt; LETTER &lt;short-name&gt;&quot;</code>, and <code>&quot;&lt;script&gt; &lt;short-name&gt;&quot;</code> where
+<code>&lt;size&gt;</code> is <code>&quot;SMALL&quot;</code> if none of the characters in <code>&lt;short-name&gt;</code> is
+uppercase, <code>&quot;CAPITAL&quot;</code> otherwise.  If <code><i>name</i></code> does not contain a colon,
+the same algorithm as above is tried with <code><i>name</i></code> instead of <code>&lt;short-name&gt;</code>
+and each element of the list of strings <code><i>scripts-to-try</i></code> as <code>&lt;string&gt;</code>.
+(<code><i>scripts-to-try</i></code> can also be a single string which is interpreted as a
+one-element list.)
+<p>
+If <code><i>try-hex-notation-p</i></code> is true, <code><i>name</i></code> can be of the form <code>&quot;U+&lt;x&gt;&quot;</code> where
+<code>&lt;x&gt;</code> is a hexadecimal number with four to six digits with the obvious
+meaning.
+<p>
+If <code><i>try-lisp-names-p</i></code> is true, the function returns
+the character with
+the <a href="http://www.lispworks.com/documentation/HyperSpec/Body/f_char_n.htm">character
+name</a> <code><i>name</i></code> (if there is one) or,
+if <code><i>name</i></code> is exactly one character, it returns this
+character.
+<p>
+All the keyword-governed alternatives are tried in the order they're
+described above.
+<p>
+See also <a href="#*try-unicode1-names-p*"><code>*TRY-UNICODE1-NAMES-P*</code></a>, <a href="#*try-abbreviations-p*"><code>*TRY-ABBREVIATIONS-P*</code></a>,
+<a href="#*scripts-to-try*"><code>*SCRIPTS-TO-TRY*</code></a>, <a href="#*try-hex-notation-p*"><code>*TRY-HEX-NOTATION-P*</code></a>, and <a href="#*try-lisp-names-p*"><code>*TRY-LISP-NAMES-P*</code></a>.
+<p>
+Returns the code point instead of the character if <code><i>want-code-point-p</i></code>
+is true.  This can be especially useful for Lisp implementations where
+<code>CHAR-CODE-LIMIT</code> is smaller than <a href="#+code-point-limit+"><code>+CODE-POINT-LIMIT+</code></a>.
+<pre>
+CL-USER 1 > (character-named "LATIN SMALL LETTER SHARP S")
+#\&szlig;
+
+CL-USER 2 > (character-named "latin small letter sharp s")
+#\&szlig;
+
+CL-USER 3 > (character-named "LatinSmallLetterSharpS")
+#\&szlig;
+
+CL-USER 4 > (character-named "Latin:sharps" :try-abbreviations-p t)
+#\&szlig;
+
+CL-USER 5 > (character-named "sharps" :try-abbreviations-p t :scripts-to-try "Latin")
+#\&szlig;
+
+CL-USER 6 > (character-named "Backspace")
+#\Backspace
+
+CL-USER 7 > (character-named "Backspace" :try-unicode1-names-p nil)
+NIL
+
+CL-USER 8 > (character-named "Newline")
+NIL
+
+CL-USER 9 > (character-named "Newline" :try-lisp-names-p t)
+#\Newline
+
+CL-USER 10 > (character-named "U+0020" :try-hex-notation-p t)
+#\Space
+</pre>
+</blockquote>
+
+<!-- End of entry for CHARACTER-NAMED -->
+
+<!-- Entry for *TRY-UNICODE1-NAMES-P* -->
+
+<p><br>[Special variable]<br><a class=none name='*try-unicode1-names-p*'><b>*try-unicode1-names-p*</b></a>
+<blockquote><br>
+
+This is the default value for the <code><i>try-unicode1-names-p</i></code> keyword
+argument to <a href="#character-named"><code>CHARACTER-NAMED</code></a>.  Its initial value is <code>T</code>.
+
+</blockquote>
+
+<!-- End of entry for *TRY-UNICODE1-NAMES-P* -->
+
+
+<!-- Entry for *TRY-ABBREVIATIONS-P* -->
+
+<p><br>[Special variable]<br><a class=none name='*try-abbreviations-p*'><b>*try-abbreviations-p*</b></a>
+<blockquote><br>
+
+This is the default value for the <code><i>try-abbreviations-p</i></code> keyword
+argument to <a href="#character-named"><code>CHARACTER-NAMED</code></a>.  Its initial value is <code>NIL</code>.
+
+</blockquote>
+
+<!-- End of entry for *TRY-ABBREVIATIONS-P* -->
+
+
+<!-- Entry for *SCRIPTS-TO-TRY* -->
+
+<p><br>[Special variable]<br><a class=none name='*scripts-to-try*'><b>*scripts-to-try*</b></a>
+<blockquote><br>
+
+This is the default value for the <code><i>scripts-to-try</i></code> keyword argument
+to <a href="#character-named"><code>CHARACTER-NAMED</code></a>.  Its initial value is <code>NIL</code>.
+
+</blockquote>
+
+<!-- End of entry for *SCRIPTS-TO-TRY* -->
+
+
+
+<!-- Entry for *TRY-HEX-NOTATION-P* -->
+
+<p><br>[Special variable]<br><a class=none name='*try-hex-notation-p*'><b>*try-hex-notation-p*</b></a>
+<blockquote><br>
+
+This is the default value for the <code><i>try-hex-notation-p</i></code> keyword
+argument to <a href="#character-named"><code>CHARACTER-NAMED</code></a>.  Its initial value is <code>NIL</code>.
+
+</blockquote>
+
+<!-- End of entry for *TRY-HEX-NOTATION-P* -->
+
+
+<!-- Entry for *TRY-LISP-NAMES-P* -->
+
+<p><br>[Special variable]<br><a class=none name='*try-lisp-names-p*'><b>*try-lisp-names-p*</b></a>
+<blockquote><br>
+
+This is the default value for the <code><i>try-lisp-names-p</i></code> keyword
+argument to <a href="#character-named"><code>CHARACTER-NAMED</code></a>.  Its initial value is <code>NIL</code>.
+
+</blockquote>
+
+<!-- End of entry for *TRY-LISP-NAMES-P* -->
+
+
+
+
+<h4><a name="syntax" class=none>Alternative reader syntax</a></h4>
+
+
+<!-- Entry for ENABLE-ALTERNATIVE-CHARACTER-SYNTAX -->
+
+<p><br>[Macro]<br><a class=none name='enable-alternative-character-syntax'><b>enable-alternative-character-syntax</b> <i></i> =&gt; <i>|</i></a>
+<blockquote><br>
+
+Enables an alternative Lisp character syntax which <em>replaces</em>
+the usual syntax: After a sharpsign (<code>#\#</code>) and a backslash
+(<code>#\\</code>) have been read, at least one more character is
+read.  Reading then continues as long as ASCII letters, digits,
+underlines, hyphens, colons, or plus signs are read.  The resulting
+string is then used as input
+to <a href="#character-named"><code>CHARACTER-NAMED</code></a> to
+produce a character.
+<p>
+This macro expands into an <code>EVAL-WHEN</code> so that if you use it as a
+top-level form in a file to be loaded and/or compiled it'll do what
+you expect.  Technically, this'll push the current readtable on a
+stack so that matching calls of this macro and
+<a href="#disable-alternative-character-syntax"><code>DISABLE-ALTERNATIVE-CHARACTER-SYNTAX</code></a> can be nested.
+<p>
+Note that by default the alternative character syntax is not enabled
+after loading CL-UNICODE.
+<pre>
+CL-USER 1 > (enable-alternative-character-syntax)
+
+CL-USER 2 > (setq <a href="#*try-abbreviations-p*" class=none>*try-abbreviations-p*</a> t)
+T
+
+CL-USER 3 > (setq <a href="#*scripts-to-try*" class=none>*scripts-to-try*</a> "Hebrew")
+"Hebrew"
+
+CL-USER 4 > (char-code #\Alef)
+1488
+</pre>
+(It is recommended that you
+set <a href="#*try-lisp-syntax-p*"><code>*TRY-LISP-SYNTAX-P*</code></a>
+to a true value when enabling the alternative syntax, so that you can
+still use the short syntax (like <code>#\a</code>) for characters.)
+<p>
+For an alternative syntax for <em>strings</em>
+see <a href="http://weitz.de/cl-interpol/">CL-INTERPOL</a>.
+</blockquote>
+
+<!-- End of entry for ENABLE-ALTERNATIVE-CHARACTER-SYNTAX -->
+
+
+
+
+<!-- Entry for DISABLE-ALTERNATIVE-CHARACTER-SYNTAX -->
+
+<p><br>[Macro]<br><a class=none name='disable-alternative-character-syntax'><b>disable-alternative-character-syntax</b> <i></i> =&gt; <i>|</i></a>
+<blockquote><br>
+
+Restores the readtable which was active before the last call to
+<a href="#enable-alternative-character-syntax"><code>ENABLE-ALTERNATIVE-CHARACTER-SYNTAX</code></a>.  If there was no such call, the
+standard readtable is used.
+<p>
+This macro expands into an <code>EVAL-WHEN</code> so that if you use
+it as a top-level form in a file to be loaded and/or compiled it'll do
+what you expect.  Technically, this'll pop a readtable from the stack
+described
+in <a href="#enable-alternative-character-syntax"><code>ENABLE-ALTERNATIVE-CHARACTER-SYNTAX</code></a>
+so that matching calls of these macros can be nested.
+
+</blockquote>
+
+<!-- End of entry for DISABLE-ALTERNATIVE-CHARACTER-SYNTAX -->
+
+<h4><a name="misc" class=none>Miscellaneous</a></h4>
+
+
+<!-- Entry for +CODE-POINT-LIMIT+ -->
+
+<p><br>[Constant]<br><a class=none name='+code-point-limit+'><b>+code-point-limit+</b></a>
+<blockquote><br>
+
+<code>#x110000</code>, the smallest integer which is not a code point in the Unicode codespace.
+
+</blockquote>
+
+<!-- End of entry for +CODE-POINT-LIMIT+ -->
+
+
+
+<!-- Entry for UNICODE-ERROR -->
+
+<p><br>[Condition type]<br><a class=none name='unicode-error'><b>unicode-error</b></a>
+<blockquote><br>
+
+All errors signalled by CL-UNICODE are of this type.
+
+</blockquote>
+
+<!-- End of entry for UNICODE-ERROR -->
+
+<br>&nbsp;<br><h3><a class=none name="index">Symbol index</a></h3>
+
+Here are all exported symbols of CL-UNICODE in alphabetical order linked to their corresponding entries:
+
+    <ul>
+      <li><a href="#*scripts-to-try*"><code>*scripts-to-try*</code></a>
+      <li><a href="#*try-abbreviations-p*"><code>*try-abbreviations-p*</code></a>
+      <li><a href="#*try-hex-notation-p*"><code>*try-hex-notation-p*</code></a>
+      <li><a href="#*try-lisp-names-p*"><code>*try-lisp-names-p*</code></a>
+      <li><a href="#*try-unicode1-names-p*"><code>*try-unicode1-names-p*</code></a>
+      <li><a href="#+code-point-limit+"><code>+code-point-limit+</code></a>
+      <li><a href="#age"><code>age</code></a>
+      <li><a href="#bidi-class"><code>bidi-class</code></a>
+      <li><a href="#bidi-classes"><code>bidi-classes</code></a>
+      <li><a href="#bidi-mirroring-glyph"><code>bidi-mirroring-glyph</code></a>
+      <li><a href="#binary-properties"><code>binary-properties</code></a>
+      <li><a href="#canonicalize-name"><code>canonicalize-name</code></a>
+      <li><a href="#character-named"><code>character-named</code></a>
+      <li><a href="#code-block"><code>code-block</code></a>
+      <li><a href="#code-blocks"><code>code-blocks</code></a>
+      <li><a href="#combining-class"><code>combining-class</code></a>
+      <li><a href="#disable-alternative-character-syntax"><code>disable-alternative-character-syntax</code></a>
+      <li><a href="#enable-alternative-character-syntax"><code>enable-alternative-character-syntax</code></a>
+      <li><a href="#general-categories"><code>general-categories</code></a>
+      <li><a href="#general-category"><code>general-category</code></a>
+      <li><a href="#has-binary-property"><code>has-binary-property</code></a>
+      <li><a href="#has-property"><code>has-property</code></a>
+      <li><a href="#list-all-characters"><code>list-all-characters</code></a>
+      <li><a href="#lowercase-mapping"><code>lowercase-mapping</code></a>
+      <li><a href="#numeric-type"><code>numeric-type</code></a>
+      <li><a href="#numeric-value"><code>numeric-value</code></a>
+      <li><a href="#property-name"><code>property-name</code></a>
+      <li><a href="#property-symbol"><code>property-symbol</code></a>
+      <li><a href="#property-test"><code>property-test</code></a>
+      <li><a href="#recognized-properties"><code>recognized-properties</code></a>
+      <li><a href="#script"><code>script</code></a>
+      <li><a href="#scripts"><code>scripts</code></a>
+      <li><a href="#titlecase-mapping"><code>titlecase-mapping</code></a>
+      <li><a href="#unicode-error"><code>unicode-error</code></a>
+      <li><a href="#unicode-name"><code>unicode-name</code></a>
+      <li><a href="#unicode1-name"><code>unicode1-name</code></a>
+      <li><a href="#uppercase-mapping"><code>uppercase-mapping</code></a>
+    </ul>
+
+<br>&nbsp;<br><h3><a class=none name="ack">Acknowledgements</a></h3>
+
+<p>
+This documentation was prepared with <a href="http://weitz.de/documentation-template/">DOCUMENTATION-TEMPLATE</a>.
+</p>
+<p>
+$Header: /usr/local/cvsrep/cl-unicode/doc/index.html,v 1.16 2012-05-04 21:17:47 edi Exp $
+<p><a href="http://weitz.de/index.html">BACK TO MY HOMEPAGE</a>
+
+</body>
+</html>

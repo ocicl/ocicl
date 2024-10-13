@@ -1,0 +1,160 @@
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-INTERPOL-TEST; Base: 10 -*-
+;;; $Header: /usr/local/cvsrep/cl-interpol/test/simple,v 1.4 2008/07/23 15:13:13 edi Exp $
+
+;;; some simple tests for CL-INTERPOL - entered manually and to be
+;;; read in the CL-INTERPOL-TEST package; all forms except SETQ forms
+;;; are expected to return a true value on success when EVALuated
+
+(string= #?"abc" "abc")
+(string= #?'abc' "abc")
+(string= #?|abc| "abc")
+(string= #?/abc/ "abc")
+(string= #?#abc# "abc")
+(string= #?{abc} "abc")
+(string= #?(abc) "abc")
+(string= #?<abc> "abc")
+(string= #?[abc] "abc")
+
+(string= #?"abc\"" "abc\"")
+(string= #?"abc\\" "abc\\")
+(string= #?[a[b]c] "a[b]c")
+(string= #?[a[[b]]c] "a[[b]]c")
+(string= #?[a[[][]]b] "a[[][]]b")
+
+(string= #?"\t\n\r\f\b\a\e"
+                 (coerce (list #\Tab #\Newline #\Return #\Page #\Backspace (code-char 7) (code-char 27))
+                         'string))
+(string= #?"\033\x1b\c[\x{1b}"
+                 (make-string 4 :initial-element (code-char 27)))
+(string= #?"\x" (string (code-char 0)))
+(string= #?"\x001" (format nil "~A1" (code-char 0)))
+(string= #?"\0001" (format nil "~A1" (code-char 0)))
+
+(char= (char #?"\x20" 0) #\Space)
+(zerop (char-code (char #?"\x" 0)))
+(zerop (char-code (char #?"\x{}" 0)))
+(string= (unicode-name (char #?"\x{2323}" 0)) "SMILE")
+(string=  #?"Only\x202 digits!" "Only 2 digits!")
+
+;; might in theory fail on some Lisps - see 13.1.7
+(string-equal (char-name (char #?"\cH" 0)) "Backspace")
+(char= (char #?"\cj" 0) #\Newline)
+
+;; two spaces
+(string= #?"\40\040" "  "  )
+;; note that \377 and \777 yield the same result
+(equal (map 'list #'char-code #?"\0\377\777") '(0 255 255))
+(string= #?"Only\0403 digits!" "Only 3 digits!")
+(equal (map 'list #'identity #?"\9") (list #\9))
+
+(string= #?"\N{LATIN CAPITAL LETTER A WITH DIAERESIS}" "Ä")
+(string= #?"\N{latin capital letter a with diaeresis}" "Ä")
+(string= #?{\N{LATIN CAPITAL LETTER A WITH DIAERESIS}} "Ä")
+
+(setq *try-abbreviations-p* t)
+
+(string= #?"\N{Latin:A with Diaeresis}" "Ä")
+(string= #?"\N{Latin:a with diaeresis}" "ä")
+
+(setq *scripts-to-try* "Latin")
+
+(string= #?"\N{A with Diaeresis}" "Ä")
+(string= #?"\N{a with diaeresis}" "ä")
+
+(setq *try-abbreviations-p* nil)
+(setq *try-unicode1-names-p* t)
+
+(string= #?"\N{LINEFEED (LF)}" #\Linefeed)
+
+;; special CL-INTERPOL aliases
+(string= #?"\N{LINEFEED}" #\Linefeed)
+(string= #?"\N{CR}" #\Return)
+
+(setq *try-hex-notation-p* t)
+
+(= (char-code (char #?"\N{U+0042}" 0)) #x42)
+
+(setq *try-lisp-names-p* t)
+
+(char= (char #?"\N{Newline}" 0) #\Newline)
+
+;; ignored newline
+(string= #?"abc\
+   def" "abcdef")
+
+(string= #?/\1/ "\\1")
+(string= #?r"\1" "\\1")
+(string= #?r"\k<foo>" "\\k<foo>")
+(string= #?r"\p{LC}" "\\p{LC}")
+(string= #?x/abc / "abc")
+(string= #?x/abc
+                         / "abc")
+(string= #?rx"abc " "abc")
+(string= #?/[\1]\1/ (format nil "[~A]\\1" (code-char 1)))
+(string= #?/[(?#foo)](?#foo)/ "[(?#foo)]")
+(string= #?/a#bc/ "a#bc")
+(string= #?x/a#bc/ "a")
+(string= #?x/\d\A[\d\A]/ "\\d\\A[\\dA]")
+
+(string= #?"\Q-" "\\-")
+(string= #?"\Q-\E-" "\\--")
+(string= #?"\ufoo" "Foo")
+(string= #?"\Ufoo" "FOO")
+(string= #?"\Ufoo\Ebar" "FOObar")
+(string= #?"\Ufoo\LBAR" "FOObar")
+
+(let ((a "foo"))
+  (and (string= #?"$" "$")
+       (string= #?"@ @" "@ @")
+       (string= #?"${a}bar" "foobar")
+       (string= #?/${a}bar/ "foobar")
+       (string= #?"$[a]bar" "foobar")
+       (string= #?"$(a)bar" "foobar")
+       (string= #?"$<a>bar" "foobar")
+       (string= #?/$<a>bar/ "$<a>bar")
+       (string= #?"$a @a " "$a @a ")))
+
+(let ((a (list 1 2 3)))
+  (and (string= #?"${a}" "(1 2 3)")
+       (string= #?"@{a}" "1 2 3")
+       (let ((*list-delimiter* ""))
+         (string= #?"@{a}" "123"))))
+
+(let* ((a "foo")
+       (b #\Space)
+       (c "bar")
+       (d (list a b c))
+       (x 40))
+  (and (string= #?"$ @" "$ @")
+       (string= #?"$(a)" "foo")
+       (string= #?"$<a>$[b]" "foo ")
+       (string= #?"\U${a}\E \u${a}" "FOO Foo")
+       (string= (let ((*list-delimiter* #\*))
+                  #?"@{d}")
+                "foo* *bar")
+       (string= (let ((*list-delimiter* ""))
+                  #?"@{d}")
+                "foo bar")
+       (string= #?"The result is ${(let ((y 2)) (+ x y))}"
+                "The result is 42")
+       (string= #?"${#?'${a} ${c}'} ${x}" "foo bar 40")))
+
+(setq *optional-delimiters-p* t)
+
+(string= (let ((% 23)) #?"$%a%b%") "23a%b%")
+(string= (let ((%a 23)) #?"$%a%b%") "23%b%")
+(string= (let ((%a% 23)) #?"$%a%b%") "23b%")
+(string= (let ((%a%b 23)) #?"$%a%b%") "23%")
+(string= (let ((%a%b% 23)) #?"$%a%b%") "23")
+
+(setq *interpolate-format-directives* nil)
+
+(string= (let ((a "abc")) (declare (ignorable a)) #?"~S(a)") "~S(a)")
+
+(setq *interpolate-format-directives* t)
+
+(string= (let ((a "abc")) #?"~S(a)") "\"abc\"")
+(string= (let ((a "abc")) #?"~a(a)") "abc")
+(string= (let ((number 41)) #?"~8,'0B((incf number) number)") "00101010")
+(string= (let ((a "abc")) #?" \~~a(a)") " ~abc")
+(string= #?" ~v~(4) " " ~~~~ ")

@@ -1,0 +1,56 @@
+Version 0.2.7
+2020-07-02
+Added support for name-readtables.
+Now interpol syntax can be activated using: (named-readtables:in-readtable :interpol-syntax).
+This way integration with SLIME and SLY is possible.
+
+Version 0.2.6
+2016-08-26
+Merge pull request #5 from agrostis/master (Hans Hübner)
+Followup to 100efc6: added documentation and tests. (Boris Smilga)
+Followup to 100efc6: ignore non-newline whitespaces only, as per CLHS 22.3.9.3. (Boris Smilga)
+Merge pull request #4 from agrostis/master (Hans Hübner)
+Backspace + newline as an escape sequence emulating tilde + newline in CL:FORMAT. (Boris Smilga)
+
+Version 0.2.5
+2015-11-22
+Fix docstring as suggested by Stas (Hans Hübner)
+
+Version 0.2.4
+2015-11-22
+Exnabled direct use of cl-interpol-reader (Mike Maul)
+
+Version 0.2.3
+2014-11-28
+update support info (Hans Huebner)
+
+Version 0.2.2
+2013-10-04
+inline format directive syntax and an extra argument to enable-interpol-syntax (Marco Baringer)
+
+Version 0.2.1
+2008-07-25
+Fixed typo in HTML documentation
+
+Version 0.2.0
+2008-07-24
+Base Unicode support on CL-UNICODE
+Add new CL-PPCRE special characters for named registers and named properties
+Re-architecture test suite
+
+Version 0.1.2
+2004-12-16
+Added hyperdoc support
+Added :CL-INTERPOL to *FEATURES*
+Typo fixes in doc/index.html
+
+Version 0.1.1
+2003-12-21
+Fixed an embarrassing bug where COLLECTOR was re-used in read.lisp (reported by Hans Hübner)
+More tests, better failure reporting
+Tried to increase readability of docs
+Mentioned Debian and Gentoo in docs
+
+Version 0.1.0
+2003-10-22
+Initial release

@@ -1,0 +1,773 @@
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <title>CL-INTERPOL - String interpolation for Common Lisp</title>
+  <style type="text/css">
+  pre { padding:5px; background-color:#e0e0e0 }
+  h3, h4 { text-decoration: underline; }
+  a { text-decoration: none; padding: 1px 2px 1px 2px; }
+  a:visited { text-decoration: none; padding: 1px 2px 1px 2px; }
+  a:hover { text-decoration: none; padding: 1px 1px 1px 1px; border: 1px solid #000000; }
+  a:focus { text-decoration: none; padding: 1px 2px 1px 2px; border: none; }
+  a.none { text-decoration: none; padding: 0; }
+  a.none:visited { text-decoration: none; padding: 0; }
+  a.none:hover { text-decoration: none; border: none; padding: 0; }
+  a.none:focus { text-decoration: none; border: none; padding: 0; }
+  a.noborder { text-decoration: none; padding: 0; }
+  a.noborder:visited { text-decoration: none; padding: 0; }
+  a.noborder:hover { text-decoration: none; border: none; padding: 0; }
+  a.noborder:focus { text-decoration: none; border: none; padding: 0; }
+  pre.none { padding:5px; background-color:#ffffff }
+  code.yellow { background-color:#ffff00; }
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+</head>
+
+<body bgcolor=white>
+
+<h2>CL-INTERPOL - String interpolation for Common Lisp</h2>
+
+<br>&nbsp;<br>
+<em>&quot;<a href="http://www.arf.ru/Notes/Apostro/stfoot.html">The crux of the biscuit is the apostrophe.</a>&quot;</em> (<a href="http://zappa.com/">Frank Zappa</a>)
+
+<blockquote>
+<br>&nbsp;<br><h3>Abstract</h3>
+
+CL-INTERPOL is a library for Common Lisp which modifies the reader so
+that you can have interpolation within strings similar to Perl or Unix Shell
+scripts. It also provides various ways to insert arbitrary characters
+into literal strings even if your editor/IDE doesn't support them.
+Here's an example:
+<pre>
+* (ql:quickload :cl-interpol)
+* (named-readtables:in-readtable :interpol-syntax)
+* (let ((a 42))
+    #?&quot;foo: \xC4\N{Latin capital letter U with diaeresis}\nbar: ${a}&quot;)
+&quot;foo: &Auml;&Uuml;
+bar: 42&quot;
+</pre>
+If you're looking for an alternative syntax for <em>characters</em>, see
+<a href="https://github.com/edicl/cl-unicode/">CL-UNICODE</a>.
+<p>
+CL-INTERPOL comes with a <a
+href="http://www.opensource.org/licenses/bsd-license.php">BSD-style
+license</a> so you can basically do with it whatever you want.
+
+<p>
+<font color=red><a href="https://github.com/edicl/cl-interpol/archive/master.zip">Download current version</a></font> or visit the <a href="https://github.com/edicl/cl-interpol/">project on Github</a>.
+</blockquote>
+
+<br>&nbsp;<br><h3><a class=none name="contents">Contents</a></h3>
+<ol>
+  <li><a href="#install">Download and installation</a>
+  <li><a href="#mail">Support</a>
+  <li><a href="#syntax">Syntax</a>
+  <ol>
+    <li><a href="#backslash">Backslashes</a>
+    <li><a href="#interpolation">Interpolation</a>
+    <li><a href="#regular">Support for CL-PPCRE/Perl regular expressions</a>
+  </ol>
+  <li><a href="#dictionary">The CL-INTERPOL dictionary</a>
+  <ol>
+    <li><a href="#enable-interpol-syntax"><code>enable-interpol-syntax</code></a>
+    <li><a href="#disable-interpol-syntax"><code>disable-interpol-syntax</code></a>
+    <li><a href="#*list-delimiter*"><code>*list-delimiter*</code></a>
+    <li><a href="#*outer-delimiters*"><code>*outer-delimiters*</code></a>
+    <li><a href="#*inner-delimiters*"><code>*inner-delimiters*</code></a>
+    <li><a href="#*interpolate-format-directives*"><code>*interpolate-format-directives*</code></a>
+    <li><a href="#*regex-delimiters*"><code>*regex-delimiters*</code></a>
+  </ol>
+  <li><a href="#bugs">Known issues</a>
+  <ol>
+    <li><a href="#curly"><code>{n,m}</code> modifiers in extended mode</a>
+  </ol>
+  <li><a href="#ack">Acknowledgements</a>
+</ol>
+
+<br>&nbsp;<br><h3><a name="install" class=none>Download and installation</a></h3>
+
+CL-INTERPOL together with this documentation can be downloaded from <a
+href="https://github.com/edicl/cl-interpol/archive/master.zip">Github</a>. The
+current version is 0.2.7.
+<p>
+CL-INTERPOL comes with a system definition for <a
+href="http://www.cliki.net/asdf">ASDF</a> so you can install the library with
+<pre>
+(asdf:load-system :cl-interpol)
+</pre>
+if you've unpacked it in a place where ASDF can find it.  It depends on <a href="https://github.com/edicl/cl-unicode/">CL-UNICODE</a> and <a href="https://github.com/melisgl/named-readtables">NAMED-READTABLES</a>.  Installation
+via <a href="http://www.cliki.net/asdf-install">asdf-install</a> or
+<a href="https://www.quicklisp.org/beta/">Quicklisp</a>
+should also be possible.
+<p>
+<b>Note:</b> Before you can actually <em>use</em> the new reader
+syntax you have to enable it with
+<a href="#enable-interpol-syntax"><code>ENABLE-INTERPOL-SYNTAX</code></a>
+or via named-readtables:
+<pre>(named-readtables:in-readtable :interpol-syntax)</pre>
+
+<p>
+You can run a test suite which tests most aspects of the library with
+<pre>
+(asdf:test-system :cl-interpol)
+</pre>
+The test suite depends on <a href="https://github.com/edicl/flexi-streams/">FLEXI-STREAMS</a>.
+<p>
+The development version of cl-interpol can be found <a href="https://github.com/edicl/cl-interpol" target="_new">on
+github</a>.  Please use the github issue tracking system to
+submit bug reports.  Patches are welcome, please use <a href="https://github.com/edicl/cl-interpol/pulls">GitHub pull
+requests</a>.
+
+<br>&nbsp;<br><h3><a name="syntax" class=none>Syntax</a></h3>
+
+CL-INTERPOL installs <code class=yellow>?</code> (question mark) as a
+&quot;sub-character&quot; of the <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_d.htm#dispatching_macro_character">dispatching
+macro character</a> <code class=yellow>#</code> (sharpsign), i.e. it relies on
+the fact that sharpsign is a dispatching macro character in the <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_c.htm#current_readtable">current
+readtable</a> when <a
+href="#enable-interpol-syntax"><code>ENABLE-INTERPOL-SYNTAX</code></a>
+is invoked.
+<p>
+The question mark may optionally be followed by an <code class=yellow>R</code> and
+an <code class=yellow>X</code> (case doesn't matter) - see <a href="#regular">the
+section about regular expression syntax</a> below. If both of them are
+present, the <code class=yellow>R</code> <em>must</em> precede the <code class=yellow>X</code>.
+<p>
+The next character is the <a class=none name=outer><em>opening outer delimiter</em></a> which may
+be one of <code class=yellow>&quot;</code> (double quote), <code class=yellow>'</code>
+(apostrophe), <code class=yellow>|</code> (vertical bar), <code class=yellow>#</code>
+(sharpsign), <code class=yellow>/</code> (slash), <code class=yellow>(</code> (left
+parenthesis), <code class=yellow>&lt;</code> (less than), <code class=yellow>[</code> (left
+square bracket), or <code class=yellow>{</code> (left curly bracket). (But see <a href="#*outer-delimiters*"><code>*OUTER-DELIMITERS*</code></a>.)
+<p>
+The following characters comprise the string which is read until the
+<em>closing outer delimiter</em> is seen. The closing outer delimiter
+is the same character as the opening outer delimiter - unless the
+opening delimiter was one of the last four described below in which
+case the closing outer delimiter is the corresponding closing (right)
+bracketing character. So these are all valid CL-INTERPOL string
+equivalent to <code>&quot;abc&quot;</code>:
+
+<pre>
+* #?&quot;abc&quot;
+&quot;abc&quot;
+* #?r&quot;abc&quot;
+&quot;abc&quot;
+* #?x&quot;abc&quot;
+&quot;abc&quot;
+* #?rx&quot;abc&quot;
+&quot;abc&quot;
+* #?'abc'
+&quot;abc&quot;
+* #?|abc|
+&quot;abc&quot;
+* #?#abc#
+&quot;abc&quot;
+* #?/abc/
+&quot;abc&quot;
+* #?(abc)
+&quot;abc&quot;
+* #?[abc]
+&quot;abc&quot;
+* #?{abc}
+&quot;abc&quot;
+* #?&lt;abc&gt;
+&quot;abc&quot;
+</pre>
+
+A character which would otherwise be a closing outer delimiter can be
+escaped by a backslash immediately preceding it (unless this backslash
+is itself escaped by another backslash). Also, the bracketing
+delimiters can nest, i.e. a right bracketing character which might
+otherwise be closing outer delimiter will be read as part of the
+string if it is matched by a preceding left bracketing character
+within the string.
+<pre>
+* #?&quot;abc&quot;
+&quot;abc&quot;
+* #?&quot;abc\&quot;&quot;
+&quot;abc\&quot;&quot;
+* #?&quot;abc\\&quot;
+&quot;abc\\&quot;
+* #?[abc]
+&quot;abc&quot;
+* #?[a[b]c]
+&quot;a[b]c&quot;
+* #?[a[[b]]c]
+&quot;a[[b]]c&quot;
+* #?[a[[][]]b]
+&quot;a[[][]]b&quot;
+</pre>
+
+The characters between the outer delimiters are read one by one and
+inserted into the resulting string as is unless one of the special
+characters <a href="#backslash"><code class=yellow>\</code> (backslash)</a>, <code class=yellow>$</code> (dollar sign),
+or <code class=yellow>@</code> (at-sign) is encountered. The behaviour with respect
+to these special characters is modeled after Perl because CL-INTERPOL
+is intended to be usable with <a
+href="https://github.com/edicl/cl-ppcre/">CL-PPCRE</a>.
+
+<h4><a name="backslash" class=none>Backslashes</a></h4> Here's a short
+summary of what might occur after a backslash, originally copied
+from <code>man&nbsp;perlop</code>. Details below - you can
+click on the entries in this table to go to the corresponding paragraph.
+
+<pre class=none>
+  <a class=none href="#tab">\t          tab             (HT, TAB)
+  \n          newline         (NL)
+  \r          return          (CR)
+  \f          form feed       (FF)
+  \b          backspace       (BS)
+  \a          alarm (bell)    (BEL)
+  \e          escape          (ESC)</a>
+  <a class=none href="#octal">\033        octal char      (ESC)</a>
+  <a class=none href="#hex">\x1b        hex char        (ESC)
+  \x{263a}    wide hex char   (SMILEY)</a>
+  <a class=none href="#control">\c[         control char    (ESC)</a>
+  <a class=none href="#name">\N{name}    named char</a>
+
+  <a class=none href="#lower">\l          lowercase next char
+  \u          uppercase next char</a>
+  <a class=none href="#Upper">\L          lowercase till \E
+  \U          uppercase till \E
+  \E          end case modification</a>
+  <a class=none href="#quote">\Q          quote non-word characters till \E</a>
+
+  <a class=none href="#ignl">\<span style="border:1px solid #a0a0a0">&#x2424;</span>          ignore the newline and following whitespaces</a>
+</pre>
+<p>
+<a class=none name="tab">If</a> a backslash is followed by
+<code class=yellow>n</code>, <code class=yellow>r</code>, <code class=yellow>f</code>, <code class=yellow>b</code>,
+<code class=yellow>a</code>, or <code class=yellow>e</code> (all lowercase) then the corresponding character
+<code>#\Newline</code>, <code>#\Return</code>, <code>#\Page</code>,
+<code>#\Backspace</code>, <code>(CODE-CHAR 7)</code>, or
+<code>(CODE-CHAR 27)</code> is inserted into the string.
+<pre>
+* #?&quot;New\nline&quot;
+&quot;New
+line&quot;
+</pre>
+<p>
+<a class=none name="octal">If</a> a backslash is followed by one of
+the digits <code class=yellow>0</code> to <code class=yellow>9</code>, then this digit and
+the following characters are read and parsed as octal digits and will
+be interpreted as the character code of the character to insert
+instead of this sequence. The sequence ends with the first character
+which is not an octal digit but <em>at most</em> three digits will be
+read. Only the rightmost eight bits of the resulting number will be
+used for the character code.
+
+<pre>
+* #?"\40\040"
+"  "  <font color=orange>;; two spaces</font>
+* (map 'list #'char-code #?"\0\377\777")
+(0 255 255)  <font color=orange>;; note that \377 and \777 yield the same result</font>
+* #?"Only\0403 digits!"
+"Only 3 digits!"
+* (map 'list #'identity #?"\9")
+(#\9)
+</pre>
+<p>
+<a class=none name="hex">If</a> a backslash is followed by an <code class=yellow>x</code> (lowercase) the
+following characters are read and parsed as hexadecimal digits and
+will be interpreted as the character code of the character to insert
+instead of this sequence. The sequence of hexadecimal digits ends with
+the first character which is not one of the characters <code class=yellow>0</code>
+to <code class=yellow>9</code>, <code class=yellow>a</code> to <code class=yellow>f</code>, or <code class=yellow>A</code>
+to <code class=yellow>F</code> but <em>at most</em> two digits will be read. If the
+character immediately following the <code class=yellow>x</code> is a <code class=yellow>{</code>
+(left curly bracket), then all the following characters up to a
+<code class=yellow>}</code> (right curly bracket) must be hexadecimal digits and
+comprise a number which'll be taken as the character code (and which
+obviously should denote a character known by your Lisp
+implementation). Note that in both case it is legal that zero digits
+will be read which'll be interpreted as the character code
+<code>0</code>.
+<pre>
+* (char #?&quot;\x20&quot; 0)
+#\Space
+* (char-code (char #?&quot;\x&quot; 0))
+0
+* (char-code (char #?&quot;\x{}&quot; 0))
+0
+* (<a href="https://github.com/edicl/cl-unicode/" class=none>unicode-name</a> (char #?&quot;\x{2323}&quot; 0))
+&quot;SMILE&quot;
+* #?&quot;Only\x202 digits!&quot;
+&quot;Only 2 digits!&quot;
+</pre>
+<p>
+<a class=none name="control">If</a> a backslash is followed by a
+<code class=yellow>c</code> (lowercase) then the <a
+href="http://www.cs.tut.fi/~jkorpela/chars/c0.html">ASCII control
+code</a> of the following character is inserted into the string. Note
+that this only defined for <code class=yellow>A</code> to <code class=yellow>Z</code>,
+<code class=yellow>[</code>, <code class=yellow>\</code>, <code class=yellow>]</code>, <code class=yellow>^</code>, and
+<code class=yellow>_</code> although CL-INTERPOL will also accept other
+characters. In fact, the transformation is implemented as
+<pre>
+(code-char (logxor #x40 (char-code (char-upcase &lt;<em>char</em>&gt;))))
+</pre>
+where <code>&lt;<em>char</em>&gt;</code> is the character following <code class=yellow>\c</code>.
+<pre>
+* (char-name (char #?&quot;\cH&quot; 0))
+<font color=orange>;; see 13.1.7 of the ANSI standard, though</font>
+&quot;Backspace&quot;
+* (char= (char #?&quot;\cj&quot; 0) #\Newline)
+T
+</pre>
+
+<p>
+<a class=none name="name">If</a> a backslash is followed by an
+<code class=yellow>N</code> (uppercase) the following character <em>must</em> be a
+<code class=yellow>{</code> (left curly bracket). The characters
+following the bracket are read until a <code class=yellow>}</code>
+(right curly bracket) is seen and comprise the Unicode <em>name</em>
+of the character to be inserted into the string. This name is
+interpreted as a Unicode character name
+by <a href="https://github.com/edicl/cl-unicode/">CL-UNICODE</a> and returns
+the
+character <code>CHARACTER-NAMED</code>.
+This obviously also means that you can fine-tune this behaviour using
+CL-UNICODE's global special variables.
+<pre>
+* (unicode-name (char #?"\N{Greek capital letter Sigma}" 0))
+"GREEK CAPITAL LETTER SIGMA"
+* (unicode-name (char #?"\N{GREEK CAPITAL LETTER SIGMA}" 0))
+"GREEK CAPITAL LETTER SIGMA"
+* (setq *try-abbreviations-p* t)
+T
+* (unicode-name (char #?"\N{Greek:Sigma}" 0))
+"GREEK CAPITAL LETTER SIGMA"
+* (unicode-name (char #?"\N{Greek:sigma}" 0))
+"GREEK SMALL LETTER SIGMA"
+* (setq *scripts-to-try* "Greek")
+"Greek"
+* (unicode-name (char #?"\N{Sigma}" 0))
+"GREEK CAPITAL LETTER SIGMA"
+* (unicode-name (char #?"\N{sigma}" 0))
+"GREEK SMALL LETTER SIGMA"
+</pre>
+
+Of course, <code class=yellow>\N</code> won't magically make your Lisp implementation Unicode-aware. You can only use the names of characters that are actually supported by your Lisp.
+<p>
+<a class=none name="lower">If</a> a backslash is followed by an
+<code class=yellow>l</code> or a <code class=yellow>u</code> (both lowercase) the following
+character (if any) is <a href="http://www.lispworks.com/documentation/HyperSpec/Body/f_char_u.htm">downcased or uppercased</a> respectively.
+<pre>
+* #?&quot;\lFOO&quot;
+&quot;fOO&quot;
+* #?&quot;\ufoo&quot;
+&quot;Foo&quot;
+* #?&quot;\l&quot;
+&quot;&quot;
+</pre>
+
+<p>
+<a class=none name="Upper">If</a> a backslash is followed by an
+<code class=yellow>L</code> or a <code class=yellow>U</code> (both uppercase) the following
+characters up to <code class=yellow>\E</code> (uppercase) or another <code class=yellow>\L</code> or
+<code class=yellow>\U</code> are <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/f_stg_up.htm">upcased
+or downcased</a> respectively. While <code class=yellow>\E</code> simply ends the
+scope of <code class=yellow>\L</code> or <code class=yellow>\U</code>, another <code class=yellow>\L</code>
+or <code class=yellow>\U</code> will introduce a new round of upcasing or
+downcasing.
+<pre>
+* #?&quot;\Ufoo\Ebar&quot;
+&quot;FOObar&quot;
+* #?&quot;\LFOO\EBAR&quot;
+&quot;fooBAR&quot;
+* #?&quot;\LFOO\Ubar&quot;
+&quot;fooBAR&quot;
+* #?&quot;\LFOO&quot;
+&quot;foo&quot;
+</pre>
+These examples may seem trivial but <code class=yellow>\U</code> and friends might be very helpful if you <a href="#interpolation">interpolate</a> strings.
+
+<p>
+<a class=none name="quote">If</a> a backslash is followed by a
+<code class=yellow>Q</code> (uppercase) the following characters up to <code class=yellow>\E</code> (uppercase) are <em>quoted</em>, i.e. every character except for <code class=yellow>0</code>
+to <code class=yellow>9</code>, <code class=yellow>a</code> to <code class=yellow>z</code>, <code class=yellow>A</code>
+to <code class=yellow>Z</code>, and <code class=yellow>_</code> (underscore) is preceded by a backslash. Corresponding pairs of <code class=yellow>\Q</code> and <code class=yellow>\E</code> can be nested.
+<pre>
+* #?&quot;-\Q-\E-&quot;
+&quot;-\\--&quot;
+* #?&quot;\Q-\Q-\E-\E&quot;
+&quot;\\-\\\\\\-\\-&quot;
+* #?&quot;-\Q-&quot;
+&quot;-\\-&quot;
+</pre>
+As you might have noticed, <code class=yellow>\E</code> is used to end the scope of <code class=yellow>\Q</code> as well as that of <code class=yellow>\L</code> and <code class=yellow>\U</code>. As a consequence, pairs of <code class=yellow>\Q</code> and <code class=yellow>\E</code> can be nested between <code class=yellow>\L</code> or <code class=yellow>\U</code> and <code class=yellow>\E</code> and vice-versa but each occurence of <code class=yellow>\L</code> or <code class=yellow>\U</code> which is preceded by another <code class=yellow>\L</code> or <code class=yellow>\U</code> will immediately end the scope of all enclosed <code class=yellow>\Q</code> modifiers. Hmm, need an example?
+<pre>
+* #?&quot;\LAa-\QAa-\EAa-\E&quot;
+&quot;aa-aa\\-aa-&quot;
+* #?&quot;\QAa-\LAa-\EAa-\E&quot;
+&quot;Aa\\-aa\\-Aa\\-&quot;
+* #?&quot;\U\QAa-\LAa-\EAa-\E&quot;
+&quot;AA\\-aa-Aa-&quot; <font color=orange>;; note that only the first hyphen is quoted now</font>
+</pre>
+
+Quoting characters with <code class=yellow>\Q</code> is especially helpful if you want to <a href="#interpolation">interpolate</a> a string verbatim into a <a href="#regular">regular expression</a>.
+
+<p>
+  <a class=none name="ignl">If</a> a backslash is placed at the end of a line, it works as the <a href="http://www.lispworks.com/documentation/HyperSpec/Body/22_cic.htm">tilde newline</a> directive to Common Lisp's <code>FORMAT</code> function. That is, the newline immediately following the backslash and any non-newline whitespace characters after the newline are ignored. This escape sequence allows to break long string literals into several lines of code, so as to maintain convenient line width and indentation of code.
+<pre>
+* #?&quot;@@ -1,11 +1,12 @@\n Th\n-e\n+at\n  quick b\n\
+     @@ -22,18 +22,17 @@\n jump\n-s\n+ed\n  over \n\
+     -the\n+a\n  laz\n&quot;
+&quot;@@ -1,11 +1,12 @@
+ Th
+-e
++at
+  quick b
+@@ -22,18 +22,17 @@
+ jump
+-s
++ed
+  over
+-the
++a
+  laz
+&quot;
+</pre>
+
+<p>
+All other characters following a backslash are left as is and inserted into the string. This is also true for the backslash itself, for <code class=yellow>$</code>, <code class=yellow>@</code>, and - as mentioned above - for the <a href="#outer">outer closing delimiter</a>.
+<pre>
+* #?&quot;\&quot;\\f\o\o\&quot;&quot;
+&quot;\&quot;\\foo\&quot;&quot;
+</pre>
+
+<br>&nbsp;<br><h3><a name="interpolation" class=none>Interpolation</a></h3>
+
+If a <code class=yellow>$</code> (dollar sign) or <code class=yellow>@</code> (at-sign) is seen
+and followed by one of <code class=yellow>{</code> (left curly bracket), <code class=yellow>[</code> (left square bracket), <code class=yellow>&lt;</code> (less than), or <code class=yellow>(</code> (left parenthesis) (but see <a href="#*inner-delimiters*"><code>*INNER-DELIMITERS*</code></a>), the
+characters following the bracket are read up to the corresponding closing (right)
+bracketing character. They are read as Lisp forms and treated as an <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_i.htm#implicit_progn">implicit
+progn</a> the result of which will be inserted into the string at
+execution time. (Technically this is done by temporarily making the syntax of the closing right bracketing character in the <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_c.htm#current_readtable">current
+readtable</a> be the same as the syntax of <code class=yellow>)</code> (right parenthesis) in the <a href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_s.htm#standard_readtable">standard readtable</a> and then reading the forms with <a href="http://www.lispworks.com/documentation/HyperSpec/Body/f_rd_del.htm"><code>READ-DELIMITED-LIST</code></a>.)
+<p>
+The result of the forms following a <code class=yellow>$</code> (dollar sign) is inserted into the string as with <a href="http://www.lispworks.com/documentation/HyperSpec/Body/f_wr_pr.htm"><code>PRINC</code></a> at execution time. The result of the forms following an <code class=yellow>@</code> (at-sign) <em>must</em> be a list. The elements of this list are inserted into the string one by one as with <code>PRINC</code> interspersed (or &quot;joined&quot; if you prefer) with the contents of the variable <a href="#*list-delimiter*"><code>*LIST-DELIMITER*</code></a> (also inserted as with <code>PRINC</code>).
+<p>
+Every other <code class=yellow>$</code> or <code class=yellow>@</code> is inserted into the string as is.
+<pre>
+* (let* ((a &quot;foo&quot;)
+         (b #\Space)
+         (c &quot;bar&quot;)
+         (d (list a b c))
+         (x 40))
+    (values #?&quot;$ @&quot;
+            #?&quot;$(a)&quot;
+            #?&quot;$&lt;a&gt;$[b]&quot;
+            #?&quot;\U${a}\E \u${a}&quot;
+            (let ((<a href="#*list-delimiter*" class=none>*list-delimiter*</a> #\*))
+              #?&quot;@{d}&quot;)
+            (let ((<a href="#*list-delimiter*" class=none>*list-delimiter*</a> &quot;&quot;))
+              #?&quot;@{d}&quot;)
+            #?&quot;The result is ${(let ((y 2)) (+ x y))}&quot;
+            #?&quot;${#?'${a} ${c}'} ${x}&quot;))  <font color=orange>;; note the embedded CL-INTERPOL string</font>
+&quot;$ @&quot;
+&quot;foo&quot;
+&quot;foo &quot;
+&quot;FOO Foo&quot;
+&quot;foo* *bar&quot;
+&quot;foo bar&quot;
+&quot;The result is 42&quot;
+&quot;foo bar 40&quot;
+</pre>
+Interpolations are realized by creating code which is evaluated at
+execution time. For example, the expansion of
+<code>#?&quot;\Q-\l${(let&nbsp;((x&nbsp;40))&nbsp;(+&nbsp;x&nbsp;2))}&quot;</code> might look
+like this:
+
+<pre>
+(with-output-to-string (#:G1098)
+  (write-string (cl-ppcre:quote-meta-chars
+                 (with-output-to-string (#:G1099)
+                   (write-string &quot;-&quot; #:G1099)
+                   (let ((#:G1100
+                           (format nil &quot;~A&quot;
+                                   (progn
+                                     (let ((x 40))
+                                       (+ x 2))))))
+                     (when (plusp (length #:G1100))
+                       (setf (char #:G1100 0)
+                               (char-downcase (char #:G1100 0))))
+                     (write-string #:G1100 #:G1099))))
+                #:G1098))
+</pre>
+
+However, if a string read by CL-INTERPOL does not contain interpolations, it is guaranteed to be expanded into a constant Lisp string.
+
+<br>&nbsp;<br><h3><a name="regular" class=none>Support for CL-PPCRE/Perl regular expressions</a></h3>
+
+Beyond what has been explained above CL-INTERPOL can support Perl regular expression syntax. This feature is mainly intended for use with <a href="https://github.com/edicl/cl-ppcre/">CL-PPCRE</a> (version 0.7.0 or higher). The <em>regular expression mode</em> is switched on if the <a href="#outer">opening outer delimiter</a> is a <code class=yellow>/</code> (slash) - but see <a href="#*regex-delimiters*"><code>*REGEX-DELIMITERS*</code></a>. It is also on if there's an <code class=yellow>r</code> (lowercase or uppercase) in front of the opening outer delimiter. If there's also an <code class=yellow>x</code> (lowercase or uppercase) in front of the opening outer delimiter (but <em>behind</em> the <code class=yellow>r</code> if it's there), the string will be read in <em>extended mode</em> (see <code>man&nbsp;perlre</code> for a detailed explanation). In these modes the following things are different from what's described above:
+<ul>
+
+  <li><code class=yellow>\p</code>, <code class=yellow>\P</code>, <code class=yellow>\w</code>, <code class=yellow>\W</code>, <code class=yellow>\s</code>,
+  <code class=yellow>\S</code>, <code class=yellow>\d</code>, and <code class=yellow>\D</code> are never
+  converted to their unescaped (backslash-less) counterparts because
+  they have or can have a special meaning in regular expressions.
+<pre>
+* #?#\W\o\w#
+&quot;Wow&quot;
+* #?/\W\o\w/
+&quot;\\Wo\\w&quot;
+* #?r#\W\o\w#
+&quot;\\Wo\\w&quot;
+</pre>
+  <li><code class=yellow>\k</code>, <code class=yellow>\b</code>, <code class=yellow>\B</code>,
+  <code class=yellow>\a</code>, <code class=yellow>\z</code>, and <code class=yellow>\Z</code> are only
+  converted to their unescaped (backslash-less) counterparts if they are within a <em>character class</em> (i.e. enclosed in square brackets) because
+  they have a special meaning in regular expressions outside of character classes.
+<pre>
+* #?/\A[\A-\Z]\Z/
+&quot;\\A[A-Z]\\Z&quot;
+* #?/\A[]\A-\Z]\Z/
+&quot;\\A[]A-Z]\\Z&quot;
+* #?/\A[^]\A-\Z]\Z/
+&quot;\\A[^]A-Z]\\Z&quot;
+</pre>
+  <li><a href="#octal">Octal representations of character codes</a> are left as is and not expanded if they're not within character classes and could possible denote a back-reference to a register group. (Actually, this also holds for sequences starting with <code class=yellow>\8</code> or <code class=yellow>\9</code> in compliance with Perl.)
+<pre>
+* (map 'list #'identity #?/\0\40[\40]/)
+(#\Null #\\ #\4 #\0 #\[ #\Space #\])
+</pre>
+  <li>Characters which are represented by <a href="#octal">octal</a> or <a href="#hex">hexadecimal</a> codes, by <a href="#name">names</a>, or escaped by a preceding backslash are 'protected' by a backslash if they have a special meaning within regular expressions.
+<pre>
+* #?&quot;\x2B\\\.[\.]&quot;
+&quot;+\\.[.]&quot;
+* #?/\x2B\\\.[\.]/
+&quot;\\+\\\\\\.[.]&quot;  <font color=orange>;; note that the second dot is not 'protected' because it's in a character class</font>
+</pre>
+  <li>Embedded comments (like <code class=yellow>(?#...)</code>) are removed from the string - with the exception that they are replaced with <code class=yellow>(?:)</code> (a non-capturing, empty group which will be otimized away by CL-PPCRE) if the next character is a hexadecimal digit.
+<pre>
+* #?/A(?#n embedded) comment/
+&quot;A comment&quot;
+* #?/\1(?#)2/
+&quot;\\1(?:)2&quot;  <font color=orange>;; instead of &quot;\\12&quot; which has a different meaning to the regex engine</font>
+</pre>
+  <li><a href="#interpolation">Interpolation</a> only works with curly brackets (and only if they haven't been removed from <a href="#*inner-delimiters*"><code>*INNER-DELIMITERS*</code></a>).
+<pre>
+* (let ((a 42))
+    (values #?&quot;$(a)&quot; #?&quot;${a}&quot;
+            #?/$(a)/ #?/${a}/))
+&quot;42&quot;
+&quot;42&quot;
+&quot;$(a)&quot;
+&quot;42&quot;
+</pre>
+  <li>In extended mode whitespace characters (one of <code>#\Space</code>, <code>#\Tab</code>, <code>#\Linefeed</code>, <code>#\Return</code>, and <code>#\Page</code>) are removed from the string unless they are escaped by a backslash or within a character class.
+<pre>
+* #?/ \ [ ]/
+&quot;  [ ]&quot;  <font color=orange>;; two spaces in front of square bracket</font>
+* #?x/ \ [ ]/
+&quot; [ ]&quot;  <font color=orange>;; one space in front of square bracket</font>
+</pre>
+  <li>In extended mode end-of-line comments (starting with <code class=yellow>#</code> (sharpsign) and ending with the newline character) are removed from the string - with the exception that they are replaced with <code class=yellow>(?:)</code> (a non-capturing, empty group which will be otimized away by CL-PPCRE) if the next character is a hexadecimal digit.
+<pre>
+* #?x/[a-z]#blabla
+\$/
+&quot;[a-z]$&quot;
+* #?x/\1#
+2/
+&quot;\\1(?:)2&quot;  <font color=orange>;; instead of &quot;\\12&quot; which has a different meaning to the regex engine</font>
+</pre>
+</ul>
+
+If all this seems complicated, just keep in mind that this mode is
+meant so that you can feed strings to <a
+href="https://github.com/edicl/cl-ppcre/">CL-PPCRE</a> exactly as if you had
+written them for Perl (without counting Lisp backslashes
+versus Perl backslashes). However, you should <em>not</em> use
+both CL-INTERPOL's as well as CL-PPCRE's extended mode at once because
+this might lead to errors. (CL-PPCRE's will, e.g., throw away
+whitespace which had been escaped in CL-INTERPOL.)
+<pre>
+* (let ((scanner (cl-ppcre:create-scanner &quot; a\\ a &quot; :extended-mode t)))
+    (cl-ppcre:scan scanner &quot;a a&quot;))
+0
+3
+#()
+#()
+* (let ((scanner (cl-ppcre:create-scanner #?x/ a\ a /)))
+    (cl-ppcre:scan scanner &quot;a a&quot;))
+0
+3
+#()
+#()
+* (let ((scanner (cl-ppcre:create-scanner #?x/ a\ a / :extended-mode t)))
+    <font color=orange>;; wrong, because extended mode is applied twice</font>
+    (cl-ppcre:scan scanner &quot;a a&quot;))
+NIL
+</pre>
+
+<br>&nbsp;<br><h3><a class=none name="dictionary">The CL-INTERPOL dictionary</a></h3>
+
+CL-INTERPOL exports the following symbols:
+
+<p><br>[Macro]
+<br><a class=none name="enable-interpol-syntax"><b>enable-interpol-syntax</b>  <i><tt>&amp;key</tt> modify-*readtable*</i>=&gt; |</a>
+
+<blockquote>
+
+<p>This is used to enable the reader syntax described <a href="#syntax">above</a>. This macro
+expands into an <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/s_eval_w.htm"><code>EVAL-WHEN</code></a>
+so that if you use it as a <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_t.htm#top_level_form">top-level
+form</a> in a file to be loaded and/or compiled it'll do what you
+expect.</p>
+
+<p>If the parameter <code>modify-*readtable*</code> is NIL (the
+default) this will push the <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_c.htm#current_readtable">current
+readtable</a> on a stack so that matching calls of
+<code>ENABLE-INTERPOL-SYNTAX</code> and <a
+href="#disable-interpol-syntax"><code>DISABLE-INTERPOL-SYNTAX</code></a>
+can nest. Otherwise the current value of <code>*readtable*</code> will
+be modified.</p>
+
+<p>Note: by default the reader syntax is <em>not</em>
+enabled after loading CL-INTERPOL.</p>
+
+</blockquote>
+
+<p><br>[Macro]
+<br><a class=none name="disable-interpol-syntax"><b>disable-interpol-syntax</b>  =&gt; |</a>
+
+<blockquote><br>
+
+This is used to disable the reader syntax described <a href="#syntax">above</a>. This macro
+expands into an <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/s_eval_w.htm"><code>EVAL-WHEN</code></a>
+so that if you use it as a <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_t.htm#top_level_form">top-level
+form</a> in a file to be loaded and/or compiled it'll do what you
+expect. Technically this'll pop a readtable from the stack described <a href="#enable-interpol-syntax">above</a> so that matching calls of <a href="#enable-interpol-syntax"><code>ENABLE-INTERPOL-SYNTAX</code></a> and <code>DISABLE-INTERPOL-SYNTAX</code> can nest. If the stack is empty (i.e. when <code>DISABLE-INTERPOL-SYNTAX</code> is called without a preceding call to <a href="#enable-interpol-syntax"><code>ENABLE-INTERPOL-SYNTAX</code></a>), the <a href="http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_s.htm#standard_readtable">standard readtable</a> is re-established.
+
+</blockquote>
+
+<p><br>[Special variable]
+<br><a class=none name="*list-delimiter*"><b>*list-delimiter*</b></a>
+
+<blockquote><br>
+
+The contents of this variable are inserted between the elements of a list <a href="#interpolation">interpolated with <code class=yellow>@</code></a> at execution time. They are inserted as with <a href="http://www.lispworks.com/documentation/HyperSpec/Body/f_wr_pr.htm"><code>PRINC</code></a>. The default value is <code class=yellow>&quot;&nbsp;&quot;</code> (one space).
+
+</blockquote>
+
+<p><br>[Special variable]
+<br><a class=none name="*outer-delimiters*"><b>*outer-delimiters*</b></a>
+
+<blockquote><br>
+
+This is a list of acceptable <a href="#outer">outer delimiters</a>. The elements of this list are either characters or dotted pairs the car and cdr of which are characters. A character denotes a delimiter like <code class=yellow>'</code> (apostrophe) which is the opening as well as the closing delimiter. A dotted pair like <code>(#\{&nbsp;.&nbsp;#\})</code> denotes a pair of matching bracketing delimiters. The name of this list is exported so that you can customize CL-INTERPOL's behaviour by <em>removing</em> elements from this list, you are advised not to add any - specifically you should not add alphanumeric characters or the backslash. Note that this variable has effect at read time so you probably need to wrap an <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/s_eval_w.htm"><code>EVAL-WHEN</code></a> around forms that change its value. The default value is
+<pre>
+'((#\( . #\))
+  (#\{ . #\})
+  (#\&lt; . #\&gt)
+  (#\[ . #\])
+  #\/ #\| #\&quot; #\' #\#))
+</pre>
+
+</blockquote>
+
+<p><br>[Special variable]
+<br><a class=none name="*inner-delimiters*"><b>*inner-delimiters*</b></a>
+
+<blockquote><br>
+
+This is a list of acceptable delimiters for <a href="#interpolation">interpolation</a>. The elements of this list are either characters or dotted pairs the car and cdr of which are characters. A character denotes a delimiter like <code class=yellow>'</code> (apostrophe) which is the opening as well as the closing delimiter. A dotted pair like <code>(#\{&nbsp;.&nbsp;#\})</code> denotes a pair of matching bracketing delimiters. The name of this list is exported so that you can customize CL-INTERPOL's behaviour by <em>removing</em> elements from this list, you are advised <em>not</em> to add any - specifically you should not add alphanumeric characters or the backslash. Note that this variable has effect at read time so you probably need to wrap an <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/s_eval_w.htm"><code>EVAL-WHEN</code></a> around forms that change its value. The default value is
+<pre>
+'((#\( . #\))
+  (#\{ . #\})
+  (#\&lt; . #\&gt)
+  (#\[ . #\]))
+</pre>
+
+</blockquote>
+
+<p><br>[Special variable]
+<br><a class=none name="*interpolate-format-directives*"><b>*interpolate-format-directives*</b></a>
+
+<blockquote><br>
+
+This is a boolean value which determines if the ~ character signals
+the start of an inline format directive. When T sequences with this
+form:
+
+<pre>
+~paramsX(form)
+</pre>
+
+Will be passed to <code>cl:format</code>, with <code>FORM</code> as
+the one and only argument and <code>params</code> and <code>X</code>
+are the format directive (with the same syntax as in
+<code>cl:format</code>).
+
+Examples:
+
+<pre>
+* (let ((x 42)) #?&quot;An integer: ~D(x) ~X(x) ~8,'0B(x)&quot;)
+&quot;An integer: 42 2A 00101010&quot;
+</pre>
+
+</blockquote>
+
+<p><br>[Special variable]
+<br><a class=none name="*regex-delimiters*"><b>*regex-delimiters*</b></a>
+
+<blockquote><br>
+
+This is a list of <a href="#outer">opening outer delimiters</a> which automatically switch CL-INTERPOL's <a href="#regular">regular expression mode</a> on. The elements of this list are characters. An element of this list must also be an element of <a href="#*outer-delimiters*"><code>*OUTER-DELIMITERS*</code></a> to have any effect.
+Note that this variable has effect at read time so you probably need to wrap an <a
+href="http://www.lispworks.com/documentation/HyperSpec/Body/s_eval_w.htm"><code>EVAL-WHEN</code></a> around forms that change its value. The default value is the one-element list <code>'(#\/)</code>.
+
+</blockquote>
+
+<br>&nbsp;<br><h3><a class=none name="bugs">Known issues</a></h3>
+
+<h4><a name="curly" class=none><code>{n,m}</code> modifiers in extended mode</a></h4>
+
+CL-INTERPOL treats 'potential' <code>{n,m}</code> modifiers differently from <a href="https://github.com/edicl/cl-ppcre/">CL-PPCRE</a> or Perl in <a href="#regular">extended mode</a> <em>if</em> they contain whitespace. CL-INTERPOL will simply remove the whitespace and thus make them valid modifiers for CL-PPCRE while Perl will remove the whitespace but <em>not</em> recognize the character sequence as a modifier. CL-PPCRE behaves like Perl - you decide if this behaviour is sane...:)
+<pre>
+* (let ((scanner (cl-ppcre:create-scanner &quot;^a{3, 3}$&quot; :extended-mode t)))
+    (cl-ppcre:scan scanner &quot;aaa&quot;))
+NIL
+* (let ((scanner (cl-ppcre:create-scanner &quot;^a{3, 3}$&quot; :extended-mode t)))
+    (cl-ppcre:scan scanner &quot;a{3,3}&quot;))
+0
+6
+#()
+#()
+* (cl-ppcre:scan #?x/^a{3, 3}$/ &quot;aaa&quot;)
+0
+3
+#()
+#()
+* (cl-ppcre:scan #?x/^a{3, 3}$/ &quot;a{3, 3}&quot;)
+NIL
+</pre>
+
+<br>&nbsp;<br><h3><a class=none name="ack">Acknowledgements</a></h3>
+
+Thanks to Peter Seibel who had the idea to do this to
+make <a href="https://github.com/edicl/cl-ppcre/">CL-PPCRE</a> more
+convenient. Buy <a href="http://www.apress.com/book/bookDisplay.html?bID=237">his
+book</a>!!!
+
+<p>
+$Header: /usr/local/cvsrep/cl-interpol/doc/index.html,v 1.39 2008/07/25 12:52:00 edi Exp $
+<p><a href="https://edicl.github.io">BACK TO THE HOMEPAGE</a>
+
+</body>
+</html>

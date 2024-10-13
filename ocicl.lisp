@@ -25,6 +25,8 @@
 
 (in-package #:ocicl)
 
+(named-readtables:in-readtable :interpol-syntax)
+
 (require 'sb-introspect)
 
 (defvar *ocicl-registries* (list "ghcr.io/ocicl"))
@@ -132,20 +134,36 @@ Distributed under the terms of the MIT License"
   (when *verbose*
     (format t "; ~A~%" s)))
 
+(defun get-up-to-first-slash (str)
+  (let ((pos (position #\/ str)))
+    (if pos
+        (subseq str 0 pos)
+        str)))
+
 (defun do-list (args)
   (handler-case
       (when args
         (dolist (system args)
           (loop for registry in *ocicl-registries*
                 do (handler-case
-                       (progn
-                         (format t "~A(~A):~%" system registry)
-                         (dolist (s (reverse (cdr (sort (split-lines (uiop:run-program (format nil "ocicl-oras repo tags ~A/~A" registry (mangle system)) :output '(:string))) #'string-lessp))))
-                           (format t "~T~A~%" s))
-                         (return))
-                     (uiop/run-program:subprocess-error (e)
-                       (declare (ignore e))
-                       (format t "~T~A not found~%" system))))
+                       (let ((server (get-up-to-first-slash registry)))
+                         (let* ((token
+                                  (cdr (assoc :token
+                                              (cl-json:decode-json-from-string
+                                               (dex:get #?"https://${server}/token?scope=repository:ocicl/${system}:pull")))))
+                                (tags
+                                  (sort
+                                   (cdr (assoc :tags
+                                               (cl-json:decode-json-from-string
+                                                (dex:get #?"https://${server}/v2/ocicl/${system}/tags/list"
+                                                         :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
+                                   #'string>)))
+                           (format t "~A(~A):~%" system registry)
+                           (dolist (tag tags)
+                             (format t "~T~A~%" tag))
+                           (return)))
+                     (error (e)
+                       (format t "~T~A(~A) not found~%" system registry))))
           (format t "~%")))
     (sb-int:broken-pipe (e)
       ())))

@@ -1,0 +1,37 @@
+language: common-lisp
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - libc6-i386
+      - openjdk-7-jre
+
+env:
+  global:
+    - PATH=~/.roswell/bin:$PATH
+    - ROSWELL_INSTALL_DIR=$HOME/.roswell
+  matrix:
+    - LISP=abcl-bin
+    - LISP=allegro
+    - LISP=ccl-bin
+    - LISP=ccl32
+    - LISP=clisp
+    - LISP=ecl
+    - LISP=sbcl-bin
+    - LISP=cmu-bin
+
+
+install:
+  - curl -L https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | sh
+
+cache:
+  directories:
+    - $HOME/.roswell
+    - $HOME/.config/common-lisp
+
+script:
+  - ros -e "(cl:in-package :cl-user)
+            (ql:quickload :cl-unicode/test :verbose t)
+            (uiop:quit (if (cl-unicode-test:run-all-tests)
+                          0 1))"

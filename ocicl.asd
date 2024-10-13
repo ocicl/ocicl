@@ -35,7 +35,7 @@
                (:file "minitar")
                (:file "wua")
                (:file "ocicl"))
-  :depends-on (:sb-posix :sb-bsd-sockets :sb-rotate-byte :sb-cltl2 :sb-introspect :sb-concurrency :sb-sprof :sb-md5 :sb-introspect)
+  :depends-on (:dexador :cl-json :cl-interpol :sb-posix :sb-bsd-sockets :sb-rotate-byte :sb-cltl2 :sb-introspect :sb-concurrency :sb-sprof :sb-md5 :sb-introspect)
   :build-operation "program-op"
   :build-pathname "ocicl"
   :entry-point "ocicl:main")

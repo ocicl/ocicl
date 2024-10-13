@@ -47,13 +47,13 @@
     (when (or (not ocicl-timestamp)
               (and ocicl-timestamp (> source-timestamp ocicl-timestamp)))
       (safe-delete-file "ocicl")
-      (safe-delete-file "systems.csv")
-      (safe-delete-directory "systems/")
-      (format t "sbcl --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (push (uiop:getcwd) asdf:*central-registry*) (asdf:make :ocicl) (sb-ext:quit))\""
+      ;; (safe-delete-file "systems.csv")
+      ;; (safe-delete-directory "systems/")
+      (format t "sbcl --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))\""
               (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
       (terpri)
       (uiop:run-program
-       (format nil "sbcl --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (push (uiop:getcwd) asdf:*central-registry*) (asdf:make :ocicl) (sb-ext:quit))\""
+       (format nil "sbcl --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))\""
                  (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
        :output *standard-output* :error *error-output*))))
 

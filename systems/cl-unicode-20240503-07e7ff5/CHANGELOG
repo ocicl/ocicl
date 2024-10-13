@@ -1,0 +1,30 @@
+Version 0.1.6
+2019-04-07
+Version 0.1.5
+2014-11-28
+rename CHANGELOG.txt to CHANGELOG (Hans Huebner)
+update support information (Hans Huebner)
+Updated to latest Unicode version (Elias Martenson)
+Fix the .asd so cl-unicode/base depends-on cl-ppcre. (Francois-Rene Rideau)
+Move some functions from util to api to avoid deferred warnings (Francois-Rene Rideau)
+Use internal ASDF system names findable by ASDF3 (still not by ASDF2). (Francois-Rene Rideau)
+
+Version 0.1.4
+2012-05-29
+Bind *print-readably* to nil on CLISP when generating methods.lisp (thanks to Stas Boukarev)
+
+Version 0.1.3
+2012-05-04
+Make compatible with AllegroCL's "modern" mode (thanks to Gary King and Noldus Reijnders)
+
+Version 0.1.2
+2011-08-31
+Make pathname creation conformant (thanks to Juan Jose Garcia-Ripoll)
+
+Version 0.1.1
+2008-07-24
+Make ADD-HANGUL-NAMES faster for ClozureCL
+
+Version 0.1.0
+2008-07-24
+Initial release

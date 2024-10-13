@@ -1,0 +1,87 @@
+If someone wants have something to do, here are some ideas:
+
+* Fix the JSON-BIND-IN-BIND-BUG
+
+* Json-rpc, add generate-smd (see commen in json-rpc)
+
+* Json-rpc, add 2.0 spec compatibility
+
+* A new nice parser, see below
+
+Idea for a new json-parser:
+
+Rationale:
+---------
+
+The current parser only parses a whole json document (json-object)
+completely. If the json-document is big and you are only interested in
+a part of it this is very inefficient. Also, maybe you want to use one
+type of parser for a part of the big json-document, another parser for
+another part and no parser at all for another part.
+
+Sketch:
+------
+
+A new function parses the json-document into a DOM(document object
+model) like object. Only the minimal info is parsed in each step, you
+might want to say that the dom-nodes are read lazily.
+
+Lets call this function "scan" (just an idea), and it takes a stream
+as input. Assume the stream now contains a json-object.
+
+The minimal API we might want is a way to query the json-object with a
+key and get the value (as an unparsed string). We could start reading
+from the stream, pass the opening curly bracket and some whitespace,
+read the first key (parse it to a string). If it matches the key we
+expect, we can pass the trailing colon and then return the stream to
+the caller. Now the caller could parse the value in any way he wants
+from the stream.
+
+If the first key didn't match what we looked for, we now need to
+advance the stream past the value. But we don't really need to "parse
+it". Assume the value is a complex nested JSON object. Since JSON is
+so nicely uniform designed, even in this case we only need to read the
+stream as fast as we can and just count the numbers of opening and
+closing brackets. We don't need to parse the actual contents. Almost
+at least. We will need to keep track of backslashed characters and
+also ignore curly brackets inside strings. Fortunately skipping
+strings is easy since they start and end with doublequoutes.
+
+
+Advancing past arrays is done in the same way, just by counting
+brackets and skipping strings. Advancing past strings is even
+easier. Advancing past numbers or the keywords "true", "false" or
+"null" is done by skipping whitespace, then reading anything up to
+whitespace, a comma or closing curly bracket.
+
+I think that while we are scanning the stream we should collect the
+characters in a string for later access. Because in most cases we want
+to get the first level of the whole json-document, then do more
+processing with some of the values.
+
+A minimal API could be like this:
+
+scan-opening-bracket(stream): Skip and opening bracket so we can start
+using scan-key.
+
+scan-key(stream): returns a string value for the key part of a
+JSON-object being read from stream. Also advances the
+stream past the trailing whitespace, colon, whitespace.
+
+Returns nil when we are at the closing bracket (no more keys).
+
+An option could be :get-whitespace and the function would then also
+return the leading and trailing whitespace as second and third return
+values. (If you want to build up an "exact" copy of the input for some
+reason).
+
+scan-value(stream): returns a string value for the value.
+
+scan-to-next-key(stream). To be called after scan-value.  passes
+whitespace, comma and whitespace to the next key. Returns t. If there
+is no next key(we are at the closing curly-bracket), returns nil.
+
+Now, this small API should be sufficient to build a little dom-like
+parser on top of. An easy version could be a function that reads all
+keys and unparsed values and preserves them in hash-table like
+structure.
