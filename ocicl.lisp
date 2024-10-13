@@ -308,7 +308,7 @@ Distributed under the terms of the MIT License"
                                                    :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
                           (p (position version all-versions :test #'string=)))
                      (when p (cdr (nthcdr p all-versions))))))
-             (uiop/run-program:subprocess-error (e)
+             (dexador.error:http-request-forbidden (e)
                (declare (ignore e))))))
 
 (defun number-to-ordinal-suffix (n)
