@@ -137,15 +137,22 @@ Distributed under the terms of the MIT License"
 (defun get-up-to-first-slash (str)
   (let ((pos (position #\/ str)))
     (if pos
-        (subseq str 0 pos)
-        str)))
+        (values (subseq str 0 pos) pos)
+        (values str -1))))
+
+(defun get-repository-name (url)
+  (let* ((first-slash-pos (nth-value 1 (get-up-to-first-slash url)))
+         (start-pos (1+ first-slash-pos))
+         (pos (position #\/ url :start start-pos)))
+    (subseq url start-pos (when pos pos))))
 
 (defun get-bearer-token (registry system)
   (handler-case
-      (let* ((server (get-up-to-first-slash registry)))
+      (let* ((server (get-up-to-first-slash registry))
+             (repository (get-repository-name registry)))
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
-                     (dex:get #?"https://${server}/token?scope=repository:ocicl/${system}:pull")))))
+                     (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull")))))
     (error (e)
       (declare (ignore e))
       nil)))
@@ -156,13 +163,14 @@ Distributed under the terms of the MIT License"
         (dolist (system args)
           (loop for registry in *ocicl-registries*
                 do (handler-case
-                       (let ((server (get-up-to-first-slash registry)))
+                       (let ((server (get-up-to-first-slash registry))
+                             (repository (get-repository-name registry)))
                          (let* ((token (get-bearer-token registry system))
                                 (tags
                                   (sort
                                    (cdr (assoc :tags
                                                (cl-json:decode-json-from-string
-                                                (dex:get #?"https://${server}/v2/ocicl/${system}/tags/list"
+                                                (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list"
                                                          :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
                                    #'string>)))
                            (format t "~A(~A):~%" system registry)
@@ -194,11 +202,12 @@ Distributed under the terms of the MIT License"
         do (handler-case
                (progn
                  (let* ((token (get-bearer-token registry system))
-                        (server (get-up-to-first-slash registry)))
+                        (server (get-up-to-first-slash registry))
+                        (repository (get-repository-name registry)))
                    (multiple-value-bind (manifest manifest-digest)
                        (get-manifest registry #?"${system}-changes.txt" version)
                      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-                            (changes (dex:get #?"https://${server}/v2/ocicl/${system}-changes.txt/blobs/${digest}"
+                            (changes (dex:get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
                                               :force-string t
                                               :headers `(("Authorization" . ,#?"Bearer ${token}")))))
                        (return-from get-changes changes)))))
@@ -298,13 +307,14 @@ Distributed under the terms of the MIT License"
   (loop for registry in *ocicl-registries*
         do (handler-case
                (return-from get-versions-since
-                 (let ((server (get-up-to-first-slash registry)))
+                 (let ((server (get-up-to-first-slash registry))
+                       (repository (get-repository-name registry)))
                    (let* ((token (get-bearer-token registry system))
                           (all-versions
                             (filter-strings
                              (cdr (assoc :tags
                                          (cl-json:decode-json-from-string
-                                          (dex:get #?"https://${server}/v2/ocicl/${system}/tags/list"
+                                          (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list"
                                                    :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
                           (p (position version all-versions :test #'string=)))
                      (when p (cdr (nthcdr p all-versions))))))
@@ -631,9 +641,10 @@ Distributed under the terms of the MIT License"
 
 (defun get-manifest (registry system tag)
   (let ((token (get-bearer-token registry system))
-        (server (get-up-to-first-slash registry)))
+        (server (get-up-to-first-slash registry))
+        (repository (get-repository-name registry)))
     (multiple-value-bind (body status response-headers)
-        (dex:get #?"https://${server}/v2/ocicl/${system}/manifests/${tag}"
+        (dex:get #?"https://${server}/v2/${repository}/${system}/manifests/${tag}"
                  :force-string t
                  :headers `(("Authorization" . ,#?"Bearer ${token}")
                             ("Accept" . "application/vnd.oci.image.manifest.v1+json")
@@ -642,11 +653,12 @@ Distributed under the terms of the MIT License"
 
 (defun get-blob (registry system tag dl-dir)
   (let* ((token (get-bearer-token registry system))
-         (server (get-up-to-first-slash registry)))
+         (server (get-up-to-first-slash registry))
+         (repository (get-repository-name registry)))
     (multiple-value-bind (manifest manifest-digest)
         (get-manifest registry system tag)
       (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-             (input (dex:get #?"https://${server}/v2/ocicl/${system}/blobs/${digest}"
+             (input (dex:get #?"https://${server}/v2/${repository}/${system}/blobs/${digest}"
                              :force-binary t
                              :want-stream t
                              :headers `(("Authorization" . ,#?"Bearer ${token}")))))
