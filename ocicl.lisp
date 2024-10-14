@@ -588,18 +588,22 @@ Distributed under the terms of the MIT License"
 
 (defun find-asd-files (dir)
   "Recursively find all files with the .asd extension in a directory."
-  (let ((systems (list)))
+  ;; Force a trailing slash to support uiop change in behavior:
+  ;; https://github.com/fare/asdf/commit/6138d709eb25bf75c1d1f7dc45a63d174f982321
+  (let* ((dir (namestring dir))
+         (dir (if (string= (subseq dir (- (length dir) 1)) "/")
+                 dir
+                 (concatenate 'string dir "/")))
+         (systems (list)))
     (labels ((push-asd (dir)
                (debug-log #?"searching ${dir}")
                (dolist (f (uiop:directory-files dir))
                  (when (equal "asd" (pathname-type f))
-                   (debug-log #?">> ${f}")
                    (pushnew f systems)))))
       (uiop:collect-sub*directories dir
                                     t t
                                     (lambda (d) (push-asd d)))
       (push-asd dir))
-    (debug-log #?"systems = ${systems}")
     systems))
 
 (defun extract-sha256 (str)
