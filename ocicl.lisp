@@ -590,13 +590,16 @@ Distributed under the terms of the MIT License"
   "Recursively find all files with the .asd extension in a directory."
   (let ((systems (list)))
     (labels ((push-asd (dir)
+               (debug-log #?"searching ${dir}")
                (dolist (f (uiop:directory-files dir))
                  (when (equal "asd" (pathname-type f))
+                   (debug-log #?">> ${f}")
                    (pushnew f systems)))))
       (uiop:collect-sub*directories dir
                                     t t
                                     (lambda (d) (push-asd d)))
       (push-asd dir))
+    (debug-log #?"systems = ${systems}")
     systems))
 
 (defun extract-sha256 (str)
