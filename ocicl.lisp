@@ -662,9 +662,13 @@ Distributed under the terms of the MIT License"
                              :force-binary t
                              :want-stream t
                              :headers `(("Authorization" . ,#?"Bearer ${token}")))))
+        (handler-bind
+            ((tar-simple-extract:broken-or-circular-links-error
+              (lambda (condition)
+                (invoke-restart 'continue))))
           (tar:with-open-archive (a input)
-            (tar-simple-extract:simple-extract-archive a :directory dl-dir))
-          manifest-digest))))
+                                 (tar-simple-extract:simple-extract-archive a :directory dl-dir)))
+        manifest-digest))))
 
 (defun download-and-install (fullname)
   (let ((dl-dir (get-temp-ocicl-dl-pathname)))
