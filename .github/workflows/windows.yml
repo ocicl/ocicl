@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
        include:
-         - SBCL_VERSION: 2.3.2
+         - SBCL_VERSION: 2.4.9
     defaults:
       run:
         shell: msys2 {0}
