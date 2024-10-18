@@ -166,12 +166,36 @@
     (uiop:ensure-all-directories-exist (list ocicl-dir))
     ocicl-dir))
 
+(defmethod parent ((file pathname))
+  "Return the parent directory of FILE."
+  (if (uiop:directory-pathname-p file)
+      (uiop:pathname-parent-directory-pathname file)
+      (uiop:pathname-directory-pathname file)))
+
+(defun find-workdir (workdir)
+  "Search for systems.csv starting from WORKDIR and moving up the directory chain.
+   Returns the directory containing systems.csv if found.  If none is
+   found, return WORKDIR."
+  (let ((dir (truename workdir)))
+    (loop
+       for path = (merge-pathnames "systems.csv" dir)
+       until (probe-file path)
+       do (let ((parent-dir (parent dir)))
+            ;; Stop if we've reached the root (parent is same as current directory)
+            (if (or (null parent-dir) (equal parent-dir dir))
+                (return))
+            (setf dir parent-dir)))
+    (uiop:ensure-directory-pathname
+     (if (probe-file (merge-pathnames "systems.csv" dir))
+         dir
+       workdir))))
+
 (defun initialize-globals ()
   (unless *local-systems-dir*
-    (let ((cwd (uiop:getcwd)))
+    (let ((workdir (find-workdir (uiop:getcwd))))
       (setq *local-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                           cwd))
-      (setq *local-systems-csv* (merge-pathnames cwd "systems.csv"))))
+                                                 workdir))
+      (setq *local-systems-csv* (merge-pathnames workdir "systems.csv"))))
 
   (unless *global-systems-dir*
     (let* ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg"))

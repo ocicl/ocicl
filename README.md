@@ -229,10 +229,37 @@ registry, it's possible to use multiple registries by adding multiple
 entries to the `ocicl-registry.cfg` file in your `${XDG_DATA_DIR}/ocicl`
 directory.
 
-All system downloads are recorded in the current working directory by
-default.  However, you may choose to download systems "globally" for
-the current user by using the ``--global`` option.  This is equivalent
-to temporarily changing directory to a user-global directory before
+In the examples so far, we see that all system downloads are recorded
+in the current working directory.  This is the default behaviour.
+However, when `systems.csv` appears in any parent directory, all
+systems are downloaded and recorded in the `systems` sub-directory of
+that parent.  The ocicl runtime mirrors this behaviour when it comes
+to loading systems.  See the following for example usage.
+
+```
+green@fedora:~/hacking$ touch systems.csv
+green@fedora:~/hacking$ mkdir project-1
+green@fedora:~/hacking$ mkdir project-2
+green@fedora:~/hacking$ cd project-1
+green@fedora:~/hacking/project-1$ ocicl install str
+; downloaded str@sha256:3771c466d33a923d4fd1b1aa71f7a60d0029405e7fb3bafae1a3f19b7ac9b121
+; downloaded cl-ppcre@sha256:584907e0683621973579f397115945ef73e9d5b7afa77fae7cacecb3ad272f89
+; downloaded cl-unicode@sha256:d98f12c1271fb3c1812a27d64dfbe95b0bc5bcfd545b71b8101874e61270b120
+; downloaded cl-change-case@sha256:63b6a033f762d6dc5d365ce49f2a2c691677f2ec1375ebe4226d13b19a29dc7c
+green@fedora:~/hacking/project-1$ cd ../project-2/
+green@fedora:~/hacking/project-2$ ocicl install str
+; str:1bcf26d already exists
+green@fedora:~/hacking/project-2$ ls -l ../systems
+total 0
+drwxr-xr-x. 1 green green 112 Oct 17 23:05 cl-change-case-0.2.1
+drwxr-xr-x. 1 green green 642 Oct 17 23:05 cl-ppcre-20240503-80fb19d
+drwxr-xr-x. 1 green green 216 Oct 17 23:05 cl-str-20240708-1bcf26d
+drwxr-xr-x. 1 green green 344 Oct 17 23:05 cl-unicode-20240503-07e7ff5
+```
+
+You may also choose to download systems "globally" for the current
+user by using the ``--global`` option.  This is equivalent to
+temporarily changing directory to a user-global directory before
 performing any operation with the `ocicl` cli.  These "global" systems
 are available at runtime using the following heuristic:
 - If the system is available locally, then it is loaded from from the local `systems` directory.

@@ -507,6 +507,29 @@ Distributed under the terms of the MIT License"
                  (download-and-install (car value))))
              *ocicl-systems*)))
 
+(defmethod parent ((file pathname))
+  "Return the parent directory of FILE."
+  (if (uiop:directory-pathname-p file)
+      (uiop:pathname-parent-directory-pathname file)
+      (uiop:pathname-directory-pathname file)))
+
+(defun find-workdir (workdir)
+  "Search for systems.csv starting from WORKDIR and moving up the directory chain.
+   Returns the directory containing systems.csv if found.  If none is
+   found, return WORKDIR."
+  (let ((dir (truename workdir)))
+    (loop
+       for path = (merge-pathnames "systems.csv" dir)
+       until (probe-file path)
+       do (let ((parent-dir (parent dir)))
+            ;; Stop if we've reached the root (parent is same as current directory)
+            (if (or (null parent-dir) (equal parent-dir dir))
+                (return))
+            (setf dir parent-dir)))
+    (if (probe-file (merge-pathnames "systems.csv" dir))
+        dir
+      workdir)))
+
 (defun main ()
   (setf *random-state* (make-random-state t))
   (handler-case
@@ -546,6 +569,9 @@ Distributed under the terms of the MIT License"
                         (setf *force* t))
            (when-option (options :global)
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
+
+
+           (setf workdir (find-workdir workdir))
 
            (let ((original-directory (uiop:getcwd)))
              (unwind-protect
