@@ -33,6 +33,5 @@ jobs:
           c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --eval "(progn (print \"Hello\") (terpri) (quit))"
           dir
           c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --load setup.lisp
-          dir
-          %UserProfile%\AppData\Local\ocicl\ocicl.exe setup
+          dir %UserProfile%\AppData\Local\ocicl\ocicl.exe setup
         shell: cmd
