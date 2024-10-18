@@ -492,20 +492,20 @@ Distributed under the terms of the MIT License"
                 (progn
                   (format uiop:*stderr* "Error: can't download ~A.~%" system)
                   (sb-ext:quit))))
-            (let* ((slist (split-on-delimeter system #\:))
-                   (name (car slist)))
-              (if (download-system system)
-                  (download-system-dependencies name)
-                  (progn
-                    (format uiop:*stderr* "Error: system ~A not found.~%" system)
-                    (sb-ext:quit))))))
-      ;; Download all systems in systems.csv.
-      (maphash (lambda (key value)
-                 (declare (ignore key))
-                 (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
-                   (format t "; downloading ~A~%" (car value))
-                   (download-and-install (car value))))
-               *ocicl-systems*)))
+          (let* ((slist (split-on-delimeter system #\:))
+                 (name (car slist)))
+            (if (download-system system)
+                (download-system-dependencies name)
+              (progn
+                (format uiop:*stderr* "Error: system ~A not found.~%" system)
+                (sb-ext:quit))))))
+    ;; Download all systems in systems.csv.
+    (maphash (lambda (key value)
+               (declare (ignore key))
+               (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
+                 (format t "; downloading ~A~%" (car value))
+                 (download-and-install (car value))))
+             *ocicl-systems*)))
 
 (defun main ()
   (setf *random-state* (make-random-state t))
@@ -516,11 +516,11 @@ Distributed under the terms of the MIT License"
          (when (probe-file config-file)
            (setf *ocicl-registries*
                  (or (with-open-file (in config-file)
-                       (loop for line = (read-line in nil nil)
-                             while line
-                             ;; skip comments
-                             unless (char= #\# (aref line 0))
-                               collect (string-trim '(#\Space #\Tab #\Newline #\Return) line)))
+                                     (loop for line = (read-line in nil nil)
+                                           while line
+                                           ;; skip comments
+                                           unless (char= #\# (aref line 0))
+                                           collect (string-trim '(#\Space #\Tab #\Newline #\Return) line)))
                      *ocicl-registries*))))
 
        (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
@@ -549,34 +549,37 @@ Distributed under the terms of the MIT License"
 
            (let ((original-directory (uiop:getcwd)))
              (unwind-protect
-                 (progn
-                   (uiop:chdir workdir)
-                   (setq *ocicl-systems* (read-systems-csv))
-                   (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                                        (uiop:getcwd)))
-                   (if (not (> (length free-args) 0))
-                       (usage)
-                     (let ((cmd (car free-args)))
-                       (cond
-                        ((string= cmd "help")
-                         (usage))
-                        ((string= cmd "libyear")
-                         (do-libyear))
-                        ((string= cmd "changes")
-                         (do-changes (cdr free-args)))
-                        ((string= cmd "install")
-                         (do-install (cdr free-args)))
-                        ((string= cmd "latest")
-                         (do-latest (cdr free-args)))
-                        ((string= cmd "list")
-                         (do-list (cdr free-args)))
-                        ((string= cmd "setup")
-                         (do-setup (cdr free-args)))
-                        ((string= cmd "version")
-                         (do-version (cdr free-args)))
-                        (t (usage))))))
-               (uiop:chdir original-directory))))))
-    (with-user-abort:user-abort () (sb-ext:exit :code 130))))
+                 (locally
+                  (declare #+sbcl(sb-ext:muffle-conditions sb-kernel:redefinition-warning))
+                  (handler-bind
+                      (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
+                    (uiop:chdir workdir)
+                    (setq *ocicl-systems* (read-systems-csv))
+                    (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+                                                         (uiop:getcwd)))
+                    (if (not (> (length free-args) 0))
+                        (usage)
+                      (let ((cmd (car free-args)))
+                        (cond
+                         ((string= cmd "help")
+                          (usage))
+                         ((string= cmd "libyear")
+                          (do-libyear))
+                         ((string= cmd "changes")
+                          (do-changes (cdr free-args)))
+                         ((string= cmd "install")
+                          (do-install (cdr free-args)))
+                         ((string= cmd "latest")
+                          (do-latest (cdr free-args)))
+                         ((string= cmd "list")
+                          (do-list (cdr free-args)))
+                         ((string= cmd "setup")
+                            (do-setup (cdr free-args)))
+                         ((string= cmd "version")
+                          (do-version (cdr free-args)))
+                         (t (usage)))))))
+                   (uiop:chdir original-directory))))))
+       (with-user-abort:user-abort () (sb-ext:exit :code 130))))
 
 (defun replace-plus-with-string (str)
   (let ((mangled (with-output-to-string (s)
@@ -704,24 +707,24 @@ Distributed under the terms of the MIT License"
                  (progn
                    (uiop:ensure-all-directories-exist (list dl-dir))
                    (uiop:with-current-directory (dl-dir)
-                     (loop for registry in *ocicl-registries*
-                           do (handler-case
-                                  (progn
-                                    (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
-                                    (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
-                                      (format t "; downloaded ~A@~A~%" name manifest-digest)
-                                      (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
-                                             (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
-                                                                                (uiop:split-string (namestring abs-dirname) :separator (list (uiop:directory-separator-for-host))))))))
-                                        (copy-directory:copy dl-dir *systems-dir*)
-                                        (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
-                                          (debug-log #?"registering ${s}")
-                                          (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}" (subseq (namestring s) (length (namestring *systems-dir*))))))))
-                                    (return))
-                                (error (e)
-                                  (format t "; error downloading ~A~%" name)
-                                  (debug-log e)
-                                  nil)))))
+                     (unless (loop for registry in *ocicl-registries*
+                                   do (handler-case
+                                          (progn
+                                            (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
+                                            (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
+                                              (format t "; downloaded ~A@~A~%" name manifest-digest)
+                                              (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
+                                                     (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
+                                                                                        (uiop:split-string (namestring abs-dirname)
+                                                                                                           :separator (list (uiop:directory-separator-for-host))))))))
+                                                (copy-directory:copy dl-dir *systems-dir*)
+                                                (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
+                                                  (debug-log #?"registering ${s}")
+                                                  (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}"
+                                                                                                                   (subseq (namestring s) (length (namestring *systems-dir*))))))))
+                                            (return t))
+                                        (error (e) nil)))
+                       (format t "; error downloading ~A~%" name))))
               (uiop:delete-directory-tree dl-dir :validate t)))
           (write-systems-csv)
           (gethash (mangle name) *ocicl-systems*)))))
