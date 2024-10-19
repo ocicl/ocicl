@@ -27,6 +27,7 @@ jobs:
         shell: cmd
         run: msiexec /a sbcl-${{ matrix.SBCL_VERSION }}-x86-64-windows-binary.msi TARGETDIR=C:\sbcl /qn
       - name: Set git to use LF
+        shell: bash
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
