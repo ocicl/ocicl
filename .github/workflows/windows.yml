@@ -30,6 +30,7 @@ jobs:
       - name: Build and Install
         run: |
           dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
+          c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --help
           c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --eval "(progn (print \"Hello\") (terpri) (quit))"
           dir
           c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --load setup.lisp
