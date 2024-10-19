@@ -30,9 +30,15 @@ jobs:
       - name: Build and Install
         run: |
           dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
+          echo "==========================================================================="
           c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --help
+          echo "==========================================================================="
           c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --eval "(progn (print \"Hello\") (terpri) (quit))"
+          echo "==========================================================================="
           dir
+          echo "==========================================================================="
           c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --load .\setup.lisp
+          echo "==========================================================================="
           dir %UserProfile%\AppData\Local\ocicl\ocicl.exe setup
+          echo "==========================================================================="
         shell: cmd
