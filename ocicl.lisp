@@ -676,8 +676,7 @@ Distributed under the terms of the MIT License"
         (dex:get #?"https://${server}/v2/${repository}/${system}/manifests/${tag}"
                  :force-string t
                  :headers `(("Authorization" . ,#?"Bearer ${token}")
-                            ("Accept" . "application/vnd.oci.image.manifest.v1+json")
-                            ("Accept" . "application/vnd.oci.image.index.v1+json")))
+                            ("Accept" . "application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json")))
       (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers)))))
 
 (defun get-blob (registry system tag dl-dir)
