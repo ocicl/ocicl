@@ -32,11 +32,11 @@ jobs:
         run: |
           ls -l /
           echo "-----"
-          ls -l c:\
+          ls -l /c/
           echo "-----"
-          ls -l //c/
+          cd /c/ && ls -l
           echo "-----"
-          find / -name sbcl.exe
+          find /c/ -name sbcl.exe
       - name: Build and Install
         run: |
           dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
