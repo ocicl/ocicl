@@ -32,7 +32,7 @@ jobs:
         run: |
           env
           ls -l
-          SBCL="/c/sbcl/Pfiles/\"Steel Bank Common Lisp\"/sbcl.exe" $SBCL --load setup.lisp
+          SBCL="/c/sbcl/Pfiles/\"Steel Bank Common Lisp\"/sbcl.exe" /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load setup.lisp
       - name: Build and Install
         run: |
           dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
