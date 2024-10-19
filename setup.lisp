@@ -49,8 +49,9 @@
               (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
       (terpri)
       (uiop:run-program
-       (format nil "sbcl --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))\""
-                 (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
+       (format nil "~A --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))\""
+               (let ((sbcl (uiop:getenv "sbcl"))) (if sbcl sbcl "sbcl"))
+               (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
        :output *standard-output* :error *error-output*))))
 
 (setf *random-state* (make-random-state t))
