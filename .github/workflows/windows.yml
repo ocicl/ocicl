@@ -50,6 +50,8 @@ jobs:
           mkdir test
           cd test
           ocicl.exe -v install sento
+          ls -l systems
+          ls -l systems.csv
           cat systems.csv
           ls -l systems
           /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --load /c/Users/runneradmin/AppData/Local/ocicl/ocicl-runtime.lisp --eval "(asdf:load-system :sento)" --eval "(quit)"
