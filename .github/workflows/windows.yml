@@ -36,7 +36,7 @@ jobs:
           echo "-----"
           cd /c/ && ls -l
           echo "-----"
-          find /c/ -name sbcl.exe
+          find /c/sbcl -name sbcl.exe
       - name: Build and Install
         run: |
           dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
