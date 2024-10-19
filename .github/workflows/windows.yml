@@ -40,7 +40,9 @@ jobs:
         shell: bash
         run: |
           SBCL="c:\sbcl\Pfiles\\"Steel\ Bank\ Common\ Lisp\\"\sbcl.exe" /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load setup.lisp
-          dir Appdata\ocicl
+          ls -l /c/Users/runneradmin/AppData/Local/
+          echo "==================="
+          ls -l /c/Users/runneradmin/AppData/Local/ocicl
       - name: Test
         run: |
           rm -rf systems systems.csv
