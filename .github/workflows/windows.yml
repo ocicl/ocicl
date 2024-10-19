@@ -30,6 +30,12 @@ jobs:
       - name: Build and Install (bash)
         shell: bash
         run: |
+          ls -l /
+          echo "-----"
+          ls -l c:\
+          echo "-----"
+          ls -l //c/
+          echo "-----"
           find / -name sbcl.exe
       - name: Build and Install
         run: |
