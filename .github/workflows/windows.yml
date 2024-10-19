@@ -45,10 +45,11 @@ jobs:
           ls -l /c/Users/runneradmin/AppData/Local/ocicl
       - name: Test
         run: |
+          export PATH=/c/Users/runneradmin/AppData/Local/ocicl/bin:$PATH
           rm -rf systems systems.csv
           mkdir test
           cd test
-          ../ocicl.exe install sento
+          ocicl.exe install sento
           cat systems.csv
           ls -l systems
           /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
