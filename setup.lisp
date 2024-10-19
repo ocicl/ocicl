@@ -52,7 +52,7 @@
       (uiop:run-program
        (list (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl"))
              "--dynamic-space-size"
-             (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072)
+             (format nil "~A" (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
              "--no-userinit"
              "--eval"
              "(load \"runtime/asdf.lisp\")"
