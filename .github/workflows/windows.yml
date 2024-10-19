@@ -35,6 +35,8 @@ jobs:
       - name: Build and Install (bash)
         shell: bash
         run: |
+          SBCL=/c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load setup.lisp
+          echo "================================================================================"
           /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --dynamic-space-size 3072 --no-userinit --eval "(load \"runtime/asdf.lisp\")" --eval "(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))"
       - name: Test
         run: |
