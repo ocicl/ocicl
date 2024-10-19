@@ -36,20 +36,17 @@ jobs:
         shell: bash
         run: |
           /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --dynamic-space-size 3072 --no-userinit --eval "(load \"runtime/asdf.lisp\")" --eval "(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))"
-          ls -l
-          SBCL="/c/sbcl/Pfiles/\"Steel Bank Common Lisp\"/sbcl.exe" /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load setup.lisp
-      - name: Build and Install
+      - name: Test
         run: |
-          dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
-          echo "==========================================================================="
-          c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --help
-          echo "==========================================================================="
-          c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --eval "(progn (print \"Hello\") (terpri) (quit))"
-          echo "==========================================================================="
-          dir
-          echo "==========================================================================="
-          c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --load .\setup.lisp
-          echo "==========================================================================="
-          dir %UserProfile%\AppData\Local\
-          echo "==========================================================================="
-        shell: cmd
+          rm -rf systems systems.csv
+          mkdir test
+          cd test
+          ../ocicl.exe install sento
+          cat systems.csv
+          ls -l systems
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
+          rm -rf systems
+          ../ocicl.exe install
+          ../ocicl.exe latest
+        shell: bash
