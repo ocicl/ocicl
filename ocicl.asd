@@ -36,6 +36,6 @@
   :build-pathname "ocicl"
   :entry-point "ocicl:main")
 
-#+sb-core-compression
 (defmethod asdf:perform ((o asdf:image-op) (c asdf:system))
+  (asdf:clear-source-registry)
   (uiop:dump-image (asdf:output-file o c) :executable t :compression t))
