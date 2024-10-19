@@ -77,3 +77,4 @@ path-parse-test, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920
 with-user-abort, ghcr.io/ocicl/with-user-abort@sha256:c19560034f9909a7afb4110b5efd939a9f1e829d9ef9887797b98679f290c480, with-user-abort-20240503-a3db02e/with-user-abort.asd
 unix-opts, ghcr.io/ocicl/unix-opts@sha256:21fadcd8f80f1b344dfd90892ae36888ff50f8b778ae37c1b1f0bc4a9f0ea5e2, unix-opts-0.1.7/unix-opts.asd
 unix-opts-tests, ghcr.io/ocicl/unix-opts@sha256:21fadcd8f80f1b344dfd90892ae36888ff50f8b778ae37c1b1f0bc4a9f0ea5e2, unix-opts-0.1.7/unix-opts-tests.asd
+winhttp, ghcr.io/ocicl/winhttp@sha256:f4955086d194e6ae1665894da2149dac0ad850d95369f85fdda4d95cd06f3641, winhttp-20240503-8611ba5/winhttp.asd
