@@ -154,7 +154,8 @@ Distributed under the terms of the MIT License"
                     (cl-json:decode-json-from-string
                      (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull")))))
     (error (e)
-      (declare (ignore e))
+      (if *verbose*
+          (print e))
       nil)))
 
 (defun do-list (args)
@@ -684,20 +685,25 @@ Distributed under the terms of the MIT License"
   (let* ((token (get-bearer-token registry system))
          (server (get-up-to-first-slash registry))
          (repository (get-repository-name registry)))
-    (multiple-value-bind (manifest manifest-digest)
-        (get-manifest registry system tag)
-      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-             (input (dex:get #?"https://${server}/v2/${repository}/${system}/blobs/${digest}"
-                             :force-binary t
-                             :want-stream t
-                             :headers `(("Authorization" . ,#?"Bearer ${token}")))))
-        (handler-bind
-            ((tar-simple-extract:broken-or-circular-links-error
-              (lambda (condition)
-                (invoke-restart 'continue))))
-          (tar:with-open-archive (a input)
-                                 (tar-simple-extract:simple-extract-archive a :directory dl-dir)))
-        manifest-digest))))
+    (handler-case
+        (multiple-value-bind (manifest manifest-digest)
+            (get-manifest registry system tag)
+          (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
+                 (input (dex:get #?"https://${server}/v2/${repository}/${system}/blobs/${digest}"
+                                 :force-binary t
+                                 :want-stream t
+                                 :headers `(("Authorization" . ,#?"Bearer ${token}")))))
+            (handler-bind
+                ((tar-simple-extract:broken-or-circular-links-error
+                   (lambda (condition)
+                     (invoke-restart 'continue))))
+              (tar:with-open-archive (a input)
+                (tar-simple-extract:simple-extract-archive a :directory dl-dir)))
+            manifest-digest))
+      (error (e)
+        (when *verbose*
+          (print e)
+          nil)))))
 
 (defun download-and-install (fullname)
   (let ((dl-dir (get-temp-ocicl-dl-pathname)))
