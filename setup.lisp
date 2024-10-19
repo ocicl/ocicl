@@ -45,7 +45,8 @@
       (safe-delete-file "ocicl")
       ;; (safe-delete-file "systems.csv")
       ;; (safe-delete-directory "systems/")
-      (format t "sbcl --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))\""
+      (format t "~A --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))\""
+              (let ((sbcl (uiop:getenv "sbcl"))) (if sbcl sbcl "sbcl"))
               (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
       (terpri)
       (uiop:run-program
