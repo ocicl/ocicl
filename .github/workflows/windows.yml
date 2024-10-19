@@ -37,7 +37,7 @@ jobs:
           cd /c/ && ls -l
           echo "-----"
           env
-          $(find /c/sbcl -name sbcl.exe) --load ./setup.lisp
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load ./setup.lisp
       - name: Build and Install
         run: |
           dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
