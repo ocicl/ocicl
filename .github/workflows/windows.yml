@@ -49,6 +49,7 @@ jobs:
           rm -rf systems systems.csv
           mkdir test
           cd test
+          touch systems.csv
           ocicl.exe -v install sento
           ls -l systems
           ls -l systems.csv
