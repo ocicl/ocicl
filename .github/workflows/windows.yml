@@ -39,7 +39,7 @@ jobs:
       - name: Build using Setup (bash)
         shell: bash
         run: |
-          SBCL=c:\\sbcl\\Pfiles\\\"Steel\ Bank\ Common\ Lisp\"\\sbcl.exe /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load setup.lisp
+          SBCL="c:\sbcl\Pfiles\\"Steel\ Bank\ Common\ Lisp\\"\sbcl.exe" /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load setup.lisp
           dir
       - name: Build and Install (bash)
         shell: bash
