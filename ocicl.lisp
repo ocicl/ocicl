@@ -155,7 +155,7 @@ Distributed under the terms of the MIT License"
                      (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull")))))
     (error (e)
       (if *verbose*
-          (print e))
+          (format t "~A~%" e))
       nil)))
 
 (defun do-list (args)
@@ -701,7 +701,7 @@ Distributed under the terms of the MIT License"
             manifest-digest))
       (error (e)
         (when *verbose*
-          (print e)
+          (format t "~A~%" e))
           nil)))))
 
 (defun download-and-install (fullname)
@@ -756,7 +756,7 @@ Distributed under the terms of the MIT License"
                                             (return t))
                                         (error (e)
                                           (when *verbose*
-                                            (print e))
+                                            (format t "~A~%" e))
                                           nil)))
                        (format t "; error downloading ~A~%" name))))
               (uiop:delete-directory-tree dl-dir :validate t)))
