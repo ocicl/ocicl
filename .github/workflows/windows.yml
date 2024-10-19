@@ -50,6 +50,7 @@ jobs:
           mkdir test
           cd test
           touch systems.csv
+          mkdir systems
           ocicl.exe -v install sento
           ls -l systems
           ls -l systems.csv
