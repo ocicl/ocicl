@@ -701,7 +701,7 @@ Distributed under the terms of the MIT License"
             manifest-digest))
       (error (e)
         (when *verbose*
-          (format t "~A~%" e))
+          (format t "~A~%" e)
           nil)))))
 
 (defun download-and-install (fullname)
