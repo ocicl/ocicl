@@ -155,7 +155,7 @@ Distributed under the terms of the MIT License"
                      (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull")))))
     (error (e)
       (if *verbose*
-          (format t "~A~%" e))
+          (trivial-backtrace:print-backtrace e))
       nil)))
 
 (defun do-list (args)
@@ -701,8 +701,8 @@ Distributed under the terms of the MIT License"
             manifest-digest))
       (error (e)
         (when *verbose*
-          (format t "~A~%" e)
-          nil)))))
+          (trivial-backtrace:print-backtrace e))
+        nil))))
 
 (defun download-and-install (fullname)
   (let ((dl-dir (get-temp-ocicl-dl-pathname)))
@@ -756,7 +756,7 @@ Distributed under the terms of the MIT License"
                                             (return t))
                                         (error (e)
                                           (when *verbose*
-                                            (format t "~A~%" e))
+                                            (trivial-backtrace:print-backtrace e))
                                           nil)))
                        (format t "; error downloading ~A~%" name))))
               (uiop:delete-directory-tree dl-dir :validate t)))
