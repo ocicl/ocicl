@@ -9,8 +9,8 @@
   "root is an absolute directory, and pathname is an absolute pathname, such
   that pathname is inside of root. Remove the common directory components,
   leaving a relative pathname."
-  (let ((root (uiop:truename root))
-        (pathname (uiop:truename pathname)))
+  (let ((root (uiop:truename* root))
+        (pathname (uiop:truename* pathname)))
     (assert (uiop:directory-pathname-p root))
     (assert (uiop:absolute-pathname-p root))
     (assert (uiop:absolute-pathname-p pathname))
