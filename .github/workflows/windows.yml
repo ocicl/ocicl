@@ -51,8 +51,8 @@ jobs:
           ls -l systems.csv
           cat systems.csv
           ls -l systems
-          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --load /c/Users/runneradmin/AppData/Local/ocicl/ocicl-runtime.lisp --eval "(asdf:load-system :sento)" --eval "(quit)"
-          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --load /c/Users/runneradmin/AppData/Local/ocicl/ocicl-runtime.lisp --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
           rm -rf systems
           ../ocicl.exe install
           ../ocicl.exe latest
