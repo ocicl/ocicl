@@ -1,9 +1,9 @@
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ windows ]
+    branches: [ main, windows ]
   pull_request:
-    branches: [ windows ]
+    branches: [ main, windows ]
   workflow_dispatch:
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
        include:
-         - SBCL_VERSION: 2.3.2
+         - SBCL_VERSION: 2.4.9
     defaults:
       run:
         shell: msys2 {0}
@@ -26,13 +26,34 @@ jobs:
         # for unknown reason, msiexec pops up a window under msys2, so use cmd instead
         shell: cmd
         run: msiexec /a sbcl-${{ matrix.SBCL_VERSION }}-x86-64-windows-binary.msi TARGETDIR=C:\sbcl /qn
-      - uses: actions/checkout@v3
-      - name: Build and Install
+      - name: Set git to use LF
+        shell: bash
         run: |
-          dir c:\sbcl\PFiles\"Steel Bank Common Lisp"
-          c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --eval "(progn (print \"Hello\") (terpri) (quit))"
-          dir
-          c:\sbcl\Pfiles\"Steel Bank Common Lisp"\sbcl.exe --load setup.lisp
-          dir
-          %UserProfile%\AppData\Local\ocicl\ocicl.exe setup
-        shell: cmd
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - uses: actions/checkout@v4
+      - name: Build using Setup (bash)
+        shell: bash
+        run: |
+          SBCL="c:\sbcl\Pfiles\\"Steel\ Bank\ Common\ Lisp\\"\sbcl.exe" /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load setup.lisp
+          ocicl setup > ~/.sbclrc
+          echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
+      - name: Test
+        run: |
+          export PATH=/c/Users/runneradmin/AppData/Local/ocicl/bin:$PATH
+          rm -rf systems systems.csv
+          mkdir test
+          cd test
+          touch systems.csv
+          mkdir systems
+          ocicl.exe -v install sento
+          ls -l systems
+          ls -l systems.csv
+          cat systems.csv
+          ls -l systems
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --load /c/Users/runneradmin/AppData/Local/ocicl/ocicl-runtime.lisp --eval "(asdf:load-system :sento)" --eval "(quit)"
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --load /c/Users/runneradmin/AppData/Local/ocicl/ocicl-runtime.lisp --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
+          rm -rf systems
+          ../ocicl.exe install
+          ../ocicl.exe latest
+        shell: bash

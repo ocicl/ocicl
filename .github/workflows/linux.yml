@@ -28,6 +28,7 @@ jobs:
         shell: bash
       - name: Test
         run: |
+          rm -rf systems systems.csv
           mkdir test
           cd test
           ocicl install sento
