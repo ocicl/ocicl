@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           SBCL="c:\sbcl\Pfiles\\"Steel\ Bank\ Common\ Lisp\\"\sbcl.exe" /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --load setup.lisp
-          ocicl setup > ~/.sbclrc
+          ./ocicl.exe setup > ~/.sbclrc
           echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
       - name: Test
         run: |
