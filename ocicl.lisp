@@ -748,7 +748,11 @@ Distributed under the terms of the MIT License"
                                                      (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
                                                                                         (uiop:split-string (namestring abs-dirname)
                                                                                                            :separator (list (uiop:directory-separator-for-host))))))))
+                                                (when *verbose*
+                                                  (format t "; copying ~A to ~A~%" dl-dir *systems-dir*))
                                                 (copy-directory:copy dl-dir *systems-dir*)
+                                                (when *verbose*
+                                                  (format t "; copying successful"))
                                                 (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
                                                   (debug-log #?"registering ${s}")
                                                   (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}"
