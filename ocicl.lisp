@@ -251,10 +251,14 @@ Distributed under the terms of the MIT License"
                      (download-system (concatenate 'string system ":latest"))))
              blobs))))
 
+(defun get-memory-in-gb ()
+  #+sbcl(format nil "configured with ~AGB memory" (ceiling (sb-ext:dynamic-space-size) (* 1024 1024 1024)))
+  #-sbcl(format nil ""))
+
 (defun do-version (args)
   (declare (ignore args))
   (format t "ocicl version:   ~A~%" +version+)
-  (format t "Lisp runtime:    ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version))
+  (format t "Lisp runtime:    ~A ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version) (get-memory-in-gb))
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
 (defun do-setup (args)
