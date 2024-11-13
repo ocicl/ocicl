@@ -757,7 +757,7 @@ Distributed under the terms of the MIT License"
                                                   (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}"
                                                                                                                    (subseq (namestring s) (length (namestring *systems-dir*))))))))
                                             (return t))
-                                        (error (e) (debug-log e))))
+                                        (error (e) (debug-log e) (sb-debug:print-backtrace))))
                        (format t "; error downloading ~A~%" name))))
               (uiop:delete-directory-tree dl-dir :validate t)))
           (write-systems-csv)
