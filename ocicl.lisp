@@ -693,6 +693,7 @@ Distributed under the terms of the MIT License"
              (input (dex:get #?"https://${server}/v2/${repository}/${system}/blobs/${digest}"
                              :force-binary t
                              :want-stream t
+                             :verbose *verbose*
                              :headers `(("Authorization" . ,#?"Bearer ${token}")))))
         (handler-bind
             ((tar-simple-extract:broken-or-circular-links-error
@@ -772,7 +773,6 @@ Distributed under the terms of the MIT License"
 (defun system-definition-searcher (name)
   (unless (or (string= name "asdf") (string= name "uiop"))
     (let* ((*verbose* (or *verbose* (and asdf:*verbose-out* t)))
-           (dex:*verbose* *verbose*)
            (system-file (find-asdf-system-file name)))
       (when (and system-file
                  (string= (pathname-name system-file) name))
