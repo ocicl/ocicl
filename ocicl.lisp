@@ -150,7 +150,7 @@ Distributed under the terms of the MIT License"
   (handler-case
       (let* ((server (get-up-to-first-slash registry))
              (repository (get-repository-name registry)))
-        (debug-log "; getting bearer token for ~A" server)
+        (debug-log (format nil "getting bearer token for ~A" server))
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
                      (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull" :verbose *verbose*)))))
