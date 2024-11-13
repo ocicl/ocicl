@@ -152,7 +152,7 @@ Distributed under the terms of the MIT License"
              (repository (get-repository-name registry)))
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
-                     (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull")))))
+                     (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull" :verbose *verbose*)))))
     (error (e)
       (declare (ignore e))
       nil)))
@@ -171,6 +171,7 @@ Distributed under the terms of the MIT License"
                                    (cdr (assoc :tags
                                                (cl-json:decode-json-from-string
                                                 (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list"
+                                                         :verbose *verbose*
                                                          :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
                                    #'string>)))
                            (format t "~A(~A):~%" system registry)
@@ -209,6 +210,7 @@ Distributed under the terms of the MIT License"
                      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
                             (changes (dex:get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
                                               :force-string t
+                                              :verbose *verbose*
                                               :headers `(("Authorization" . ,#?"Bearer ${token}")))))
                        (return-from get-changes changes)))))
              (error (e)
@@ -319,6 +321,7 @@ Distributed under the terms of the MIT License"
                              (cdr (assoc :tags
                                          (cl-json:decode-json-from-string
                                           (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list"
+                                                   :verbose *verbose*
                                                    :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
                           (p (position version all-versions :test #'string=)))
                      (when p (cdr (nthcdr p all-versions))))))
@@ -679,6 +682,7 @@ Distributed under the terms of the MIT License"
     (multiple-value-bind (body status response-headers)
         (dex:get #?"https://${server}/v2/${repository}/${system}/manifests/${tag}"
                  :force-string t
+                 :verbose *verbose*
                  :headers `(("Authorization" . ,#?"Bearer ${token}")
                             ("Accept" . "application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json")))
       (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers)))))
