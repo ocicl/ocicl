@@ -172,11 +172,11 @@ Distributed under the terms of the MIT License"
                                   (sort
                                    (cdr (assoc :tags
                                                (cl-json:decode-json-from-string
-                                                (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list"
+                                                (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
                                                          :verbose *verbose*
                                                          :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
                                    #'string>)))
-                           (format t "~A(~A):~%" system registry)
+                           (format t "~A(~A):~%~Tlatest~%" system registry)
                            (dolist (tag tags)
                              (format t "~T~A~%" tag))
                            (return)))
@@ -322,7 +322,7 @@ Distributed under the terms of the MIT License"
                             (filter-strings
                              (cdr (assoc :tags
                                          (cl-json:decode-json-from-string
-                                          (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list"
+                                          (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
                                                    :verbose *verbose*
                                                    :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
                           (p (position version all-versions :test #'string=)))
