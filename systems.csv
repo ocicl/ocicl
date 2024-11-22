@@ -1,3 +1,6 @@
+with-user-abort, ghcr.io/ocicl/with-user-abort@sha256:c19560034f9909a7afb4110b5efd939a9f1e829d9ef9887797b98679f290c480, with-user-abort-20240503-a3db02e/with-user-abort.asd
+unix-opts, ghcr.io/ocicl/unix-opts@sha256:21fadcd8f80f1b344dfd90892ae36888ff50f8b778ae37c1b1f0bc4a9f0ea5e2, unix-opts-0.1.7/unix-opts.asd
+unix-opts-tests, ghcr.io/ocicl/unix-opts@sha256:21fadcd8f80f1b344dfd90892ae36888ff50f8b778ae37c1b1f0bc4a9f0ea5e2, unix-opts-0.1.7/unix-opts-tests.asd
 dexador, ghcr.io/ocicl/dexador@sha256:d1e8ca389d304fcab5d05a85015b9b75d98c9aab3618c9e895a12dee278b6122, dexador-20240925-d7ac217/dexador.asd
 dexador-usocket, ghcr.io/ocicl/dexador@sha256:d1e8ca389d304fcab5d05a85015b9b75d98c9aab3618c9e895a12dee278b6122, dexador-20240925-d7ac217/dexador-usocket.asd
 dexador-test, ghcr.io/ocicl/dexador@sha256:d1e8ca389d304fcab5d05a85015b9b75d98c9aab3618c9e895a12dee278b6122, dexador-20240925-d7ac217/dexador-test.asd
@@ -40,8 +43,8 @@ cl-ppcre, ghcr.io/ocicl/cl-ppcre@sha256:584907e0683621973579f397115945ef73e9d5b7
 cl-ppcre-unicode, ghcr.io/ocicl/cl-ppcre@sha256:584907e0683621973579f397115945ef73e9d5b7afa77fae7cacecb3ad272f89, cl-ppcre-20240503-80fb19d/cl-ppcre-unicode.asd
 cl-cookie, ghcr.io/ocicl/cl-cookie@sha256:85cd8aa7f1379d041fae9530609cd68d5214fb978bc87faa7fd9ad5ad7e08a83, cl-cookie-20240703-6bcb74a/cl-cookie.asd
 cl-cookie-test, ghcr.io/ocicl/cl-cookie@sha256:85cd8aa7f1379d041fae9530609cd68d5214fb978bc87faa7fd9ad5ad7e08a83, cl-cookie-20240703-6bcb74a/cl-cookie-test.asd
-local-time, ghcr.io/ocicl/local-time@sha256:f6b11fc15cf92adb87a847d3af918ada947c2648660e74133db9183e7da0db70, local-time-20240817-5a09552/local-time.asd
-cl-postgres_plus_local-time, ghcr.io/ocicl/local-time@sha256:f6b11fc15cf92adb87a847d3af918ada947c2648660e74133db9183e7da0db70, local-time-20240817-5a09552/cl-postgres+local-time.asd
+local-time, ghcr.io/ocicl/local-time@sha256:ed7c32afa2aadc798f4183017b6bb4ceea9e287be83da8f24b212442207ba532, local-time-20241119-bcfaeb2/local-time.asd
+cl-postgres_plus_local-time, ghcr.io/ocicl/local-time@sha256:ed7c32afa2aadc798f4183017b6bb4ceea9e287be83da8f24b212442207ba532, local-time-20241119-bcfaeb2/cl-postgres+local-time.asd
 trivial-mimes, ghcr.io/ocicl/trivial-mimes@sha256:b33ae6d62bcd666d046e4ae1625b8e8b46a548fe2c4f18b4899ce1ecf581c17b, trivial-mimes-20240503-1a80193/trivial-mimes.asd
 chipz, ghcr.io/ocicl/chipz@sha256:fae0fae0c93199ba57c92d9102245a55c8a2c12af4442e0b141d5670bef4f2f0, chipz-20240503-6f80368/chipz.asd
 cl-base64, ghcr.io/ocicl/cl-base64@sha256:702412dbc1ed825e275fb23e22c29527eb786bf644e47c7621bf0dbb34e17c7e, cl-base64-20240503-80496b7/cl-base64.asd
@@ -74,7 +77,4 @@ which, ghcr.io/ocicl/which@sha256:9379b03483ad339c81a3a897b87e13d763bd612c79ee39
 which-test, ghcr.io/ocicl/which@sha256:9379b03483ad339c81a3a897b87e13d763bd612c79ee39566e26935d6516cf24, which-20240503-b2333e4/which-test.asd
 path-parse, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse.asd
 path-parse-test, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse-test.asd
-with-user-abort, ghcr.io/ocicl/with-user-abort@sha256:c19560034f9909a7afb4110b5efd939a9f1e829d9ef9887797b98679f290c480, with-user-abort-20240503-a3db02e/with-user-abort.asd
-unix-opts, ghcr.io/ocicl/unix-opts@sha256:21fadcd8f80f1b344dfd90892ae36888ff50f8b778ae37c1b1f0bc4a9f0ea5e2, unix-opts-0.1.7/unix-opts.asd
-unix-opts-tests, ghcr.io/ocicl/unix-opts@sha256:21fadcd8f80f1b344dfd90892ae36888ff50f8b778ae37c1b1f0bc4a9f0ea5e2, unix-opts-0.1.7/unix-opts-tests.asd
 winhttp, ghcr.io/ocicl/winhttp@sha256:f4955086d194e6ae1665894da2149dac0ad850d95369f85fdda4d95cd06f3641, winhttp-20240503-8611ba5/winhttp.asd

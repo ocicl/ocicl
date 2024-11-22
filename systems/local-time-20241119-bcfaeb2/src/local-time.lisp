@@ -277,14 +277,18 @@ found."
 (declaim (ftype (function (t t &optional t) fixnum) %read-binary-integer))
 (defun %read-binary-integer (stream byte-count &optional (signed nil))
   "Read BYTE-COUNT bytes from the binary stream STREAM, and return an integer which is its representation in network byte order (MSB).  If SIGNED is true, interprets the most significant bit as a sign indicator."
+  (declare (optimize (speed 3))
+           (type (integer 0 4) byte-count))
   (loop
     :with result = 0
     :for offset :from (* (1- byte-count) 8) :downto 0 :by 8
-    :do (setf (ldb (byte 8 offset) result) (read-byte stream))
+    :do (setf (ldb (byte 8 offset)
+                   (the fixnum result))
+              (the (integer 0 255) (read-byte stream)))
     :finally (if signed
                  (let ((high-bit (* byte-count 8)))
                    (if (logbitp (1- high-bit) result)
-                       (return (- result (ash 1 high-bit)))
+                       (return (the fixnum (- result (ash 1 high-bit))))
                        (return result)))
                  (return result))))
 
@@ -385,33 +389,36 @@ found."
                     :daylight-p (/= (second info) 0)
                     :abbrev (%string-from-unsigned-byte-vector abbrevs (third info))))))
 
+(defun %read-timezone (inf zone)
+  (%tz-verify-magic-number inf zone)
+
+  ;; read header values
+  (let* ((header (%tz-read-header inf))
+         (timezone-transitions (%tz-read-transitions inf (getf header :transition-count)))
+         (subzone-indexes (%tz-read-indexes inf (getf header :transition-count)))
+         (subzone-raw-info (%tz-read-subzone inf (getf header :type-count)))
+         (abbreviation-buf (%tz-read-abbrevs inf (getf header :abbrev-length)))
+         (leap-second-info (%tz-read-leap-seconds inf (getf header :leap-count)))
+         (std-indicators (%tz-read-indicators inf (getf header :wall-count)))
+         (gmt-indicators (%tz-read-indicators inf (getf header :utc-count)))
+         (subzone-info (%tz-make-subzones subzone-raw-info
+                                          abbreviation-buf
+                                          gmt-indicators
+                                          std-indicators)))
+
+    (setf (timezone-transitions zone) timezone-transitions)
+    (setf (timezone-indexes zone) subzone-indexes)
+    (setf (timezone-subzones zone) subzone-info)
+    (setf (timezone-leap-seconds zone) leap-second-info))
+  (setf (timezone-loaded zone) t))
+
 (defun %realize-timezone (zone &optional reload)
   "If timezone has not already been loaded or RELOAD is non-NIL, loads the timezone information from its associated unix file.  If the file is not a valid timezone file, the condition INVALID-TIMEZONE-FILE will be signaled."
   (when (or reload (not (timezone-loaded zone)))
     (with-open-file (inf (timezone-path zone)
                          :direction :input
                          :element-type 'unsigned-byte)
-      (%tz-verify-magic-number inf zone)
-
-      ;; read header values
-      (let* ((header (%tz-read-header inf))
-             (timezone-transitions (%tz-read-transitions inf (getf header :transition-count)))
-             (subzone-indexes (%tz-read-indexes inf (getf header :transition-count)))
-             (subzone-raw-info (%tz-read-subzone inf (getf header :type-count)))
-             (abbreviation-buf (%tz-read-abbrevs inf (getf header :abbrev-length)))
-             (leap-second-info (%tz-read-leap-seconds inf (getf header :leap-count)))
-             (std-indicators (%tz-read-indicators inf (getf header :wall-count)))
-             (gmt-indicators (%tz-read-indicators inf (getf header :utc-count)))
-             (subzone-info (%tz-make-subzones subzone-raw-info
-                                              abbreviation-buf
-                                              gmt-indicators
-                                              std-indicators)))
-
-        (setf (timezone-transitions zone) timezone-transitions)
-        (setf (timezone-indexes zone) subzone-indexes)
-        (setf (timezone-subzones zone) subzone-info)
-        (setf (timezone-leap-seconds zone) leap-second-info))
-      (setf (timezone-loaded zone) t)))
+      (%read-timezone inf zone)))
   zone)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
