@@ -155,8 +155,7 @@ Distributed under the terms of the MIT License"
                     (cl-json:decode-json-from-string
                      (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull" :verbose *verbose*)))))
     (error (e)
-      ; (declare (ignore e))
-      (debug-log e)
+      (declare (ignore e))
       nil)))
 
 (defun do-list (args)
