@@ -24,7 +24,6 @@ for system in $(curl -S https://raw.githubusercontent.com/ocicl/request-system-a
             version=$(echo $line | awk '{ print $1 }')
             echo "Copying system and signature for $system:$version"
             skopeo copy --dest-tls-verify=false  docker://ghcr.io/ocicl/${system}:${version} docker://localhost:8080/ocicl/${system}:${version}
-            skopeo copy --dest-tls-verify=false  docker://ghcr.io/ocicl/${system}.sig:${version} docker://localhost:8080/ocicl/${system}.sig:${version}
         fi
     done
 done
