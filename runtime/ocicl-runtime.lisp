@@ -240,8 +240,12 @@
           (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
           (find-asdf-system-file name nil)))))
 
+(defun starts-with? (prefix string)
+  (and (<= (length prefix) (length string))
+       (string= prefix (subseq string 0 (length prefix)))))
+
 (defun system-definition-searcher (name)
-  (unless (or (string= "asdf" name) (string= "uiop" name))
+  (unless (or (starts-with? "asdf" name) (string= "uiop" name))
     (let* ((*verbose* (or *verbose* (and asdf:*verbose-out* t)))
            (system-file (find-asdf-system-file name *download*)))
       (when (and system-file
