@@ -102,9 +102,13 @@
 (defun split-csv-line (line)
   (split-on-delimeter line #\,))
 
+(defun should-log ()
+  "Whether or not OCICL should output useful log info to *VERBOSE*."
+  (and *verbose* (output-stream-p *verbose*)))
+
 (defun read-systems-csv (systems-csv)
-  (when *verbose*
-    (format t "; loading ~A~%" systems-csv))
+  (when (should-log)
+    (format *verbose* "; loading ~A~%" systems-csv))
   (let ((ht (make-hash-table :test #'equal)))
     (dolist (line (uiop:read-file-lines systems-csv))
       (let ((vlist (split-csv-line line)))
@@ -120,10 +124,10 @@
 
 (defun warn-if-program-doesnt-exist (program-name)
   "If VERBOSE, print a warning if PROGRAM-NAME doesn't exist or isn't executable."
-  (when (and *verbose* (not (check-if-program-exists program-name)))
-    (format t "~&; ***************************************************************~%")
-    (format t "; WARNING: `~A` could not be found!~%" program-name)
-    (format t "; ***************************************************************~%")
+  (when (and (should-log) (not (check-if-program-exists program-name)))
+    (format *verbose* "~&; ***************************************************************~%")
+    (format *verbose* "; WARNING: `~A` could not be found!~%" program-name)
+    (format *verbose* "; ***************************************************************~%")
     (terpri)))
 
 (defun warn-if-missing-required-programs ()
@@ -151,11 +155,10 @@
                      (if *force-global* "--global" "")
                      name)))
     (warn-if-missing-required-programs)
-    (when *verbose*
-      (format t "; running: ~A~%" cmd))
+    (when (should-log)
+      (format *verbose* "; running: ~A~%" cmd))
     (uiop:run-program cmd
-                      :output (if *verbose* *standard-output*
-                                  '(:string))
+                      :output (or *verbose* '(:string))
                       :error-output *error-output*))
   (setq *local-systems-csv-timestamp* 0))
 
@@ -225,14 +228,14 @@
              (let ((match (and systems (gethash (mangle name) systems))))
                (if match
                    (let ((pn (pathname (concatenate 'string (namestring systems-dir) (cdr match)))))
-                     (when *verbose*
-                       (format t "; checking for ~A: " pn))
+                     (when (should-log)
+                       (format *verbose* "; checking for ~A: " pn))
                      (let ((found (probe-file pn)))
                        (if found
                            (progn
-                             (when *verbose* (format t "found~%"))
+                             (when (should-log) (format *verbose* "found~%"))
                              pn)
-                           (when *verbose* (format t "missing~%")))))))))
+                           (when (should-log) (format *verbose* "missing~%")))))))))
     (or (try-load *local-ocicl-systems* *local-systems-dir*)
         (try-load *global-ocicl-systems* *global-systems-dir*)
         (when download-p
