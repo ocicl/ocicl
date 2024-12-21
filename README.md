@@ -453,7 +453,7 @@ a directory in which you cloned various lisp systems called
 ```
 (asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree #P"/path/to/my/local-projects/")))
 ```
-* Setting ``ocicl-runtime:*verbose*`` to ``t`` will output useful and
+* Setting ``ocicl-runtime:*verbose*`` to a stream (like ``t``, ``*standard-output*``, ``*error-output*``, etc) will output useful and
 interesting log info.
 
 * ``ocicl`` is bundled with ``asdf`` version 3.3.7.  You can delete it
