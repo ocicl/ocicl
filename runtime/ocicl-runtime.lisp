@@ -249,7 +249,7 @@
 
 (defun system-definition-searcher (name)
   (unless (or (starts-with? "asdf" name) (string= "uiop" name))
-    (let* ((*verbose* (or *verbose* (and asdf:*verbose-out* t)))
+    (let* ((*verbose* (or *verbose* asdf:*verbose-out*))
            (system-file (find-asdf-system-file name *download*)))
       (when (and system-file
                  (string= (pathname-name system-file) name))
