@@ -104,7 +104,7 @@
 
 (defun should-log ()
   "Whether or not OCICL should output useful log info to *VERBOSE*."
-  (and *verbose* (output-stream-p *verbose*)))
+  (and *verbose* (or (eq t *verbose*) (output-stream-p *verbose*))))
 
 (defun read-systems-csv (systems-csv)
   (when (should-log)
