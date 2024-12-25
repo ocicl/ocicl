@@ -71,8 +71,8 @@
    :long "registry"))
 
 (defun unknown-option (condition)
-  (format t "warning: ~s option is unknown!~%" (option condition))
-  (invoke-restart 'skip-option))
+  (format t "warning: ~s option is unknown!~%" (opts:option condition))
+  (invoke-restart 'opts:skip-option))
 
 (defmacro when-option ((options opt) &body body)
   `(let ((it (getf ,options ,opt)))
@@ -562,15 +562,15 @@ Distributed under the terms of the MIT License"
 
          (multiple-value-bind (options free-args)
              (handler-case
-                 (handler-bind ((unknown-option #'unknown-option))
+                 (handler-bind ((opts:unknown-option #'unknown-option))
                    (opts:get-opts))
                (opts:missing-arg (condition)
                  (format t "fatal: option ~s needs an argument!~%"
-                         (option condition)))
+                         (opts:option condition)))
                (opts:arg-parser-failed (condition)
                  (format t "fatal: cannot parse ~s as argument of ~s~%"
                          (raw-arg condition)
-                         (option condition))))
+                         (opts:option condition))))
            (when-option (options :verbose)
                         (setf *verbose* t))
            (when-option (options :force)
