@@ -248,7 +248,7 @@
        (string= prefix (subseq string 0 (length prefix)))))
 
 (defun system-definition-searcher (name)
-  (unless (or (starts-with? "asdf" name) (string= "uiop" name))
+  (unless (or (starts-with? "asdf/" name) (string= "asdf" name) (string= "uiop" name))
     (let* ((*verbose* (or *verbose* asdf:*verbose-out*))
            (system-file (find-asdf-system-file name *download*)))
       (when (and system-file
