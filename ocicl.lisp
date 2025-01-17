@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Copyright (C) 2023, 2024  Anthony Green <green@moxielogic.com>
+;;; Copyright (C) 2023, 2024, 2025  Anthony Green <green@moxielogic.com>
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;;; of this software and associated documentation files (the "Software"), to deal
@@ -224,8 +224,15 @@ Distributed under the terms of the MIT License"
     (let* ((s (asdf:find-system name))
            (deps (asdf:system-depends-on s)))
       (dolist (d deps)
-        (unless (or (listp d) (string= "sb-" (subseq d 0 3)))
-          (download-system-dependencies d))))))
+        (cond
+          ((listp d)
+           (case (car d)
+             (:version (download-system-dependencies (second d)))
+             (:feature (download-system-dependencies (third d)))
+             (:require (download-system-dependencies (second d)))))
+          ((string= "sb-" (subseq d 0 3))
+           nil)
+          (t (download-system-dependencies d)))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
