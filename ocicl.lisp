@@ -224,13 +224,21 @@ Distributed under the terms of the MIT License"
     (let* ((s (asdf:find-system name))
            (deps (asdf:system-depends-on s)))
       (dolist (d deps)
-        (when (and d (listp d))
-          (setf d (case (car d)
-                    (:version (second d))
-                    (:feature (third d))
-                    (:require (second d)))))
-        (unless (string= "sb-" (subseq d 0 3))
-          (download-system-dependencies d))))))
+        (labels ((find-system (dep)
+                   (if (and dep (listp dep))
+                       (progn
+                         (find-system (case (car dep)
+                                        (:version (second dep))
+                                        (:feature (third dep))
+                                        (:require (second dep)))))
+                       dep)))
+          (let ((dep (find-system d)))
+            (unless (string= "sb-" (subseq dep 0 3))
+              (handler-case
+                  (download-system-dependencies dep)
+                (asdf/find-component:missing-component (e)
+                  (when *verbose*
+                    (format t "; can't download ASDF dependency ~A~%" d)))))))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
@@ -760,7 +768,7 @@ Distributed under the terms of the MIT License"
                                           (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}"
                                                                                                            (subseq (namestring s) (length (namestring *systems-dir*))))))))
                                     (return t))
-                                (error (e) (format t "; error downloading ~A. Enable verbose mode for details.~%" name))))))
+                                (error (e) (when *verbose* (format t "; error downloading ~A.~%" name)))))))
               (uiop:delete-directory-tree dl-dir :validate t)))
           (write-systems-csv)
           (gethash (mangle name) *ocicl-systems*)))))
