@@ -224,15 +224,13 @@ Distributed under the terms of the MIT License"
     (let* ((s (asdf:find-system name))
            (deps (asdf:system-depends-on s)))
       (dolist (d deps)
-        (cond
-          ((listp d)
-           (case (car d)
-             (:version (download-system-dependencies (second d)))
-             (:feature (download-system-dependencies (third d)))
-             (:require (download-system-dependencies (second d)))))
-          ((string= "sb-" (subseq d 0 3))
-           nil)
-          (t (download-system-dependencies d)))))))
+        (when (and d (listp d))
+          (setf d (case (car d)
+                    (:version (second d))
+                    (:feature (third d))
+                    (:require (second d)))))
+        (unless (string= "sb-" (subseq d 0 3))
+          (download-system-dependencies d))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
@@ -509,18 +507,15 @@ Distributed under the terms of the MIT License"
                   (sb-ext:quit))))
           (let* ((slist (split-on-delimeter system #\:))
                  (name (car slist)))
-            (if (download-system system)
-                (download-system-dependencies name)
-              (progn
-                (format uiop:*stderr* "Error: system ~A not found.~%" system)
-                (sb-ext:quit))))))
-    ;; Download all systems in systems.csv.
-    (maphash (lambda (key value)
-               (declare (ignore key))
-               (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
-                 (format t "; downloading ~A~%" (car value))
-                 (download-and-install (car value))))
-             *ocicl-systems*)))
+            (when (download-system system)
+              (download-system-dependencies name)))))
+      ;; Download all systems in systems.csv.
+      (maphash (lambda (key value)
+                 (declare (ignore key))
+                 (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
+                   (format t "; downloading ~A~%" (car value))
+                   (download-and-install (car value))))
+               *ocicl-systems*)))
 
 (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
@@ -749,24 +744,23 @@ Distributed under the terms of the MIT License"
                  (progn
                    (uiop:ensure-all-directories-exist (list dl-dir))
                    (uiop:with-current-directory (dl-dir)
-                     (unless (loop for registry in *ocicl-registries*
-                                   do (handler-case
-                                          (progn
-                                            (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
-                                            (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
-                                              (format t "; downloaded ~A@~A~%" name manifest-digest)
-                                              (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
-                                                     (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
-                                                                                        (uiop:split-string (namestring abs-dirname)
-                                                                                                           :separator (list (uiop:directory-separator-for-host))))))))
-                                                (copy-directory:copy dl-dir *systems-dir*)
-                                                (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
-                                                  (debug-log #?"registering ${s}")
-                                                  (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}"
-                                                                                                                   (subseq (namestring s) (length (namestring *systems-dir*))))))))
-                                            (return t))
-                                        (error (e) (print e) (debug-log e) (sb-debug:print-backtrace))))
-                       (format t "; error downloading ~A~%" name))))
+                     (loop for registry in *ocicl-registries*
+                           do (handler-case
+                                  (progn
+                                    (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
+                                    (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
+                                      (format t "; downloaded ~A@~A~%" name manifest-digest)
+                                      (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
+                                             (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
+                                                                                (uiop:split-string (namestring abs-dirname)
+                                                                                                   :separator (list (uiop:directory-separator-for-host))))))))
+                                        (copy-directory:copy dl-dir *systems-dir*)
+                                        (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
+                                          (debug-log #?"registering ${s}")
+                                          (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}"
+                                                                                                           (subseq (namestring s) (length (namestring *systems-dir*))))))))
+                                    (return t))
+                                (error (e) (format t "; error downloading ~A. Enable verbose mode for details.~%" name))))))
               (uiop:delete-directory-tree dl-dir :validate t)))
           (write-systems-csv)
           (gethash (mangle name) *ocicl-systems*)))))
