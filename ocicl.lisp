@@ -233,7 +233,7 @@ Distributed under the terms of the MIT License"
                                         (:require (second dep)))))
                        dep)))
           (let ((dep (find-system d)))
-            (unless (string= "sb-" (subseq dep 0 3))
+            (unless (string= "sb-" (subseq (string-downcase (format nil "~A" dep)) 0 3))
               (handler-case
                   (download-system-dependencies dep)
                 (asdf/find-component:missing-component (e)
