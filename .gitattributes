@@ -1,0 +1,3 @@
+# Lisp code
+*.lisp  text eol=lf
+*.asd   text eol=lf
