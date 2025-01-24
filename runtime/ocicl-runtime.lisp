@@ -198,17 +198,17 @@
     (let ((workdir (find-workdir (uiop:getcwd))))
       (setq *local-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
                                                  workdir))
-      (setq *local-systems-csv* (merge-pathnames workdir "systems.csv"))))
+      (setq *local-systems-csv* (merge-pathnames "systems.csv" workdir))))
 
   (unless *global-systems-dir*
-    (let* ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg"))
+    (let* ((config-file (merge-pathnames "ocicl-globaldir.cfg" (get-ocicl-dir)))
            (globaldir (if (probe-file config-file)
                           (uiop:ensure-absolute-pathname (uiop:read-file-line config-file))
                           (get-ocicl-dir))))
 
       (setq *global-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
                                                   globaldir))
-      (setq *global-systems-csv* (merge-pathnames globaldir "systems.csv"))))
+      (setq *global-systems-csv* (merge-pathnames "systems.csv" globaldir))))
 
   (when (probe-file *local-systems-csv*)
     (let ((timestamp (file-write-date *local-systems-csv*)))
