@@ -238,7 +238,10 @@ Distributed under the terms of the MIT License"
                   (download-system-dependencies dep)
                 (asdf/find-component:missing-component (e)
                   (when *verbose*
-                    (format t "; can't download ASDF dependency ~A~%" d)))))))))))
+                    (format t "; can't download ASDF dependency ~A~%" d)))
+                (error (e)
+                  (when *verbose*
+                    (format t "; error processing ~A: ~A~%" d e)))))))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
