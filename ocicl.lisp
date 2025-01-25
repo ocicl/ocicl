@@ -112,7 +112,7 @@
 
 (defun usage ()
   (opts:describe
-   :prefix (format nil "ocicl ~A - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>" +version+)
+   :prefix (format nil "ocicl ~A - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>" +version+)
    :suffix "Choose from the following ocicl commands:
 
    help                                Print this help text
