@@ -744,15 +744,22 @@ Distributed under the terms of the MIT License"
   (let* ((slist (split-on-delimeter system #\:))
          (name (car slist))
          (mangled-name (mangle name))
-         (version (or (cadr slist) "latest"))
          (system-info (gethash name *ocicl-systems*))
-         (asd-file (when system-info (merge-pathnames (cdr system-info) *systems-dir*))))
+         (fullname (car system-info))
+         (relative-asd-path (cdr system-info))
+         (existing-version (when system-info
+                             (cl-ppcre:register-groups-bind (registry name digest)
+                                 ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
+                               (declare (ignore registry name))
+                               #?"sha256:${digest}")))
+         (version (or (cadr slist) existing-version "latest"))
+         (asd-file (when system-info (merge-pathnames relative-asd-path *systems-dir*))))
     (if (and (eq (length slist) 1)
              system-info
              (probe-file asd-file)
              (not *force*))
         (progn
-          (format t "; ~A:~A already exists~%" system (get-project-version (cdr (gethash name *ocicl-systems*))))
+          (format t "; ~A:~A already exists~%" system (get-project-version relative-asd-path))
           t)
         (progn
           (let ((dl-dir (get-temp-ocicl-dl-pathname)))
