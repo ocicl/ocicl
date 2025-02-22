@@ -744,8 +744,13 @@ Distributed under the terms of the MIT License"
   (let* ((slist (split-on-delimeter system #\:))
          (name (car slist))
          (mangled-name (mangle name))
-         (version (or (cadr slist) "latest")))
-    (if (and (eq (length slist) 1) (gethash name *ocicl-systems*) (not *force*))
+         (version (or (cadr slist) "latest"))
+         (system-info (gethash name *ocicl-systems*))
+         (asd-file (when system-info (merge-pathnames (cdr system-info) *systems-dir*))))
+    (if (and (eq (length slist) 1)
+             system-info
+             (probe-file asd-file)
+             (not *force*))
         (progn
           (format t "; ~A:~A already exists~%" system (get-project-version (cdr (gethash name *ocicl-systems*))))
           t)
