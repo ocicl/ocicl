@@ -594,20 +594,16 @@ Distributed under the terms of the MIT License"
 
            (setf workdir (find-workdir workdir))
 
-           (let ((original-directory (uiop:getcwd)))
-             (unwind-protect
-                 (locally
-                  (declare #+sbcl(sb-ext:muffle-conditions sb-kernel:redefinition-warning))
-                  (handler-bind
-                      (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
-                    (uiop:chdir workdir)
-                    (setq *ocicl-systems* (read-systems-csv))
-                    (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                                         (uiop:getcwd)))
-                    (if (not (> (length free-args) 0))
-                        (usage)
-                      (let ((cmd (car free-args)))
-                        (cond
+           (locally (declare #+sbcl(sb-ext:muffle-conditions sb-kernel:redefinition-warning))
+             (handler-bind (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
+               (uiop:with-current-directory (workdir)
+                 (setq *ocicl-systems* (read-systems-csv))
+                 (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+                                                      (uiop:getcwd)))
+                 (if (not (> (length free-args) 0))
+                     (usage)
+                     (let ((cmd (car free-args)))
+                       (cond
                          ((string= cmd "help")
                           (usage))
                          ((string= cmd "libyear")
@@ -621,11 +617,10 @@ Distributed under the terms of the MIT License"
                          ((string= cmd "list")
                           (do-list (cdr free-args)))
                          ((string= cmd "setup")
-                            (do-setup (cdr free-args)))
+                          (do-setup (cdr free-args)))
                          ((string= cmd "version")
                           (do-version (cdr free-args)))
-                         (t (usage)))))))
-                   (uiop:chdir original-directory))))))
+                         (t (usage)))))))))))
        (with-user-abort:user-abort () (sb-ext:exit :code 130))))
 
 (defun replace-plus-with-string (str)
