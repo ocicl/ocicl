@@ -32,6 +32,7 @@ to work with the following Common Lisp implementations:
 - [abcl](https://abcl.org)
 - [ecl](https://gitlab.com/embeddable-common-lisp)
 - [SBCL](https://www.sbcl.org/)
+- [Allegro Common Lisp](https://franz.com/products/allegro-common-lisp/)
 
 However, the ``ocicl`` command-line tool currently must be built with
 SBCL on either Linux, Windows or MacOS.  Adapting to other systems and
