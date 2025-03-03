@@ -739,7 +739,7 @@ Distributed under the terms of the MIT License"
   (let* ((slist (split-on-delimeter system #\:))
          (name (car slist))
          (mangled-name (mangle name))
-         (system-info (gethash name *ocicl-systems*))
+         (system-info (gethash mangled-name *ocicl-systems*))
          (fullname (car system-info))
          (relative-asd-path (cdr system-info))
          (existing-version (when system-info
