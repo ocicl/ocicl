@@ -180,9 +180,11 @@ Distributed under the terms of the MIT License"
                              (format t "~T~A~%" tag))
                            (return)))
                      (error (e)
+                       (declare (ignore e))
                        (format t "~T~A(~A) not found~%" system registry))))
           (format t "~%")))
     (sb-int:broken-pipe (e)
+      (declare (ignore e))
       ())))
 
 (defun get-ocicl-dir ()
@@ -208,6 +210,7 @@ Distributed under the terms of the MIT License"
                         (repository (get-repository-name registry)))
                    (multiple-value-bind (manifest manifest-digest)
                        (get-manifest registry #?"${system}-changes.txt" version)
+                     (declare (ignore manifest-digest))
                      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
                             (changes (dex:get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
                                               :force-string t
@@ -215,6 +218,7 @@ Distributed under the terms of the MIT License"
                                               :headers `(("Authorization" . ,#?"Bearer ${token}")))))
                        (return-from get-changes changes)))))
              (error (e)
+               (declare (ignore e))
                )))
   (format nil "No documented changes for ~A:~A" system version))
 
@@ -237,6 +241,7 @@ Distributed under the terms of the MIT License"
               (handler-case
                   (download-system-dependencies dep)
                 (asdf/find-component:missing-component (e)
+                  (declare (ignore e))
                   (when *verbose*
                     (format t "; can't download ASDF dependency ~A~%" d)))
                 (error (e)
@@ -309,7 +314,6 @@ Distributed under the terms of the MIT License"
           (delete-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))))
 
   (let* ((odir (get-ocicl-dir))
-         (gdir (or (car args) odir))
          (runtime-source (merge-pathnames odir "ocicl-runtime.lisp"))
          (asdf-source (merge-pathnames odir "asdf.lisp")))
     (with-open-file (stream asdf-source
@@ -406,6 +410,7 @@ Distributed under the terms of the MIT License"
                        (uiop:read-file-string pfile)))
       ;; If the tgz file doesn't include _00_OCICL_NAME, the infer it from the directory name.
       (file-error (e)
+        (declare (ignore e))
         (let ((last-dash-position (position #\- tld :from-end t)))
           (cond
             ((position #\. (subseq tld last-dash-position))
@@ -423,6 +428,7 @@ Distributed under the terms of the MIT License"
           (string-trim '(#\Space #\Tab #\Newline #\Return)
                        (uiop:read-file-string vfile)))
       (file-error (e)
+        (declare (ignore e))
         ;; If the tgz file doesn't include _00_OCICL_VERSION, the infer it from the directory name.
         (subseq tld (1+ (position #\- tld :from-end t)))))))
 
@@ -500,7 +506,9 @@ Distributed under the terms of the MIT License"
                                    (dolist (v versions)
                                      (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle value) v))))
                                  (when *verbose* (format t "~A~%" (format-line project-name nil nil))))))
-                       (error (e) ()))))
+                       (error (e)
+                         (declare (ignore e))
+                         ()))))
                  projects))))
 
 (defun do-install (args)
@@ -582,7 +590,7 @@ Distributed under the terms of the MIT License"
                          (opts:option condition)))
                (opts:arg-parser-failed (condition)
                  (format t "fatal: cannot parse ~s as argument of ~s~%"
-                         (raw-arg condition)
+                         (opts:raw-arg condition)
                          (opts:option condition))))
            (when-option (options :verbose)
                         (setf *verbose* t))
@@ -694,6 +702,7 @@ Distributed under the terms of the MIT License"
                  :verbose *verbose*
                  :headers `(("Authorization" . ,#?"Bearer ${token}")
                             ("Accept" . "application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json")))
+      (declare (ignore status))
       (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers)))))
 
 (defun get-blob (registry system tag dl-dir)
@@ -711,6 +720,7 @@ Distributed under the terms of the MIT License"
         (handler-bind
             ((tar-simple-extract:broken-or-circular-links-error
               (lambda (condition)
+                (declare (ignore condition))
                 (invoke-restart 'continue))))
           (tar:with-open-archive (a input)
                                  (tar-simple-extract:simple-extract-archive a :directory dl-dir)))
@@ -728,6 +738,7 @@ Distributed under the terms of the MIT License"
                    (cl-ppcre:register-groups-bind (registry name digest)
                        ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
                      (let ((manifest-digest (get-blob registry name #?"sha256:${digest}" dl-dir)))
+                       (declare (ignore manifest-digest))
                        (copy-directory:copy dl-dir *systems-dir*))))
                (error (e)
                  (format t "; error downloading and installing ~A~%" fullname)
@@ -748,9 +759,10 @@ Distributed under the terms of the MIT License"
                                (declare (ignore registry name))
                                #?"sha256:${digest}")))
          (version (or (cadr slist) existing-version "latest"))
-         (asd-file (when system-info (merge-pathnames relative-asd-path *systems-dir*))))
+         (asd-file (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*))))
     (if (and (eq (length slist) 1)
              system-info
+             asd-file
              (probe-file asd-file)
              (not *force*))
         (progn
@@ -778,7 +790,9 @@ Distributed under the terms of the MIT License"
                                           (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}"
                                                                                                            (subseq (namestring s) (length (namestring *systems-dir*))))))))
                                     (return t))
-                                (error (e) (when *verbose* (format t "; error downloading ~A.~%" name)))))))
+                                (error (e)
+                                  (declare (ignore e))
+                                  (when *verbose* (format t "; error downloading ~A.~%" name)))))))
               (uiop:delete-directory-tree dl-dir :validate t)))
           (write-systems-csv)
           (gethash (mangle name) *ocicl-systems*)))))
