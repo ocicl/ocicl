@@ -1,0 +1,15 @@
+dependencies:
+  cache_directories:
+    - ~/lisp
+  pre:
+    - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh;
+    - case $CIRCLE_NODE_INDEX in
+        0) ros config set default.lisp sbcl-bin ;;
+        1) ros install ccl-bin;
+           ros config set default.lisp ccl-bin ;;
+      esac
+    - ros run -- --version
+
+test:
+  override:
+    - ros -s prove -e '(or (prove:run :defclass-std-test) (uiop:quit -1))': {parallel: true}

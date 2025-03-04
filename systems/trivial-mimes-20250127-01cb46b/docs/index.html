@@ -1,0 +1,84 @@
+<!DOCTYPE html> <html lang="EN"> <head> <meta charset="utf-8"> <title>Trivial Mimes</title> <style>html body{margin:0 auto 0 auto;padding:20px;max-width:1024px;font-family:sans-serif;font-size:14pt;overflow-y:scroll;}html body a{text-decoration:none;}html body a[href]{color:#0055AA;}html body a[href]:hover{color:#0088EE;}html body pre{background:#FAFAFA;border:1px solid #DDDDDD;padding:0.75em;overflow-x:auto;}html body pre >code a[href]{color:#223388;}article.project h1{font-size:1.7em;}article.project h1,article.project h2,article.project h3,article.project h4,article.project h5,article.project h6{margin:0.2em 0 0.1em 0;text-indent:1em;}article.project >header{text-align:center;}article.project >header img.logo{display:block;margin:auto;max-height:170px;}article.project >header h1{display:inline-block;text-indent:0;font-size:2.5em;}article.project >header .version{vertical-align:bottom;}article.project >header .languages{margin-top:-0.5em;text-transform:capitalize;}article.project >header .description{margin:0;}article.project >header .pages{margin-top:0.5em;font-size:1.2em;text-transform:capitalize;}article.project >header .pages a{display:inline-block;padding:0 0.2em;}article.project >section{margin:1em 0 1em 0;}article.project >section img{max-width:100%;}article.project #index >ul{list-style:none;margin:0;padding:0;}article.project .row label{display:inline-block;min-width:8em;}article.project #system .row{display:flex;}article.project #system #dependencies{display:inline;margin:0;padding:0;}article.project #system #dependencies li{display:inline;padding:0 0.2em;}article.project #system #author label{vertical-align:top;}article.project #system #author ul{display:inline-block;margin:0;padding:0;list-style:none;}article.project #toc nav>*{margin-left:1em;display:block;}article.definition{margin:1em 0 0 0;}article.definition >header h1,article.definition >header h2,article.definition >header h3,article.definition >header h4,article.definition >header h5,article.definition >header h6{text-indent:0;display:inline-block;}article.definition >header ul{display:inline-block;list-style:none;margin:0;padding:0;}article.definition >header ul li{display:inline-block;padding:0 0.2em 0 0;}article.definition >header .visibility{display:none;}article.definition >header .visibility,article.definition >header .type{text-transform:lowercase;}article.definition >header .source-link{visibility:hidden;float:right;}article.definition >header .source-link:after{visibility:visible;content:"[SRC]";}article.definition .docstring{margin:0 0 0 1em;}article.definition .docstring pre{font-size:0.8em;white-space:pre-wrap;}.definition.package >header ul.nicknames{display:inline-block;list-style:none;margin:0;padding:0 0 0 1em;}.definition.package >header ul.nicknames li{display:inline;}.definition.package >header ul.nicknames:before{content:"(";}.definition.package >header ul.nicknames:after{content:")";}.definition.package ul.definitions{margin:0;list-style:none;padding:0 0 0 0.5em;}.definition.callable >header .name:before,.definition.type >header .name:before{content:"(";font-weight:normal;}.definition.callable >header .arguments:after,.definition.type >header .arguments:after{content:")";}.definition.callable >header .arguments .arguments:before,.definition.type >header .arguments .arguments:before{content:"(";}.definition.callable >header .arguments .argument,.definition.type >header .arguments .argument{padding:0;}.definition.callable >header .arguments .argument.lambda-list-keyword,.definition.type >header .arguments .argument.lambda-list-keyword{color:#991155;}.definition li>mark{background:none;border-left:0.3em solid #0088EE;padding-left:0.3em;display:block;}@media (min-width: 1300px){html body{padding-left:16em;}article.project #toc{margin:0;position:fixed;left:0;top:0;bottom:0;width:15em;overflow-y:auto;background:#F0F0F0;border-right:1px solid #A0A0A0;}}</style> </head> <body> <article class="project"> <header>   <h1>trivial mimes</h1>   <span class="version">1.1.0</span>    <p class="description">Tiny library to detect mime types in files.</p>   </header> <section id="toc"> <h2>Table of Contents</h2> <nav> <a href="#project">Top</a>  <a href="#documentation">Documentation</a> <nav> <a href="#about_trivial-mimes">About Trivial-Mimes</a>  <a href="#how_to">How To</a> </nav>  <a href="#system">System</a>  <a href="#system">Packages</a> <nav> <a href="#PACKAGE%20TRIVIAL-MIMES">TRIVIAL-MIMES</a> </nav>  </nav> </section>  <section id="documentation"><h2 id="about_trivial-mimes">About Trivial-Mimes</h2> <p>This is a teensy library that provides some functions to determine the mime-type of a file. As I've had a need for this kind of functionality more than once now and haven't found any suitably lightweight alternative I quickly whipped this up.</p> <h2 id="how_to">How To</h2> <pre><code>(<a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME" class="xref">mimes:mime</a> #p&quot;~/something.png&quot;)</code></pre> <p>Upon loading, trivial-mimes builds a mime-type database from the local <code>mime.types</code> file or a copy thereof from its own source directory. This database is a simple association of file extension to mime-type (see <code><a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME-LOOKUP" class="xref">mime-lookup</a></code>). If the mime lookup in the database fails, it will instead try to consult the <code>file</code> shell utility on unix systems (see <code><a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME-PROBE" class="xref">mime-probe</a></code>). If that too doesn't work, it falls back onto a default.</p> </section>    <section id="system"> <h2>System Information</h2>  <div class="row"> <label for="version">Version:</label> <a id="version">1.1.0</a> </div>    <div class="row" id="author"> <label for="author">Author:</label> <a href="mailto:shinmera@tymoon.eu">Yukari Hafner</a> </div>   <div class="row"> <label for="license">License:</label> <a id="license" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/LICENSE">zlib</a> </div>   <div class="row"> <label for="homepage">Homepage:</label> <a id="homepage" href="https://Shinmera.github.io/trivial-mimes/">https://Shinmera.github.io/trivial-mimes/</a> </div>   <div class="row"> <label for="bug-tracker">Bug Tracker:</label> <a id="bug-tracker" href="https://github.com/Shinmera/trivial-mimes/issues">https://github.com/Shinmera/trivial-mimes/issues</a> </div>   <div class="row"> <label for="sources">Sources:</label> <a id="sources" href="https://github.com/Shinmera/trivial-mimes.git">https://github.com/Shinmera/trivial-mimes.git</a> </div>  </section>    <section id="index"> <h2>Definition Index</h2> <ul> <li> <article class="definition package" id="PACKAGE TRIVIAL-MIMES"> <header> <h3> <a href="#PACKAGE%20TRIVIAL-MIMES">TRIVIAL-MIMES</a> </h3> <ul class="nicknames"> <li>MIMES</li>  <li>ORG.TYMOONNEXT.TRIVIAL-MIMES</li> </ul>  </header> <div class="docstring"><i>No documentation provided.</i></div> <ul class="definitions"> <li> <article class="definition special-variable" id="VARIABLE TRIVIAL-MIMES:*MIME-DB*"> <header> <span class="visibility">EXTERNAL</span> <span class="type">SPECIAL-VARIABLE</span> <h4 class="name"> <a href="#VARIABLE%20TRIVIAL-MIMES%3A%2AMIME-DB%2A">*MIME-DB*</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L26">Source</a>  </header> <div class="docstring"><pre>An EQUALP hash-table with file-extensions as keys and the mime-types as values.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-MIMES:FIND-MIME.TYPES"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-MIMES%3AFIND-MIME.TYPES">FIND-MIME.TYPES</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L18">Source</a>  </header> <div class="docstring"><pre>Attempts to find a usable MIME.TYPES file.
+If none can be found, an error is signalled.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-MIMES:MIME"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME">MIME</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">PATHNAME</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">DEFAULT</li>    <li class="argument lambda-list-keyword">&amp;REST</li>  </ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L96">Source</a>  </header> <div class="docstring"><pre>Attempts to detect the mime-type of the given pathname.
+First uses MIME-LOOKUP, then MIME-PROBE and lastly returns the DEFAULT if both fail.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-MIMES:MIME-ADD"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME-ADD">MIME-ADD</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">MIME</li>    <li class="argument lambda-list-keyword">&amp;REST</li>    <li class="argument">FILE-EXTENSIONS</li>    <li class="argument lambda-list-keyword">&amp;REST</li>  </ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L53">Source</a>  </header> <div class="docstring"><pre>Add MIME and FILE-EXTENSIONS associations to *MIME-DB* and *REVERSE-MIME-DB*.
+Makes the provided MIME and FILE-EXTENSIONS properly look-up-able with
+MIME, MIME-PROBE and other trivial-mimes functions.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-MIMES:MIME-EQUAL"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME-EQUAL">MIME-EQUAL</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">M1</li>    <li class="argument">M2</li>    <li class="argument lambda-list-keyword">&amp;REST</li>  </ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L108">Source</a>  </header> <div class="docstring"><pre>Checks whether M1 and M2 are matching.
+
+In particular, checks the match of type and subtype (any of which can
+be asterisks), discarding any parameters there might be.
+
+(mime-equal &quot;text/*&quot; &quot;text/html&quot;)
+T
+
+(mime-equal &quot;text/html&quot; &quot;text/html;charset=utf8&quot;)
+T
+
+(mime-equal &quot;*/*&quot; &quot;application/octet-stream&quot;)
+T
+
+(mime-equal &quot;text/*&quot; &quot;application/octet-stream&quot;)
+NIL</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-MIMES:MIME-FILE-TYPE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME-FILE-TYPE">MIME-FILE-TYPE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">MIME-TYPE</li>    <li class="argument lambda-list-keyword">&amp;REST</li>  </ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L103">Source</a>  </header> <div class="docstring"><pre>Returns a matching file-extension for the given mime-type.
+If the given mime-type cannot be found, NIL is returned.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-MIMES:MIME-LOOKUP"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME-LOOKUP">MIME-LOOKUP</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">PATHNAME</li>    <li class="argument lambda-list-keyword">&amp;REST</li>  </ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L91">Source</a>  </header> <div class="docstring"><pre>Attempts to get the mime-type by file extension comparison.
+If none can be found, NIL is returned.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-MIMES:MIME-PROBE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-MIMES%3AMIME-PROBE">MIME-PROBE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">PATHNAME</li>    <li class="argument lambda-list-keyword">&amp;REST</li>  </ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L74">Source</a>  </header> <div class="docstring"><pre>Attempts to get the mime-type through a call to the FILE shell utility.
+If the file does not exist or the platform is not unix, NIL is returned.</pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION TRIVIAL-MIMES:MIME-CASE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20TRIVIAL-MIMES%3AMIME-CASE">MIME-CASE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">FILE</li>    <li class="argument lambda-list-keyword">&amp;BODY</li>    <li class="argument">CASES</li>    <li class="argument lambda-list-keyword">&amp;REST</li>  </ul>  <a class="source-link" href="https://github.com/Shinmera/trivial-mimes/blob/1a801939594f1496fae097352033414590811b91/mime-types.lisp#L145">Source</a>  </header> <div class="docstring"><pre>A case-like macro that works with MIME type of FILE.
+
+Otherwise clause is the last clause that starts with T or OTHERWISE,.
+
+Example:
+(mime-case #p&quot;~/CHANGES.txt&quot;
+  ((&quot;application/json&quot; &quot;application/*&quot;) &quot;Something opaque...&quot;)
+  (&quot;text/plain&quot; &quot;That's a plaintext file :D&quot;)
+  (t &quot;I don't know this type!&quot;))</pre></div> </article> </li> </ul> </article> </li> </ul> </section>  </article> <script>window.addEventListener("DOMContentLoaded", function(){
+    var unmarkElement = function(el){
+        if(el.tagName === "mark" || el.tagName === "MARK"){
+            [].forEach.call(el.childNodes, function(child){
+                el.parentNode.insertBefore(child, el);
+            });
+            el.parentNode.removeChild(el);
+        }else if(el.parentNode.tagName === "mark"){
+            return unmarkElement(el.parentNode);
+        }
+        return null;
+    }
+
+    var unmarkAll = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("mark"), unmarkElement);
+    }
+    
+    var markElement = function(el){
+        if(el.parentNode.tagName === "mark" || el.parentNode.tagName === "MARK"){
+            return el.parentNode;
+        } else {
+            unmarkAll();
+            var marked = document.createElement("mark");
+            el.parentNode.insertBefore(marked, el);
+            marked.appendChild(el);
+            return marked;
+        }
+    }
+
+    var markFragmented = function(){
+        if(window.location.hash){
+            var el = document.getElementById(decodeURIComponent(window.location.hash.substr(1)));
+            if(el) markElement(el);
+        }
+    }
+
+    var registerXrefLink = function(link){
+        var el = document.getElementById(decodeURIComponent(link.getAttribute("href").substr(1)));
+        if(el){
+            link.addEventListener("click", function(){
+                markElement(el);
+            });
+        }
+    }
+
+    var registerXrefLinks = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("a.xref"), registerXrefLink);
+    }
+
+    markFragmented();
+    registerXrefLinks();
+}); </script> </body> </html> 

@@ -1,0 +1,34 @@
+language: lisp
+sudo: required
+
+env:
+  matrix:
+    - LISP=abcl
+    - LISP=allegro
+    - LISP=sbcl
+    - LISP=sbcl32
+    - LISP=ccl
+    - LISP=ccl32
+    - LISP=ecl
+    - LISP=clisp
+    - LISP=clisp32
+    - LISP=cmucl
+
+matrix:
+  allow_failures:
+    # Disabled until issue #6 is fixed.
+    - env: LISP=clisp
+    - env: LISP=clisp32
+    # Disabled until cim supports cmucl.
+    - env: LISP=cmucl
+
+install:
+  - curl -L https://github.com/tokenrove/cl-travis/raw/master/install.sh | sh
+  - if [ "${LISP:(-2)}" = "32" ]; then
+      sudo apt-get install -qq -y libc6-dev-i386;
+    fi
+
+script:
+  - cl -e '(ql:quickload :anaphora/test)
+           (unless (asdf:oos :test-op :anaphora/test)
+             (uiop:quit 1))'
