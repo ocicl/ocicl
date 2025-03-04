@@ -34,6 +34,7 @@
 (defvar *verbose* nil)
 (defvar *force* nil)
 (defvar *ocicl-systems* nil)
+(defvar *inhibit-download-during-search* nil)
 
 (defparameter +version+ #.(uiop:read-file-form "version.sexp"))
 
@@ -118,6 +119,7 @@
    help                                Print this help text
    changes [SYSTEM[:VERSION]]...       Display changes
    install [SYSTEM[:VERSION]]...       Install systems
+   remove  [SYSTEM]...                 Remove systems
    latest [SYSTEM]...                  Install latest version of systems
    libyear                             Calculate the libyear dependency freshness metric
    list SYSTEM...                      List available system versions
@@ -180,9 +182,11 @@ Distributed under the terms of the MIT License"
                              (format t "~T~A~%" tag))
                            (return)))
                      (error (e)
+                       (declare (ignore e))
                        (format t "~T~A(~A) not found~%" system registry))))
           (format t "~%")))
     (sb-int:broken-pipe (e)
+      (declare (ignore e))
       ())))
 
 (defun get-ocicl-dir ()
@@ -208,6 +212,7 @@ Distributed under the terms of the MIT License"
                         (repository (get-repository-name registry)))
                    (multiple-value-bind (manifest manifest-digest)
                        (get-manifest registry #?"${system}-changes.txt" version)
+                     (declare (ignore manifest-digest))
                      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
                             (changes (dex:get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
                                               :force-string t
@@ -215,6 +220,7 @@ Distributed under the terms of the MIT License"
                                               :headers `(("Authorization" . ,#?"Bearer ${token}")))))
                        (return-from get-changes changes)))))
              (error (e)
+               (declare (ignore e))
                )))
   (format nil "No documented changes for ~A:~A" system version))
 
@@ -237,6 +243,7 @@ Distributed under the terms of the MIT License"
               (handler-case
                   (download-system-dependencies dep)
                 (asdf/find-component:missing-component (e)
+                  (declare (ignore e))
                   (when *verbose*
                     (format t "; can't download ASDF dependency ~A~%" d)))
                 (error (e)
@@ -309,7 +316,6 @@ Distributed under the terms of the MIT License"
           (delete-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))))
 
   (let* ((odir (get-ocicl-dir))
-         (gdir (or (car args) odir))
          (runtime-source (merge-pathnames odir "ocicl-runtime.lisp"))
          (asdf-source (merge-pathnames odir "asdf.lisp")))
     (with-open-file (stream asdf-source
@@ -406,6 +412,7 @@ Distributed under the terms of the MIT License"
                        (uiop:read-file-string pfile)))
       ;; If the tgz file doesn't include _00_OCICL_NAME, the infer it from the directory name.
       (file-error (e)
+        (declare (ignore e))
         (let ((last-dash-position (position #\- tld :from-end t)))
           (cond
             ((position #\. (subseq tld last-dash-position))
@@ -423,6 +430,7 @@ Distributed under the terms of the MIT License"
           (string-trim '(#\Space #\Tab #\Newline #\Return)
                        (uiop:read-file-string vfile)))
       (file-error (e)
+        (declare (ignore e))
         ;; If the tgz file doesn't include _00_OCICL_VERSION, the infer it from the directory name.
         (subseq tld (1+ (position #\- tld :from-end t)))))))
 
@@ -500,7 +508,9 @@ Distributed under the terms of the MIT License"
                                    (dolist (v versions)
                                      (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle value) v))))
                                  (when *verbose* (format t "~A~%" (format-line project-name nil nil))))))
-                       (error (e) ()))))
+                       (error (e)
+                         (declare (ignore e))
+                         ()))))
                  projects))))
 
 (defun do-install (args)
@@ -527,6 +537,141 @@ Distributed under the terms of the MIT License"
                    (format t "; downloading ~A~%" (car value))
                    (download-and-install (car value))))
                *ocicl-systems*)))
+
+(defun system-group (system)
+  "Return systems that are in the same directory tree as SYSTEM"
+  (let* ((subsystems)
+         (mangled-name (mangle system))
+         (system-info (gethash mangled-name *ocicl-systems*))
+         (relative-asd-path (cdr system-info))
+         (absolute-asd-path (when system-info (merge-pathnames relative-asd-path *systems-dir*)))
+         (system-directory (when absolute-asd-path
+                             (merge-pathnames
+                              (make-pathname
+                               :directory
+                               `(:relative
+                                 ,(second
+                                   (pathname-directory
+                                    (enough-namestring absolute-asd-path *systems-dir*)))))
+                              *systems-dir*))))
+    (when system-info
+      (maphash (lambda (k v)
+                 (let* ((subsystem-name k)
+                        (fullname (car v))
+                        (relative-asd-path (cdr v))
+                        (absolute-asd-path (merge-pathnames relative-asd-path *systems-dir*))
+                        (enough-directory (pathname-directory (enough-namestring absolute-asd-path system-directory))))
+                   (when (or (not enough-directory) (eql :relative (car enough-directory)))
+                     (pushnew (list subsystem-name fullname) subsystems :test #'equal))))
+               *ocicl-systems*))
+    subsystems))
+
+(defun remove-system (system)
+  (let* ((slist (split-on-delimeter system #\:))
+         (name (car slist))
+         (mangled-name (mangle name))
+         (system-info (gethash mangled-name *ocicl-systems*))
+         (fullname (car system-info))
+         (relative-asd-path (cdr system-info))
+         (absolute-asd-path (when system-info (merge-pathnames relative-asd-path *systems-dir*)))
+         (system-directory (when system-info (uiop:pathname-directory-pathname absolute-asd-path)))
+         (system-group (system-group system)))
+    (unless system-info
+      (format t "; no system to remove: ~A~%" name))
+    (when system-info
+      (dolist (system system-group)
+        (remhash (car system) *ocicl-systems*)))
+    (when (and system-directory (uiop:directory-exists-p system-directory))
+      (uiop:delete-directory-tree
+       system-directory
+       :validate (lambda (path)
+                   ;; ensure directory being deleted is a subdirectory of *systems-dir*
+                   (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
+      (format t "; removed ~A~%" (file-namestring fullname)))))
+
+(defun do-remove (systems)
+  (labels ((find-system (system)
+             "ASDF:FIND-SYSTEM if the asd file from systems.csv exists"
+             (let* ((mangled-name (mangle system))
+                    (system-info (gethash mangled-name *ocicl-systems*))
+                    (relative-asd-path (cdr system-info))
+                    (absolute-asd-path (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*)))
+                    (*error-output* (if *verbose* *error-output* (make-broadcast-stream))))
+               (when (and system-info absolute-asd-path (probe-file absolute-asd-path))
+                 (handler-case (asdf:find-system system nil)
+                   (error (e) (declare (ignore e))
+                     (format *error-output* "~a~%" e))))))
+           (dependency-name (dependency)
+             "Resolve DEPENDENCY name"
+             (if (consp dependency)
+                 (dependency-name (case (car dependency)
+                                    (:version (second dependency))
+                                    (:feature (third dependency))
+                                    (:require (second dependency))))
+                 dependency)))
+    (let* ((*inhibit-download-during-search* t)
+           (*compile-verbose* nil)
+           (all-systems ;; a dependency graph like (((system group-system...) dep ...) ...)
+             (let ((systems)
+                   (*compile-verbose* nil))
+               (maphash (lambda (k v)
+                          (declare (ignore v))
+                          (let ((system (find-system (unmangle k))))
+                            (when system
+                              (let* ((depends-on (asdf:system-depends-on system))
+                                     (depends-on-names (mapcar #'dependency-name depends-on)))
+                                (push (cons
+                                       (asdf:component-name system)
+                                       depends-on-names)
+                                      systems)))))
+                        *ocicl-systems*)
+               systems))
+           (seen (make-hash-table :test #'equal))
+           (not-removed))
+      (labels ((dependency-tree (system)
+                 (let* ((spec (assoc system all-systems :test #'equal))
+                        (system (car spec))
+                        (system-deps (cdr spec)))
+                   (when spec
+                     (cons
+                      system
+                      (remove nil (mapcar #'dependency-tree system-deps))))))
+               (remove-trees (depend-tree &optional graph)
+                 (dolist (tree depend-tree)
+                   (destructuring-bind (system . depend-tree) tree
+                     (let* ((system-group (mapcar (lambda (system) (unmangle (car system)))
+                                                  (system-group system)))
+                            (depended-on (rassoc system-group graph
+                                                 :test (lambda (a b)
+                                                         (intersection a b :test #'equal)))))
+                       (cond ((gethash system-group seen) nil)
+                             (depended-on
+                              (push (list system-group (car depended-on)) not-removed)
+                              (setf (gethash system-group seen) t))
+                             (system-group
+                              (setf (gethash system-group seen) t)
+                              (remove-system (car system-group))
+                              (when depend-tree
+                                (remove-trees depend-tree graph)))))))))
+        (if *force*
+            (mapcar #'remove-system systems)
+            (let* ((*print-pretty* nil)
+                   (existing-systems (remove-if-not #'find-system systems))
+                   (nonexistent-systems (remove-if #'find-system systems))
+                   (dependency-trees (mapcar #'dependency-tree existing-systems))
+                   (flat-dependencies (alexandria:flatten dependency-trees))
+                   (flat-groups (mapcar (lambda (system)
+                                          (mapcar (lambda (group) (unmangle (car group)))
+                                                  (system-group system)))
+                                        flat-dependencies))
+                   ;; don't consider groups to remove as dependant systems
+                   (graph (set-difference all-systems flat-groups
+                                          :test (lambda (a b)
+                                                  (member (car a) b :test #'equal)))))
+              (format t "~{; no system to remove: ~A~^~%~}~&" nonexistent-systems)
+              (remove-trees dependency-trees graph)
+              (format t "~{~{; not removing systems ~a, depended on by: ~a~}~^~%~}~&" not-removed)))
+        (write-systems-csv)))))
 
 (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
@@ -582,7 +727,7 @@ Distributed under the terms of the MIT License"
                          (opts:option condition)))
                (opts:arg-parser-failed (condition)
                  (format t "fatal: cannot parse ~s as argument of ~s~%"
-                         (raw-arg condition)
+                         (opts:raw-arg condition)
                          (opts:option condition))))
            (when-option (options :verbose)
                         (setf *verbose* t))
@@ -612,6 +757,8 @@ Distributed under the terms of the MIT License"
                           (do-changes (cdr free-args)))
                          ((string= cmd "install")
                           (do-install (cdr free-args)))
+                         ((string= cmd "remove")
+                          (do-remove (cdr free-args)))
                          ((string= cmd "latest")
                           (do-latest (cdr free-args)))
                          ((string= cmd "list")
@@ -632,6 +779,10 @@ Distributed under the terms of the MIT License"
     (if (char= (char mangled (- (length mangled) 1)) #\_)
         (subseq mangled 0 (- (length mangled) 1))
       mangled)))
+
+(defun unmangle (str)
+  (let ((final-plus (ppcre:regex-replace-all "_plus$" str "+")))
+    (ppcre:regex-replace-all "_plus_"  final-plus "+")))
 
 (defun mangle (str)
   (replace-plus-with-string (car (split-on-delimeter str #\/))))
@@ -694,6 +845,7 @@ Distributed under the terms of the MIT License"
                  :verbose *verbose*
                  :headers `(("Authorization" . ,#?"Bearer ${token}")
                             ("Accept" . "application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json")))
+      (declare (ignore status))
       (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers)))))
 
 (defun get-blob (registry system tag dl-dir)
@@ -711,6 +863,7 @@ Distributed under the terms of the MIT License"
         (handler-bind
             ((tar-simple-extract:broken-or-circular-links-error
               (lambda (condition)
+                (declare (ignore condition))
                 (invoke-restart 'continue))))
           (tar:with-open-archive (a input)
                                  (tar-simple-extract:simple-extract-archive a :directory dl-dir)))
@@ -728,6 +881,7 @@ Distributed under the terms of the MIT License"
                    (cl-ppcre:register-groups-bind (registry name digest)
                        ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
                      (let ((manifest-digest (get-blob registry name #?"sha256:${digest}" dl-dir)))
+                       (declare (ignore manifest-digest))
                        (copy-directory:copy dl-dir *systems-dir*))))
                (error (e)
                  (format t "; error downloading and installing ~A~%" fullname)
@@ -739,7 +893,7 @@ Distributed under the terms of the MIT License"
   (let* ((slist (split-on-delimeter system #\:))
          (name (car slist))
          (mangled-name (mangle name))
-         (system-info (gethash name *ocicl-systems*))
+         (system-info (gethash mangled-name *ocicl-systems*))
          (fullname (car system-info))
          (relative-asd-path (cdr system-info))
          (existing-version (when system-info
@@ -748,9 +902,10 @@ Distributed under the terms of the MIT License"
                                (declare (ignore registry name))
                                #?"sha256:${digest}")))
          (version (or (cadr slist) existing-version "latest"))
-         (asd-file (when system-info (merge-pathnames relative-asd-path *systems-dir*))))
+         (asd-file (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*))))
     (if (and (eq (length slist) 1)
              system-info
+             asd-file
              (probe-file asd-file)
              (not *force*))
         (progn
@@ -778,21 +933,23 @@ Distributed under the terms of the MIT License"
                                           (setf (gethash (mangle (pathname-name s)) *ocicl-systems*) (cons #?"${registry}/${mangled-name}@${manifest-digest}"
                                                                                                            (subseq (namestring s) (length (namestring *systems-dir*))))))))
                                     (return t))
-                                (error (e) (when *verbose* (format t "; error downloading ~A.~%" name)))))))
+                                (error (e)
+                                  (declare (ignore e))
+                                  (when *verbose* (format t "; error downloading ~A.~%" name)))))))
               (uiop:delete-directory-tree dl-dir :validate t)))
           (write-systems-csv)
           (gethash (mangle name) *ocicl-systems*)))))
 
 (defun find-asdf-system-file (name)
-  (pathname
-   (concatenate 'string
-                (namestring *systems-dir*)
-                (or (cdr (gethash (mangle name) *ocicl-systems*))
-                    (handler-case
-                        (cdr (download-system name))
-                      (error (e)
-                        (declare (ignore e))
-                        nil))))))
+  (let ((known-system (gethash (mangle name) *ocicl-systems*)))
+    (cond (known-system
+           (probe-file (merge-pathnames (cdr known-system) *systems-dir*)))
+          ((not *inhibit-download-during-search*)
+           (handler-case
+               (probe-file (merge-pathnames (cdr (download-system name)) *systems-dir*))
+             (error (e)
+               (declare (ignore e))
+               nil))))))
 
 (defun system-definition-searcher (name)
   (unless (or (string= name "asdf") (string= name "uiop"))
