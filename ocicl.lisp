@@ -34,6 +34,7 @@
 (defvar *verbose* nil)
 (defvar *force* nil)
 (defvar *ocicl-systems* nil)
+(defvar *inhibit-download-during-search* nil)
 
 (defparameter +version+ #.(uiop:read-file-form "version.sexp"))
 
@@ -594,9 +595,12 @@ Distributed under the terms of the MIT License"
              (let* ((mangled-name (mangle system))
                     (system-info (gethash mangled-name *ocicl-systems*))
                     (relative-asd-path (cdr system-info))
-                    (absolute-asd-path (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*))))
+                    (absolute-asd-path (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*)))
+                    (*error-output* (if *verbose* *error-output* (make-broadcast-stream))))
                (when (and system-info absolute-asd-path (probe-file absolute-asd-path))
-                 (asdf:find-system system nil))))
+                 (handler-case (asdf:find-system system nil)
+                   (error (e) (declare (ignore e))
+                     (format *error-output* "~a~%" e))))))
            (dependency-name (dependency)
              "Resolve DEPENDENCY name"
              (if (consp dependency)
@@ -605,8 +609,7 @@ Distributed under the terms of the MIT License"
                                     (:feature (third dependency))
                                     (:require (second dependency))))
                  dependency)))
-    (let* ((asdf:*system-definition-search-functions* ;; don't install new things while autoremoving
-             (remove 'system-definition-searcher asdf:*system-definition-search-functions*))
+    (let* ((*inhibit-download-during-search* t)
            (*compile-verbose* nil)
            (all-systems ;; a dependency graph like (((system group-system...) dep ...) ...)
              (let ((systems)
@@ -938,15 +941,15 @@ Distributed under the terms of the MIT License"
           (gethash (mangle name) *ocicl-systems*)))))
 
 (defun find-asdf-system-file (name)
-  (pathname
-   (concatenate 'string
-                (namestring *systems-dir*)
-                (or (cdr (gethash (mangle name) *ocicl-systems*))
-                    (handler-case
-                        (cdr (download-system name))
-                      (error (e)
-                        (declare (ignore e))
-                        nil))))))
+  (let ((known-system (gethash (mangle name) *ocicl-systems*)))
+    (cond (known-system
+           (probe-file (merge-pathnames (cdr known-system) *systems-dir*)))
+          ((not *inhibit-download-during-search*)
+           (handler-case
+               (probe-file (merge-pathnames (cdr (download-system name)) *systems-dir*))
+             (error (e)
+               (declare (ignore e))
+               nil))))))
 
 (defun system-definition-searcher (name)
   (unless (or (string= name "asdf") (string= name "uiop"))
