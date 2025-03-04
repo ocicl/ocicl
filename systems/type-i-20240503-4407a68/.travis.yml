@@ -1,0 +1,42 @@
+language: common-lisp
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - libc6-i386
+      - clisp
+      # - openjdk-7-jre
+
+env:
+  global:
+    - PATH=~/.roswell/bin:$PATH
+    - ROSWELL_INSTALL_DIR=$HOME/.roswell
+  matrix:
+    - LISP=sbcl-bin
+    - LISP=ccl-bin
+    - LISP=ecl
+    - LISP=cmucl
+    - LISP=abcl
+    - LISP=clisp
+    - LISP=alisp
+
+matrix:
+  allow_failures:
+    - env: LISP=clisp
+    - env: LISP=alisp
+    - env: LISP=cmucl
+    - env: LISP=ecl
+    - env: LISP=abcl
+
+install:
+  - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh
+  - ( cd ~/lisp/ ; git clone https://github.com/guicho271828/trivia.git )
+
+cache:
+  directories:
+    - $HOME/.roswell
+    - $HOME/.config/common-lisp
+
+script:
+  - ros testscr.ros

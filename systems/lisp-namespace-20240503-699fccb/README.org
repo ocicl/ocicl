@@ -1,0 +1,224 @@
+
+[[https://travis-ci.org/guicho271828/lisp-namespace][https://travis-ci.org/guicho271828/lisp-namespace.svg?branch=master]]
+
+
+#+BEGIN_SRC
+Long time ago, in a galaxy far far away... 
+
+It is a period of a civil war. Lisp-2
+aliens, striking from the function
+namespace, have fought for the
+design of their language against lisp-1.
+#+END_SRC
+
+tl;dr; → skip to API definition https://github.com/guicho271828/lisp-namespace#macro-define-namespace
+
++ update (2016/5/14) : added support for `documentation` and `describe`.
++ update (2016/5/21) : works on ECL, CLISP, ABCL and CMUCL.
+
+* Introduction
+
+# However, destructuring is merely
+# a syntax sugar for writing the accessor.
+
+There are several libraries which extends =let=. To my knowledge,
+most of them goes toward destructuring, e.g., allowing
+=&some-fancy-directive= in the argument list.  However, destructuring is
+now **obsolete**: superseded by pattern-matching (e.g. fare-matcher, optima, trivia), which
+cleanly combines =cond=, =typecase=, destructuring and constructors[1].
+Now it comes to my mind: what could be the *orthogonal* aspect
+that could be combined with =let=, or, =let + cond = pattern matching= ?
+
+Then I noticed an oddness in flet, macrolet, labels, let,
+symbol-macrolet. Pattern matching works in the value namespace only. 
+# Also,
+# while special bindings for /namespaces/ can be trivially implemented with a
+# hash table, the lexical binding is not
+--- it's worth a library.  This is
+what this library is for.
+
+[1] Like =(cons A B)= matching clause vs =(cons A B)= constructor.
+
+* Namespaces in CL?
+
+By /namespace/ I don't mean a /package/,
+which is a way to manage symbols. It is orthogonal to /namespace/.
+
+CL already has major 2 namespaces, /function/ namespace and /value/
+namespace (or /variable/ namespace), but there are actually more --- e.g.,
+/class/ namespace. Since the same symbol can represent different
+objects in each namespace, this is obviously orthogonal to /package/.
+For example, all these below can coexist in a
+same file without errors, and each object is accessible with the
+corresponding function.
+
+#+BEGIN_SRC lisp
+(in-package :cl-user)
+
+(defclass foo () ())
+(defun foo () nil)
+(defvar foo 1)
+
+(find-class 'foo)      ; -> #<STANDARD-CLASS FOO>
+(symbol-function 'foo) ; -> #<FUNCTION FOO>
+(symbol-value 'foo)    ; -> 1
+
+(make-instance 'bar)   ; -> SIMPLE-ERROR
+(symbol-function 'bar) ; -> UNDEFINED-FUNCTION
+(symbol-value 'bar)    ; -> UNBOUND-VARIABLE
+#+END_SRC
+
+| namespace | accessor        | unbound condition  | boundp  | binding     |
+|-----------+-----------------+--------------------+---------+-------------|
+| class     | find-class      | SIMPLE-ERROR       | n/a     | n/a         |
+| function  | symbol-function | UNDEFINED-FUNCTION | fboundp | flet,labels |
+| value     | symbol-value    | UNBOUND-VARIABLE   | boundp  | let         |
+
+/Some/ namespaces in CL can be said to overlap with each other. For example:
+
++ *class* namespace --- with *type*, *condition* and *struct* namespace
++ *function* namspace --- with *macro-function* and *generic-function* namespace
++ *value* namespace --- with *symbol-macro* namespace.
+
+** Macro DEFINE-NAMESPACE
+
+: (define-namespace name &optional (expected-type t) (binding t) (documentation ""))
+
+This macro defines a namespace. For the given name of namespace X,
+DEFINE-NAMESPACE defines 4 functions/macros:
+
++ =#'symbol-x, #'(setf symbol-x)= : accessor to the global binding. Optionally,
+  =expected-type= provides =ftype= proclamation and results in the
+  better optimization. =expected-type= is not evaluated.
++ =#'x-boundp= : unary function returning a boolean
++ condition =UNBOUND-X= which is signaled when trying to access the value of an unbounded symbol.
++ macro =(X-LET (binding...) body)= : lexical binding. Can be turned off
+  when =binding= is nil.
+
+** Extending the usability of =documentation= and =describe=
+
+=define-namespace= also defines a method for =cl:documentation= and extend =cl:describe-object=. For example, you will be able to =(setf (documentation 'mysymbol 'x) "description")= and you will see it pretty printed in =(describe 'mysymbol)=.
+
+Here is an example used in TRIVIA pattern matcher. Trivia has an =assoc= pattern, and everyone would feel happy if we can browse the documentation of this pattern from SLIME C-c C-d. Below is such an output on SBCL.
+
+While such a practice is taken by some libraries (e.g. QL-HTTP and Stefil defines =describe= methods), those facility is made independently, and this feature is not much popular.
+
+#+begin_src diff
+COMMON-LISP:ASSOC
+  [symbol]
+
+ASSOC names a compiled function:
+  Lambda-list: (ITEM ALIST &KEY KEY (TEST NIL TESTP)
+                (TEST-NOT NIL NOTP))
+  Declared type: (FUNCTION
+                  (T LIST &KEY (:KEY (OR FUNCTION SYMBOL))
+                   (:TEST (OR FUNCTION SYMBOL))
+                   (:TEST-NOT (OR FUNCTION SYMBOL)))
+                  (VALUES LIST &OPTIONAL))
+  Documentation:
+    Return the cons in ALIST whose car is equal (by a given test or EQL) to
+       the ITEM.
+  Known attributes: call, foldable, flushable, unsafely-flushable
+  Source file: SYS:SRC;CODE;LIST.LISP
+
++Symbol ASSOC is bound in a namespace PATTERN:
++  Value: #<FUNCTION 'ASSOC {1004B19A0B}>
++  Documentation:
++    It matches when the object X is a list, and then further matches the contents
++    returned by (cdr (assoc item X...)) against SUBPATTERN.
++    If :KEY and :TEST is specified, they are passed to ASSOC.
+#+end_src
+
+Note that /namespace/ itself has its own namespace. The optional argument =documentation= to =define-namespace= is a docstring of the namespace itself. It will be set to =(setf (documentation NAME 'namespace) documentation)= and will also be visible from =describe=.
+
+Examples are in [[EXAMPLE.org]] .
+
+* Expected Usecase?
+
+Every time you want to define a =define-cool-object= macro. E.g.,
+
++ in [[https://github.com/guicho271828/eazy-project][eazy-project]], [[https://github.com/guicho271828/eazy-project/blob/master/src/defmenu.lisp#L24][defmenu]]
++ in [[https://github.com/AccelerationNet/function-cache][function-cache]], [[https://github.com/AccelerationNet/function-cache/blob/master/src/cache.lisp#L4][defcached]] (currently implemented with hash tables)
++ in [[https://github.com/m2ym/optima][optima]], [[https://github.com/m2ym/optima/blob/master/src/pattern.lisp#L337][defpattern and pattern-expand-function]] (currently implemented
+  with symbol properties)
++ in [[https://github.com/Bike/compiler-macro][compiler-macro]], [[https://github.com/Bike/compiler-macro/blob/master/hint.lisp#L10][define-compiler-hinter]] (currently implemented with hash tables)
++ in [[https://github.com/cffi/cffi][cffi]], [[https://github.com/cffi/cffi/blob/master/src/libraries.lisp#L129][define-foreign-library]] (currently implemented with hash tables)
+ 
+* Other misc
+
+** Macro NAMESPACE-LET / NSLET
+
+=LET= with ability to lexically bind any value in the namespace.
+It currently supports /function, labels, value, symbol-macro, macrolet,
+restart, handler/ [2] namespaces and the user-defined namespaces.
+
+Full examples are in [[EXAMPLE.org]] .
+
+#+BEGIN_SRC lisp
+(namespace-let ((#'x (y) (1+ y))
+                ((macro x) (y) (1+ y))
+                ((macro y) (y) (1+ y))
+                (#'x (y) (1+ y))
+                ((label y) (y) (y y))
+                ((symbol-macro sm) 0)
+                (b 0))
+  (let ((b 1))
+    (print :x)))
+
+;; (PROGN
+;;  (FLET ((X (Y) (1+ Y)))
+;;    (MACROLET ((X (Y) (1+ Y))
+;;               (Y (Y) (1+ Y))) ; same kinds of bindings are merged
+;;      (FLET ((X (Y) (1+ Y)))
+;;        (LABELS ((Y (Y) (Y Y)))
+;;          (SYMBOL-MACROLET ((SM 0))
+;;            (LET ((B 0))
+;;              (PROGN
+;;               (LET ((B 1))
+;;                 (PRINT :X))))))))))
+#+END_SRC
+
+[2] restarts and handlers have the dynamic scope only.
+
+** Package LISP-NAMESPACE
+
+it has =(:nicknames lispn)= .
+
+
+
+* Design?
+
+I'm wondering which abbreviation to =namespace-let= is appropriate.
+It should be something consistent with the historic name as =let=.
+However, I do not like names like =let+= because they are not
+self-expressive --- =let+= does not describe how it's different from the
+original =let=.  =bind= and =where= are not considered good either, due to the
+similar reason.
+
+I adopted =nslet=, thanks to masatoi0@twitter's
+advice. However, there is another alternative: Make it =let= and force the
+user to shadow =cl:let=?  (nah I don't like it.)  I'm still searching for a
+crazy bright idea.
+
+Here are the remaining TODOs:
+
++ X-let does not recognize =(declare (special ...))= currently.
+
+* Dependencies
+
+This library is at least tested on implementation listed below:
+
++ SBCL 1.2.8 on X86 Linux 3.13.0-44-generic (author's environment)
++ CCL 1.10-r16196  (LinuxX8664)
+
+Also, it depends on the following libraries:
+
++ alexandria by ** :
+    Alexandria is a collection of portable public domain utilities.
+
+
+* Author & Copyright
+
+Copyright (c) 2015 Masataro Asai (guicho2.71828@gmail.com)
+
+Licensed under the LLGPL License.

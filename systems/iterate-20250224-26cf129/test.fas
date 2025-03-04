@@ -1,0 +1,140 @@
+(|SYSTEM|::|VERSION| '(20100806.))
+#0Y_ #0Y |CHARSET|::|UTF-8|
+#Y(#:|1 1 (IN-PACKAGE :COMMON-LISP-USER)-1|
+   #17Y(00 00 00 00 00 00 00 00 20 01 DA 31 F6 0F 01 19 01)
+   ("COMMON-LISP-USER" |COMMON-LISP|::|*PACKAGE*|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|3 3 (REQUIRE :ASDF)-2| #15Y(00 00 00 00 00 00 00 00 20 01 DA 2F 01 19 01)
+   (:|ASDF| |COMMON-LISP|::|REQUIRE|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|5 12 (ASDF/OUTPUT-TRANSLATIONS:INITIALIZE-OUTPUT-TRANSLATIONS `(:OUTPUT-TRANSLATIONS # :IGNORE-INHERITED-CONFIGURATION))-3|
+   #36Y(00 00 00 00 00 00 00 00 20 01 DA 64 38 08 C6 FB C7 FA F9 72 05 6B 03 38
+        02 72 03 7B 02 C9 5D 7A 2F 05 19 01)
+   (:|OUTPUT-TRANSLATIONS| (:|RELATIVE| "test" "cache" :|WILD-INFERIORS|)
+    :|WILD| |COMMON-LISP|::|*LOAD-TRUENAME*|
+    (:|IGNORE-INHERITED-CONFIGURATION|)
+    |ASDF/OUTPUT-TRANSLATIONS|::|INITIALIZE-OUTPUT-TRANSLATIONS|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4|
+   #34Y(01 00 00 00 00 00 00 00 20 01 DA DB 57 02 B0 36 00 19 07 58 67 00 00 01
+        76 00 AD 36 01 18 01 00 19 02)
+   (#Y(#:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1|
+       #13Y(00 00 00 00 00 00 00 00 20 01 C5 19 01)
+       (#Y(#:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1-1|
+           #22Y(00 00 00 00 01 00 00 00 20 02 DA 6B 01 AF 33 02 15 DC 2F 03 19
+                02)
+           (#Y(#:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1-1-1|
+               #33Y(00 00 00 00 02 00 00 00 21 18 00 10 00 B2 31 98 DB B3 38 02
+                    31 95 B1 B3 31 90 B2 31 97 A1 11 19 04)
+               (|SYSTEM|::|*FORMAT-CS*|
+                "Received error attempting to load ITERATE ASDF system definition:\n")
+               (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+            |COMMON-LISP|::|*STANDARD-OUTPUT*| 4. |UIOP/IMAGE|::|DIE|)
+           (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|)))
+       (|COMMON-LISP|::|NIL| |COMMON-LISP|::|NIL| |COMMON-LISP|::|NIL|))
+    #Y(#:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-2|
+       #28Y(00 00 00 00 00 00 00 00 20 01 38 08 C5 FA C6 F9 72 05 6B 02 38 02
+            72 03 2F 03 19 01)
+       ("iterate" "asd" |COMMON-LISP|::|*LOAD-TRUENAME*|
+        |ASDF/FIND-SYSTEM|::|LOAD-ASD|)
+       (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+    (#(|COMMON-LISP|::|ERROR| 9.) 0. . 0.))
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|22 22 (FORMAT T "~&Successfully loaded the iterate ASD file.~%")-5|
+   #18Y(00 00 00 00 00 00 00 00 20 01 DA 6B 01 33 01 15 19 01)
+   (#Y(#:|22 22 (FORMAT T "~&Successfully loaded the iterate ASD file.~%")-5-1|
+       #26Y(00 00 00 00 01 00 00 00 21 17 00 10 00 B1 31 98 DB B2 38 02 31 95
+            A1 11 19 03)
+       (|SYSTEM|::|*FORMAT-CS*| "Successfully loaded the iterate ASD file.\n")
+       (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+    |COMMON-LISP|::|*STANDARD-OUTPUT*|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|24 30 (ASDF/FIND-SYSTEM:LOAD-ASD (MERGE-PATHNAMES # *LOAD-TRUENAME*))-6|
+   #30Y(00 00 00 00 00 00 00 00 20 01 38 08 C5 FA C6 F9 C7 FB 72 05 6B 03 38 02
+        72 03 2F 04 19 01)
+   ("rt" "asd" (:|RELATIVE| "ext" "rt") |COMMON-LISP|::|*LOAD-TRUENAME*|
+    |ASDF/FIND-SYSTEM|::|LOAD-ASD|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|33 37 (IF (NOT #) (PROGN # #) ...)-7|
+   #33Y(00 00 00 00 00 00 00 00 20 01 DA 89 01 08 E0 6B 03 33 01 15 19 01 DC 6B
+        03 33 01 15 DE 2F 05 19 01)
+   ("iterate" |ASDF/SYSTEM|::|FIND-SYSTEM|
+    #Y(#:|33 37 (IF (NOT #) (PROGN # #) ...)-7-1|
+       #26Y(00 00 00 00 01 00 00 00 21 17 00 10 00 B1 31 98 DB B2 38 02 31 95
+            A1 11 19 03)
+       (|SYSTEM|::|*FORMAT-CS*|
+        "Unable to find the iterate ASDF system definition.\n")
+       (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+    |COMMON-LISP|::|*STANDARD-OUTPUT*| 1. |UIOP/IMAGE|::|QUIT|
+    #Y(#:|33 37 (IF (NOT #) (PROGN # #) ...)-7-2|
+       #26Y(00 00 00 00 01 00 00 00 21 17 00 10 00 B1 31 98 DB B2 38 02 31 95
+            A1 11 19 03)
+       (|SYSTEM|::|*FORMAT-CS*| "Found iterate ASDF system definition.\n")
+       (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|)))
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|39 39 (DEFVAR *BUILD-ERROR* NIL)-8|
+   #24Y(00 00 00 00 00 00 00 00 20 01 DA 31 62 DB 8C 57 04 DB 63 31 5A C6 19
+        01)
+   ((|COMMON-LISP|::|SPECIAL| |COMMON-LISP-USER|::|*BUILD-ERROR*|)
+    |COMMON-LISP-USER|::|*BUILD-ERROR*|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|40 40 (DEFVAR *BUILD-WARNING* NIL)-9|
+   #24Y(00 00 00 00 00 00 00 00 20 01 DA 31 62 DB 8C 57 04 DB 63 31 5A C6 19
+        01)
+   ((|COMMON-LISP|::|SPECIAL| |COMMON-LISP-USER|::|*BUILD-WARNING*|)
+    |COMMON-LISP-USER|::|*BUILD-WARNING*|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|42 52 (CATCH 'BUILD-FAILED (HANDLER-BIND # #))-10|
+   #47Y(03 00 01 00 00 00 00 00 20 01 C5 50 20 57 01 DF 2F 06 16 04 51 19 01 58
+        AC 2F 02 AC 0E 03 5D 0F 03 18 03 01 19 02 58 9D 0F 04 DA 02 52 19 01)
+   (|COMMON-LISP-USER|::|BUILD-FAILED|
+    (#(|COMMON-LISP|::|WARNING| 13. |COMMON-LISP|::|ERROR| 28.) 2. . 1.)
+    |COMMON-LISP|::|SIGNAL| |COMMON-LISP-USER|::|*BUILD-WARNING*|
+    |COMMON-LISP-USER|::|*BUILD-ERROR*| "iterate"
+    |ASDF/OPERATE|::|LOAD-SYSTEM|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|54 60 (COND (*BUILD-ERROR* #) (*BUILD-WARNING* #) ...)-11|
+   #42Y(00 00 00 00 00 00 00 00 20 01 0E 00 1C 0E 0E 04 1D 10 DF E0 0E 04 14 2D
+        03 03 19 01 DB DC 0E 00 1B 74 E1 6B 08 33 01 15 19 01)
+   (|COMMON-LISP-USER|::|*BUILD-ERROR*| 1.
+    "ITERATE build failed with an error: ~a.~%" |UIOP/IMAGE|::|DIE|
+    |COMMON-LISP-USER|::|*BUILD-WARNING*| 2.
+    "ITERATE build failed with warnings:~%~{~t~a~%~}"
+    #Y(#:|54 60 (COND (*BUILD-ERROR* #) (*BUILD-WARNING* #) ...)-11-1|
+       #23Y(00 00 00 00 01 00 00 00 21 17 00 10 00 DB B2 38 02 31 95 A1 11 19
+            03)
+       (|SYSTEM|::|*FORMAT-CS*| "ITERATE build successful.\n")
+       (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+    |COMMON-LISP|::|*STANDARD-OUTPUT*|)
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+#Y(#:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12|
+   #34Y(01 00 00 00 00 00 00 00 20 01 DA DB 57 02 B0 36 00 19 07 58 67 00 00 01
+        76 00 AD 36 01 18 01 00 19 02)
+   (#Y(#:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1|
+       #13Y(00 00 00 00 00 00 00 00 20 01 C5 19 01)
+       (#Y(#:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1|
+           #41Y(00 00 00 00 01 00 00 00 20 02 AD DA 72 A6 DB 71 E1 8B 02 09 DD
+                6B 04 33 01 15 DF 2F 06 E1 6B 04 AF 33 02 15 E2 2F 06 19 02)
+           (#:|UNEXPECTED-FAILURES-ERROR| |COMMON-LISP-USER|::|ITERATE.TEST|
+            |COMMON-LISP|::|TYPEP|
+            #Y(#:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1-1|
+               #26Y(00 00 00 00 01 00 00 00 21 17 00 10 00 B1 31 98 DB B2 38 02
+                    31 95 A1 11 19 03)
+               (|SYSTEM|::|*FORMAT-CS*|
+                "Catching unexpected failures error.\n")
+               (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+            |COMMON-LISP|::|*STANDARD-OUTPUT*| 2. |UIOP/IMAGE|::|QUIT|
+            #Y(#:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1-2|
+               #33Y(00 00 00 00 02 00 00 00 21 18 00 10 00 B2 31 98 DB B3 38 02
+                    31 95 B1 B3 31 90 B2 31 97 A1 11 19 04)
+               (|SYSTEM|::|*FORMAT-CS*| "Caught unexpected error ")
+               (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+            3.)
+           (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|)))
+       (|COMMON-LISP|::|NIL| |COMMON-LISP|::|NIL| |COMMON-LISP|::|NIL|))
+    #Y(#:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-2|
+       #18Y(00 00 00 00 00 00 00 00 20 01 DA 2F 01 DC 2F 03 19 01)
+       ("iterate" |ASDF/OPERATE|::|TEST-SYSTEM| 0. |UIOP/IMAGE|::|QUIT|)
+       (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))
+    (#(|COMMON-LISP|::|ERROR| 9.) 0. . 0.))
+   (|COMMON-LISP|::|T| |COMMON-LISP|::|T| |COMMON-LISP|::|T|))

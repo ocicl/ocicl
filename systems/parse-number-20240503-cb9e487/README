@@ -1,0 +1,23 @@
+-*- Outline -*-
+
+PARSE-NUMBER is a library of functions which accept an arbitrary
+string and attempt to parse it, if possible into one of the standard
+Common Lisp number types without using the reader, or else signal an
+error of type INVALID-NUMBER
+
+* Functions
+
+ PARSE-NUMBER (string &key start end radix)
+
+ PARSE-REAL-NUMBER (string &key start end radix)
+
+ PARSE-POSITIVE-REAL-NUMBER (string &key start end radix)
+
+* Error conditions
+
+ INVALID-NUMBER (inherits PARSE-ERROR)
+
+** Accessors
+
+ INVALID-NUMBER-VALUE
+ INVALID-NUMBER-REASON

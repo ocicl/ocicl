@@ -1,0 +1,94 @@
+
+* Type-I : type-inference from a predicate
+
+This library tries to provide a way to detect what kind of type the given
+predicate is trying to check. *This is different from inferring the return
+type of a function.* For example,
+
+#+BEGIN_SRC lisp
+
+(eq 'null (test-type '(eql nil ?)))
+
+(eq 'string (test-type '(stringp ?)))
+
+#+END_SRC
+
+The inference is done on form basis, and the equivalence of predicates are
+determined by =#'equal=. To simplify the design, the argument to check
+should be a symbol =?=, exported in package =type-i=.
+
+Function =test-type= returns the inferred type. In contrast, =type-tests=
+returns a list of all possible test predicates that returns true when =?=
+is bound to the object of interest.
+
+#+BEGIN_SRC lisp
+  (is (subset '((TYPEP ? 'integer)
+                (integerp ?))
+              (type-tests 'integer)))
+
+  ;; more inference on integers, e.g., (< 0 ? 4), should be added
+  (is (subset '((TYPEP ? '(mod 5))
+                (TYPEP ? '(integer 0 4)))
+              (type-tests '(mod 5))))
+
+#+END_SRC
+
+This library is extensible. with =define-inference-rule= macro, you can add
+more inferers to improve this library. Each inference rule is a unary
+function that takes a predicate form, then returns a list of more
+forms.
+
+The =test-type= searches in the form space, adding the results of each
+inference rule, until a form =(typep ? X)= is found (where X is
+unknown). If it fails to find such a form even if the maximal set
+is obtained, then the =test-type= returns nil. =type-tests= just returns
+the maximal set.
+
+I currently implemented the following inference rules:
+
+- typep -- =(typep ? 'array)= -> =(arrayp ?)= etc.
+- unary -- =(arrayp ?)= -> =(typep ? 'array) (typep ? '(array)) (typep ?
+  '(array *))= ...
+- null -- =(null ?) (typep ? null) (eql ? nil) (eql nil ?) (eq ? nil)= ...
+- derived -- call =typexpand=
+
+Inference on exhaustive partitions, e.g., =(typep ? 'list)= -> =(typep ?
+'(or cons null))= is planned.
+
+** Dependencies
+
+This library is at least tested on implementation listed below:
+
++ SBCL 1.2.8 on X86-64 Linux  3.13.0-46-generic (author's environment)
+
+Also, it depends on the following libraries:
+
++ Trivia by Masataro Asai ::
+     NON-Optimized Pattern Matching Library
+
++ alexandria by  ::
+    Alexandria is a collection of portable public domain utilities.
+
++ iterate by  ::
+    Jonathan Amsterdam's iterator/gatherer/accumulator facility
+
++ introspect-environment by Bike <aeshtaer@gmail.com> ::
+    Small interface to portable but nonstandard introspection of CL environments.
+
+
+
+** Author
+
++ Masataro Asai (guicho2.71828@gmail.com)
+
+* Copyright
+
+Copyright (c) 2015 Masataro Asai (guicho2.71828@gmail.com)
+
+
+* License
+
+Licensed under the LLGPL License.
+
+
+

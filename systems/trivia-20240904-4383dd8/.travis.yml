@@ -1,0 +1,42 @@
+language: common-lisp
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - libc6-i386
+      - clisp
+      # - openjdk-7-jre
+
+env:
+  global:
+    - PATH=~/.roswell/bin:$PATH
+    - ROSWELL_INSTALL_DIR=$HOME/.roswell
+  matrix:
+    - LISP=ecl
+    - LISP=cmucl
+    - LISP=sbcl-bin
+    - LISP=ccl-bin
+    - LISP=abcl
+    - LISP=clisp
+    - LISP=alisp
+
+matrix:
+  allow_failures:
+    - env: LISP=clisp
+    - env: LISP=alisp
+    - env: LISP=cmucl           # fare-quasiquote does not work on cmu
+    - env: LISP=abcl            # cffi does not work on abcl
+
+install:
+  - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh
+  - ( cd ~/lisp/ ; git clone https://github.com/guicho271828/lisp-namespace.git )
+  - ( cd ~/lisp/ ; git clone https://github.com/guicho271828/type-i.git )
+
+cache:
+  directories:
+    - $HOME/.roswell
+    - $HOME/.config/common-lisp
+
+script:
+  - ros testscr.ros

@@ -1,0 +1,1316 @@
+u\input texinfo   @c -*- Mode: Texinfo; Mode: auto-fill -*-
+@c %**start of header
+@setfilename parse-declarations.info
+@settitle Parse-Declarations API Documentation
+@exampleindent 2
+
+
+@c The header of this texinfo file was taken and adapted from CFFI's
+@c manual which was written by James Bielman, Luis Oliveira, and
+@c Stephen Compall.
+
+
+@c @documentencoding utf-8
+
+@c Style notes:
+@c
+@c * The reference section names and "See Also" list are roman, not
+@c   @code.  This is to follow the format of CLHS.
+@c
+@c * How it looks in HTML is the priority.
+
+@c ============================= Macros =============================
+@c The following macros are used throughout this manual.
+
+@set CLHS   http://www.lispworks.com/documentation/HyperSpec/Body
+@set ISSUES http://www.lispworks.com/documentation/HyperSpec/Issues
+
+@macro clhs
+@acronym{CLHS}
+@end macro
+
+@macro ansi
+@acronym{ANSI}
+@end macro
+
+@macro Function {args}
+@defun \args\
+@end defun
+@end macro
+
+@macro Macro {args}
+@defmac \args\
+@end defmac
+@end macro
+
+@macro Accessor {args}
+@deffn {Accessor} \args\
+@end deffn
+@end macro
+
+@macro GenericFunction {args}
+@deffn {Generic Function} \args\
+@end deffn
+@end macro
+
+@macro Method {args}
+@deffn {Method} \args\
+@end deffn
+@end macro
+
+@macro Class {args}
+@deftp {Class} \args\
+@end deftp
+@end macro
+
+@macro Variable {args}
+@defvr {Special Variable} \args\
+@end defvr
+@end macro
+
+@macro Condition {args}
+@deftp {Condition Type} \args\
+@end deftp
+@end macro
+
+@macro impnote {text}
+@quotation
+@strong{Implementor's note:} @emph{\text\}
+@end quotation
+@end macro
+
+@c Info "requires" that x-refs end in a period or comma, or ) in the
+@c case of @pxref.  So the following implements that requirement for
+@c the "See also" subheadings that permeate this manual, but only in
+@c Info mode.
+@ifinfo
+@macro seealso {name}
+@ref{\name\}.
+@end macro
+@end ifinfo
+
+@ifnotinfo
+@alias seealso = ref
+@end ifnotinfo
+
+@c Set ROMANCOMMENTS to get comments in roman font.
+@ifset ROMANCOMMENTS
+@alias lispcmt = r
+@end ifset
+@ifclear ROMANCOMMENTS
+@alias lispcmt = asis
+@end ifclear
+
+@c My copy of makeinfo is not generating any HTML for @result{} for
+@c some odd reason. (It certainly used to...)
+@ifhtml
+@macro result
+=>
+@end macro
+@end ifhtml
+
+@c Similar macro to @result. Its purpose is to work around the fact
+@c that &rArr; does not work properly inside @lisp.
+@ifhtml
+@macro res
+@html
+&rArr;
+@end html
+@end macro
+@end ifhtml
+
+@ifnothtml
+@alias res = result
+@end ifnothtml
+
+@c ============================= Macros =============================
+
+
+@c Show types, functions, and concepts in the same index.
+@syncodeindex tp cp
+@syncodeindex fn cp
+
+@copying
+Copyright @copyright{} 2008 Tobias C. Rittweiler <trittweiler at common-lisp.net> @*
+
+@quotation
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+``Software''), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+@sc{The software is provided ``as is'', without warranty of any kind,
+express or implied, including but not limited to the warranties of
+merchantability, fitness for a particular purpose and noninfringement.
+In no event shall the authors or copyright holders be liable for any
+claim, damages or other liability, whether in an action of contract,
+tort or otherwise, arising from, out of or in connection with the
+software or the use or other dealings in the software.}
+@end quotation
+@end copying
+@c %**end of header
+
+@titlepage
+@title Parse-Declarations API Documentation
+@subtitle Version 1.0
+
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top, Introduction, (dir), (dir)
+@top Parse-Declarations API Documentation
+@insertcopying
+@end ifnottex
+
+@menu
+* Introduction::                
+* API::                         
+* Examples::                    
+* Glossary::                    
+* Comprehensive Index::         
+@end menu
+
+
+@c ===================================================================
+@c CHAPTER: Introduction
+
+@node Introduction, API, Top, Top
+@chapter Introduction
+
+@sc{Parse-Declarations} is a Common Lisp library to help writing macros which establish bindings. To
+be semantically correct, such macros must take user declarations into account, as these may
+affect the bindings they establish. Yet the @ansi{} standard of Common Lisp does not provide any
+operators to work with declarations in a convenient, high-level way.
+
+This library provides such operators. In particular, it includes facilities to
+
+@itemize @bullet
+@item
+parse a @code{&BODY} parameter into body forms, declarations, and documentation string
+(@pxref{parse-body}),
+@item
+parse declarations into a special data structure ``@ref{declaration-env}'' (@pxref{parse-declarations}),
+@item
+filter declaration specifiers stored in such a data structure conveniently
+(@pxref{filter-declaration-env}),
+@item
+construct actual declarations again for macros to expand to (@pxref{build-declarations}).
+@end itemize
+
+All declaration specifiers defined by the @ansi{} standard are understood.  Furthermore,
+@sc{Parse-Declarations} provides ways for the user to customize how unknown declaration specifiers
+are parsed. In particular, it allows users to
+
+@itemize @bullet
+@item
+extend the set of known declaration specifiers (see @ref{analyze-declaration-specifier} and
+@ref{build-declaration-specifier}),
+@item
+parse any declaration specifier (including the standardized ones) in arbitrary ways
+(@pxref{map-declaration-env}).
+@end itemize
+
+@c ===================================================================
+@c CHAPTER: API
+
+@node API, Examples, Introduction, Top
+@chapter API
+
+The API.
+
+@menu
+* analyze-declaration-specifier::  
+* build-declaration-specifier::  
+* build-declarations::          
+* check-declaration-env::       
+* declaration-env::             
+* declaration-env-p::           
+* declaration-env.affected-variables::  
+* declaration-env.policy::      
+* filter-declaration-env::      
+* map-declaration-env::         
+* merge-declaration-envs::      
+* parse-body::                  
+* parse-declarations::          
+@end menu
+
+
+@c ===================================================================
+@c ANALYZE-DECLARATION-SPECIFIER
+
+@node analyze-declaration-specifier, build-declaration-specifier, API, API
+@unnumberedsec analyze-declaration-specifier
+@subheading Syntax
+@GenericFunction{analyze-declaration-specifier declaration-identifier declaration-args compilation-env
+                 @res{} result-identifier, result-args, context}
+
+@subheading Method signatures
+
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_declar.htm, declaration})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_dynami.htm, dynamic-extent})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_ftype.htm, ftype})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_ignore.htm, ignore})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_ignore.htm, ignorable})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_inline.htm, inline})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_inline.htm, notinline})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_optimi.htm, optimize})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_specia.htm, special})) args env}
+@Method{analyze-declaration-specifier (id (eql '@uref{@value{CLHS}/d_type.htm, type})) args env}
+@Method{analyze-declaration-specifier (id @uref{@value{CLHS}/t_class.htm, class}) args env}
+@Method{analyze-declaration-specifier (id @uref{@value{CLHS}/t_cons.htm, cons}) args env}
+@Method{analyze-declaration-specifier (id @uref{@value{CLHS}/t_symbol.htm, symbol}) args env}
+@Method{analyze-declaration-specifier id args env}
+
+@subheading Arguments and Values
+
+@table @var
+@item declaration-identifier
+A @ref{declaration identifier}.
+
+@item declaration-args
+A list of @ref{declaration arguments}.
+
+@item compilation-env
+An @uref{@value{CLHS}/26_glo_e.htm#environment_object, environment object}.
+
+@item result-identifier
+A @ref{declaration identifier}.
+
+@item result-args
+A list of @ref{declaration arguments}.
+
+@item context
+An @uref{@value{CLHS}/26_glo_o.htm#object, object}.
+@end table
+
+@subheading Description
+
+The generic function @ref{analyze-declaration-specifier} is used by @ref{parse-declarations} to
+split an arbitrary @ref{declaration specifier} into semantically-interesting parts. These parts are
+returned as @uref{@value{CLHS}/26_glo_m.htm#multiple_values, multiple values}.
+
+At the moment, the following three values are returned:
+
+@enumerate
+@item
+The @ref{declaration identifier} of the @ref{declaration specifier}. This may be a different identifier
+than the one @ref{analyze-declaration-specifier} has been called with, for normalization purposes.
+
+@item
+A list of @ref{normalized binding names} that are affected by the @ref{declaration specifier}.
+
+@item
+An arbitrary @uref{@value{CLHS}/26_glo_o.htm#object, object} called the ``context'' that is used by
+@ref{build-declaration-specifier}, along with the other two return values above, to reconstruct the
+@ref{declaration specifier}.
+@end enumerate
+
+@subheading Examples
+
+@lisp
+PARSE-DECLARATIONS> (analyze-declaration-specifier 'optimize '((speed 0) debug) nil)
+@result{} OPTIMIZE
+@result{} NIL
+@result{} ((SPEED 0) DEBUG)
+PARSE-DECLARATIONS> (analyze-declaration-specifier 'type '(fixnum x y z) nil)
+@result{} TYPE
+@result{} (X Y Z)
+@result{} FIXNUM
+PARSE-DECLARATIONS> (analyze-declaration-specifier 'inline '(f g h) nil)
+@result{} INLINE
+@result{} (#'F #'G #'H)
+@result{} NIL
+PARSE-DECLARATIONS> (analyze-declaration-specifier '(string 512) '(str1 str2) nil)
+@result{} TYPE
+@result{} (STR1 STR2)
+@result{} (STRING 512)
+@end lisp
+
+@subheading Exceptional Situations
+
+None.
+
+@subheading See Also
+@seealso{build-declaration-specifier} @*
+@seealso{parse-declarations}
+
+@subheading Notes
+
+The @var{compilation-env} is provided for @uref{@value{CLHS}/26_glo_m.htm#method, methods} that have
+to deal with @uref{@value{CLHS}/26_glo_t.htm#type_specifier, type specifiers}.
+Cf. @uref{@value{ISSUES}/iss334.htm, X3J13 Issue #334}.
+
+The @uref{@value{CLHS}/26_glo_d.htm#default_method, default method} of
+@ref{analyze-declaration-specifier} will construct an @ref{unknown declaration specifier} whose
+``context'' is the passed @var{declaration-args}. This is mostly interesting to know for usages of
+@ref{map-declaration-env}.
+
+Users of the library @sc{Parse-Declarations} can extend the set of understood declaration specifiers
+by adding methods to the generic-functions @ref{analyze-declaration-specifier} and
+@ref{build-declaration-specifier}. These methods should most likely specialize on the first argument
+with an @uref{@value{CLHS}/t_eql.htm, @code{EQL}} specializer.
+
+
+@c ===================================================================
+@c BUILD-DECLARATION-SPECIFIER
+
+@node build-declaration-specifier, build-declarations, analyze-declaration-specifier, API
+@unnumberedsec build-declaration-specifier
+@subheading Syntax
+@GenericFunction{build-declaration-specifier declaration-identifier affected-variables context 
+                     @res{} result-specifier}
+
+@subheading Method signatures
+
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_declar.htm, declaration})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_dynami.htm, dynamic-extent})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_ftype.htm, ftype})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_ignore.htm, ignore})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_ignore.htm, ignorable})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_inline.htm, inline})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_inline.htm, notinline})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_optimi.htm, optimize})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_specia.htm, special})) vars context}
+@Method{build-declaration-specifier (id (eql '@uref{@value{CLHS}/d_type.htm, type})) vars context}
+@Method{build-declaration-specifier id vars context}
+
+@subheading Arguments and Values
+
+@table @var
+@item declaration-identifier
+A @ref{declaration identifier}.
+
+@item affected-variables
+A list of @ref{normalized binding names} affected by the @ref{declaration specifier} under construction.
+
+@item context
+An @uref{@value{CLHS}/26_glo_o.htm#object, object}.
+
+@item result-specifier
+A @ref{declaration specifier}.
+@end table
+
+@subheading Description
+
+The generic function @ref{build-declaration-specifier} is used by @ref{build-declarations} to
+reconstruct a @ref{declaration specifier} from the parts returned by
+@ref{analyze-declaration-specifier}.
+
+It is hence the counterpart of @ref{analyze-declaration-specifier}: whereas that one disassembles a
+@ref{declaration specifier} into parts, @ref{build-declaration-specifier} assembles the parts back
+into a @ref{declaration specifier}.
+
+@subheading Examples
+
+@lisp
+PARSE-DECLARATIONS> (build-declaration-specifier 'optimize nil '((speed 0) debug))
+@result{} (OPTIMIZE (SPEED 0) DEBUG)
+PARSE-DECLARATIONS> (build-declaration-specifier 'type '(x y z) 'fixnum)
+@result{} (TYPE FIXNUM X Y Z)
+PARSE-DECLARATIONS> (build-declaration-specifier 'inline '(#'f #'g #'h) nil)
+@result{} (INLINE F G H)
+@end lisp
+
+@subheading Exceptional Situations
+
+None.
+
+@subheading See Also
+@seealso{analyze-declaration-specifier} @*
+@seealso{build-declarations}
+
+@subheading Notes
+
+@ref{build-declaration-specifier} can be thought of as being (almost) the inverse function of
+@ref{analyze-declaration-specifier}. That is for an arbitrary declaration specifier in
+@code{*SPEC*}, the following code should axiomatically result in a declaration specifier that is
+equivalent to @code{*SPEC*} when interpreted by the Common Lisp implementation:
+
+@lisp
+(multiple-value-call #'build-declaration-specifier
+  (analyze-declaration-specifier (first *spec*) (rest *spec*) nil))
+@end lisp
+
+However, the result may in fact not be @uref{@value{CLHS}/f_equal.htm, @code{EQUAL}} to the original
+specifier, as @ref{analyze-declaration-specifier} can perform arbitrary normalization:
+
+@lisp
+PARSE-DECLARATIONS> (let ((spec '((string 512) variable)))
+                      (multiple-value-call #'build-declaration-specifier
+                        (analyze-declaration-specifier (first spec) (rest spec) nil)))
+@result{} (TYPE (STRING 512) VARIABLE)
+@end lisp
+
+
+@c ===================================================================
+@c BUILD-DECLARATIONS
+
+@node build-declarations, check-declaration-env, build-declaration-specifier, API
+@unnumberedsec build-declarations
+@subheading Syntax
+@Function{build-declarations tag &rest declaration-envs+ @res{} declarations-or-specifiers}
+
+@subheading Arguments and Values
+
+@table @var
+@item tag
+A @uref{@value{CLHS}/t_symbol.htm, symbol}.
+
+@item declaration-env
+A @ref{declaration-env}
+
+@item declarations-or-specifiers
+Either a list of @ref{declarations}, or a list of @ref{declaration specifiers}.
+@end table
+
+@subheading Description
+
+The function @ref{build-declarations} constructs all the @ref{declarations} that are stored in each
+of the @var{declaration-envs}.  The @uref{@value{CLHS}/t_symbol.htm, symbol} @var{tag} is used as
+the first element of these @ref{declarations}. If @var{tag} is @uref{@value{CLHS}/v_nil.htm,
+@code{NIL}}, @ref{build-declarations} returns a list of @ref{declaration specifiers} rather than
+@ref{declarations}.
+
+The order of the returned expressions is not specified; in particular, the order doesn't have to be
+in any relation with the order of @ref{declarations} that @ref{parse-declarations} has been invoked
+with to create one of @var{declaration-envs}.
+
+Furthermore, @var{declarations-or-specifiers} may share structure with the @ref{declaration
+specifiers} that were initially passed to @ref{parse-declarations}.
+
+@subheading Examples
+
+@lisp
+PARSE-DECLARATIONS> (defparameter *env* (parse-declarations '((declare (optimize speed))
+                                                              (declare (fixnum x y))
+                                                              (declare (inline +)))))
+@result{} *ENV*
+PARSE-DECLARATIONS> (build-declarations 'declare *env*)
+@result{} ((DECLARE (INLINE +)) (DECLARE (TYPE FIXNUM X Y)) (DECLARE (OPTIMIZE SPEED)))
+PARSE-DECLARATIONS> (build-declarations nil *env*)
+@result{} ((TYPE FIXNUM X Y) (INLINE +) (OPTIMIZE SPEED))
+@end lisp
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_tp_err.htm, @code{TYPE-ERROR}} if @var{tag} is not a
+symbol, or if any @var{declaration-env} is not a @ref{declaration-env}.
+
+@subheading See Also
+@seealso{build-declaration-specifier} @*
+@seealso{parse-declarations}
+
+
+@c ===================================================================
+@c CHECK-DECLARATION-ENV
+
+@node check-declaration-env, declaration-env, build-declarations, API
+@unnumberedsec check-declaration-env
+@subheading Syntax
+@Macro{check-declaration-env place &key unknown-allowed warn-only @res{} declaration-env}
+
+@subheading Arguments and Values
+
+@table @var
+@item place
+A @uref{@value{CLHS}/26_glo_p.htm#place, place} which contains a @ref{declaration-env}.
+
+@item unknown-allowed
+A @uref{@value{CLHS}/t_ban.htm, boolean}.
+
+@item warn-only
+A @uref{@value{CLHS}/t_ban.htm, boolean}.
+
+@item declaration-env
+A @ref{declaration-env}.
+@end table
+
+@subheading Description
+
+Checks that @var{place} is a @ref{declaration-env} with certain properties.
+
+If @var{unknown-allowed} is @uref{@value{CLHS}/v_nil.htm, @code{NIL}}, and @var{declaration-env}
+contains @ref{unknown declaration specifiers}, an @uref{@value{CLHS}/26_glo_c.htm#continuable, continuable}
+error is signalled. If the @uref{@value{CLHS}/r_contin.htm, @code{CONTINUE}} restart is invoked,
+@var{place} is set to an @ref{declaration-env} with all the @ref{unknown declaration specifiers}
+filtered away.
+
+If @var{warn-only} is @uref{@value{CLHS}/26_glo_t.htm#true, true}, @uref{@value{CLHS}/e_warnin.htm,
+warnings} instead of @uref{@value{CLHS}/e_error.htm, errors} are signalled, and
+@ref{check-declaration-env} behaves as if the @uref{@value{CLHS}/r_contin.htm, @code{CONTINUE}}
+restart was invoked.
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_tp_err.htm, @code{TYPE-ERROR}} if
+@var{declaration-env} is not a @ref{declaration-env}. 
+
+Signals @uref{@value{CLHS}/26_glo_c.htm#continuable, continuable} errors, or warnings, under the
+circumstances described above.
+
+@subheading See Also
+@seealso{filter-declaration-env}
+
+
+@c ===================================================================
+@c DECLARATION-ENV
+
+@node declaration-env, declaration-env-p, check-declaration-env, API
+@unnumberedsec declaration-env
+
+@subheading Syntax
+@Class{declaration-env}
+
+@subheading Class Precedence List
+
+@ref{declaration-env}, @uref{@value{CLHS}/t_t.htm, t}
+
+@subheading Description
+
+A @ref{declaration-env} is a container for @ref{declaration specifiers}.
+
+@subheading See Also
+@seealso{check-declaration-env} @*
+@seealso{declaration-env-p} @*
+@seealso{declaration-env.affected-variables} @*
+@seealso{declaration-env.policy} @*
+@seealso{parse-declarations}
+
+@subheading Notes
+
+At the discretion of the implementation, either @uref{@value{CLHS}/t_std_ob.htm, standard-object} or
+@uref{@value{CLHS}/t_stu_ob.htm, structure-object} might appear in the class precedence
+list. Cf. @uref{@value{CLHS}/04_bb.htm, CLHS 4.2.2}.
+
+The type @ref{declaration-env} is opaque, there is no explicit constructor provided.
+Use @ref{parse-declarations} instead.
+
+
+@c ===================================================================
+@c DECLARATION-ENV-P
+
+@node declaration-env-p, declaration-env.affected-variables, declaration-env, API
+@unnumberedsec declaration-env-p
+@subheading Syntax
+@Function{declaration-env-p declaration-env @res{} bool}
+
+@subheading Arguments and Values
+
+@table @var
+@item declaration-env
+A @ref{declaration-env}
+
+@item bool
+A @uref{@value{CLHS}/t_ban.htm, boolean}.
+@end table
+
+@subheading Description
+
+Returns @uref{@value{CLHS}/26_glo_t.htm#true, true} if @var{declaration-env} is a
+@ref{declaration-env}, @uref{@value{CLHS}/26_glo_f.htm#false, false} otherwise.
+
+@subheading Exceptional Situations
+
+None.
+
+@subheading See Also
+@seealso{declaration-env}
+
+@c ===================================================================
+@c DECLARATION-ENV.AFFECTED-VARIABLES
+
+@node declaration-env.affected-variables, declaration-env.policy, declaration-env-p, API
+@unnumberedsec declaration-env.affected-variables
+@subheading Syntax
+@Function{declaration-env.affected-variables declaration-env &optional allowed-decl-ids @res{} binding-names}
+
+@subheading Arguments and Values
+
+@table @var
+@item declaration-env
+A @ref{declaration-env}
+
+@item allowed-decl-ids
+A list of @ref{normalized declaration identifiers}.
+
+@item binding-names
+A list of @ref{normalized binding names}.
+@end table
+
+@subheading Description
+
+The function @ref{declaration-env.affected-variables} returns all binding names that are affected by
+the @ref{declaration specifiers} stored in @var{declaration-env}. If @var{allowed-decl-ids} is
+given, only the binding names affected by the specifiers starting with one of @var{allowed-decl-ids}
+are returned.
+
+@subheading Examples
+
+@lisp
+PARSE-DECLARATIONS> (defparameter *env* (parse-declarations '((declare (optimize speed))
+                                                              (declare (fixnum x y))
+                                                              (declare (inline +)))))
+@result{} *ENV*
+PARSE-DECLARATIONS> (declaration-env.affected-variables *env*)
+@result{} (X Y #'+)
+PARSE-DECLARATIONS> (declaration-env.affected-variables *env* '(type))
+@result{} (X Y)
+
+;;; @lispcmt{The following returns @code{NIL}, as @code{(ANALYZE-DECLARATION-SPECIFIER 'FIXNUM NIL NIL)}}
+;;; @lispcmt{returns @code{TYPE} as first value.}
+PARSE-DECLARATIONS> (declaration-env.affected-variables *env* '(fixnum))
+@result{} NIL
+
+@end lisp
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_tp_err.htm, @code{TYPE-ERROR}} if
+@var{declaration-env} is not a @ref{declaration-env}. 
+
+@subheading See Also
+@seealso{analyze-declaration-specifier} @*
+@seealso{declaration-env} @*
+@seealso{declaration-env.policy}
+
+
+@c ===================================================================
+@c DECLARATION-ENV.POLICY
+
+@node declaration-env.policy, filter-declaration-env, declaration-env.affected-variables, API
+@unnumberedsec declaration-env.policy
+@subheading Syntax
+@Function{declaration-env.policy declaration-env @res{} policy}
+
+@subheading Arguments and Values
+
+@table @var
+@item declaration-env
+A @ref{declaration-env}
+
+@item policy
+A list of @uref{@value{CLHS}/26_glo_o.htm#optimize_quality, optimize qualities}.
+@end table
+
+@subheading Description
+
+The function @ref{declaration-env.policy} returns the
+@uref{@value{CLHS}/26_glo_o.htm#optimize_quality, optimize qualities} that are stored in
+@var{declaration-env}.
+
+@subheading Examples
+
+@lisp
+PARSE-DECLARATIONS> (declaration-env.policy (parse-declarations 
+                                             '((declare (optimize (speed 0) (debug 2)))
+                                               (declare (fixnum x y))
+                                               (declare (inline +))
+                                               (declae (optimize (safety 3))))))
+@result{} ((SAFETY 3) (SPEED 0) (DEBUG 2))
+@end lisp
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_tp_err.htm, @code{TYPE-ERROR}} if
+@var{declaration-env} is not a @ref{declaration-env}. 
+
+@subheading See Also
+@seealso{declaration-env} @*
+@seealso{declaration-env.affected-variables}
+
+
+@c ===================================================================
+@c FILTER-DECLARATION-ENV
+
+@node filter-declaration-env, map-declaration-env, declaration-env.policy, API
+@unnumberedsec filter-declaration-env
+@subheading Syntax
+@Function{filter-declaration-env declenv &key affecting not-affecting (include :everything) exclude filter-function
+             @res{} result-env}
+
+@subheading Arguments and Values
+
+@table @var
+@item declenv
+A @ref{declaration-env}.
+
+@item affecting
+A list of @ref{normalized binding names}.
+
+@item not-affecting
+A list of @ref{normalized binding names}.
+
+@item include
+Either one of the keywords @code{:everything}, @code{:bound}, @code{:free}, @code{:unknown}, 
+or a list of @ref{normalized declaration identifiers}.
+
+@item exclude
+Either one of the keywords @code{:everything}, @code{:bound}, @code{:free}, @code{:unknown}, 
+or a list of @ref{normalized declaration identifiers}.
+
+@item filter-function
+A @uref{@value{CLHS}/26_glo_f.htm#function_designator, function designator} for a function with
+three arguments.
+
+@item result-env
+A @uref{@value{CLHS}/26_glo_f.htm#fresh, fresh} @ref{declaration-env}.
+@end table
+
+@subheading Description
+
+The function @ref{filter-declaration-env} returns a new @ref{declaration-env} containing a subset of
+the @ref{declaration specifiers} in @var{declenv} according to a filtering constituted by the given
+parameters.
+
+@var{include} specifies the @ref{declaration specifiers} to be considered by the filtering. They can
+be specified either directly via a list of identifiers, or via a keyword representing a certain set
+of specifiers. These keywords are:
+
+@table @code
+@item :bound
+Represents the @ref{bound declaration specifiers} in @var{declenv}
+
+@item :everything 
+Represents @emph{all} @ref{declaration specifiers} in @var{declenv}.
+
+@item :free
+Represents the @ref{free declaration specifiers} in @var{declenv},
+
+@item :unknown
+Represents the @ref{unknown declaration specifiers} in @var{declenv}.
+@end table
+
+@var{exclude} specifies the @ref{declaration specifiers} to be @emph{not} considered.
+
+@var{affecting}, if given, specifies the set of binding names that the @ref{declaration specifiers}
+in the resulting @ref{declaration-env} must affect. Consequently, only @ref{bound declaration
+specifiers} are selected.
+
+@var{not-affecting}, if given, specifies the set of binding names that the resulting specifiers must
+@emph{not} affect. This possibly includes @ref{free declaration specifiers} and @ref{unknown
+declaration specifiers}
+
+@var{filter-function} is called for each @ref{declaration specifier} in @var{declenv} that satisfies
+the other given parameters. It should return @uref{@value{CLHS}/26_glo_t.htm#true, true} if this
+specifier should be included in the resulting @ref{declaration-env}. The function is invoked with
+the disassembled parts of this specifier, cf. @ref{analyze-declaration-specifier}.
+
+@subheading Examples
+@lisp
+PARSE-DECLARATIONS> (defparameter *sample-decls*
+                      '((declare (optimize (speed 3) (safety 0)))
+                        (declare (special *a*) (special *f*))
+                        (declare (inline f))
+                        (declare (author "Tobias C Rittweiler"))
+                        (declare (type integer x y))
+                        (declare (optimize (debug 0)))
+                        (declare (type fixnum z))
+                        (declare ((string 512) output))
+                        (declare (type (vector unsigned-byte 32) chunk))
+                        (declare (quux *a*))   ; @lispcmt{assuming QUUX hasn't been defined as type.}
+                        (declare (float *f*))
+                        (declare (ftype (function (number) float) f))
+                        ))
+@result{} *SAMPLE-DECLS*
+PARSE-DECLARATIONS> (defparameter *env* (parse-declarations *sample-decls*))
+@result{} *ENV*
+
+PARSE-DECLARATIONS> (build-declarations 'declare (filter-declaration-env *env* :include :free))
+@result{} ((DECLARE (OPTIMIZE (DEBUG 0))) (DECLARE (OPTIMIZE (SPEED 3) (SAFETY 0))))
+
+PARSE-DECLARATIONS> (build-declarations 'declare (filter-declaration-env *env* :include :unknown))
+@result{} ((DECLARE (QUUX *A*)) (DECLARE (AUTHOR "Tobias C Rittweiler")))
+
+PARSE-DECLARATIONS> (build-declarations 'declare (filter-declaration-env *env* :affecting '(*a*)))
+@result{} ((DECLARE (SPECIAL *A*)))
+
+PARSE-DECLARATIONS> (build-declarations 'declare (filter-declaration-env *env* :affecting '(*f*)))
+@result{} ((DECLARE (TYPE FLOAT *F*)) (DECLARE (SPECIAL *F*)))
+
+PARSE-DECLARATIONS> (build-declarations 'declare (filter-declaration-env *env* :affecting '(#'f)))
+@result{} ((DECLARE (INLINE F)) (DECLARE (FTYPE (FUNCTION (NUMBER) FLOAT) F)))
+
+PARSE-DECLARATIONS> (build-declarations 'declare (filter-declaration-env *env* 
+                                                    :affecting '(#'f) 
+                                                    :exclude '(inline notinline)))
+@result{} ((DECLARE (FTYPE (FUNCTION (NUMBER) FLOAT) F)))
+
+PARSE-DECLARATIONS> (build-declarations 'declare (filter-declaration-env *env* :include '(type)))
+@result{} ((DECLARE (TYPE FLOAT *F*)) (DECLARE (TYPE (VECTOR UNSIGNED-BYTE 32) CHUNK))
+    (DECLARE (TYPE (STRING 512) OUTPUT)) (DECLARE (TYPE FIXNUM Z))
+    (DECLARE (TYPE INTEGER X Y)))
+
+@end lisp
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_tp_err.htm, @code{TYPE-ERROR}} if a passed argument
+violates its respective entry in the ``Arguments and Values'' section.
+
+@subheading See Also
+@seealso{declaration-env.affected-variables} @*
+@seealso{map-declaration-env}
+
+@subheading Notes
+
+If no @code{&key} parameter is given, @ref{filter-declaration-env} will return a copy of the given
+@ref{declaration-env}. This follows from the default values of the parameters.
+
+@c ===================================================================
+@c MAP-DECLARATION-ENV
+
+@node map-declaration-env, merge-declaration-envs, filter-declaration-env, API
+@unnumberedsec map-declaration-env
+@subheading Syntax
+@Function{map-declaration-env function declaration-env @res{} result-env}
+
+@subheading Arguments and Values
+
+@table @var
+@item function
+A @uref{@value{CLHS}/26_glo_f.htm#function_designator, function designator} for a function with
+three arguments.
+
+@item declaration-env
+A @ref{declaration-env}.
+
+@item result-env
+A @uref{@value{CLHS}/26_glo_f.htm#fresh, fresh} @ref{declaration-env}.
+@end table
+
+@subheading Description
+
+The function @ref{map-declaration-env} maps @var{function} over @var{declaration-env} in the
+following way: @var{function} is called for each @ref{declaration specifier} in
+@var{declaration-env} with the parts (cf. @ref{analyze-declaration-specifier}) of that
+specifier. @var{function} should either return new values for the parts, or return the
+@uref{@value{CLHS}/26_glo_s.htm#same, same} values.
+
+If new values are returned for an @ref{unknown declaration specifier}, the specifier ceases to be
+considered unknown in @var{result-env}.
+
+@ref{map-declaration-env} cannot be used to filter particular entries of @var{declaration-env} away.
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_tp_err.htm, @code{TYPE-ERROR}} if @var{function} is
+not a @uref{@value{CLHS}/26_glo_f.htm#function_designator, function designator},
+or @var{declaration-env} is not a @ref{declaration-env}.
+
+@subheading See Also
+@seealso{filter-declaration-env}
+
+@subheading Notes
+
+@ref{map-declaration-env} is provided to let users of the library @sc{Parse-Declaration} customize
+the way @ref{declaration specifiers} are parsed in arbitrary ways that scale even when multiple
+applications use @sc{Parse-Declarations} in the same Lisp image.
+
+Users can extend the set of understood @ref{declaration specifiers} by adding methods on
+@ref{analyze-declaration-specifier} and @ref{build-declaration-specifier}. These methods ought to
+specialize on the @ref{declaration identifier} with an @uref{@value{CLHS}/t_eql.htm, @code{EQL}}
+specializer. The @uref{@value{CLHS}/11_.htm, package machinery} will ensure that no conflict will
+arise between multiple applications in the same Lisp image.
+
+If users want to customize the behaviour beyond that (for example parsing a @ref{standard declaration
+specifier} in a different way), they should locally use @ref{map-declaration-env} on the result of
+@ref{parse-declarations}.
+
+
+@c ===================================================================
+@c MERGE-DECLARATION-ENVS
+
+@node merge-declaration-envs, parse-body, map-declaration-env, API
+@unnumberedsec merge-declaration-envs
+@subheading Syntax
+@Function{merge-declaration-envs declaration-env1 declaration-env2 @res{} result-env}
+
+@subheading Arguments and Values
+
+@table @var
+@item declaration-env1
+A @ref{declaration-env}.
+
+@item declaration-env2
+A @ref{declaration-env}.
+
+@item result-env
+A @uref{@value{CLHS}/26_glo_f.htm#fresh, fresh} @ref{declaration-env}.
+@end table
+
+@subheading Description
+
+The function @ref{merge-declaration-envs} returns the union of the @ref{declaration specifiers} in
+@var{declaration-env1} and @var{declaration-env2} as a new @ref{declaration-env}. There is no
+attempt made at removing duplicates, or at any other kind of normalization.
+
+@subheading Examples
+@lisp
+PARSE-DECLARATIONS> (defparameter *env* (parse-declarations '((declare (optimize speed))
+                                                              (declare (fixnum x y))
+                                                              (declare (inline +)))))
+@result{} *ENV*
+PARSE-DECLARATIONS> (defparameter *env2* (parse-declarations '((declare (type fixnum y z))
+                                                               (declare (notinline +))
+                                                               (declare (optimize (safety 3))))))
+@result{} *ENV2*
+PARSE-DECLARATIONS> (build-declarations 'declare (merge-declaration-envs *env* *env2*))
+@result{} ((DECLARE (NOTINLINE +)) 
+           (DECLARE (INLINE +))
+           (DECLARE (TYPE FIXNUM X Y))
+           (DECLARE (TYPE FIXNUM Y Z))
+           (DECLARE (OPTIMIZE SPEED))
+           (DECLARE (OPTIMIZE (SAFETY 3))))
+@end lisp
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_tp_err.htm, @code{TYPE-ERROR}} if
+@var{declaration-env1} or @var{declaration-env2} is not a @ref{declaration-env}.
+
+@c ===================================================================
+@c PARSE-BODY
+
+@node parse-body, parse-declarations, merge-declaration-envs, API
+@unnumberedsec parse-body
+@subheading Syntax
+@Function{parse-body body-and-decls &key documentation whole @res{} body, declarations, docstring}
+
+@subheading Arguments and Values
+
+@table @var
+@item body-and-decls
+A list which can contains @ref{declarations}, a
+@uref{@value{CLHS}/26_glo_d.htm#documentation_string, documentation string}, and
+@uref{@value{CLHS}/26_glo_f.htm#form, forms}.
+
+@item documentation
+A @uref{@value{CLHS}/t_ban.htm, boolean}.
+
+@item whole
+An @uref{@value{CLHS}/26_glo_o.htm#object, object}.
+
+@item body
+A list of @uref{@value{CLHS}/26_glo_f.htm#form, forms}.
+
+@item declarations
+A list of @ref{declarations}.
+
+@item docstring
+A @uref{@value{CLHS}/26_glo_d.htm#documentation_string, documentation string}.
+@end table
+
+@subheading Description
+
+The function @ref{parse-body} splits an @code{&BODY} argument of an
+@uref{@value{CLHS}/26_glo_e.htm#extended_lambda_list, extended lambda list} into its three
+distinctive parts which are returned as @uref{@value{CLHS}/26_glo_m.htm#multiple_values, multiple
+values}:
+
+@enumerate
+@item
+The actual body forms supposed to be @uref{@value{CLHS}/26_glo_e.htm#evaluate, evaluated}.
+@item
+The @ref{declarations} if any.
+@item
+The @uref{@value{CLHS}/26_glo_d.htm#documentation_string, documentation string} if any.
+@end enumerate
+
+A @uref{@value{CLHS}/26_glo_d.htm#documentation_string, documentation string} is only parsed if
+@var{documentation} is @uref{@value{CLHS}/26_glo_t.htm#true, true}. @var{whole} is used to indicate
+the context if an error is signalled, and should hence be a symbol naming the operator
+@ref{parse-body} is used to define.
+
+@subheading Examples
+@lisp
+PARSE-DECLARATIONS> (parse-body '("Also sprach Zarathustra.." 
+                                  (declare (optimize speed))
+                                  (declare (author "God"))
+                                  (setf *universe* (big-bang))
+                                  (frob-light))
+                                :documentation t)
+@result{} ((SETF *UNIVERSE* (BIG-BANG)) (FROB-LIGHT))
+@result{} ((DECLARE (OPTIMIZE SPEED)) (DECLARE (AUTHOR "God")))
+@result{} "Also sprach Zarathustra.."
+@end lisp
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_smp_er.htm, @code{SIMPLE-ERROR}} if
+@var{body-and-decls} contains more than one documentation string, and @var{documentation} is
+@uref{@value{CLHS}/26_glo_t.htm#true, true}.
+
+@subheading See Also
+@seealso{parse-declarations}
+
+@subheading Notes
+
+The symbol @code{PARSE-BODY} is @emph{not exported} from the library @sc{Parse-Declarations} to
+avoid a name conflict with the @uref{http://common-lisp.net/project/alexandria/, Alexandria
+library}. However, this symbol is @emph{guaranteed} to be part of @sc{Parse-Declarations}, and can
+hence be referenced directly, or imported explicitly, if users don't want to use Alexandria.
+
+
+@c ===================================================================
+@c PARSE-DECLARATIONS
+
+@node parse-declarations,  , parse-body, API
+@unnumberedsec parse-declarations
+@subheading Syntax
+@Function{parse-declarations declarations-or-specifiers &optional compilation-env &key nostrip 
+              @res{} declaration-env}
+
+@subheading Arguments and Values
+
+@table @var
+@item declarations-or-specifiers
+Either a list of @ref{declarations}, or a list of @ref{declaration specifiers}.
+
+@item compilation-env
+An @uref{@value{CLHS}/26_glo_e.htm#environment_object, environment object}.
+
+@item nostrip
+A @uref{@value{CLHS}/t_ban.htm, boolean}. 
+
+@item declaration-env
+A @ref{declaration-env}
+@end table
+
+@subheading Description
+
+The function @ref{parse-declarations} returns a @ref{declaration-env} that describes the
+@ref{declaration specifiers} in @var{declarations-or-specifiers}. This @ref{declaration-env} can be
+used to manipulate the @ref{declaration specifiers} in various high-level ways, and finally to
+construct actual specifiers again.
+
+If @var{nostrip} is @uref{@value{CLHS}/26_glo_t.htm#true, true}, @var{declarations-or-specifiers}
+should be a list of @ref{declaration specifiers} rather than @ref{declarations}.
+
+@subheading Exceptional Situations
+
+Signals an error of type @uref{@value{CLHS}/e_tp_err.htm, @code{TYPE-ERROR}} if the (implicit)
+specifiers in @var{declarations-or-specifiers} are not valid @ref{declaration specifiers}.
+
+@subheading See Also
+@seealso{analyze-declaration-specifier} @*
+@seealso{build-declarations} @*
+@seealso{declaration-env} @*
+@seealso{filter-declaration-env} @*
+@seealso{map-declaration-env} @*
+@seealso{merge-declaration-envs} @*
+@seealso{parse-body}
+
+@subheading Notes
+
+The set of understood @ref{declaration specifiers} can be extended by adding methods to the generic
+functions @ref{analyze-declaration-specifier} and @ref{build-declaration-specifier}.
+
+
+@c ===================================================================
+@c CHAPTER: Examples
+
+@node Examples, Glossary, API, Top
+@chapter Examples
+
+@unnumberedsec @code{DO}
+As first example, we provide an implementation of @uref{@value{CLHS}/m_do_do.htm, @code{DO}}. Notice
+that @uref{@value{CLHS}/03_cd.htm, @clhs{} 3.3.4} specifies that the @code{step-forms},
+@code{end-test-form}, and @code{result-forms} of a @uref{@value{CLHS}/m_do_do.htm, @code{DO}}
+expression must be evaluated in the scope of the local @ref{declarations} given.
+
+Thus:
+
+@lisp
+(defmacro do ((&rest bindings) (end-test-form &body result-forms) &body decls-and-body
+               &environment macro-env)
+  (let ((loop-tag (gensym "DO-LOOP+")))
+    (multiple-value-bind (statements decls)
+        (parse-declarations::@ref{parse-body} decls-and-body :documentation nil)
+      `(prog ,(loop for binding in bindings
+                    collect (destructuring-bind (var &optional init step) binding
+                              (declare (ignore step))
+                              `(,var ,init)))
+          ,@@(@ref{build-declarations} 'declare (@ref{parse-declarations} decls macro-env))
+          ,loop-tag
+          (when ,end-test-form (return (progn ,@@result-forms)))
+          ,@@statements
+          (psetq ,@@(loop for binding in bindings
+                         appending (destructuring-bind (var &optional init step) binding
+                                     (declare (ignore init))
+                                     (when step `(,var ,step)))))
+          (go ,loop-tag)))))
+@end lisp
+
+In this example, all we had to do is to split a @code{&BODY} argument up into the real body forms
+and the declarations, because, conceptually, we only had to splice in a few new forms before the
+actual body forms. The @ref{declarations} as such aren't touched.
+
+Notice that the expression @code{,@@(@ref{build-declarations} 'declare (@ref{parse-declarations}
+decls macro-env))} could (and should!) have been written much easier as a simple @code{,@@decls}. We
+wanted this to be a first and very simple introduction to the basic operators of the
+@sc{Parse-Declarations} library, though.
+
+@unnumberedsec @code{LET*}
+
+Next we implement @uref{@value{CLHS}/s_let_l.htm, @code{LET*}} which is a more interesting example
+as it's an example of a non-trivial binding construct. A naive implementor would just go off making
+a @uref{@value{CLHS}/s_let_l.htm, @code{LET*}} form expand into nested
+@uref{@value{CLHS}/s_let_l.htm, @code{LET}} forms. That would, however, be broken with respect to
+@ref{declarations} which must be nested alongside the bindings they affect.
+
+With the @code{:affecting} parameter of @ref{filter-declaration-env}, we can easily extract only
+those @ref{declarations} which affect a given binding. Thus:
+
+@lisp
+(defmacro let* (bindings &body body &environment macro-env)
+  (flet ((normalize-binding (binding)
+           (cond ((symbolp binding)    `(,binding nil))
+                 ((null (cdr binding)) `(,(car binding) nil))
+                 (t binding))))
+    (multiple-value-bind (real-body decls) (parse-declarations::@ref{parse-body} body :documentation nil)
+      (let ((decl-env (@ref{parse-declarations} decls macro-env)))
+        (@ref{check-declaration-env} decl-env :unknown-allowed nil :warn-only t)
+        (labels ((generate-nested-lets (bindings &optional used-binding-names)
+                   (if (null bindings)
+                       `(locally
+                            ,@@(@ref{build-declarations} 'declare
+                                (@ref{filter-declaration-env} decl-env :include :free)
+                                (@ref{filter-declaration-env} decl-env :include :bound
+                                                        :not-affecting used-binding-names))
+                          ,@@real-body)
+                       (destructuring-bind ((var value) . more-bindings) bindings
+                         `(let ((,var ,value))
+                            ,@@(@ref{build-declarations} 'declare
+                                (@ref{filter-declaration-env} decl-env :affecting `(,var)))
+                            ,(generate-nested-lets more-bindings (cons var used-binding-names)))))))
+          (generate-nested-lets (mapcar #'normalize-binding bindings)))))))
+@end lisp
+
+We warn about @ref{unknown declaration specifiers}, as we don't know which binding such a specifier
+affects. Hence, we can't know where it is supposed to be located. We could move these into the
+base case---which may sometimes be exactly the right decision---, but we feel that a user looking at
+the macroexpansion might be tricked thinking that the right thing is done even though it isn't.
+
+For the base case, we splice in all @ref{free declaration specifiers} and all @ref{bound declaration
+specifiers} which affect bindings not established by the @uref{@value{CLHS}/s_let_l.htm,
+@code{LET*}} form. These, plus the ignored @ref{unknown declaration specifiers} and the @ref{bound
+declaration specifiers} affecting bindings established by the @uref{@value{CLHS}/s_let_l.htm,
+@code{LET*}} form, constitute all possible specifiers. So we haven't forgot any.
+
+
+@unnumberedsec @code{OPTIMIZE-DECLARATION-ENV}
+
+As last example, we show how to change the treatment of @ref{standard declaration specifiers}. 
+
+We want to write a function which takes a list of @uref{@value{CLHS}/26_glo_o.htm#optimize_quality,
+optimize qualities} and which adapts a given @ref{declaration-env} to these qualities. Existing
+qualities in that @ref{declaration-env} are changed, and if no qualities are given, the qualities
+are added. I.e.:
+
+@lisp
+(defun optimize-declaration-env (declaration-env qualities &aux result-env)
+  (flet ((ensure-car (thing) (if (consp thing) (car thing) thing)))
+    (setq result-env
+          (@ref{map-declaration-env}
+           #'(lambda (id args ctx)   ; @lispcmt{@code{CTX} of @code{OPTIMIZE} are the qualities.}
+               (if (eq id 'optimize)
+                   (values id args `(,@@qualities ,@@(set-difference ctx qualities :key #'ensure-car)))
+                   (values id args ctx)))
+           declaration-env))
+    (if (@ref{declaration-env.policy} result-env)
+        result-env
+        (@ref{merge-declaration-envs} result-env (@ref{parse-declarations} `((optimize ,@@qualities)) nil
+                                                               :nostrip t)))))
+@end lisp
+
+@c ===================================================================
+@c CHAPTER: Glossary
+
+@node Glossary, Comprehensive Index, Examples, Top
+@appendix glossary
+
+@table @dfn
+
+@anchor{bound declaration specifier}
+@anchor{bound declaration specifiers}
+@item bound declaration specifier
+A declaration specifier that with certainty affects a binding. 
+Cf. @uref{@value{CLHS}/26_glo_b.htm#bound_declaration, @clhs{} bound declarations}.
+
+@anchor{declaration arguments}
+@item declaration arguments
+A list of data interpreted according to rules specific to the @ref{declaration identifier}
+the arguments belong to.
+
+@anchor{declaration}
+@anchor{declarations}
+@item declaration
+See @uref{@value{CLHS}/26_glo_d.htm#declaration, @clhs{} declaration}.
+
+@anchor{declaration identifier}
+@anchor{declaration identifiers}
+@item declaration identifier
+The first element of a @ref{declaration specifier}. This is either a symbol, or a a cons
+representing a @uref{@value{CLHS}/26_glo_c.htm#compound_type_specifier, compound type
+specifier}. The difference from @clhs{} @uref{@value{CLHS}/26_glo_d.htm#declaration_identifier,
+declaration identifier} is that we explicitly allow any symbol, and conses.
+(Cf. @uref{@value{CLHS}/03_cca.htm, @clhs{} 3.3.3.1})
+
+@anchor{declaration specifier}
+@anchor{declaration specifiers}
+@item declaration specifier
+A list whose @code{CAR} is a @ref{declaration identifier}, and whose @code{CDR} are the
+@ref{declaration arguments}. See @uref{@value{CLHS}/03_cb.htm, @clhs{} 3.3.2},
+@uref{@value{CLHS}/03_cca.htm, @clhs{} 3.3.3.1}, and
+@uref{@value{CLHS}/26_glo_d.htm#declaration_specifier, @clhs{} declaration specifier}.
+
+@anchor{free declaration specifier}
+@anchor{free declaration specifiers}
+@item free declaration specifier
+A @ref{declaration specifier} that does not affect a binding with certainty.
+Cf. @uref{@value{CLHS}/26_glo_f.htm#free_declaration, @clhs{} free declarations}.
+
+@anchor{normalized declaration identifiers}
+@anchor{normalized declaration identifier}
+@item normalized declaration identifier
+A @ref{declaration identifier} which @ref{analyze-declaration-specifier} returns as first value.
+
+@anchor{normalized binding names}
+@anchor{normalized binding name}
+@item normalized binding name
+A @uref{@value{CLHS}/26_glo_b.htm#binding, binding} name which is a symbol for a binding in the
+variable @uref{@value{CLHS}/26_glo_n.htm#namespace, namespace}, and a list whose first element is
+the symbol @uref{@value{CLHS}/s_fn.htm, @code{FUNCTION}} and the second element is the
+@uref{@value{CLHS}/26_glo_f.htm#function_name, function name} for a binding in the function
+@uref{@value{CLHS}/26_glo_n.htm#namespace, namespace}.
+
+@anchor{standard declaration specifier}
+@anchor{standard declaration specifiers}
+@item standard declaration specifier
+A @ref{declaration specifier} with one of the symbols in Fig 3-9 in @uref{@value{CLHS}/03_cc.htm,
+@clhs{} 3.3.3} as @ref{declaration identifier}.
+
+@anchor{unknown declaration specifier}
+@anchor{unknown declaration specifiers}
+@item unknown declaration specifier
+A @ref{declaration specifier} which is not explicitly known by @ref{analyze-declaration-specifier}
+and which hence invokes its @uref{@value{CLHS}/26_glo_d.htm#default_method, default method}.
+
+@end table
+
+@node Comprehensive Index,  , Glossary, Top
+@unnumbered Index
+@printindex cp
+
+@bye

@@ -1,0 +1,578 @@
+Listing of compilation of file /Users/rpg/lisp/iterate/test.lisp
+on 2021-12-16 17:34:17 by CLISP, version 2.49.92 (2018-02-18) (built on imac-pro [192.168.122.2])
+;; Compiling file /Users/rpg/lisp/iterate/test.lisp ...
+
+Disassembly of function #:|1 1 (IN-PACKAGE :COMMON-LISP-USER)-1|
+(CONST 0) = "COMMON-LISP-USER"
+(CONST 1) = *PACKAGE*
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+writes special variable: *PACKAGE*
+4 byte-code instructions:
+0     (CONST&PUSH 0)                      ; "COMMON-LISP-USER"
+1     (CALLS1 246)                        ; SYSTEM::%FIND-PACKAGE
+3     (SETVALUE 1)                        ; *PACKAGE*
+5     (SKIP&RET 1)
+
+Disassembly of function #:|3 3 (REQUIRE :ASDF)-2|
+(CONST 0) = :ASDF
+(CONST 1) = REQUIRE
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+3 byte-code instructions:
+0     (CONST&PUSH 0)                      ; :ASDF
+1     (CALL1 1)                           ; REQUIRE
+3     (SKIP&RET 1)
+
+Disassembly of function #:|5 12 (ASDF/OUTPUT-TRANSLATIONS:INITIALIZE-OUTPUT-TRANSLATIONS `(:OUTPUT-TRANSLATIONS # :IGNORE-INHERITED-CONFIGURATION))-3|
+(CONST 0) = :OUTPUT-TRANSLATIONS
+(CONST 1) = (:RELATIVE "test" "cache" :WILD-INFERIORS)
+(CONST 2) = :WILD
+(CONST 3) = *LOAD-TRUENAME*
+(CONST 4) = (:IGNORE-INHERITED-CONFIGURATION)
+(CONST 5) = ASDF/OUTPUT-TRANSLATIONS:INITIALIZE-OUTPUT-TRANSLATIONS
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variable: *LOAD-TRUENAME*
+18 byte-code instructions:
+0     (CONST&PUSH 0)                      ; :OUTPUT-TRANSLATIONS
+1     (T&PUSH)
+2     (PUSH-UNBOUND 8)
+4     (CONST 1)                           ; (:RELATIVE "test" "cache" ...)
+5     (STORE 3)
+6     (CONST 2)                           ; :WILD
+7     (STORE 2)
+8     (STORE 1)
+9     (CALLS2&PUSH 5)                     ; MAKE-PATHNAME
+11    (GETVALUE&PUSH 3)                   ; *LOAD-TRUENAME*
+13    (PUSH-UNBOUND 2)
+15    (CALLS2&PUSH 3)                     ; MERGE-PATHNAMES
+17    (LIST&PUSH 2)
+19    (CONST 4)                           ; (:IGNORE-INHERITED-CONFIGURATION)
+20    (CONS)
+21    (CONS&PUSH)
+22    (CALL1 5)                           ; ASDF/OUTPUT-TRANSLATIONS:INITIALIZE-OUTPUT-TRANSLATIONS
+24    (SKIP&RET 1)
+
+Disassembly of function #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4|
+(CONST 0) = #<COMPILED-FUNCTION #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1|>
+(CONST 1) = #<COMPILED-FUNCTION #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-2|>
+(CONST 2) = (#(ERROR 9) 0 . 0)
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+14 byte-code instructions:
+0     (CONST&PUSH 0)                      ; #
+1     (CONST&PUSH 1)                      ; #
+2     (HANDLER-OPEN 2 L9)                 ; (#(ERROR 9) 0 . 0)
+4     (LOAD&PUSH 4)
+5     (FUNCALL 0)
+7     (SKIP&RET 7)
+9     L9
+9     (HANDLER-BEGIN&PUSH)
+10    (LOADI&PUSH 0 0 1)
+14    (FUNCALL&PUSH 0)
+16    (LOAD&PUSH 1)
+17    (FUNCALL 1)
+19    (SKIPSP 1 0)
+22    (SKIP&RET 2)
+
+Disassembly of function #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1|
+(CONST 0) = #<COMPILED-FUNCTION #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1-1|>
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+2 byte-code instructions:
+0     (CONST 0)                           ; #
+1     (SKIP&RET 1)
+
+Disassembly of function #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1-1|
+(CONST 0) = #<COMPILED-FUNCTION #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1-1-1|>
+(CONST 1) = *STANDARD-OUTPUT*
+(CONST 2) = 4
+(CONST 3) = UIOP/IMAGE:DIE
+1 required argument
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variable: *STANDARD-OUTPUT*
+7 byte-code instructions:
+0     (CONST&PUSH 0)                      ; #
+1     (GETVALUE&PUSH 1)                   ; *STANDARD-OUTPUT*
+3     (LOAD&PUSH 3)
+4     (CALLSR 2 21)                       ; FUNCALL
+7     (CONST&PUSH 2)                      ; 4
+8     (CALL1 3)                           ; UIOP/IMAGE:DIE
+10    (SKIP&RET 2)
+
+Disassembly of function #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-1-1-1|
+(CONST 0) = SYSTEM::*FORMAT-CS*
+(CONST 1) = 
+"Received error attempting to load ITERATE ASDF system definition:
+"
+2 required arguments
+0 optional arguments
+Rest parameter
+No keyword parameters
+16 byte-code instructions:
+0     (NIL)
+1     (BIND 0)                            ; SYSTEM::*FORMAT-CS*
+3     (LOAD&PUSH 6)
+4     (CALLS1 152)                        ; FRESH-LINE
+6     (CONST&PUSH 1)                      ; "Received error attempting to load ITERATE ASDF system definition:
+"
+7     (LOAD&PUSH 7)
+8     (PUSH-UNBOUND 2)
+10    (CALLS1 149)                        ; WRITE-STRING
+12    (LOAD&PUSH 5)
+13    (LOAD&PUSH 7)
+14    (CALLS1 144)                        ; PRINC
+16    (LOAD&PUSH 6)
+17    (CALLS1 151)                        ; TERPRI
+19    (LOAD 4)
+20    (UNBIND1)
+21    (SKIP&RET 4)
+
+Disassembly of function #:|14 20 (HANDLER-BIND (#) (ASDF/FIND-SYSTEM:LOAD-ASD #))-4-2|
+(CONST 0) = "iterate"
+(CONST 1) = "asd"
+(CONST 2) = *LOAD-TRUENAME*
+(CONST 3) = ASDF/FIND-SYSTEM:LOAD-ASD
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variable: *LOAD-TRUENAME*
+11 byte-code instructions:
+0     (PUSH-UNBOUND 8)
+2     (CONST 0)                           ; "iterate"
+3     (STORE 2)
+4     (CONST 1)                           ; "asd"
+5     (STORE 1)
+6     (CALLS2&PUSH 5)                     ; MAKE-PATHNAME
+8     (GETVALUE&PUSH 2)                   ; *LOAD-TRUENAME*
+10    (PUSH-UNBOUND 2)
+12    (CALLS2&PUSH 3)                     ; MERGE-PATHNAMES
+14    (CALL1 3)                           ; ASDF/FIND-SYSTEM:LOAD-ASD
+16    (SKIP&RET 1)
+
+Disassembly of function #:|22 22 (FORMAT T "~&Successfully loaded the iterate ASD file.~%")-5|
+(CONST 0) = #<COMPILED-FUNCTION #:|22 22 (FORMAT T "~&Successfully loaded the iterate ASD file.~%")-5-1|>
+(CONST 1) = *STANDARD-OUTPUT*
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variable: *STANDARD-OUTPUT*
+4 byte-code instructions:
+0     (CONST&PUSH 0)                      ; #
+1     (GETVALUE&PUSH 1)                   ; *STANDARD-OUTPUT*
+3     (CALLSR 1 21)                       ; FUNCALL
+6     (SKIP&RET 1)
+
+Disassembly of function #:|22 22 (FORMAT T "~&Successfully loaded the iterate ASD file.~%")-5-1|
+(CONST 0) = SYSTEM::*FORMAT-CS*
+(CONST 1) = 
+"Successfully loaded the iterate ASD file.
+"
+1 required argument
+0 optional arguments
+Rest parameter
+No keyword parameters
+11 byte-code instructions:
+0     (NIL)
+1     (BIND 0)                            ; SYSTEM::*FORMAT-CS*
+3     (LOAD&PUSH 5)
+4     (CALLS1 152)                        ; FRESH-LINE
+6     (CONST&PUSH 1)                      ; "Successfully loaded the iterate ASD file.
+"
+7     (LOAD&PUSH 6)
+8     (PUSH-UNBOUND 2)
+10    (CALLS1 149)                        ; WRITE-STRING
+12    (LOAD 4)
+13    (UNBIND1)
+14    (SKIP&RET 3)
+
+Disassembly of function #:|24 30 (ASDF/FIND-SYSTEM:LOAD-ASD (MERGE-PATHNAMES # *LOAD-TRUENAME*))-6|
+(CONST 0) = "rt"
+(CONST 1) = "asd"
+(CONST 2) = (:RELATIVE "ext" "rt")
+(CONST 3) = *LOAD-TRUENAME*
+(CONST 4) = ASDF/FIND-SYSTEM:LOAD-ASD
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variable: *LOAD-TRUENAME*
+13 byte-code instructions:
+0     (PUSH-UNBOUND 8)
+2     (CONST 0)                           ; "rt"
+3     (STORE 2)
+4     (CONST 1)                           ; "asd"
+5     (STORE 1)
+6     (CONST 2)                           ; (:RELATIVE "ext" "rt")
+7     (STORE 3)
+8     (CALLS2&PUSH 5)                     ; MAKE-PATHNAME
+10    (GETVALUE&PUSH 3)                   ; *LOAD-TRUENAME*
+12    (PUSH-UNBOUND 2)
+14    (CALLS2&PUSH 3)                     ; MERGE-PATHNAMES
+16    (CALL1 4)                           ; ASDF/FIND-SYSTEM:LOAD-ASD
+18    (SKIP&RET 1)
+
+Disassembly of function #:|33 37 (IF (NOT #) (PROGN # #) ...)-7|
+(CONST 0) = "iterate"
+(CONST 1) = ASDF/SYSTEM:FIND-SYSTEM
+(CONST 2) = #<COMPILED-FUNCTION #:|33 37 (IF (NOT #) (PROGN # #) ...)-7-1|>
+(CONST 3) = *STANDARD-OUTPUT*
+(CONST 4) = 1
+(CONST 5) = UIOP/IMAGE:QUIT
+(CONST 6) = #<COMPILED-FUNCTION #:|33 37 (IF (NOT #) (PROGN # #) ...)-7-2|>
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variable: *STANDARD-OUTPUT*
+13 byte-code instructions:
+0     (CONST&PUSH 0)                      ; "iterate"
+1     (CALL1&JMPIFNOT 1 L12)              ; ASDF/SYSTEM:FIND-SYSTEM
+4     (CONST&PUSH 6)                      ; #
+5     (GETVALUE&PUSH 3)                   ; *STANDARD-OUTPUT*
+7     (CALLSR 1 21)                       ; FUNCALL
+10    (SKIP&RET 1)
+12    L12
+12    (CONST&PUSH 2)                      ; #
+13    (GETVALUE&PUSH 3)                   ; *STANDARD-OUTPUT*
+15    (CALLSR 1 21)                       ; FUNCALL
+18    (CONST&PUSH 4)                      ; 1
+19    (CALL1 5)                           ; UIOP/IMAGE:QUIT
+21    (SKIP&RET 1)
+
+Disassembly of function #:|33 37 (IF (NOT #) (PROGN # #) ...)-7-1|
+(CONST 0) = SYSTEM::*FORMAT-CS*
+(CONST 1) = 
+"Unable to find the iterate ASDF system definition.
+"
+1 required argument
+0 optional arguments
+Rest parameter
+No keyword parameters
+11 byte-code instructions:
+0     (NIL)
+1     (BIND 0)                            ; SYSTEM::*FORMAT-CS*
+3     (LOAD&PUSH 5)
+4     (CALLS1 152)                        ; FRESH-LINE
+6     (CONST&PUSH 1)                      ; "Unable to find the iterate ASDF system definition.
+"
+7     (LOAD&PUSH 6)
+8     (PUSH-UNBOUND 2)
+10    (CALLS1 149)                        ; WRITE-STRING
+12    (LOAD 4)
+13    (UNBIND1)
+14    (SKIP&RET 3)
+
+Disassembly of function #:|33 37 (IF (NOT #) (PROGN # #) ...)-7-2|
+(CONST 0) = SYSTEM::*FORMAT-CS*
+(CONST 1) = 
+"Found iterate ASDF system definition.
+"
+1 required argument
+0 optional arguments
+Rest parameter
+No keyword parameters
+11 byte-code instructions:
+0     (NIL)
+1     (BIND 0)                            ; SYSTEM::*FORMAT-CS*
+3     (LOAD&PUSH 5)
+4     (CALLS1 152)                        ; FRESH-LINE
+6     (CONST&PUSH 1)                      ; "Found iterate ASDF system definition.
+"
+7     (LOAD&PUSH 6)
+8     (PUSH-UNBOUND 2)
+10    (CALLS1 149)                        ; WRITE-STRING
+12    (LOAD 4)
+13    (UNBIND1)
+14    (SKIP&RET 3)
+
+Disassembly of function #:|39 39 (DEFVAR *BUILD-ERROR* NIL)-8|
+(CONST 0) = (SPECIAL *BUILD-ERROR*)
+(CONST 1) = *BUILD-ERROR*
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+10 byte-code instructions:
+0     (CONST&PUSH 0)                      ; (SPECIAL *BUILD-ERROR*)
+1     (CALLS1 98)                         ; PROCLAIM
+3     (CONST&PUSH 1)                      ; *BUILD-ERROR*
+4     (CALLS1&JMPIF 87 L11)               ; BOUNDP
+7     (CONST&PUSH 1)                      ; *BUILD-ERROR*
+8     (NIL&PUSH)
+9     (CALLS1 90)                         ; SYSTEM::SET-SYMBOL-VALUE
+11    L11
+11    (CONST 1)                           ; *BUILD-ERROR*
+12    (SKIP&RET 1)
+
+Disassembly of function #:|40 40 (DEFVAR *BUILD-WARNING* NIL)-9|
+(CONST 0) = (SPECIAL *BUILD-WARNING*)
+(CONST 1) = *BUILD-WARNING*
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+10 byte-code instructions:
+0     (CONST&PUSH 0)                      ; (SPECIAL *BUILD-WARNING*)
+1     (CALLS1 98)                         ; PROCLAIM
+3     (CONST&PUSH 1)                      ; *BUILD-WARNING*
+4     (CALLS1&JMPIF 87 L11)               ; BOUNDP
+7     (CONST&PUSH 1)                      ; *BUILD-WARNING*
+8     (NIL&PUSH)
+9     (CALLS1 90)                         ; SYSTEM::SET-SYMBOL-VALUE
+11    L11
+11    (CONST 1)                           ; *BUILD-WARNING*
+12    (SKIP&RET 1)
+
+Disassembly of function #:|42 52 (CATCH 'BUILD-FAILED (HANDLER-BIND # #))-10|
+(CONST 0) = BUILD-FAILED
+(CONST 1) = (#(WARNING 13 ERROR 28) 2 . 1)
+(CONST 2) = SIGNAL
+(CONST 3) = *BUILD-WARNING*
+(CONST 4) = *BUILD-ERROR*
+(CONST 5) = "iterate"
+(CONST 6) = ASDF/OPERATE:LOAD-SYSTEM
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variable: *BUILD-WARNING*
+writes special variables: *BUILD-ERROR* *BUILD-WARNING*
+27 byte-code instructions:
+0     (CONST 0)                           ; BUILD-FAILED
+1     (CATCH-OPEN L35)
+3     (HANDLER-OPEN 1 L13 L28)            ; (#(WARNING 13 ERROR 28) 2 . 1)
+5     (CONST&PUSH 5)                      ; "iterate"
+6     (CALL1 6)                           ; ASDF/OPERATE:LOAD-SYSTEM
+8     (SKIP 4)
+10    (CATCH-CLOSE)
+11    (SKIP&RET 1)
+13    L13
+13    (HANDLER-BEGIN&PUSH)
+14    (LOAD&PUSH 0)
+15    (CALL1 2)                           ; SIGNAL
+17    (LOAD&PUSH 0)
+18    (GETVALUE 3)                        ; *BUILD-WARNING*
+20    (CONS)
+21    (SETVALUE 3)                        ; *BUILD-WARNING*
+23    (SKIPSP 3 1)
+26    (SKIP&RET 2)
+28    L28
+28    (HANDLER-BEGIN&PUSH)
+29    (LOAD 0)
+30    (SETVALUE 4)                        ; *BUILD-ERROR*
+32    (CONST&PUSH 0)                      ; BUILD-FAILED
+33    (T)
+34    (THROW)
+35    L35
+35    (SKIP&RET 1)
+
+Disassembly of function #:|54 60 (COND (*BUILD-ERROR* #) (*BUILD-WARNING* #) ...)-11|
+(CONST 0) = *BUILD-ERROR*
+(CONST 1) = 1
+(CONST 2) = "ITERATE build failed with an error: ~a.~%"
+(CONST 3) = UIOP/IMAGE:DIE
+(CONST 4) = *BUILD-WARNING*
+(CONST 5) = 2
+(CONST 6) = "ITERATE build failed with warnings:~%~{~t~a~%~}"
+(CONST 7) = #<COMPILED-FUNCTION #:|54 60 (COND (*BUILD-ERROR* #) (*BUILD-WARNING* #) ...)-11-1|>
+(CONST 8) = *STANDARD-OUTPUT*
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variables: *STANDARD-OUTPUT* *BUILD-WARNING* *BUILD-ERROR*
+21 byte-code instructions:
+0     (GETVALUE 0)                        ; *BUILD-ERROR*
+2     (JMPIF L18)
+4     (GETVALUE 4)                        ; *BUILD-WARNING*
+6     (JMPIFNOT L24)
+8     (CONST&PUSH 5)                      ; 2
+9     (CONST&PUSH 6)                      ; "ITERATE build failed with warnings:~%~{~t~a~%~}"
+10    (GETVALUE 4)                        ; *BUILD-WARNING*
+12    L12
+12    (PUSH)
+13    (CALL 3 3)                          ; UIOP/IMAGE:DIE
+16    (SKIP&RET 1)
+18    L18
+18    (CONST&PUSH 1)                      ; 1
+19    (CONST&PUSH 2)                      ; "ITERATE build failed with an error: ~a.~%"
+20    (GETVALUE 0)                        ; *BUILD-ERROR*
+22    (JMP L12)
+24    L24
+24    (CONST&PUSH 7)                      ; #
+25    (GETVALUE&PUSH 8)                   ; *STANDARD-OUTPUT*
+27    (CALLSR 1 21)                       ; FUNCALL
+30    (SKIP&RET 1)
+
+Disassembly of function #:|54 60 (COND (*BUILD-ERROR* #) (*BUILD-WARNING* #) ...)-11-1|
+(CONST 0) = SYSTEM::*FORMAT-CS*
+(CONST 1) = 
+"ITERATE build successful.
+"
+1 required argument
+0 optional arguments
+Rest parameter
+No keyword parameters
+9 byte-code instructions:
+0     (NIL)
+1     (BIND 0)                            ; SYSTEM::*FORMAT-CS*
+3     (CONST&PUSH 1)                      ; "ITERATE build successful.
+"
+4     (LOAD&PUSH 6)
+5     (PUSH-UNBOUND 2)
+7     (CALLS1 149)                        ; WRITE-STRING
+9     (LOAD 4)
+10    (UNBIND1)
+11    (SKIP&RET 3)
+
+Disassembly of function #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12|
+(CONST 0) = #<COMPILED-FUNCTION #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1|>
+(CONST 1) = #<COMPILED-FUNCTION #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-2|>
+(CONST 2) = (#(ERROR 9) 0 . 0)
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+14 byte-code instructions:
+0     (CONST&PUSH 0)                      ; #
+1     (CONST&PUSH 1)                      ; #
+2     (HANDLER-OPEN 2 L9)                 ; (#(ERROR 9) 0 . 0)
+4     (LOAD&PUSH 4)
+5     (FUNCALL 0)
+7     (SKIP&RET 7)
+9     L9
+9     (HANDLER-BEGIN&PUSH)
+10    (LOADI&PUSH 0 0 1)
+14    (FUNCALL&PUSH 0)
+16    (LOAD&PUSH 1)
+17    (FUNCALL 1)
+19    (SKIPSP 1 0)
+22    (SKIP&RET 2)
+
+Disassembly of function #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1|
+(CONST 0) = #<COMPILED-FUNCTION #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1|>
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+2 byte-code instructions:
+0     (CONST 0)                           ; #
+1     (SKIP&RET 1)
+
+Disassembly of function #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1|
+(CONST 0) = #:UNEXPECTED-FAILURES-ERROR
+(CONST 1) = ITERATE.TEST
+(CONST 2) = TYPEP
+(CONST 3) = #<COMPILED-FUNCTION #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1-1|>
+(CONST 4) = *STANDARD-OUTPUT*
+(CONST 5) = 2
+(CONST 6) = UIOP/IMAGE:QUIT
+(CONST 7) = #<COMPILED-FUNCTION #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1-2|>
+(CONST 8) = 3
+1 required argument
+0 optional arguments
+No rest parameter
+No keyword parameters
+reads special variable: *STANDARD-OUTPUT*
+19 byte-code instructions:
+0     (LOAD&PUSH 1)
+1     (CONST&PUSH 0)                      ; #:UNEXPECTED-FAILURES-ERROR
+2     (CALLS2&PUSH 166)                   ; SYMBOL-NAME
+4     (CONST&PUSH 1)                      ; ITERATE.TEST
+5     (CALLS1&PUSH 225)                   ; INTERN
+7     (CALL2&JMPIFNOT 2 L19)              ; TYPEP
+10    (CONST&PUSH 3)                      ; #
+11    (GETVALUE&PUSH 4)                   ; *STANDARD-OUTPUT*
+13    (CALLSR 1 21)                       ; FUNCALL
+16    (CONST&PUSH 5)                      ; 2
+17    (CALL1 6)                           ; UIOP/IMAGE:QUIT
+19    L19
+19    (CONST&PUSH 7)                      ; #
+20    (GETVALUE&PUSH 4)                   ; *STANDARD-OUTPUT*
+22    (LOAD&PUSH 3)
+23    (CALLSR 2 21)                       ; FUNCALL
+26    (CONST&PUSH 8)                      ; 3
+27    (CALL1 6)                           ; UIOP/IMAGE:QUIT
+29    (SKIP&RET 2)
+
+Disassembly of function #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1-1|
+(CONST 0) = SYSTEM::*FORMAT-CS*
+(CONST 1) = 
+"Catching unexpected failures error.
+"
+1 required argument
+0 optional arguments
+Rest parameter
+No keyword parameters
+11 byte-code instructions:
+0     (NIL)
+1     (BIND 0)                            ; SYSTEM::*FORMAT-CS*
+3     (LOAD&PUSH 5)
+4     (CALLS1 152)                        ; FRESH-LINE
+6     (CONST&PUSH 1)                      ; "Catching unexpected failures error.
+"
+7     (LOAD&PUSH 6)
+8     (PUSH-UNBOUND 2)
+10    (CALLS1 149)                        ; WRITE-STRING
+12    (LOAD 4)
+13    (UNBIND1)
+14    (SKIP&RET 3)
+
+Disassembly of function #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-1-1-2|
+(CONST 0) = SYSTEM::*FORMAT-CS*
+(CONST 1) = "Caught unexpected error "
+2 required arguments
+0 optional arguments
+Rest parameter
+No keyword parameters
+16 byte-code instructions:
+0     (NIL)
+1     (BIND 0)                            ; SYSTEM::*FORMAT-CS*
+3     (LOAD&PUSH 6)
+4     (CALLS1 152)                        ; FRESH-LINE
+6     (CONST&PUSH 1)                      ; "Caught unexpected error "
+7     (LOAD&PUSH 7)
+8     (PUSH-UNBOUND 2)
+10    (CALLS1 149)                        ; WRITE-STRING
+12    (LOAD&PUSH 5)
+13    (LOAD&PUSH 7)
+14    (CALLS1 144)                        ; PRINC
+16    (LOAD&PUSH 6)
+17    (CALLS1 151)                        ; TERPRI
+19    (LOAD 4)
+20    (UNBIND1)
+21    (SKIP&RET 4)
+
+Disassembly of function #:|62 85 (HANDLER-BIND (#) (ASDF/OPERATE:TEST-SYSTEM "iterate") ...)-12-2|
+(CONST 0) = "iterate"
+(CONST 1) = ASDF/OPERATE:TEST-SYSTEM
+(CONST 2) = 0
+(CONST 3) = UIOP/IMAGE:QUIT
+0 required arguments
+0 optional arguments
+No rest parameter
+No keyword parameters
+5 byte-code instructions:
+0     (CONST&PUSH 0)                      ; "iterate"
+1     (CALL1 1)                           ; ASDF/OPERATE:TEST-SYSTEM
+3     (CONST&PUSH 2)                      ; 0
+4     (CALL1 3)                           ; UIOP/IMAGE:QUIT
+6     (SKIP&RET 1)
+;; Wrote file /Users/rpg/lisp/iterate/test.fas
+;; Wrote file /Users/rpg/lisp/iterate/test.lis

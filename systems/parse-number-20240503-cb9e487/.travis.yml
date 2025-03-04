@@ -1,0 +1,30 @@
+os: linux
+dist: focal
+language: generic
+
+env:
+  jobs:
+    - LISP=sbcl
+    - LISP=ccl
+    - LISP=ecl
+    - LISP=abcl
+    - LISP=clisp
+    # - LISP=allegro
+    # - LISP=sbcl32
+    # - LISP=ccl32
+    # - LISP=cmucl
+
+jobs:
+  fast_finish: true
+  allow_failures:
+    # - env: LISP=sbcl32
+    # - env: LISP=ccl32
+    # - env: LISP=cmucl
+
+install:
+  - curl -L https://raw.githubusercontent.com/lispci/cl-travis/master/install.sh | sh
+
+script:
+  - cl -e "(print (lisp-implementation-version))(terpri)
+           (ql:quickload :parse-number/tests :verbose t)
+           (uiop:quit (if (org.mapcar.parse-number-tests:run-tests) 0 -1))"

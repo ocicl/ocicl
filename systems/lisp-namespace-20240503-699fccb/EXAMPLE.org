@@ -1,0 +1,84 @@
+
+* DEFINE-NAMESPACE
+
+#+BEGIN_SRC lisp
+;; Define a namespace. It automatically defines:
+;; + symbol-test
+;; + (setf symbol-test)
+;; + unbound-test
+;; + test-boundp
+(define-namespace test)
+;; result type of the accessor can be added (optionally) for the increased efficiency.
+(define-namespace test fixnum)
+
+(setf (symbol-test 'a) 0)
+(print (symbol-test 'a)) ; --> 0
+(print (symbol-test 'b)) ; --> error: UNBOUND-TEST signalled
+
+(test-boundp 'a) ; --> t
+
+;; flet-style lexical binding constructs specialized to that namespace
+(let (x)
+  (test-let ((a 1))
+    (setf x 
+          (lambda ()
+            (symbol-test 'a))))
+  (is (= 1 (funcall x))))
+
+;; Expands into:
+;; (PROGN
+;;  (LET ((#:TEMP1953 1))
+;;    (DECLARE (TYPE (TEST-TYPE) #:TEMP1953))
+;;    (MACROLET ((SYMBOL-TEST (&WHOLE LISP-NAMESPACE::WHOLE LISP-NAMESPACE::X)
+;;                 (IF (EQUAL LISP-NAMESPACE::X ''A)
+;;                     '#:TEMP1953
+;;                     LISP-NAMESPACE::WHOLE)))
+;;      (PROGN (SETF X (LAMBDA () (SYMBOL-TEST 'A)))))))
+;; note that the argument should be lexically identifiable.
+
+(symbol-test 'a) ; --> 0
+
+#+END_SRC
+
+* NAMESPACE-LET / NSLET
+
+#+BEGIN_SRC lisp
+(nslet ((#'x (y) (1+ y))
+        ((macro x) (y) (1+ y))
+        ((macro y) (y) (1+ y))
+        (#'x (y) (1+ y))
+        ((label y) (y) (y y))
+        ((symbol-macro sm) 0)
+        (b 0))
+  (let ((b 1))
+    (print :x)))
+
+;; (PROGN
+;;  (FLET ((X (Y) (1+ Y)))
+;;    (MACROLET ((X (Y) (1+ Y))
+;;               (Y (Y) (1+ Y))) ; same kinds of bindings are merged
+;;      (FLET ((X (Y) (1+ Y)))
+;;        (LABELS ((Y (Y) (Y Y)))
+;;          (SYMBOL-MACROLET ((SM 0))
+;;            (LET ((B 0))
+;;              (PROGN
+;;               (LET ((B 1))
+;;                 (PRINT :X))))))))))
+
+;; Lexical binding
+(funcall
+ (namespace-let (((test a) 1))
+   (lambda ()
+     (symbol-test 'a)))) ; --> 1
+
+;; (FUNCALL
+;;  (PROGN
+;;    (LET ((#:TEMP1976 1))
+;;      (MACROLET ((SYMBOL-TEST (&WHOLE WHOLE X)
+;;                   (IF (EQUAL X ''A)
+;;                       '#:TEMP1976
+;;                       WHOLE)))
+;;        (PROGN (LAMBDA () (SYMBOL-TEST 'A)))))))
+
+#+END_SRC
+
