@@ -144,7 +144,7 @@ using the library versions locked in your ``systems.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.5.20 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
+ocicl 2.5.21 - copyright (C) 2023-2024 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY] command
 
@@ -162,6 +162,7 @@ Choose from the following ocicl commands:
    latest [SYSTEM]...                  Install latest version of systems
    libyear                             Calculate the libyear dependency freshness metric
    list SYSTEM...                      List available system versions
+   remove [SYSTEM]...                  Remove systems
    setup [GLOBALDIR]                   Mandatory ocicl configuration
    version                             Show the ocicl version information
 
@@ -218,6 +219,11 @@ install the system, even if it already exists on disk.
 
 To update all systems in your ``systems.csv`` file to the latest
 version, run ``ocicl latest``.
+
+To remove an installed system, use ``ocicl remove``.  By default,
+``ocicl`` will refuse to remove systems that are required to satisfy any
+dependencies.  Use the ``ocicl --force remove`` option to ignore any
+dependencies and always uninstall.
 
 To use an alternate OCI registry for any operation, use the
 ``--registry`` option.  Using ``--registry`` with the ``setup``
