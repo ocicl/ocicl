@@ -830,9 +830,14 @@ Distributed under the terms of the MIT License"
   (with-open-file (stream (merge-pathnames (uiop:getcwd) "systems.csv")
                           :direction :output
                           :if-exists :supersede)
-    (maphash (lambda (key value)
-               (format stream "~A, ~A, ~A~%" key (car value) (cdr value)))
-             *ocicl-systems*))
+    (let ((systems-list (sort (alexandria:hash-table-alist *ocicl-systems*)
+                              #'string<
+                              :key #'car)))
+      (mapc
+       (lambda (system)
+         (destructuring-bind (system fullname . asd) system
+           (format stream "~A, ~A, ~A~%" system fullname asd)))
+       systems-list)))
   (debug-log "wrote new systems.csv"))
 
 (defun get-manifest (registry system tag)
