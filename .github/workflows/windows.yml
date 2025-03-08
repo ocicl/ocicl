@@ -41,7 +41,7 @@ jobs:
       - name: Test
         run: |
           export PATH=/c/Users/runneradmin/AppData/Local/ocicl/bin:$PATH
-          rm -rf systems systems.ocicl
+          rm -rf systems systems.csv
           mkdir test
           cd test
           touch systems.ocicl
