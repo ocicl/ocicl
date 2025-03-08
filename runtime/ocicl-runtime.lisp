@@ -62,6 +62,9 @@
 (defconstant +version+ "UNKNOWN")
 (defconstant +required-programs+ (list "ocicl"))
 
+(defvar *systems-csv* "systems.ocicl")
+(defvar *relative-systems-dir* (make-pathname :directory '(:relative "systems")))
+
 (defvar *local-ocicl-systems* nil)
 (defvar *local-systems-dir* nil)
 (defvar *local-systems-csv* nil)
@@ -176,29 +179,36 @@
       (uiop:pathname-directory-pathname file)))
 
 (defun find-workdir (workdir)
-  "Search for systems.csv starting from WORKDIR and moving up the directory chain.
-   Returns the directory containing systems.csv if found.  If none is
+  "Search for *.ocicl or systems.csv starting from WORKDIR and moving up the directory chain.
+   Returns the directory containing *.ocicl or systems.csv if found.  If none is
    found, return WORKDIR."
-  (let ((dir (truename workdir)))
-    (loop
-       for path = (merge-pathnames "systems.csv" dir)
-       until (probe-file path)
-       do (let ((parent-dir (parent dir)))
-            ;; Stop if we've reached the root (parent is same as current directory)
-            (if (or (null parent-dir) (equal parent-dir dir))
-                (return))
-            (setf dir parent-dir)))
-    (uiop:ensure-directory-pathname
-     (if (probe-file (merge-pathnames "systems.csv" dir))
-         dir
-       workdir))))
+  (let ((dir (truename workdir))
+        (ocicl-wild-name (make-pathname :name :wild :type "ocicl")))
+    (loop for systems-csv = (merge-pathnames *systems-csv* dir)
+          for ocicl-file = (car (directory (merge-pathnames ocicl-wild-name dir)))
+          until (or (and ocicl-file (probe-file ocicl-file)) (probe-file systems-csv))
+          do (let ((parent-dir (parent dir)))
+               ;; Stop if we've reached the root (parent is same as current directory)
+               (if (or (null parent-dir) (equal parent-dir dir))
+                   (return))
+               (setf dir parent-dir)))
+    (let* ((ocicl-file (car (directory (merge-pathnames ocicl-wild-name dir))))
+           (systems-file (or (and ocicl-file (probe-file ocicl-file))
+                             (probe-file (merge-pathnames *systems-csv* dir)))))
+      (uiop:ensure-directory-pathname
+       (cond (systems-file
+             (setf *systems-csv* systems-file
+                   *relative-systems-dir* (make-pathname
+                                           :directory
+                                           `(:relative ,(pathname-name systems-file))))
+             dir)
+            (t workdir))))))
 
 (defun initialize-globals ()
   (unless *local-systems-dir*
     (let ((workdir (find-workdir (uiop:getcwd))))
-      (setq *local-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                                 workdir))
-      (setq *local-systems-csv* (merge-pathnames "systems.csv" workdir))))
+      (setq *local-systems-dir* (merge-pathnames *relative-systems-dir* workdir))
+      (setq *local-systems-csv* (merge-pathnames *systems-csv* workdir))))
 
   (unless *global-systems-dir*
     (let* ((config-file (merge-pathnames "ocicl-globaldir.cfg" (get-ocicl-dir)))
@@ -206,9 +216,8 @@
                           (uiop:ensure-absolute-pathname (uiop:read-file-line config-file))
                           (get-ocicl-dir))))
 
-      (setq *global-systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
-                                                  globaldir))
-      (setq *global-systems-csv* (merge-pathnames "systems.csv" globaldir))))
+      (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir))
+      (setq *global-systems-csv* (merge-pathnames *systems-csv* globaldir))))
 
   (when (probe-file *local-systems-csv*)
     (let ((timestamp (file-write-date *local-systems-csv*)))

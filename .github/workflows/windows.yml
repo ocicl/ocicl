@@ -41,15 +41,15 @@ jobs:
       - name: Test
         run: |
           export PATH=/c/Users/runneradmin/AppData/Local/ocicl/bin:$PATH
-          rm -rf systems systems.csv
+          rm -rf systems systems.ocicl
           mkdir test
           cd test
-          touch systems.csv
+          touch systems.ocicl
           mkdir systems
           ocicl.exe -v install sento
           ls -l systems
-          ls -l systems.csv
-          cat systems.csv
+          ls -l systems.ocicl
+          cat systems.ocicl
           ls -l systems
           /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
           /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
