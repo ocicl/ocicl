@@ -35,6 +35,8 @@
 (defvar *force* nil)
 (defvar *ocicl-systems* nil)
 (defvar *inhibit-download-during-search* nil)
+(defvar *systems-csv* "ocicl.csv")
+(defvar *relative-systems-dir* (make-pathname :directory '(:relative "ocicl")))
 
 (defparameter +version+ #.(uiop:read-file-form "version.sexp"))
 
@@ -101,7 +103,7 @@
   (split-on-delimeter line #\Newline))
 
 (defun read-systems-csv ()
-  (let ((systems-file (merge-pathnames (uiop:getcwd) "systems.csv"))
+  (let ((systems-file (merge-pathnames (uiop:getcwd) *systems-csv*))
         (ht (make-hash-table :test #'equal)))
     (when (probe-file systems-file)
       (progn
@@ -406,7 +408,7 @@ Distributed under the terms of the MIT License"
   (let ((tld (top-level-directory key-file)))
     (handler-case
         (let ((pfile (uiop:merge-pathnames* (make-pathname :directory `(:relative ,tld))
-                                            (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                            (uiop:merge-pathnames* *relative-systems-dir*
                                                                    "_00_OCICL_NAME"))))
           (string-trim '(#\Space #\Tab #\Newline #\Return)
                        (uiop:read-file-string pfile)))
@@ -425,7 +427,7 @@ Distributed under the terms of the MIT License"
   (let ((tld (top-level-directory key-file)))
     (handler-case
         (let ((vfile (uiop:merge-pathnames* (make-pathname :directory `(:relative ,tld))
-                                            (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                            (uiop:merge-pathnames* *relative-systems-dir*
                                                                    "_00_OCICL_VERSION"))))
           (string-trim '(#\Space #\Tab #\Newline #\Return)
                        (uiop:read-file-string vfile)))
@@ -443,7 +445,7 @@ Distributed under the terms of the MIT License"
   (let ((projects (make-hash-table :test #'equal)))
     (maphash (lambda (key value)
                (setf (gethash (namestring (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
-                                                                 (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                                                 (uiop:merge-pathnames* *relative-systems-dir*
                                                                                         "_00_OCICL_VERSION")))
                               projects)
                      key))
@@ -492,7 +494,7 @@ Distributed under the terms of the MIT License"
       (let ((projects (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
                    (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
-                                                         (uiop:merge-pathnames* (make-pathname :directory '(:relative "systems"))
+                                                         (uiop:merge-pathnames* *relative-systems-dir*
                                                                                 "_00_OCICL_VERSION"))
                                   projects)
                          key))
@@ -599,7 +601,7 @@ Distributed under the terms of the MIT License"
                     (*error-output* (if *verbose* *error-output* (make-broadcast-stream))))
                (when (and system-info absolute-asd-path (probe-file absolute-asd-path))
                  (handler-case (asdf:find-system system nil)
-                   (error (e) (declare (ignore e))
+                   (error (e)
                      (format *error-output* "~a~%" e))))))
            (dependency-name (dependency)
              "Resolve DEPENDENCY name"
@@ -680,21 +682,26 @@ Distributed under the terms of the MIT License"
       (uiop:pathname-directory-pathname file)))
 
 (defun find-workdir (workdir)
-  "Search for systems.csv starting from WORKDIR and moving up the directory chain.
-   Returns the directory containing systems.csv if found.  If none is
+  "Search for *.ocicl or systems.csv starting from WORKDIR and moving up the directory chain.
+   Returns the directory containing *.ocicl or systems.csv if found.  If none is
    found, return WORKDIR."
-  (let ((dir (truename workdir)))
-    (loop
-       for path = (merge-pathnames "systems.csv" dir)
-       until (probe-file path)
-       do (let ((parent-dir (parent dir)))
-            ;; Stop if we've reached the root (parent is same as current directory)
-            (if (or (null parent-dir) (equal parent-dir dir))
-                (return))
-            (setf dir parent-dir)))
-    (if (probe-file (merge-pathnames "systems.csv" dir))
-        dir
-      workdir)))
+  (loop for dir = (truename workdir) :then parent-dir
+        for parent-dir = (parent dir)
+        for systems-csv = (merge-pathnames (make-pathname :name "systems" :type "csv") dir)
+        for ocicl-csv = (merge-pathnames (make-pathname :name "ocicl" :type "csv") dir)
+        for existing-csv = (or (probe-file ocicl-csv) (probe-file systems-csv))
+        until (or existing-csv
+                  (null parent-dir)
+                  (equal parent-dir dir))
+        finally (return
+                  (uiop:ensure-directory-pathname
+                   (cond (existing-csv
+                          (setf *systems-csv* existing-csv
+                                *relative-systems-dir* (make-pathname
+                                                        :directory
+                                                        `(:relative ,(pathname-name existing-csv))))
+                          dir)
+                         (t workdir))))))
 
 (defun main ()
   (setf *random-state* (make-random-state t))
@@ -743,7 +750,7 @@ Distributed under the terms of the MIT License"
              (handler-bind (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
                (uiop:with-current-directory (workdir)
                  (setq *ocicl-systems* (read-systems-csv))
-                 (setq *systems-dir* (merge-pathnames (make-pathname :directory '(:relative "systems"))
+                 (setq *systems-dir* (merge-pathnames *relative-systems-dir*
                                                       (uiop:getcwd)))
                  (if (not (> (length free-args) 0))
                      (usage)
@@ -827,7 +834,7 @@ Distributed under the terms of the MIT License"
 (defvar *ocicl-systems* nil)
 
 (defun write-systems-csv ()
-  (with-open-file (stream (merge-pathnames (uiop:getcwd) "systems.csv")
+  (with-open-file (stream (merge-pathnames (uiop:getcwd) *systems-csv*)
                           :direction :output
                           :if-exists :supersede)
     (let ((systems-list (sort (alexandria:hash-table-alist *ocicl-systems*)
@@ -838,7 +845,7 @@ Distributed under the terms of the MIT License"
          (destructuring-bind (system fullname . asd) system
            (format stream "~A, ~A, ~A~%" system fullname asd)))
        systems-list)))
-  (debug-log "wrote new systems.csv"))
+  (debug-log (format nil "wrote new ~a" *systems-csv*)))
 
 (defun get-manifest (registry system tag)
   (let ((token (get-bearer-token registry system))
