@@ -4,6 +4,35 @@
 NOTE: To request additions to the ``ocicl`` repo, create an Issue
 [here](https://github.com/ocicl/request-system-additions-here/issues/new?assignees=&labels=&projects=&template=request.yml&title=%5BSystem+Request%5D%3A+).
 
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
+
+  - [What is it?](#what-is-it)
+  - [Installation](#installation)
+    - [Installing with homebrew](#installing-with-homebrew)
+    - [Installing from source](#installing-from-source)
+  - [Setup](#setup)
+  - [Lisp usage](#lisp-usage)
+  - [Command line tool](#command-line-tool)
+    - [Installing systems](#installing-systems)
+    - [Listing available system versions](#listing-available-system-versions)
+    - [Updating systems](#updating-systems)
+    - [Removing systems](#removing-systems)
+    - [Using an alternate OCI registry](#using-an-alternate-oci-registry)
+    - [AI-Generated Change Summaries](#ai-generated-change-summaries)
+    - [Dependency Freshness](#dependency-freshness)
+  - [ocicl scope](#ocicl-scope)
+    - [Local (default)](#local-default)
+    - [Global (--global)](#global---global)
+  - [Security](#security)
+  - [Self-Hosting](#self-hosting)
+  - [Systems](#systems)
+  - [Tips and Troubleshooting](#tips-and-troubleshooting)
+  - [Author and License](#author-and-license)
+
+<!-- markdown-toc end -->
+
+
 What is it?
 ------------
 ``ocicl`` is a modern alternative to quicklisp.  It is modern in the sense that:
@@ -40,25 +69,18 @@ platforms should not be difficult, and pull requests are welcome at
 https://github.com/ocicl/ocicl/pulls.  Feedback is also welcome at
 https://github.com/ocicl/ocicl/issues.
 
-Quick Start
+Installation
 ------------
 
-You can install `ocicl` one of two ways: with
-[homebrew](https://brew.sh) or from source.
+You can install `ocicl` one of two ways: with [homebrew](https://brew.sh) or from source.
+
+### Installing with homebrew
 
 For [homebrew](https://brew.sh) on Linux, Windows WSL, or macOS,
 install and configure `ocicl` as follows:
 ```
-green@fedora:~$ brew install ocicl
-==> Downloading https://ghcr.io/v2/homebrew/core/ocicl/manifests/2.3.4
-########################################################################################################################################## 100.0%
-==> Fetching ocicl
-==> Downloading https://ghcr.io/v2/homebrew/core/ocicl/blobs/sha256:fe9b2d51c012851588baef450ff39b453526a7fc2c5df38e9071fc253b136150
-########################################################################################################################################## 100.0%
-==> Pouring ocicl--2.3.4.x86_64_linux.bottle.tar.gz
-🍺  /home/linuxbrew/.linuxbrew/Cellar/ocicl/2.3.4: 8 files, 36.4MB
-==> Running `brew cleanup ocicl`...
-green@fedora:~$ ocicl setup
+$ brew install ocicl
+$ ocicl setup
 ;; Add the following to your lisp startup file
 ;; (~/.sbclrc, ~/.eclrc, ~/.abclrc or ~/.roswell/init.lisp):
 
@@ -69,10 +91,24 @@ green@fedora:~$ ocicl setup
   (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
 ```
 
-To install from source, run ``sbcl --load setup.lisp`` in the source
-directory.  This will build and install the ``ocicl`` binary in
-``~/.local/bin`` on non-Windows systems, and
-``%UserProfile%\AppData\Local\ocicl\`` on Windows.
+### Installing from source
+
+To install from source, run the following in the source directory:
+
+```
+$ sbcl --load setup.lisp
+$ ocicl setup
+;; Add the following to your lisp startup file
+;; (~/.sbclrc, ~/.eclrc, ~/.abclrc or ~/.roswell/init.lisp):
+
+#-ocicl
+(when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
+  (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
+(asdf:initialize-source-registry
+  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
+```
+This will build and install the ``ocicl`` binary in ``~/.local/bin`` on
+non-Windows systems, and ``%UserProfile%\AppData\Local\ocicl\`` on Windows.
 
 The `setup.lisp` script will build an `ocicl` binary with 3072MB of
 dynamic memory space.  If you need a different amount, run it like so:
@@ -80,10 +116,12 @@ dynamic memory space.  If you need a different amount, run it like so:
 sbcl --eval "(defconstant +dynamic-space-size+ 2048)" --load setup.lisp
 ```
 
+Setup
+-----
 
-Now run ``ocicl setup``.  This is a mandatory step that installs the
+Run ``ocicl setup``.  This is a mandatory step that installs the
 ``ocicl-runtime`` library, and suggests configurations for your
-``${HOME}/.sbclrc`` file.
+lisp startup file.
 
 ```
 $ ocicl setup
@@ -107,9 +145,14 @@ be used for an authenticating proxy:
 $ export https_proxy=https://username:password@myproxyhost:8080
 ```
 
-Now try running this:
+Lisp usage
+----------
+
+Try loading a system:
+
 ```
-$ sbcl --eval "(asdf:load-system :str)"
+$ sbcl
+* (asdf:load-system :str)
 ```
 
 Look at your current directory.  You should see a directory called
@@ -122,13 +165,7 @@ files.
 str.test, ghcr.io/ocicl/str@sha256:0903b59c33d3026ac55a6f4b25a79094d08e3110758d8ae728bf4188db659313, cl-str-20230511-b1c8380/str.test.asd
 str, ghcr.io/ocicl/str@sha256:0903b59c33d3026ac55a6f4b25a79094d08e3110758d8ae728bf4188db659313, cl-str-20230511-b1c8380/str.asd
 cl-ppcre, ghcr.io/ocicl/cl-ppcre@sha256:5274824d397fa197d5c7790344ace27f2a30fc34c6cadb0a9fcce7d1e4052486, cl-ppcre-20230511-b4056c5a/cl-ppcre.asd
-cl-ppcre-unicode, ghcr.io/ocicl/cl-ppcre@sha256:5274824d397fa197d5c7790344ace27f2a30fc34c6cadb0a9fcce7d1e4052486, cl-ppcre-20230511-b4056c5a/cl-ppcre-unicode.asd
-cl-unicode, ghcr.io/ocicl/cl-unicode@sha256:b61ac07aed06c926720e6a4c155fd0c9411b01a05ee7ebba55fca7df491880e5, cl-unicode-20230511-2790a6b/cl-unicode.asd
-flexi-streams, ghcr.io/ocicl/flexi-streams@sha256:091df0cda6006b19aa206b022bb6d06fd9d5e5787b6152b9f0ae6846926ac5e0, flexi-streams-20230511-74a1027/flexi-streams.asd
-flexi-streams-test, ghcr.io/ocicl/flexi-streams@sha256:091df0cda6006b19aa206b022bb6d06fd9d5e5787b6152b9f0ae6846926ac5e0, flexi-streams-20230511-74a1027/flexi-streams-test.asd
-trivial-gray-streams, ghcr.io/ocicl/trivial-gray-streams@sha256:e82a60fdccc33916f26b60a3af63ee110f0b364cc2af59eee4be86256e8ea2b6, trivial-gray-streams-20230511-2b3823e/trivial-gray-streams.asd
-trivial-gray-streams-test, ghcr.io/ocicl/trivial-gray-streams@sha256:e82a60fdccc33916f26b60a3af63ee110f0b364cc2af59eee4be86256e8ea2b6, trivial-gray-streams-20230511-2b3823e/trivial-gray-streams-test.asd
-cl-change-case, ghcr.io/ocicl/cl-change-case@sha256:61791ee49f0160adad694eedbe8804fe9bcebad54336b0fbb8ce1a82091e20fa, cl-change-case-0.2.0/cl-change-case.asd
+...
 ```
 
 The next time you try to load ``str``, ASDF will load the code that
@@ -140,6 +177,12 @@ as above.  ``ocicl`` will download the exact version specified in the
 ``systems.csv`` file to your project's source repo, but never the
 ``systems`` directory.  When you run your program, you will always be
 using the library versions locked in your ``systems.csv`` file.
+
+To get a list of all of the systems already downloaded (both locally
+and globally), call `(ocicl-runtime:system-list)`.
+
+Command line tool
+-----------------
 
 Now let's try the ``ocicl`` command line tool.
 
@@ -169,8 +212,12 @@ Choose from the following ocicl commands:
 Distributed under the terms of the MIT License
 ```
 
-If we again delete the ``systems`` directory, running ``ocicl
-install`` will download all of the systems specified in your
+### Installing systems
+```
+ocicl install [SYSTEM[:VERSION]]...
+```
+
+Running ``ocicl install`` will download all of the systems specified in your
 ``systems.csv`` file.
 
 ```
@@ -193,19 +240,6 @@ This downloads the latest version of trivial-garbage, which is the OCI
 image with the ``latest`` tag, and is equivalent to ``ocicl install
 trivial-garbage:latest``.
 
-To see what other versions of a package are available, run ``ocicl list trivial-garbage``
-```
-$ ocicl list trivial-garbage
-trivial-garbage:
- latest
- 20230511-b3af9c0
-```
-
-Here we only have one version, 20230511-b3af9c0, which also has the
-``latest`` tag.  Many lisp libraries are built from git sources
-without release tags.  In this case, the version label represents the
-build date and the git commit hash (b3af9c0).
-
 To install any specific version of a system, just use the appropriate
 version label in your ``ocicl install`` command.  For example:
 ``ocicl install trivial-garbage:20230511-b3af9c0`` or
@@ -217,13 +251,42 @@ if any version of ``SYSTEMNAME`` is already installed (unless
 (including ``latest``) then ``ocicl install`` will always download and
 install the system, even if it already exists on disk.
 
+### Listing available system versions
+```
+ocicl list SYSTEM...
+```
+
+To see what other versions of a package are available, run ``ocicl list trivial-garbage``
+```
+$ ocicl list trivial-garbage
+trivial-garbage:
+ latest
+ 20230511-b3af9c0
+```
+Here we only have one version, 20230511-b3af9c0, which also has the
+``latest`` tag.  Many lisp libraries are built from git sources
+without release tags.  In this case, the version label represents the
+build date and the git commit hash (b3af9c0).
+
+### Updating systems
+```
+ocicl latest [SYSTEM]...
+```
+
 To update all systems in your ``systems.csv`` file to the latest
 version, run ``ocicl latest``.
+
+### Removing systems
+```
+ocicl remove [SYSTEM]...
+```
 
 To remove an installed system, use ``ocicl remove``.  By default,
 ``ocicl`` will refuse to remove systems that are required to satisfy any
 dependencies.  Use the ``ocicl --force remove`` option to ignore any
 dependencies and always uninstall.
+
+### Using an alternate OCI registry
 
 To use an alternate OCI registry for any operation, use the
 ``--registry`` option.  Using ``--registry`` with the ``setup``
@@ -236,12 +299,63 @@ registry, it's possible to use multiple registries by adding multiple
 entries to the `ocicl-registry.cfg` file in your `${XDG_DATA_DIR}/ocicl`
 directory.
 
-In the examples so far, we see that all system downloads are recorded
-in the current working directory.  This is the default behaviour.
-However, when `systems.csv` appears in any parent directory, all
-systems are downloaded and recorded in the `systems` sub-directory of
-that parent.  The ocicl runtime mirrors this behaviour when it comes
-to loading systems.  See the following for example usage.
+### AI-Generated Change Summaries
+```
+ocicl changes [SYSTEM[:VERSION]]...
+```
+
+The `ocicl` tool can provide summaries of changes between versions of
+Lisp systems.  These summaries are produced by an LLM, and are
+designed to describe key changes and user impacts for newer versions
+of systems you depend on.
+
+* `ocicl changes`: describes every change for every newer version of systems `ocicl` has installed
+* `ocicl -v changes`: same, but provides verbose reporting on progress
+* `ocicl changes cl-chat`: describes changes for every newer version of `cl-chat`
+* `ocicl changes omg:20240427-5b316a0`: describes changes for every version of `omg` newer than `20240427-5b316a0`.
+
+These summaries are pre-generated by the `ocicl` maintenance system by
+feeding source code diffs to an LLM and uploading the results to the
+OCI registry.
+
+In some cases the description may be missing as they only started
+being generated as of May 2024.
+
+### Dependency Freshness
+```
+ocicl libyear
+```
+
+`ocicl` can compute the [libyear](https://libyear.com) dependency
+freshness metric for the projects on which you depend.  It is a single
+number telling you how up-to-date your dependencies are.  The libyear
+value for a single project indicates the time between your version and
+the most recent version.
+
+```
+$ ocicl libyear
+OMGlib              0.02 libyears (6.01 days)
+cl-opengl           0.02 libyears (7.01 days)
+lqn                 0.01 libyears (1.00 days)
+openapi-generator   0.01 libyears (1.00 days)
+trivial-arguments   0.01 libyears (3.01 days)
+graven-image        0.01 libyears (2.01 days)
+cl-oju              0.02 libyears (4.01 days)
+py4cl2-cffi         0.02 libyears (6.01 days)
+
+TOTAL libyears: 0.09 (30.06 days)
+```
+
+## ocicl scope
+
+### Local (default)
+
+In the examples so far, we see that all system downloads are recorded in the
+current working directory. This is the default behaviour. However, when
+`systems.csv` appears in any parent directory, all systems are downloaded and
+recorded in the `systems` sub-directory of that parent. The ocicl lisp runtime
+mirrors this behaviour when it comes to loading systems. See the following for
+example usage.
 
 ```
 green@fedora:~/hacking$ touch systems.csv
@@ -264,11 +378,17 @@ drwxr-xr-x. 1 green green 216 Oct 17 23:05 cl-str-20240708-1bcf26d
 drwxr-xr-x. 1 green green 344 Oct 17 23:05 cl-unicode-20240503-07e7ff5
 ```
 
-You may also choose to download systems "globally" for the current
-user by using the ``--global`` option.  This is equivalent to
-temporarily changing directory to a user-global directory before
-performing any operation with the `ocicl` cli.  These "global" systems
-are available at runtime using the following heuristic:
+### Global (--global)
+```
+ocicl --global command
+```
+
+You may also choose to download systems "globally" for the current user by
+using the ``--global`` option. This is equivalent to temporarily changing
+directory to a user-global directory before performing any operation with the
+`ocicl` cli. These "global" systems are available at runtime using the
+following heuristic:
+
 - If the system is available locally, then it is loaded from from the local `systems` directory.
 - Else if the system is available in the global `systems` directory, it loaded from there.
 - Otherwise, if `ocicl-runtime:*download*` is non-nil, then the system is downloaded either locally or globally:
@@ -280,52 +400,6 @@ optional ``GLOBALDIR`` argument when you invoke ``ocicl setup``.
 
 You can change the default behaviour of downloading systems on demand
 by setting ``ocicl-runtime:*download*`` to nil.
-
-To get a list of all of the systems already downloaded (both locally
-and globally), call `(ocicl-runtime:system-list)`.
-
-AI-Generated Change Summaries
------------------------------
-
-The `ocicl` tool can provide summaries of changes between versions of
-Lisp systems.  These summaries are produced by an LLM, and are
-designed to describe key changes and user impacts for newer versions
-of systems you depend on.
-
-* `ocicl changes`: describes every change for every newer version of systems `ocicl` has installed
-* `ocicl -v changes`: same, but provides verbose reporting on progress
-* `ocicl changes cl-chat`: describes changes for every newer version of `cl-chat`
-* `ocicl changes omg:20240427-5b316a0`: describes changes for every version of `omg` newer than `20240427-5b316a0`.
-
-These summaries are pre-generated by the `ocicl` maintenance system by
-feeding source code diffs to an LLM and uploading the results to the
-OCI registry.
-
-In some cases the description may be missing as they only started
-being generated as of May 2024.
-
-Dependency Freshness
---------------------
-
-`ocicl` can compute the [libyear](https://libyear.com) dependency
-freshness metric for the projects on which you depend.  It is a single
-number telling you how up-to-date your dependencies are.  The libyear
-value for a single project indicates the time between your version and
-the most recent version.
-
-```
-$ ocicl libyear
-OMGlib              0.02 libyears (6.01 days)
-cl-opengl           0.02 libyears (7.01 days)
-lqn                 0.01 libyears (1.00 days)
-openapi-generator   0.01 libyears (1.00 days)
-trivial-arguments   0.01 libyears (3.01 days)
-graven-image        0.01 libyears (2.01 days)
-cl-oju              0.02 libyears (4.01 days)
-py4cl2-cffi         0.02 libyears (6.01 days)
-
-TOTAL libyears: 0.09 (30.06 days)
-```
 
 Security
 --------
@@ -447,19 +521,19 @@ running ``ocicl setup -r docker.io/ocicl``.
 
 * You may find it convenient to tell ASDF to load from the current directory.
 Do this by placing the following in your ``.sbclrc`` file:
-```
-(asdf:initialize-source-registry
-  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
-```
+  ```
+  (asdf:initialize-source-registry
+    (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
+  ```
 * As an ``ocicl`` user, you may have had experience using quicklisp's
 ``local-projects`` mechanism, and are wondering how to do something
 similar.  ASDF itself provides a simple mechanism for searching a
 collection of subdirs for ``.asd`` files.  If, for instance, you had
 a directory in which you cloned various lisp systems called
 ``/path/to/my/local-projects``, you would configure ASDF thusly:
-```
-(asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree #P"/path/to/my/local-projects/")))
-```
+  ```
+  (asdf:initialize-source-registry '(:source-registry :inherit-configuration (:tree #P"/path/to/my/local-projects/")))
+  ```
 * Setting ``ocicl-runtime:*verbose*`` to a stream (like ``t``, ``*standard-output*``, ``*error-output*``, etc) will output useful and
 interesting log info.
 
