@@ -113,8 +113,8 @@ $ sbcl --eval "(asdf:load-system :str)"
 ```
 
 Look at your current directory.  You should see a directory called
-``systems`` and a file called ``systems.csv``.  The ``systems``
-directory contains the code you just downloaded, and ``systems.csv``
+``ocicl`` and a file called ``ocicl.csv``.  The ``ocicl``
+directory contains the code you just downloaded, and ``ocicl.csv``
 contains a mapping of system names to OCI artifacts and ``.asd``
 files.
 
@@ -134,12 +134,12 @@ cl-change-case, ghcr.io/ocicl/cl-change-case@sha256:61791ee49f0160adad694eedbe88
 The next time you try to load ``str``, ASDF will load the code that
 you've already downloaded and compiled.
 
-Now try deleting the ``systems`` directory, and loading ``str`` again
+Now try deleting the ``ocicl`` directory, and loading ``str`` again
 as above.  ``ocicl`` will download the exact version specified in the
-``systems.csv`` file.  The idea here is that you would commit your
-``systems.csv`` file to your project's source repo, but never the
-``systems`` directory.  When you run your program, you will always be
-using the library versions locked in your ``systems.csv`` file.
+``ocicl.csv`` file.  The idea here is that you would commit your
+``ocicl.csv`` file to your project's source repo, but never the
+``ocicl`` directory.  When you run your program, you will always be
+using the library versions locked in your ``ocicl.csv`` file.
 
 Now let's try the ``ocicl`` command line tool.
 
@@ -169,9 +169,9 @@ Choose from the following ocicl commands:
 Distributed under the terms of the MIT License
 ```
 
-If we again delete the ``systems`` directory, running ``ocicl
+If we again delete the ``ocicl`` directory, running ``ocicl
 install`` will download all of the systems specified in your
-``systems.csv`` file.
+``ocicl.csv`` file.
 
 ```
 $ ocicl install
@@ -217,7 +217,7 @@ if any version of ``SYSTEMNAME`` is already installed (unless
 (including ``latest``) then ``ocicl install`` will always download and
 install the system, even if it already exists on disk.
 
-To update all systems in your ``systems.csv`` file to the latest
+To update all systems in your ``ocicl.csv`` file to the latest
 version, run ``ocicl latest``.
 
 To remove an installed system, use ``ocicl remove``.  By default,
@@ -238,13 +238,13 @@ directory.
 
 In the examples so far, we see that all system downloads are recorded
 in the current working directory.  This is the default behaviour.
-However, when `systems.csv` appears in any parent directory, all
-systems are downloaded and recorded in the `systems` sub-directory of
+However, when `ocicl.csv` appears in any parent directory, all
+systems are downloaded and recorded in the `ocicl` sub-directory of
 that parent.  The ocicl runtime mirrors this behaviour when it comes
 to loading systems.  See the following for example usage.
 
 ```
-green@fedora:~/hacking$ touch systems.csv
+green@fedora:~/hacking$ touch ocicl.csv
 green@fedora:~/hacking$ mkdir project-1
 green@fedora:~/hacking$ mkdir project-2
 green@fedora:~/hacking$ cd project-1
@@ -256,7 +256,7 @@ green@fedora:~/hacking/project-1$ ocicl install str
 green@fedora:~/hacking/project-1$ cd ../project-2/
 green@fedora:~/hacking/project-2$ ocicl install str
 ; str:1bcf26d already exists
-green@fedora:~/hacking/project-2$ ls -l ../systems
+green@fedora:~/hacking/project-2$ ls -l ../ocicl
 total 0
 drwxr-xr-x. 1 green green 112 Oct 17 23:05 cl-change-case-0.2.1
 drwxr-xr-x. 1 green green 642 Oct 17 23:05 cl-ppcre-20240503-80fb19d
@@ -269,10 +269,10 @@ user by using the ``--global`` option.  This is equivalent to
 temporarily changing directory to a user-global directory before
 performing any operation with the `ocicl` cli.  These "global" systems
 are available at runtime using the following heuristic:
-- If the system is available locally, then it is loaded from from the local `systems` directory.
-- Else if the system is available in the global `systems` directory, it loaded from there.
+- If the system is available locally, then it is loaded from from the local `ocicl` directory.
+- Else if the system is available in the global `ocicl` directory, it loaded from there.
 - Otherwise, if `ocicl-runtime:*download*` is non-nil, then the system is downloaded either locally or globally:
-    - if `ocicl-runtime:*force-global*` is non-nil, then the system is downloaded to the global systems directory.
+    - if `ocicl-runtime:*force-global*` is non-nil, then the system is downloaded to the global `ocicl` directory.
     - else if `ocicl-runtime:*force-global*` is nil (default), then the system is downloaded locally.
 
 To change the default user-global directory, provide the
@@ -467,6 +467,10 @@ interesting log info.
 (along with any fasl files) from the directory containing
 ``ocicl-runtime.lisp`` if you do not want this version to be loaded by
 the runtime at startup.
+
+* In addition to `ocicl.csv` with the `ocicl` systems directory, `ocicl`
+  additionally supports `systems.csv` and `systems` for backward compatibility
+  with earlier versions of ocicl.
 
 Author and License
 -------------------

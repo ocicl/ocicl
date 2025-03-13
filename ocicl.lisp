@@ -682,8 +682,8 @@ Distributed under the terms of the MIT License"
       (uiop:pathname-directory-pathname file)))
 
 (defun find-workdir (workdir)
-  "Search for *.ocicl or systems.csv starting from WORKDIR and moving up the directory chain.
-   Returns the directory containing *.ocicl or systems.csv if found.  If none is
+  "Search for ocicl.csv or systems.csv starting from WORKDIR and moving up the directory chain.
+   Returns the directory containing ocicl.csv or systems.csv if found.  If none is
    found, return WORKDIR."
   (loop for dir = (truename workdir) :then parent-dir
         for parent-dir = (parent dir)
