@@ -1,0 +1,9 @@
+* implement patch(1) functionality
+* more options for context/unified diff output; in particular, supporting
+  something similar to GNU diff's -F option would be useful.
+* vcdiff encoding of copy/insert deltas
+* structural differencing algorithms
+* diff3 functionality
+* applying svndiffs to files/streams
+* identifying a useful interface for CL:EXPORT
+* docstrings and such

@@ -1,0 +1,16 @@
+DIFF is a package for computing various forms of differences between
+blobs of data and then doing neat things with those differences.
+Currently diff knows how to compute three common forms of differences:
+
+* "unified" format diffs, suitable for inspecting changes between
+  different versions of files;
+* "context" format diffs, suitable for inspecting changes between
+  different versions of files;
+* "vdelta" format binary diffs, which might be useful in a version
+  control system for compact storage of deltas.
+
+An ASDF system is provided; there are no symbols exported from the DIFF
+package, as a good interface has not yet been decided upon.
+Documentation is fairly sparse.
+
+Nathan Froyd <froydnj@gmail.com>
