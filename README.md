@@ -153,6 +153,7 @@ Available options:
   -f, --force              force action
   -g, --global             operate on the global system collection
   -r, --registry REGISTRY  use alternate oci registry
+  -c, --color WHEN         color the output WHEN (auto, always, or never)
 
 Choose from the following ocicl commands:
 
