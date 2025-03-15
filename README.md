@@ -162,6 +162,7 @@ Choose from the following ocicl commands:
    latest [SYSTEM]...                  Install latest version of systems
    libyear                             Calculate the libyear dependency freshness metric
    list SYSTEM...                      List available system versions
+   diff SYSTEM VERSION1 VERSION2       Produce a diff between files in different system versions
    remove [SYSTEM]...                  Remove systems
    setup [GLOBALDIR]                   Mandatory ocicl configuration
    version                             Show the ocicl version information
@@ -216,6 +217,9 @@ if any version of ``SYSTEMNAME`` is already installed (unless
 ``--force`` is specified).  However, if a system version is specified
 (including ``latest``) then ``ocicl install`` will always download and
 install the system, even if it already exists on disk.
+
+To compare differences between system versions, run `ocicl diff SYSTEM VERSION1
+VERSION2`.
 
 To update all systems in your ``ocicl.csv`` file to the latest
 version, run ``ocicl latest``.

@@ -1,0 +1,69 @@
+-*- mode: outline -*-
+
+* Version 0.4, released 10-05-2005
+
+** bugfixes
+
+Context diff printing is "more correct".
+
+When printing unified diff windows, the header line ("@@ ... @@") is no
+longer printed twice.
+
+** changes
+
+DIFF now depends on CL-PPCRE.
+
+** new features
+
+A patch-reading interface has been added.  It currently supports unified
+and "new-style" context diffs.  Applying patches will be added in a
+future release.  See DIFF::READ-PATCHES-FROM-FILE for a preliminary
+interface to reading patches.
+
+* Version 0.3, released 02-01-2005
+
+** new features
+
+Supports generation of "context"-style diffs (diff -c).  As with
+unified-style diffs, the diffs may not exactly match the diffs generated
+by GNU diff, but GNU patch (or similar) should be able to use the diffs.
+
+The internal interface has been reorganized somewhat.  There is now a
+DIFF class and PRINT-OBJECT is used in preference to specially-written
+PRINT-FOO functions.
+
+An interface is actually exported from package DIFF.  GENERATE-DIFF
+seems to be a reasonable interface for making diffs of all kinds;
+suggestions for a better interface are always appreciated (in
+particular, there should be an interface for diffing arbitrary streams).
+
+** incompatible changes
+
+DIFF::*UNIFIED-DIFF-CONTEXT-LINES* has been renamed to
+DIFF::*DIFF-CONTEXT-LINES*, as it can be used for both unified and
+context diffs.
+
+DIFF::PRINT-DIFF has been removed in favor of PRINT-OBJECT functionality.
+
+* Version 0.2, released 27-05-2004
+
+** new features
+
+An ASDF packaging file has been added.
+
+This package creates and uses the DIFF package.
+
+An implementation of the vdelta binary differencing algorithm has been
+added.
+
+Unified diff generation now produces Lisp objects to sling around rather
+than writing the diff to a stream as it is being generated (change made
+as per #lisp suggestions).
+
+** tests
+
+A small set of test files have been included with the distribution.
+
+* Version 0.1, released 24-05-2004
+
+Initial release
