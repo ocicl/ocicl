@@ -811,50 +811,57 @@ Distributed under the terms of the MIT License"
         (declare (type (simple-array character) system-name given-v1 given-v2 version1 version2))
         (when (string= version1 version2)
           (return-from do-diff))
-        (if (and (download-system system-fullname-1
-                                  :write-systems-csv nil
-                                  :check-directory-only t)
-                 (download-system system-fullname-2
-                                  :write-systems-csv nil
-                                  :check-directory-only t))
-            (let* ((version1-reldir (substitute #\- #\: (substitute #\- #\_ system-fullname-1)))
-                   (version1-dir (uiop:ensure-directory-pathname (merge-pathnames version1-reldir *systems-dir*)))
-                   (version1-files (mapcar
-                                    (lambda (file)
-                                      (enough-namestring file version1-dir))
-                                    (list-all-files version1-dir)))
-                   (version2-reldir (substitute #\- #\: (substitute #\- #\_ system-fullname-2)))
-                   (version2-dir (uiop:ensure-directory-pathname (merge-pathnames version2-reldir *systems-dir*)))
-                   (version2-files (mapcar
-                                    (lambda (file)
-                                      (enough-namestring file version2-dir))
-                                    (list-all-files version2-dir)))
-                   (files-only-in-1  (set-difference version1-files version2-files :test #'equal))
-                   (files-only-in-2 (set-difference version2-files version1-files :test #'equal))
-                   (files-in-both (intersection version1-files version2-files :test #'equal))
-                   (files (sort
-                           (append
-                            (mapcar (lambda (file) (cons file version1)) files-only-in-1)
-                            (mapcar (lambda (file) (cons file version2)) files-only-in-2)
-                            (mapcar (lambda (file) (cons file :both)) files-in-both))
-                           #'string<
-                           :key #'car)))
-              (dolist (file files)
-                (if (eql :both (cdr file))
-                    (let ((pathname-1 (merge-pathnames (car file) version1-dir))
-                          (pathname-2 (merge-pathnames (car file) version2-dir)))
-                      (if (or (binary-file-p pathname-1)
-                              (binary-file-p pathname-2))
-                          (when (binary-files-differ-p pathname-1 pathname-2)
-                            (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))
-                          (handler-case
-                              (let ((diff (diff:generate-diff 'colorful-unified-diff pathname-1 pathname-2)))
-                                (when (diff:diff-windows diff)
-                                  (diff:render-diff diff *standard-output*)))
-                            (stream-error ()
-                              (when (binary-files-differ-p pathname-1 pathname-2)
-                                (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))))))
-                    (format t "~&Only in ~a: ~a~%" (cdr file) (car file)))))))))
+        (let ((version1-system-info (download-system system-fullname-1 :write-systems-csv nil))
+              (version2-system-info (download-system system-fullname-2 :write-systems-csv nil)))
+          (if (and (print version1-system-info) version2-system-info)
+              (let* ((version1-dir (merge-pathnames
+                                    (make-pathname
+                                     :directory `(:relative
+                                                  ,(second
+                                                    (pathname-directory
+                                                     (the string (cdr version1-system-info))))))
+                                    *systems-dir*))
+                     (version1-files (mapcar
+                                      (lambda (file)
+                                        (enough-namestring file version1-dir))
+                                      (list-all-files version1-dir)))
+                     (version2-dir (merge-pathnames
+                                    (make-pathname
+                                     :directory `(:relative
+                                                  ,(second
+                                                    (pathname-directory
+                                                     (the string (cdr version2-system-info))))))
+                                    *systems-dir*))
+                     (version2-files (mapcar
+                                      (lambda (file)
+                                        (enough-namestring file version2-dir))
+                                      (list-all-files version2-dir)))
+                     (files-only-in-1  (set-difference version1-files version2-files :test #'equal))
+                     (files-only-in-2 (set-difference version2-files version1-files :test #'equal))
+                     (files-in-both (intersection version1-files version2-files :test #'equal))
+                     (files (sort
+                             (append
+                              (mapcar (lambda (file) (cons file version1)) files-only-in-1)
+                              (mapcar (lambda (file) (cons file version2)) files-only-in-2)
+                              (mapcar (lambda (file) (cons file :both)) files-in-both))
+                             #'string<
+                             :key #'car)))
+                (dolist (file files)
+                  (if (eql :both (cdr file))
+                      (let ((pathname-1 (merge-pathnames (car file) version1-dir))
+                            (pathname-2 (merge-pathnames (car file) version2-dir)))
+                        (if (or (binary-file-p pathname-1)
+                                (binary-file-p pathname-2))
+                            (when (binary-files-differ-p pathname-1 pathname-2)
+                              (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))
+                            (handler-case
+                                (let ((diff (diff:generate-diff 'colorful-unified-diff pathname-1 pathname-2)))
+                                  (when (diff:diff-windows diff)
+                                    (diff:render-diff diff *standard-output*)))
+                              (stream-error ()
+                                (when (binary-files-differ-p pathname-1 pathname-2)
+                                  (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))))))
+                      (format t "~&Only in ~a: ~a~%" (cdr file) (car file))))))))))
 
   (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
@@ -1104,26 +1111,15 @@ Distributed under the terms of the MIT License"
                  nil))))
       (uiop:delete-directory-tree dl-dir :validate t))))
 
-(defun download-system (system
-                        &key
-                          (write-systems-csv t)
-                          check-directory-only)
+(defun download-system (system &key (write-systems-csv t))
   "Downloads SYSTEM, which may be specified as NAME[:VERSION].
 
 If SYSTEM exists in the systems csv file and the asd file exists, does not
-download the system unless a version is specified.
-
-CHECK-DIRECTORY-ONLY causes donwload-system to check for existence using only
-the expected directory name."
+download the system unless a version is specified."
   (let* ((slist (split-on-delimeter system #\:))
          (name (first slist))
          (requested-version (second slist))
          (mangled-name (mangle name))
-         (directory-name (and requested-version
-                              (substitute #\- #\: (substitute #\- #\_ system))))
-         (directory-path (and directory-name
-                              (uiop:ensure-directory-pathname
-                               (merge-pathnames directory-name *systems-dir*))))
          (system-info (gethash mangled-name *ocicl-systems*))
          (fullname (car system-info))
          (relative-asd-path (cdr system-info))
@@ -1134,19 +1130,13 @@ the expected directory name."
                                #?"sha256:${digest}")))
          (version (or requested-version existing-version "latest"))
          (asd-file (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*))))
-    (if (or (and check-directory-only
-                 directory-path
-                 (uiop:directory-exists-p directory-path)
-                 (not *force*))
-            (and (not requested-version)
-                 system-info
-                 asd-file
-                 (probe-file asd-file)
-                 (not *force*)))
+    (if (and (not requested-version)
+             system-info
+             asd-file
+             (probe-file asd-file)
+             (not *force*))
         (progn
-          (if check-directory-only
-              (format t "; ~A already exists~%" system)
-              (format t "; ~A:~A already exists~%" system (get-project-version relative-asd-path)))
+          (format t "; ~A:~A already exists~%" system (get-project-version relative-asd-path))
           t)
         (let ((dl-dir (get-temp-ocicl-dl-pathname)))
           (unwind-protect
