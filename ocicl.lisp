@@ -1169,9 +1169,9 @@ download the system unless a version is specified."
             (uiop:delete-directory-tree dl-dir :validate t))))))
 
 (defun find-asdf-system-file (name)
-  (let ((known-system (gethash (mangle name) *ocicl-systems*)))
-    (cond (known-system
-           (probe-file (merge-pathnames (cdr known-system) *systems-dir*)))
+  (let* ((system-info (gethash (mangle name) *ocicl-systems*))
+         (system-asd (merge-pathnames (cdr system-info) *systems-dir*)))
+    (cond ((probe-file system-asd))
           ((not *inhibit-download-during-search*)
            (handler-case
                (probe-file (merge-pathnames (cdr (download-system name)) *systems-dir*))
