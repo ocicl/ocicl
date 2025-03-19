@@ -258,29 +258,34 @@ Distributed under the terms of the MIT License"
 
 (defun download-system-dependencies (name)
   (let ((*load-verbose* *verbose*)
-        (*load-print* *verbose*))
-    (let* ((s (asdf:find-system name))
-           (deps (asdf:system-depends-on s)))
-      (dolist (d deps)
-        (labels ((find-system (dep)
-                   (if (and dep (listp dep))
-                       (progn
-                         (find-system (case (car dep)
-                                        (:version (second dep))
-                                        (:feature (third dep))
-                                        (:require (second dep)))))
-                       dep)))
-          (let ((dep (find-system d)))
-            (unless (string= "sb-" (subseq (string-downcase (format nil "~A" dep)) 0 3))
-              (handler-case
-                  (download-system-dependencies dep)
-                (asdf/find-component:missing-component (e)
-                  (declare (ignore e))
-                  (when *verbose*
-                    (format t "; can't download ASDF dependency ~A~%" d)))
-                (error (e)
-                  (when *verbose*
-                    (format t "; error processing ~A: ~A~%" d e)))))))))))
+        (*load-print* *verbose*)
+        (*compile-verbose* *verbose*))
+    (handler-bind (((or warning sb-ext:compiler-note)
+                     (lambda (w)
+                       (unless *verbose*
+                         (muffle-warning w)))))
+      (let* ((s (asdf:find-system name))
+             (deps (asdf:system-depends-on s)))
+        (dolist (d deps)
+          (labels ((find-system (dep)
+                     (if (and dep (listp dep))
+                         (progn
+                           (find-system (case (car dep)
+                                          (:version (second dep))
+                                          (:feature (third dep))
+                                          (:require (second dep)))))
+                         dep)))
+            (let ((dep (find-system d)))
+              (unless (string= "sb-" (subseq (string-downcase (format nil "~A" dep)) 0 3))
+                (handler-case
+                    (download-system-dependencies dep)
+                  (asdf/find-component:missing-component (e)
+                    (declare (ignore e))
+                    (when *verbose*
+                      (format t "; can't download ASDF dependency ~A~%" d)))
+                  (error (e)
+                    (when *verbose*
+                      (format t "; error processing ~A: ~A~%" d e))))))))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
