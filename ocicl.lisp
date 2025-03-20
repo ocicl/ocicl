@@ -258,36 +258,36 @@ Distributed under the terms of the MIT License"
                )))
   (format nil "No documented changes for ~A:~A" system version))
 
-(defun download-system-dependencies (name)
+(declaim (inline quiet-find-system))
+(defun quiet-find-system (system &optional (errorp nil errorp-given))
   (let ((*load-verbose* *verbose*)
-        (*load-print* *verbose*)
-        (*compile-verbose* *verbose*))
+        (*compile-verbose* *verbose*)
+        (*error-output* (if *verbose*
+                            *error-output*
+                            (make-broadcast-stream))))
     (handler-bind (((or warning sb-ext:compiler-note)
                      (lambda (w)
                        (unless *verbose*
                          (muffle-warning w)))))
-      (let* ((s (asdf:find-system name))
-             (deps (asdf:system-depends-on s)))
-        (dolist (d deps)
-          (labels ((find-system (dep)
-                     (if (and dep (listp dep))
-                         (progn
-                           (find-system (case (car dep)
-                                          (:version (second dep))
-                                          (:feature (third dep))
-                                          (:require (second dep)))))
-                         dep)))
-            (let ((dep (find-system d)))
-              (unless (string= "sb-" (subseq (string-downcase (format nil "~A" dep)) 0 3))
-                (handler-case
-                    (download-system-dependencies dep)
-                  (asdf/find-component:missing-component (e)
-                    (declare (ignore e))
-                    (when *verbose*
-                      (format t "; can't download ASDF dependency ~A~%" d)))
-                  (error (e)
-                    (when *verbose*
-                      (format t "; error processing ~A: ~A~%" d e))))))))))))
+      (if errorp-given
+          (asdf:find-system system errorp)
+          (asdf:find-system system)))))
+
+(defun download-system-dependencies (name)
+  (let* ((s (quiet-find-system name))
+         (deps (asdf:system-depends-on s)))
+    (dolist (d deps)
+      (let ((dep (resolve-dependency-name d)))
+        (unless (string= "sb-" (subseq (string-downcase (format nil "~A" dep)) 0 3))
+          (handler-case
+              (download-system-dependencies dep)
+            (asdf/find-component:missing-component (e)
+              (declare (ignore e))
+              (when *verbose*
+                (format t "; can't download ASDF dependency ~A~%" d)))
+            (error (e)
+              (when *verbose*
+                (format t "; error processing ~A: ~A~%" d e)))))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
@@ -577,35 +577,50 @@ Distributed under the terms of the MIT License"
                    (download-and-install (car value))))
                *ocicl-systems*)))
 
-(defun system-group (system)
-  "Return systems that are in the same directory tree as SYSTEM"
-  (let* ((subsystems)
-         (mangled-name (mangle system))
-         (system-info (gethash mangled-name *ocicl-systems*))
-         (relative-asd-path (cdr system-info))
-         (absolute-asd-path (when system-info (merge-pathnames relative-asd-path *systems-dir*)))
-         (system-directory (when absolute-asd-path
-                             (merge-pathnames
-                              (make-pathname
-                               :directory
-                               `(:relative
-                                 ,(second
-                                   (pathname-directory
-                                    (enough-namestring absolute-asd-path *systems-dir*)))))
-                              *systems-dir*))))
-    (when system-info
-      (maphash (lambda (k v)
-                 (let* ((subsystem-name k)
-                        (fullname (car v))
-                        (relative-asd-path (cdr v))
-                        (absolute-asd-path (merge-pathnames relative-asd-path *systems-dir*))
-                        (enough-directory (pathname-directory (enough-namestring absolute-asd-path system-directory))))
-                   (when (or (not enough-directory) (eql :relative (car enough-directory)))
-                     (pushnew (list subsystem-name fullname) subsystems :test #'equal))))
-               *ocicl-systems*))
-    subsystems))
+(defun subpath-p (path1 path2)
+  (let ((enough-directory
+          (pathname-directory
+           (enough-namestring (merge-pathnames path1)
+                              (merge-pathnames path2)))))
+    (or (not enough-directory)
+        (eql :relative (first enough-directory)))))
 
-(defun remove-system (system)
+(defun system-group (system)
+  "Return systems that are known to ocicl and in the same directory tree as SYSTEM"
+  (let* ((*inhibit-download-during-search* t))
+    (alexandria:when-let* ((asdf-system (ignore-errors
+                                         ;; First check if the system is
+                                         ;; already known, since otherwise
+                                         ;; ocicl remove would try to load
+                                         ;; dependencies again as it removes
+                                         ;; them
+                                         (or (asdf:registered-system system)
+                                             (quiet-find-system system nil))))
+                           (source-file (asdf:system-source-file asdf-system)))
+      (when (subpath-p source-file *systems-dir*)
+        (let ((top-systems (mapcar
+                            #'pathname-name
+                            (find-asd-files
+                             (merge-pathnames
+                              (make-pathname :directory
+                                             (subseq (pathname-directory
+                                                      (enough-namestring source-file *systems-dir*))
+                                                     0 2))
+                              *systems-dir*)))))
+          (append
+           top-systems
+           (let ((slash-systems))
+             (asdf:map-systems (lambda (system)
+                                 (when (find-if
+                                        (lambda (top)
+                                          (uiop:string-prefix-p
+                                           (concatenate 'string top "/")
+                                           (asdf:component-name system)))
+                                        top-systems)
+                                   (push (asdf:component-name system) slash-systems))))
+             slash-systems)))))))
+
+(defun remove-system (system &key (modify-ocicl-systems t))
   (let* ((slist (split-on-delimeter system #\:))
          (name (car slist))
          (mangled-name (mangle name))
@@ -613,13 +628,21 @@ Distributed under the terms of the MIT License"
          (fullname (car system-info))
          (relative-asd-path (cdr system-info))
          (absolute-asd-path (when system-info (merge-pathnames relative-asd-path *systems-dir*)))
-         (system-directory (when system-info (uiop:pathname-directory-pathname absolute-asd-path)))
+         (system-directory (when system-info
+                             (merge-pathnames
+                              (make-pathname
+                               :directory
+                               `(:relative
+                                 ,(second
+                                   (pathname-directory
+                                    (enough-namestring absolute-asd-path *systems-dir*)))))
+                              *systems-dir*)))
          (system-group (system-group system)))
     (unless system-info
       (format t "; no system to remove: ~A~%" name))
-    (when system-info
+    (when (and modify-ocicl-systems system-info)
       (dolist (system system-group)
-        (remhash (car system) *ocicl-systems*)))
+        (remhash system *ocicl-systems*)))
     (when (and system-directory (uiop:directory-exists-p system-directory))
       (uiop:delete-directory-tree
        system-directory
@@ -628,89 +651,100 @@ Distributed under the terms of the MIT License"
                    (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
       (format t "; removed ~A~%" (file-namestring fullname)))))
 
+(defun resolve-dependency-name (dependency)
+  "Resolve ASDF dependency name."
+  (declare (optimize (speed 3) (safety 1)))
+  (if (consp dependency)
+      (resolve-dependency-name (case (car dependency)
+                                 (:version (second dependency))
+                                 (:feature (third dependency))
+                                 (:require (second dependency))))
+      dependency))
+
+(defun full-dependency-table (system
+                              &optional
+                                (dependency-table (make-hash-table :test #'equal)))
+  (declare (optimize (speed 3) (safety 1)))
+  (let ((*inhibit-download-during-search* t))
+    (labels ((recurse-deps (system)
+               (when (not (nth-value 1 (gethash system dependency-table)))
+                 (let ((asdf-system (ignore-errors (quiet-find-system system nil))))
+                   (when asdf-system
+                     (let ((dependencies (append (mapcar #'resolve-dependency-name
+                                                         (asdf:system-depends-on asdf-system))
+                                                 (mapcar #'resolve-dependency-name
+                                                         (asdf:system-defsystem-depends-on asdf-system)))))
+                       (setf (gethash system dependency-table)
+                             dependencies)
+                       (mapc #'recurse-deps dependencies)))))))
+      (recurse-deps system)
+      dependency-table)))
+
 (defun do-remove (systems)
-  (labels ((find-system (system)
-             "ASDF:FIND-SYSTEM if the asd file from systems.csv exists"
-             (let* ((mangled-name (mangle system))
-                    (system-info (gethash mangled-name *ocicl-systems*))
-                    (relative-asd-path (cdr system-info))
-                    (absolute-asd-path (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*)))
-                    (*error-output* (if *verbose* *error-output* (make-broadcast-stream))))
-               (when (and system-info absolute-asd-path (probe-file absolute-asd-path))
-                 (handler-case (asdf:find-system system nil)
-                   (error (e)
-                     (format *error-output* "~a~%" e))))))
-           (dependency-name (dependency)
-             "Resolve DEPENDENCY name"
-             (if (consp dependency)
-                 (dependency-name (case (car dependency)
-                                    (:version (second dependency))
-                                    (:feature (third dependency))
-                                    (:require (second dependency))))
-                 dependency)))
-    (let* ((*inhibit-download-during-search* t)
-           (*compile-verbose* nil)
-           (all-systems ;; a dependency graph like (((system group-system...) dep ...) ...)
-             (let ((systems)
-                   (*compile-verbose* nil))
-               (maphash (lambda (k v)
-                          (declare (ignore v))
-                          (let ((system (find-system (unmangle k))))
-                            (when system
-                              (let* ((depends-on (asdf:system-depends-on system))
-                                     (depends-on-names (mapcar #'dependency-name depends-on)))
-                                (push (cons
-                                       (asdf:component-name system)
-                                       depends-on-names)
-                                      systems)))))
-                        *ocicl-systems*)
-               systems))
-           (seen (make-hash-table :test #'equal))
-           (not-removed))
-      (labels ((dependency-tree (system)
-                 (let* ((spec (assoc system all-systems :test #'equal))
-                        (system (car spec))
-                        (system-deps (cdr spec)))
-                   (when spec
-                     (cons
-                      system
-                      (remove nil (mapcar #'dependency-tree system-deps))))))
-               (remove-trees (depend-tree &optional graph)
-                 (dolist (tree depend-tree)
-                   (destructuring-bind (system . depend-tree) tree
-                     (let* ((system-group (mapcar (lambda (system) (unmangle (car system)))
-                                                  (system-group system)))
-                            (depended-on (rassoc system-group graph
-                                                 :test (lambda (a b)
-                                                         (intersection a b :test #'equal)))))
-                       (cond ((gethash system-group seen) nil)
-                             (depended-on
-                              (push (list system-group (car depended-on)) not-removed)
-                              (setf (gethash system-group seen) t))
-                             (system-group
-                              (setf (gethash system-group seen) t)
-                              (remove-system (car system-group))
-                              (when depend-tree
-                                (remove-trees depend-tree graph)))))))))
-        (if *force*
-            (mapcar #'remove-system systems)
-            (let* ((*print-pretty* nil)
-                   (existing-systems (remove-if-not #'find-system systems))
-                   (nonexistent-systems (remove-if #'find-system systems))
-                   (dependency-trees (mapcar #'dependency-tree existing-systems))
-                   (flat-dependencies (alexandria:flatten dependency-trees))
-                   (flat-groups (mapcar (lambda (system)
-                                          (mapcar (lambda (group) (unmangle (car group)))
-                                                  (system-group system)))
-                                        flat-dependencies))
-                   ;; don't consider groups to remove as dependant systems
-                   (graph (set-difference all-systems flat-groups
-                                          :test (lambda (a b)
-                                                  (member (car a) b :test #'equal)))))
-              (format t "~{; no system to remove: ~A~^~%~}~&" nonexistent-systems)
-              (remove-trees dependency-trees graph)
-              (format t "~{~{; not removing systems ~a, depended on by: ~a~}~^~%~}~&" not-removed)))
-        (write-systems-csv)))))
+  (declare (optimize (speed 3) (safety 1)))
+  (let* ((*inhibit-download-during-search* t)
+         (dependency-table (make-hash-table :test #'equal))
+         (all-systems ;; a dependency graph like (((system group-system...) dep ...) ...)
+           (progn
+             (maphash (lambda (system info)
+                        (declare (ignore info))
+                        (full-dependency-table system dependency-table))
+                      *ocicl-systems*)
+             (alexandria:hash-table-alist dependency-table)))
+         (seen-system-groups (make-hash-table :test #'equal)))
+    (labels ((dependency-tree (system)
+               (let* ((spec (assoc system all-systems :test #'equal))
+                      (system (car spec))
+                      (system-deps (cdr spec)))
+                 (when spec
+                   (cons
+                    system
+                    (remove nil (mapcar #'dependency-tree system-deps))))))
+             (remove-trees (depend-tree graph)
+               (dolist (tree depend-tree)
+                 (destructuring-bind (system . depend-tree) tree
+                   (let* ((system-group (mapcar #'unmangle (system-group system)))
+                          (depended-on (rassoc system-group graph
+                                               :test (lambda (a b)
+                                                       (intersection a b :test #'equal)))))
+
+                     (cond (depended-on
+                            (setf (gethash system-group seen-system-groups) (car depended-on)))
+                           (t
+                            (when system-group
+                             (unless (gethash system-group seen-system-groups)
+                              ;; delay modifying ocicl-systems until after tree traversal
+                              (remove-system (car system-group) :modify-ocicl-systems nil)
+                              (setf (gethash system-group seen-system-groups) :removed)))
+                            (when depend-tree
+                              (remove-trees depend-tree graph)))))))))
+      (if *force*
+          (mapcar #'remove-system systems)
+          (let* ((existing-systems (remove-if-not (lambda (system) (quiet-find-system system nil)) systems))
+                 (nonexistent-systems (remove-if (lambda (system) (quiet-find-system system nil)) systems))
+                 (dependency-trees (mapcar #'dependency-tree existing-systems))
+                 (flat-dependencies (remove-duplicates (alexandria:flatten dependency-trees)
+                                                       :test #'equal))
+                 (flat-groups (remove-duplicates
+                               (mapcar (lambda (system)
+                                         (mapcar #'unmangle (system-group system)))
+                                       flat-dependencies)
+                               :test #'equal))
+                 ;; don't consider groups to remove as dependant systems
+                 (graph (set-difference all-systems flat-groups
+                                        :test (lambda (a b)
+                                                (member (car a) b :test #'equal)))))
+            (format t "~{; no system to remove: ~A~^~%~}~&" nonexistent-systems)
+            (remove-trees dependency-trees graph)
+            ;; modify ocicl-systems
+            (maphash
+             (lambda (system-group value)
+               (let ((*print-pretty* nil))
+                 (if (eql value :removed)
+                     (mapc (lambda (system) (remhash (mangle system) *ocicl-systems*)) system-group)
+                     (format t "~&; not removing systems ~a, depended on by: ~a~%" system-group value))))
+             seen-system-groups)))
+      (write-systems-csv))))
 
 
 
@@ -882,7 +916,7 @@ Distributed under the terms of the MIT License"
                       (format t "~&Only in ~a: ~a~%" (cdr file) (car file)))))
               (sb-ext:exit :code 1))))))
 
-  (defmethod parent ((file pathname))
+(defmethod parent ((file pathname))
   "Return the parent directory of FILE."
   (if (uiop:directory-pathname-p file)
       (uiop:pathname-parent-directory-pathname file)
@@ -1212,3 +1246,5 @@ download the system unless a version is specified."
 (setf asdf:*system-definition-search-functions*
       (append asdf:*system-definition-search-functions*
               (list 'system-definition-searcher)))
+
+(asdf/system-registry:clear-registered-systems)
