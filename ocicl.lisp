@@ -145,7 +145,8 @@
    latest [SYSTEM]...                  Install latest version of systems
    libyear                             Calculate the libyear dependency freshness metric
    list SYSTEM...                      List available system versions
-   diff SYSTEM VERSION1 VERSION2       Produce a diff between files in different system versions
+   diff SYSTEM VERSION1 [VERSION2]     Produce a diff between files in different system versions.
+                                         If VERSION2 is omitted, diff VERSION1 with installed version.
    remove [SYSTEM]...                  Remove systems
    setup [GLOBALDIR]                   Mandatory ocicl configuration
    version                             Show the ocicl version information
@@ -796,29 +797,41 @@ Distributed under the terms of the MIT License"
   (if (or (null args)
           (null (first args))
           (null (second args))
-          (null (third args))
           (fourth args))
       (progn (usage) (sb-ext:exit :code 1))
       (let* ((system-name (first args))
              (given-v1 (second args))
              (given-v2 (third args))
              (latest-version (when (or (string= given-v1 "latest")
-                                       (string= given-v2 "latest"))
+                                       (equal given-v2 "latest"))
                                (system-latest-version system-name)))
-             (version1 (if (string= given-v1 "latest")
-                           latest-version
-                           (second args)))
-             (version2 (if (string= given-v2 "latest")
-                           latest-version
-                           (third args)))
-             (system-fullname-1 (concatenate 'string system-name ":" version1))
+             (version1 (cond ((not given-v2) nil)
+                             ((string= given-v1 "latest")
+                              latest-version)
+                             (t given-v1)))
+             (version2 (cond ((not given-v2) given-v1)
+                             ((string= given-v2 "latest")
+                              latest-version)
+                             (t given-v2)))
+             (system-fullname-1 (concatenate 'string system-name (when version1 ":") version1))
              (system-fullname-2 (concatenate 'string system-name ":" version2)))
-        (declare (type (simple-array character) system-name given-v1 given-v2 version1 version2))
-        (when (string= version1 version2)
+        (declare (type (simple-array character) system-name given-v1)
+                 (type (or null (simple-array character)) given-v2 version1 version2))
+        (when (equal version1 version2)
           (return-from do-diff))
-        (let ((version1-system-info (download-system system-fullname-1 :write-systems-csv nil))
-              (version2-system-info (download-system system-fullname-2 :write-systems-csv nil)))
-          (if (and (print version1-system-info) version2-system-info)
+        (let* ((version1-system-info (if version1
+                                         (download-system system-fullname-1
+                                                          :write-systems-csv nil
+                                                          :print-error t)
+                                         (gethash (mangle system-name) *ocicl-systems*)))
+               (version2-system-info (when version1-system-info
+                                       (download-system system-fullname-2
+                                                        :write-systems-csv nil
+                                                        :print-error t))))
+          (when (not (or version1 version1-system-info))
+            (format *error-output* "; Error: system ~A not installed. Install it or specify two versions to diff.~%" system-name)
+            (sb-ext:exit :code 1))
+          (if (and version1-system-info version2-system-info)
               (let* ((version1-dir (merge-pathnames
                                     (make-pathname
                                      :directory `(:relative
@@ -866,7 +879,8 @@ Distributed under the terms of the MIT License"
                               (stream-error ()
                                 (when (binary-files-differ-p pathname-1 pathname-2)
                                   (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))))))
-                      (format t "~&Only in ~a: ~a~%" (cdr file) (car file))))))))))
+                      (format t "~&Only in ~a: ~a~%" (cdr file) (car file)))))
+              (sb-ext:exit :code 1))))))
 
   (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
@@ -1116,7 +1130,9 @@ Distributed under the terms of the MIT License"
                  nil))))
       (uiop:delete-directory-tree dl-dir :validate t))))
 
-(defun download-system (system &key (write-systems-csv t))
+(defun download-system (system &key
+                                 (write-systems-csv t)
+                                 print-error)
   "Downloads SYSTEM, which may be specified as NAME[:VERSION].
 
 If SYSTEM exists in the systems csv file and the asd file exists, does not
@@ -1142,7 +1158,7 @@ download the system unless a version is specified."
              (not *force*))
         (progn
           (format t "; ~A:~A already exists~%" system (get-project-version relative-asd-path))
-          t)
+          (gethash mangled-name *ocicl-systems*))
         (let ((dl-dir (get-temp-ocicl-dl-pathname)))
           (unwind-protect
                (progn
@@ -1167,10 +1183,11 @@ download the system unless a version is specified."
                                              t)
                                          (error (e)
                                            (declare (ignore e))
-                                           (when *verbose* (format *error-output* "; error downloading ~A from registry ~A~%" system registry))))))
+                                           (when (or *verbose* print-error)
+                                             (format *error-output* "; error downloading ~A from registry ~A~%" system registry))))))
                    (when write-systems-csv
                      (write-systems-csv))
-                   (gethash (mangle name) *ocicl-systems*)))
+                   (gethash mangled-name *ocicl-systems*)))
             (uiop:delete-directory-tree dl-dir :validate t))))))
 
 (defun find-asdf-system-file (name)

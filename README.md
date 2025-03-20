@@ -163,7 +163,8 @@ Choose from the following ocicl commands:
    latest [SYSTEM]...                  Install latest version of systems
    libyear                             Calculate the libyear dependency freshness metric
    list SYSTEM...                      List available system versions
-   diff SYSTEM VERSION1 VERSION2       Produce a diff between files in different system versions
+   diff SYSTEM VERSION1 [VERSION2]     Produce a diff between files in different system versions.
+                                         If VERSION2 is omitted, diff VERSION1 with installed version.
    remove [SYSTEM]...                  Remove systems
    setup [GLOBALDIR]                   Mandatory ocicl configuration
    version                             Show the ocicl version information
