@@ -1061,25 +1061,16 @@ Distributed under the terms of the MIT License"
     (merge-pathnames (eval `(make-pathname :directory '(:relative ,rdir)))
                      (uiop:default-temporary-directory))))
 
+(declaim (inline find-asd-files))
 (defun find-asd-files (dir)
   "Recursively find all files with the .asd extension in a directory."
   ;; Force a trailing slash to support uiop change in behavior:
   ;; https://github.com/fare/asdf/commit/6138d709eb25bf75c1d1f7dc45a63d174f982321
-  (let* ((dir (namestring dir))
-         (dir (if (string= (subseq dir (- (length dir) 1)) "/")
-                 dir
-                 (concatenate 'string dir "/")))
-         (systems (list)))
-    (labels ((push-asd (dir)
-               (debug-log #?"searching ${dir}")
-               (dolist (f (uiop:directory-files dir))
-                 (when (equal "asd" (pathname-type f))
-                   (pushnew f systems)))))
-      (uiop:collect-sub*directories dir
-                                    t t
-                                    (lambda (d) (push-asd d)))
-      (push-asd dir))
-    systems))
+  (directory (merge-pathnames
+              (make-pathname :name :wild
+                             :type "asd"
+                             :directory '(:relative :wild-inferiors))
+              (uiop:ensure-directory-pathname dir))))
 
 (defun extract-sha256 (str)
   (let* ((start (search "sha256:" str))
