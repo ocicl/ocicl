@@ -1246,8 +1246,9 @@ download the system unless a version is specified."
       (append asdf:*system-definition-search-functions*
               (list 'system-definition-searcher)))
 
-;; Register known internal SBCL systems as "immutable" so that find-system
-;; inside the ocicl executable does not try to load them
+
+;; Register known internal systems as "immutable" so that find-system inside
+;; the ocicl executable does not try to load them
 (dolist (system '(:sb-aclrepl
                   :sb-bsd-sockets
                   :sb-capstone
@@ -1267,7 +1268,21 @@ download the system unless a version is specified."
                   :sb-rt
                   :sb-simd
                   :sb-simple-streams
-                  :sb-sprof))
+                  :sb-sprof
+
+                  ;; Register some non-SBCL internal systems that don't exist
+                  ;; in the ocicl repo
+
+                  ;; corman
+                  :threads
+                  ;; clisp
+                  :syscalls
+                  ;; abcl
+                  :extensible-sequences
+                  ;; cmucl
+                  :unix
+                  ;; allegro
+                  :osi))
   (asdf:register-immutable-system system))
 
 (asdf/system-registry:clear-registered-systems)
