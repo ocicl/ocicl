@@ -278,16 +278,15 @@ Distributed under the terms of the MIT License"
          (deps (asdf:system-depends-on s)))
     (dolist (d deps)
       (let ((dep (resolve-dependency-name d)))
-        (unless (string= "sb-" (subseq (string-downcase (format nil "~A" dep)) 0 3))
-          (handler-case
-              (download-system-dependencies dep)
-            (asdf/find-component:missing-component (e)
-              (declare (ignore e))
-              (when *verbose*
-                (format t "; can't download ASDF dependency ~A~%" d)))
-            (error (e)
-              (when *verbose*
-                (format t "; error processing ~A: ~A~%" d e)))))))))
+        (handler-case
+            (download-system-dependencies dep)
+          (asdf/find-component:missing-component (e)
+            (declare (ignore e))
+            (when *verbose*
+              (format t "; can't download ASDF dependency ~A~%" d)))
+          (error (e)
+            (when *verbose*
+              (format t "; error processing ~A: ~A~%" d e))))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
@@ -1246,5 +1245,29 @@ download the system unless a version is specified."
 (setf asdf:*system-definition-search-functions*
       (append asdf:*system-definition-search-functions*
               (list 'system-definition-searcher)))
+
+;; Register known internal SBCL systems as "immutable" so that find-system
+;; inside the ocicl executable does not try to load them
+(dolist (system '(:sb-aclrepl
+                  :sb-bsd-sockets
+                  :sb-capstone
+                  :sb-cltl2
+                  :sb-concurrency
+                  :sb-cover
+                  :sb-executable
+                  :sb-gmp
+                  :sb-grovel
+                  :sb-introspect
+                  :sb-md5
+                  :sb-mpfr
+                  :sb-perf
+                  :sb-posix
+                  :sb-queue
+                  :sb-rotate-byte
+                  :sb-rt
+                  :sb-simd
+                  :sb-simple-streams
+                  :sb-sprof))
+  (asdf:register-immutable-system system))
 
 (asdf/system-registry:clear-registered-systems)
