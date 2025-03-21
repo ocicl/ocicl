@@ -103,25 +103,17 @@
      (when it
        ,@body)))
 
-(defun split-on-delimeter (line delim)
-  (let ((start 0)
-        (end 0)
-        (result '()))
-    (loop for c across line
-          for i from 0
-          do (if (char= c delim)
-                 (progn
-                   (setq end i)
-                   (push (string-trim " " (subseq line start end)) result)
-                   (setq start (+ i 1))))
-          finally (push (string-trim " " (subseq line start)) result))
-    (nreverse result)))
+(declaim (inline split-on-delimiter))
+(defun split-on-delimiter (line delim)
+  (mapcar
+   (lambda (string) (string-trim " " string))
+   (uiop:split-string line :separator (string delim))))
 
 (defun split-csv-line (line)
-  (split-on-delimeter line #\,))
+  (split-on-delimiter line #\,))
 
 (defun split-lines (line)
-  (split-on-delimeter line #\Newline))
+  (split-on-delimiter line #\Newline))
 
 (defun read-systems-csv ()
   (let ((systems-file (merge-pathnames (uiop:getcwd) *systems-csv*))
@@ -517,8 +509,8 @@ Distributed under the terms of the MIT License"
   (if args
       ;; Report on all the systems provided on the command line.
       (dolist (system-maybe-version args)
-        (let ((system (car (split-on-delimeter system-maybe-version #\:)))
-              (version (cadr (split-on-delimeter system-maybe-version #\:))))
+        (let ((system (car (split-on-delimiter system-maybe-version #\:)))
+              (version (cadr (split-on-delimiter system-maybe-version #\:))))
           (let ((asd (cdr (gethash system *ocicl-systems*))))
             (let ((version (or version
                                (and asd (get-project-version asd))))
@@ -564,7 +556,7 @@ Distributed under the terms of the MIT License"
                 (progn
                   (format uiop:*stderr* "Error: can't download ~A.~%" system)
                   (sb-ext:quit))))
-          (let* ((slist (split-on-delimeter system #\:))
+          (let* ((slist (split-on-delimiter system #\:))
                  (name (car slist)))
             (when (download-system system)
               (download-system-dependencies name)))))
@@ -620,7 +612,7 @@ Distributed under the terms of the MIT License"
              slash-systems)))))))
 
 (defun remove-system (system &key (modify-ocicl-systems t))
-  (let* ((slist (split-on-delimeter system #\:))
+  (let* ((slist (split-on-delimiter system #\:))
          (name (car slist))
          (mangled-name (mangle name))
          (system-info (gethash mangled-name *ocicl-systems*))
@@ -1054,7 +1046,7 @@ Distributed under the terms of the MIT License"
     (ppcre:regex-replace-all "_plus_"  final-plus "+")))
 
 (defun mangle (str)
-  (replace-plus-with-string (car (split-on-delimeter str #\/))))
+  (replace-plus-with-string (car (split-on-delimiter str #\/))))
 
 (defun get-temp-ocicl-dl-pathname ()
   (let ((rdir (format nil "ocicl-~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*))))
@@ -1161,7 +1153,7 @@ Distributed under the terms of the MIT License"
 
 If SYSTEM exists in the systems csv file and the asd file exists, does not
 download the system unless a version is specified."
-  (let* ((slist (split-on-delimeter system #\:))
+  (let* ((slist (split-on-delimiter system #\:))
          (name (first slist))
          (requested-version (second slist))
          (mangled-name (mangle name))
