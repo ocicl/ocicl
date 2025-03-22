@@ -157,17 +157,18 @@ Available options:
 
 Choose from the following ocicl commands:
 
-   help                                Print this help text
-   changes [SYSTEM[:VERSION]]...       Display changes
-   install [SYSTEM[:VERSION]]...       Install systems
-   latest [SYSTEM]...                  Install latest version of systems
-   libyear                             Calculate the libyear dependency freshness metric
-   list SYSTEM...                      List available system versions
-   diff SYSTEM VERSION1 [VERSION2]     Produce a diff between files in different system versions.
-                                         If VERSION2 is omitted, diff VERSION1 with installed version.
-   remove [SYSTEM]...                  Remove systems
-   setup [GLOBALDIR]                   Mandatory ocicl configuration
-   version                             Show the ocicl version information
+   help                            Print this help text
+   changes [SYSTEM[:VERSION]]...   Display changes
+   diff SYSTEM                     Diff between the installed and latest versions.
+   diff SYSTEM VERSION             Diff between the installed version and VERSION.
+   diff SYSTEM VERSION1 VERSION2   Diff between files in different system versions.
+   install [SYSTEM[:VERSION]]...   Install systems
+   latest [SYSTEM]...              Install latest version of systems
+   libyear                         Calculate the libyear dependency freshness metric
+   list SYSTEM...                  List available system versions
+   remove [SYSTEM]...              Remove systems
+   setup [GLOBALDIR]               Mandatory ocicl configuration
+   version                         Show the ocicl version information
 
 Distributed under the terms of the MIT License
 ```
@@ -214,8 +215,8 @@ version label in your ``ocicl install`` command.  For example:
 ``ocicl install trivial-garbage:20230511-b3af9c0`` or
 ``ocicl install str:latest``.
 
-Running ``ocicl install SYSYTEMNAME`` with no version will do nothing
-if any version of ``SYSTEMNAME`` is already installed (unless
+Running ``ocicl install SYSTEM`` with no version will do nothing
+if any version of ``SYSTEM`` is already installed (unless
 ``--force`` is specified).  However, if a system version is specified
 (including ``latest``) then ``ocicl install`` will always download and
 install the system, even if it already exists on disk.

@@ -139,17 +139,18 @@
    :prefix (format nil "ocicl ~A - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>" +version+)
    :suffix "Choose from the following ocicl commands:
 
-   help                                Print this help text
-   changes [SYSTEM[:VERSION]]...       Display changes
-   install [SYSTEM[:VERSION]]...       Install systems
-   latest [SYSTEM]...                  Install latest version of systems
-   libyear                             Calculate the libyear dependency freshness metric
-   list SYSTEM...                      List available system versions
-   diff SYSTEM VERSION1 [VERSION2]     Produce a diff between files in different system versions.
-                                         If VERSION2 is omitted, diff VERSION1 with installed version.
-   remove [SYSTEM]...                  Remove systems
-   setup [GLOBALDIR]                   Mandatory ocicl configuration
-   version                             Show the ocicl version information
+   help                            Print this help text
+   changes [SYSTEM[:VERSION]]...   Display changes
+   diff SYSTEM                     Diff between the installed and latest versions.
+   diff SYSTEM VERSION             Diff between the installed version and VERSION.
+   diff SYSTEM VERSION1 VERSION2   Diff between files in different system versions.
+   install [SYSTEM[:VERSION]]...   Install systems
+   latest [SYSTEM]...              Install latest version of systems
+   libyear                         Calculate the libyear dependency freshness metric
+   list SYSTEM...                  List available system versions
+   remove [SYSTEM]...              Remove systems
+   setup [GLOBALDIR]               Mandatory ocicl configuration
+   version                         Show the ocicl version information
 
 Distributed under the terms of the MIT License"
    :usage-of "ocicl"
@@ -794,30 +795,29 @@ Distributed under the terms of the MIT License"
 
 (defun do-diff (args)
   (declare (optimize (speed 3) (safety 1)))
-  (if (or (null args)
-          (null (first args))
-          (null (second args))
-          (fourth args))
+  (if (fourth args)
       (progn (usage) (sb-ext:exit :code 1))
       (let* ((system-name (first args))
              (given-v1 (second args))
              (given-v2 (third args))
              (latest-version (when (or (string= given-v1 "latest")
-                                       (equal given-v2 "latest"))
+                                       (equal given-v2 "latest")
+                                       (and (null given-v1) (null given-v2)))
                                (system-latest-version system-name)))
-             (version1 (cond ((not given-v2) nil)
+             (version1 (cond ((not given-v1) nil)
+                             ((not given-v2) nil)
                              ((string= given-v1 "latest")
                               latest-version)
                              (t given-v1)))
-             (version2 (cond ((not given-v2) given-v1)
+             (version2 (cond ((not given-v2) (or version1 latest-version))
                              ((string= given-v2 "latest")
                               latest-version)
                              (t given-v2)))
              (system-fullname-1 (concatenate 'string system-name (when version1 ":") version1))
              (system-fullname-2 (concatenate 'string system-name ":" version2)))
-        (declare (type (simple-array character) system-name given-v1)
-                 (type (or null (simple-array character)) given-v2 version1 version2))
-        (when (equal version1 version2)
+        (declare (type (simple-array character) system-name)
+                 (type (or null (simple-array character)) given-v1 given-v2 version1 version2))
+        (when (and version1 (equal version1 version2))
           (return-from do-diff))
         (let* ((version1-system-info (if version1
                                          (download-system system-fullname-1
