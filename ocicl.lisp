@@ -267,7 +267,7 @@ Distributed under the terms of the MIT License"
 
 (defun download-system-dependencies (name)
   (let* ((s (quiet-find-system name))
-         (deps (asdf:system-depends-on s)))
+         (deps (when s (asdf:system-depends-on s))))
     (dolist (d deps)
       (let ((dep (resolve-dependency-name d)))
         (handler-case
