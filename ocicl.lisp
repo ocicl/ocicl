@@ -1225,10 +1225,32 @@ download the system unless a version is specified."
                  (string= (pathname-name system-file) name))
         system-file))))
 
+;; just to be safe, try loading internal SBCL systems in the event they're
+;; actually needed by a defsystem, since we're going to make these unloadable
+;; later.
+(dolist (system '(:sb-aclrepl
+                  :sb-bsd-sockets
+                  :sb-capstone
+                  :sb-cltl2
+                  :sb-concurrency
+                  :sb-cover
+                  :sb-executable
+                  :sb-gmp
+                  :sb-grovel
+                  :sb-introspect
+                  :sb-md5
+                  :sb-mpfr
+                  :sb-posix
+                  :sb-queue
+                  :sb-rotate-byte
+                  :sb-rt
+                  :sb-simple-streams
+                  :sb-sprof))
+  (ignore-errors (require system)))
+
 (setf asdf:*system-definition-search-functions*
       (append asdf:*system-definition-search-functions*
               (list 'system-definition-searcher)))
-
 
 ;; Register known internal systems as "immutable" so that find-system inside
 ;; the ocicl executable does not try to load them
@@ -1268,4 +1290,5 @@ download the system unless a version is specified."
                   :osi))
   (asdf:register-immutable-system system))
 
+;; clear systems to avoid collision with systems loaded into executable
 (asdf/system-registry:clear-registered-systems)
