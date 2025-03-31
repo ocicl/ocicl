@@ -121,7 +121,7 @@
 (defun check-if-program-exists (program-name)
   "Check if PROGRAM-NAME exists and is executable."
   (multiple-value-bind (out error exit-code)
-      (uiop:run-program program-name :force-shell nil :ignore-error-status t)
+      (uiop:run-program (list program-name) :ignore-error-status t)
     (declare (ignore out error))
     (not (or (= exit-code 127) (= exit-code 126)))))
 
@@ -140,7 +140,7 @@
 
 (defun check-ocicl-version ()
   (warn-if-missing-required-programs)
-  (let ((ocicl-version-output (uiop:run-program "ocicl version"
+  (let ((ocicl-version-output (uiop:run-program '("ocicl" "version")
                                                 :output '(:string)
                                                 :error-output *error-output*))
         (ocicl-version-string (format nil "ocicl version:   ~A~%"  ocicl-runtime:+version+)))
@@ -153,10 +153,10 @@
 
 (defun ocicl-install (name)
   (check-ocicl-version)
-  (let ((cmd (format nil "ocicl ~A ~A install ~A"
-                     (if *verbose* "-v" "")
-                     (if *force-global* "--global" "")
-                     name)))
+  (let ((cmd `("ocicl" ,@(when *verbose* '("-v"))
+                       ,@(when *force-global* '("--global"))
+                       "install"
+                       ,(princ-to-string name))))
     (warn-if-missing-required-programs)
     (when (should-log)
       (format *verbose* "; running: ~A~%" cmd))
