@@ -1228,25 +1228,26 @@ download the system unless a version is specified."
 ;; just to be safe, try loading internal SBCL systems in the event they're
 ;; actually needed by a defsystem, since we're going to make these unloadable
 ;; later.
-(dolist (system '(:sb-aclrepl
-                  :sb-bsd-sockets
-                  :sb-capstone
-                  :sb-cltl2
-                  :sb-concurrency
-                  :sb-cover
-                  :sb-executable
-                  :sb-gmp
-                  :sb-grovel
-                  :sb-introspect
-                  :sb-md5
-                  :sb-mpfr
-                  :sb-posix
-                  :sb-queue
-                  :sb-rotate-byte
-                  :sb-rt
-                  :sb-simple-streams
-                  :sb-sprof))
-  (ignore-errors (require system)))
+(handler-bind ((warning (lambda (c) (muffle-warning c))))
+  (dolist (system '(:sb-aclrepl
+                    :sb-bsd-sockets
+                    :sb-capstone
+                    :sb-cltl2
+                    :sb-concurrency
+                    :sb-cover
+                    :sb-executable
+                    :sb-gmp
+                    :sb-grovel
+                    :sb-introspect
+                    :sb-md5
+                    :sb-mpfr
+                    :sb-posix
+                    :sb-queue
+                    :sb-rotate-byte
+                    :sb-rt
+                    :sb-simple-streams
+                    :sb-sprof))
+    (ignore-errors (require system))))
 
 (setf asdf:*system-definition-search-functions*
       (append asdf:*system-definition-search-functions*
