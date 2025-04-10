@@ -27,8 +27,6 @@
 
 (named-readtables:in-readtable :interpol-syntax)
 
-;(require 'sb-introspect)
-
 (defvar *ocicl-registries* (list "ghcr.io/ocicl"))
 (defvar *ocicl-globaldir* nil)
 (defvar *verbose* nil)
@@ -200,20 +198,17 @@ Distributed under the terms of the MIT License"
       (format t "; ~A(~A) not found~%" system registry))))
 
 (defun do-list (args)
-;  (handler-case
-      (when args
-        (dolist (system args)
-          (loop for registry in *ocicl-registries*
-                do (let ((tags (system-version-list system registry)))
-                     (when tags
-                       (format t "~A(~A):~%~Tlatest~%" system registry)
-                       (dolist (tag tags)
-                         (format t "~T~A~%" tag))
-                       (return))))
-          (format t "~%")))
-    ;(sb-int:broken-pipe (e)
-      ;(declare (ignore e))
-      ());))
+  (when args
+    (dolist (system args)
+      (loop for registry in *ocicl-registries*
+            do (let ((tags (system-version-list system registry)))
+                 (when tags
+                   (format t "~A(~A):~%~Tlatest~%" system registry)
+                   (dolist (tag tags)
+                     (format t "~T~A~%" tag))
+                   (return))))
+      (format t "~%")))
+  ())
 
 (defun get-ocicl-dir ()
   "Find the ocicl directory."
@@ -1226,58 +1221,13 @@ download the system unless a version is specified."
                  (string= (pathname-name system-file) name))
         system-file))))
 
-;; just to be safe, try loading internal SBCL systems in the event they're
-;; actually needed by a defsystem, since we're going to make these unloadable
-;; later.
-
-;(handler-bind ((warning (lambda (c) (muffle-warning c))))
-;  (dolist (system '(:sb-aclrepl
-;                    :sb-bsd-sockets
-;                    :sb-capstone
-;                    :sb-cltl2
-;                    :sb-concurrency
-;                    :sb-cover
-;                    :sb-executable
-;                    :sb-gmp
-;                    :sb-grovel
-;                    :sb-introspect
-;                    :sb-md5
-;                    :sb-mpfr
-;                    :sb-posix
-;                    :sb-queue
-;                    :sb-rotate-byte
-;                    :sb-rt
-;                    :sb-simple-streams
-;                    :sb-sprof))
-;    (ignore-errors (require system))))
-
 (setf asdf:*system-definition-search-functions*
       (append asdf:*system-definition-search-functions*
               (list 'system-definition-searcher)))
 
 ;; Register known internal systems as "immutable" so that find-system inside
 ;; the ocicl executable does not try to load them
-(dolist (system '(:sb-aclrepl
-;                  :sb-bsd-sockets
-;                  :sb-capstone
-;                  :sb-cltl2
-;                  :sb-concurrency
-;                  :sb-cover
-;                  :sb-executable
-;                  :sb-gmp
-;                  :sb-grovel
-;                  :sb-introspect
-;                  :sb-md5
-;                  :sb-mpfr
-;                  :sb-perf
-;                  :sb-posix
-;                  :sb-queue
-;                  :sb-rotate-byte
-;                  :sb-rt
-;                  :sb-simd
-;                  :sb-simple-streams
-;                  :sb-sprof
-
+(dolist (system '(
                   ;; Register some non-SBCL internal systems that don't exist
                   ;; in the ocicl repo
 
