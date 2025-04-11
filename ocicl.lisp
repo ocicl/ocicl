@@ -1028,7 +1028,7 @@ Distributed under the terms of the MIT License"
                   (mapcar
                    #'unmangle
                    (sort (alexandria:hash-table-keys *ocicl-systems*) #'string<))))))
-    (tree:print-tree top :unicode t :max-depth *tree-depth*))
+    (tree:print-tree top :unicode t :max-depth (+ *tree-depth* (if args 1 0))))
   (when *color*
     (write-string *color-reset*)))
 
