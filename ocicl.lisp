@@ -944,6 +944,38 @@ Distributed under the terms of the MIT License"
           (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*)))))))
      directories-to-clean)))
 
+
+(defvar tree-seen (make-hash-table))
+
+(defmethod tree:node-children ((system (eql :ocicl-toplevel)))
+  (let ((*inhibit-download-during-search* t))
+    (loop :for system-name :being :the :hash-keys :of *ocicl-systems*
+          :as system := (ignore-errors (quiet-find-system (unmangle system-name) nil))
+          :when system
+            :collect system)))
+
+(defmethod tree:print-node ((system (eql :ocicl-toplevel)) stream)
+  (princ "ocicl"))
+
+(defmethod tree:node-children ((system asdf:system))
+  (let ((*inhibit-download-during-search* t))
+   (unless (gethash system tree-seen)
+    (setf (gethash system tree-seen) t)
+    (remove
+     nil
+     (mapcar
+      (lambda (dependency)
+        (ignore-errors (quiet-find-system (resolve-dependency-name dependency) nil)))
+      (asdf:system-depends-on system))))))
+
+(defmethod tree:print-node ((system asdf:system) stream)
+  (princ (asdf:component-name system))
+  (when (gethash system tree-seen)
+    (princ " *")))
+
+(defun do-tree (args)
+  (tree:print-tree :ocicl-toplevel))
+
 (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
   (if (uiop:directory-pathname-p file)
@@ -1054,6 +1086,8 @@ Distributed under the terms of the MIT License"
                           (do-latest (cdr free-args)))
                          ((string= cmd "list")
                           (do-list (cdr free-args)))
+                         ((string= cmd "tree")
+                          (do-tree (cdr free-args)))
                          ((string= cmd "diff")
                           (do-diff (cdr free-args)))
                          ((string= cmd "clean")
