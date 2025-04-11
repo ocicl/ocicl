@@ -199,18 +199,38 @@ Distributed under the terms of the MIT License"
       (declare (ignore e))
       (format t "; ~A(~A) not found~%" system registry))))
 
+
 (defun do-list (args)
-  (when args
-    (dolist (system args)
-      (loop for registry in *ocicl-registries*
-            do (let ((tags (system-version-list system registry)))
-                 (when tags
-                   (format t "~A(~A):~%~Tlatest~%" system registry)
-                   (dolist (tag tags)
-                     (format t "~T~A~%" tag))
-                   (return))))
-      (format t "~%")))
-  ())
+  (handler-case
+      (when args
+        (dolist (system args)
+          (loop for registry in *ocicl-registries*
+                do (let ((tags (system-version-list system registry)))
+                     (when tags
+                       (format t "~A(~A):~%~Tlatest~%" system registry)
+                       (dolist (tag tags)
+                         (format t "~T~A~%" tag))
+                       (return))))
+          (format t "~%")))
+    #+sbcl
+    (sb-int:broken-pipe (e)
+      (declare (ignore e))
+      ())
+
+    ;; The "broken-pipe" error for sbcl is defined this way in
+    ;; sbcl source code: (src/code/target-error.lisp:2282)
+    ;;
+    ;;   (define-condition simple-stream-error (simple-condition stream-error) ())
+    ;;   (define-condition broken-pipe (simple-stream-error) ())
+    ;;
+    ;; Hopefully using the base stream-error will help catch similar conditions
+    ;; in other implementations
+    
+
+    #-sbcl
+    (stream-error (e)
+      (declare (ignore e))
+      ())))
 
 (defun get-ocicl-dir ()
   "Find the ocicl directory."
