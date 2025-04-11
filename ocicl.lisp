@@ -1198,9 +1198,9 @@ download the system unless a version is specified."
                                                                (subseq (namestring s) (length (namestring *systems-dir*))))))))
                                              t)
                                          (error (e)
-                                           (declare (ignore e))
                                            (when (or *verbose* print-error)
-                                             (format *error-output* "; error downloading ~A from registry ~A~%" system registry))))))
+                                             (format *error-output* "; error downloading ~A from registry ~A~%" system registry))
+                                           (debug-log e)))))
                    (when write-systems-csv
                      (write-systems-csv))
                    (gethash mangled-name *ocicl-systems*)))
