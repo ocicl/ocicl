@@ -27,6 +27,8 @@
 
 (named-readtables:in-readtable :interpol-syntax)
 
+#+sbcl(require 'sb-introspect)
+
 (defvar *ocicl-registries* (list "ghcr.io/ocicl"))
 (defvar *ocicl-globaldir* nil)
 (defvar *verbose* nil)
@@ -252,7 +254,8 @@ Distributed under the terms of the MIT License"
         (*error-output* (if *verbose*
                             *error-output*
                             (make-broadcast-stream))))
-    (handler-bind ((warning
+    (handler-bind ((#+sbcl(or warning sb-ext:compiler-note)
+                    #-sbcl(or warning)
                      (lambda (w)
                        (unless *verbose*
                          (muffle-warning w)))))
@@ -1225,23 +1228,79 @@ download the system unless a version is specified."
       (append asdf:*system-definition-search-functions*
               (list 'system-definition-searcher)))
 
+;; just to be safe, try loading internal SBCL systems in the event they're
+;; actually needed by a defsystem, since we're going to make these unloadable
+;; later.
+#+sbcl
+(handler-bind ((warning (lambda (c) (muffle-warning c))))
+  (dolist
+    (system
+      '(:sb-aclrepl
+         :sb-bsd-sockets
+         :sb-capstone
+         :sb-cltl2
+         :sb-concurrency
+         :sb-cover
+         :sb-executable
+         :sb-gmp
+         :sb-grovel
+         :sb-introspect
+         :sb-md5
+         :sb-mpfr
+         :sb-posix
+         :sb-queue
+         :sb-rotate-byte
+         :sb-rt
+         :sb-simple-streams
+         :sb-sprof))
+    (ignore-errors (require system))))
+
 ;; Register known internal systems as "immutable" so that find-system inside
 ;; the ocicl executable does not try to load them
-(dolist (system '(
-                  ;; Register some non-SBCL internal systems that don't exist
-                  ;; in the ocicl repo
 
-                  ;; corman
-                  :threads
-                  ;; clisp
-                  :syscalls
-                  ;; abcl
-                  :extensible-sequences
-                  ;; cmucl
-                  :unix
-                  ;; allegro
-                  :osi))
-  (asdf:register-immutable-system system))
+(let* ((sbcl-systems
+         #+sbcl
+         '(
+           :sb-aclrepl
+           :sb-bsd-sockets
+           :sb-capstone
+           :sb-cltl2
+           :sb-concurrency
+           :sb-cover
+           :sb-executable
+           :sb-gmp
+           :sb-grovel
+           :sb-introspect
+           :sb-md5
+           :sb-mpfr
+           :sb-perf
+           :sb-posix
+           :sb-queue
+           :sb-rotate-byte
+           :sb-rt
+           :sb-simd
+           :sb-simple-streams
+           :sb-sprof))
+       (base-systems 
+         '(
+           ;; Register some non-SBCL internal systems that don't exist
+           ;; in the ocicl repo
+
+           ;; corman
+           :threads
+           ;; clisp
+           :syscalls
+           ;; abcl
+           :extensible-sequences
+           ;; cmucl
+           :unix
+           ;; allegro
+           :osi)))
+  (dolist
+    (system (append base-systems sbcl-systems))
+    (asdf:register-immutable-system system)))
+
+
 
 ;; clear systems to avoid collision with systems loaded into executable
 (asdf/system-registry:clear-registered-systems)
