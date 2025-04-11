@@ -680,7 +680,7 @@ Distributed under the terms of the MIT License"
            (progn
              (maphash (lambda (system info)
                         (declare (ignore info))
-                        (full-dependency-table system dependency-table))
+                        (full-dependency-table (unmangle system) dependency-table))
                       *ocicl-systems*)
              (alexandria:hash-table-alist dependency-table)))
          (seen-system-groups (make-hash-table :test #'equal)))
