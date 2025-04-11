@@ -94,7 +94,7 @@
                        (usage)
                        (sb-ext:exit :code 1)))))
   (:name :depth
-   :description "maximum depth for the tree command"
+   :description "maximum depth for the tree command (integer or \"max\", default 1)"
    :short #\d
    :long "depth"
    :meta-var "NUM"
@@ -153,6 +153,7 @@
    list SYSTEM...                  List available system versions
    remove [SYSTEM]...              Remove systems
    setup [GLOBALDIR]               Mandatory ocicl configuration
+   tree [SYSTEM]...                Print tree of installed systems
    version                         Show the ocicl version information
 
 Distributed under the terms of the MIT License"
