@@ -141,6 +141,7 @@
    libyear                         Calculate the libyear dependency freshness metric
    list SYSTEM...                  List available system versions
    remove [SYSTEM]...              Remove systems
+   clean                           Clean system directories not listed in ocicl.csv
    setup [GLOBALDIR]               Mandatory ocicl configuration
    version                         Show the ocicl version information
 
@@ -907,6 +908,42 @@ Distributed under the terms of the MIT License"
                       (format t "~&Only in ~a: ~a~%" (cdr file) (car file)))))
               (sb-ext:exit :code 1))))))
 
+(defun do-clean (args)
+  (when args
+    (usage)
+    (uiop:quit 1))
+  (let* ((system-directories (directory
+                              (make-pathname
+                               :name :wild :type :wild
+                               :defaults *systems-dir*)))
+         (registered-directories
+           (let ((directories))
+             (maphash (lambda (system values)
+                        (declare (ignore system))
+                        (destructuring-bind (version . asd) values
+                          (declare (ignore version))
+                          ;; get just the top directory
+                          (push
+                           (merge-pathnames
+                            (make-pathname
+                             :directory (subseq (pathname-directory asd) 0 2))
+                            *systems-dir*)
+                           directories)))
+                      *ocicl-systems*)
+             (remove-duplicates directories :test #'equal)))
+         (directories-to-clean
+           (set-difference system-directories registered-directories
+                           :test #'equal)))
+    (mapc
+     (lambda (directory)
+       (uiop:delete-directory-tree
+        directory
+        :validate
+        (lambda (path)
+          ;; ensure directory being deleted is a subdirectory of *systems-dir*
+          (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*)))))))
+     directories-to-clean)))
+
 (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
   (if (uiop:directory-pathname-p file)
@@ -1017,8 +1054,10 @@ Distributed under the terms of the MIT License"
                           (do-latest (cdr free-args)))
                          ((string= cmd "list")
                           (do-list (cdr free-args)))
-                         ((string= cmd  "diff")
+                         ((string= cmd "diff")
                           (do-diff (cdr free-args)))
+                         ((string= cmd "clean")
+                          (do-clean (cdr free-args)))
                          ((string= cmd "setup")
                           (do-setup (cdr free-args)))
                          ((string= cmd "version")
@@ -1195,7 +1234,7 @@ download the system unless a version is specified."
                                                    (debug-log #?"registering ${s}")
                                                    (setf (gethash (mangle (pathname-name s)) *ocicl-systems*)
                                                          (cons #?"${registry}/${mangled-name}@${manifest-digest}"
-                                                               (subseq (namestring s) (length (namestring *systems-dir*))))))))
+                                                               (enough-namestring (namestring s) *systems-dir*))))))
                                              t)
                                          (error (e)
                                            (when (or *verbose* print-error)
