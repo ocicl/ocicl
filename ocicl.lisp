@@ -1007,17 +1007,26 @@ Distributed under the terms of the MIT License"
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
            ;; FIXME: required because ocicl's version of unix-opts does not
            ;; yet have :default
-           (let ((color (getf options :color)))
-             (setf *color* (or (string= color "always")
-                               (and (or (string= color "auto")
-                                        (and (not color)
-                                             (not (uiop:getenvp "NO_COLOR"))))
-                                    (handler-case
-                                        (interactive-stream-p
-                                          (if  (typep *standard-output* 'synonym-stream)
-                                            (symbol-value (synonym-stream-symbol *standard-output*))
-                                            *standard-output*))
-                                      (error () nil))))))
+           (flet ((get-output-stream ()
+                    (if (typep *standard-output* 'synonym-stream)
+                        (symbol-value (synonym-stream-symbol *standard-output*))
+                        *standard-output*)))
+             (let* ((color (getf options :color))
+                    (color-allowed?
+                      (or (string= color "auto")
+                          (and (not color)
+                               (not (uiop:getenvp "NO_COLOR")))))
+                    (tty?
+                      (handler-case
+                          #+sbcl
+                          (/= 0 (sb-unix:unix-isatty
+                                  (sb-sys:fd-stream-fd
+                                    (get-output-stream))))
+                          #-sbcl
+                          (interactive-stream-p (get-output-stream))
+                        (error () nil))))
+               (setf *color* (or (string= color "always")
+                                 (and tty? color-allowed?)))))
 
 
            (setf workdir (find-workdir workdir))
