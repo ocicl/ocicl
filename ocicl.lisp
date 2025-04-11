@@ -92,7 +92,17 @@
                      arg
                      (progn
                        (usage)
-                       (sb-ext:exit :code 1))))))
+                       (sb-ext:exit :code 1)))))
+  (:name :depth
+   :description "maximum depth for the tree command (integer or \"max\", default 1)"
+   :short #\d
+   :long "depth"
+   :meta-var "NUM"
+   :arg-parser (lambda (arg)
+                 (cond ((equal arg "max") :max)
+                       ((ignore-errors (parse-integer arg)))
+                       (t (usage)
+                          (uiop:quit 1))))))
 
 (defun unknown-option (condition)
   (format t "warning: ~s option is unknown!~%" (opts:option condition))
@@ -143,6 +153,7 @@
    list SYSTEM...                  List available system versions
    remove [SYSTEM]...              Remove systems
    setup [GLOBALDIR]               Mandatory ocicl configuration
+   tree [SYSTEM]...                Print tree of installed systems
    version                         Show the ocicl version information
 
 Distributed under the terms of the MIT License"
@@ -680,7 +691,7 @@ Distributed under the terms of the MIT License"
            (progn
              (maphash (lambda (system info)
                         (declare (ignore info))
-                        (full-dependency-table system dependency-table))
+                        (full-dependency-table (unmangle system) dependency-table))
                       *ocicl-systems*)
              (alexandria:hash-table-alist dependency-table)))
          (seen-system-groups (make-hash-table :test #'equal)))
@@ -944,6 +955,87 @@ Distributed under the terms of the MIT License"
           (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*)))))))
      directories-to-clean)))
 
+(defvar *tree-depth* nil)
+
+(defstruct tree-not-found name)
+
+(defstruct tree-top systems)
+
+(defvar *tree-seen* (make-hash-table))
+
+(defmethod tree:node-children ((system tree-top))
+  (let ((*inhibit-download-during-search* t))
+    (mapcar
+     (lambda (name)
+       (or (ignore-errors (quiet-find-system name nil))
+           (make-tree-not-found :name name)))
+     (tree-top-systems system))))
+
+(defmethod tree:print-node ((system tree-top) stream)
+  (when *color*
+    (write-string *color-reset*))
+  (princ *systems-csv*)
+  (when *color*
+    (write-string *color-dim*)))
+
+(defmethod tree:node-children ((system asdf:system))
+  (let ((*inhibit-download-during-search* t))
+    (unless (eql (gethash system *tree-seen*) :expanded)
+      (setf (gethash system *tree-seen*) :expanded)
+      (let ((dependency-names (sort
+                               (mapcar
+                                #'resolve-dependency-name
+                                (asdf:system-depends-on system))
+                               #'string<)))
+        (mapcar
+         (lambda (dependency)
+           (or (ignore-errors (quiet-find-system dependency nil))
+               (make-tree-not-found :name dependency)))
+         dependency-names)))))
+
+(defmethod tree:print-node ((system tree-not-found) stream)
+  (when *color*
+    (write-string *color-reset*)
+    (write-string *color-bold*)
+    (write-string *color-bright-red*))
+  (princ (tree-not-found-name system))
+  (princ "!")
+  (when *color*
+    (write-string *color-reset*)
+    (write-string *color-dim*)))
+
+(defmethod tree:print-node ((system asdf:system) stream)
+  (let ((seen (gethash system *tree-seen*)))
+    (when (and *color* (not seen))
+      (write-string *color-reset*)
+      (write-string *color-bold*)
+      (write-string *color-bright-green*))
+    (princ (asdf:component-name system))
+    (when (and (eql seen :expanded) (asdf:system-depends-on system))
+      (princ "*"))
+    (when (and *color* (not seen))
+      (write-string *color-reset*)
+      (write-string *color-dim*))
+    (unless seen
+      (setf (gethash system *tree-seen*) :printed))))
+
+(defun do-tree (args)
+  (when *color*
+    (write-string *color-dim*))
+  (let ((top (make-tree-top
+              :systems
+              (or (remove-duplicates args :test #'equal)
+                  (mapcar
+                   #'unmangle
+                   (sort (alexandria:hash-table-keys *ocicl-systems*) #'string<))))))
+    (tree:print-tree
+     top
+     :unicode t
+     :max-depth (when *tree-depth*
+                  (+ *tree-depth* (if args 1 0)))))
+  (when *color*
+    (write-string *color-reset*)))
+
 (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
   (if (uiop:directory-pathname-p file)
@@ -1026,6 +1118,10 @@ Distributed under the terms of the MIT License"
                                                      (symbol-value (synonym-stream-symbol *standard-output*))
                                                      *standard-output*)))))
                                       (error () nil))))))
+           (let ((depth (getf options :depth)))
+             (setf *tree-depth* (if (eql depth :max)
+                                    nil
+                                    (or depth 1))))
 
 
            (setf workdir (find-workdir workdir))
@@ -1054,6 +1150,8 @@ Distributed under the terms of the MIT License"
                           (do-latest (cdr free-args)))
                          ((string= cmd "list")
                           (do-list (cdr free-args)))
+                         ((string= cmd "tree")
+                          (do-tree (cdr free-args)))
                          ((string= cmd "diff")
                           (do-diff (cdr free-args)))
                          ((string= cmd "clean")

@@ -169,6 +169,7 @@ Choose from the following ocicl commands:
    list SYSTEM...                  List available system versions
    remove [SYSTEM]...              Remove systems
    setup [GLOBALDIR]               Mandatory ocicl configuration
+   tree [SYSTEM]...                Print tree of installed systems
    version                         Show the ocicl version information
 
 Distributed under the terms of the MIT License
