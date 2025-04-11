@@ -167,6 +167,7 @@ Choose from the following ocicl commands:
    libyear                         Calculate the libyear dependency freshness metric
    list SYSTEM...                  List available system versions
    remove [SYSTEM]...              Remove systems
+   clean                           Clean system directories not listed in ocicl.csv
    setup [GLOBALDIR]               Mandatory ocicl configuration
    version                         Show the ocicl version information
 
