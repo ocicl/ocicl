@@ -27,6 +27,8 @@
   (let ((node (car nodes)))
     (when prefix
       (write-string prefix stream)
+      (when (> depth 1)
+        (write-string " "))
       (write-string
        (if (cdr nodes)
            node-prefix
@@ -45,6 +47,8 @@
                               :prefix
                               (if prefix
                                   (concatenate 'string prefix
+                                               (when (> depth 1)
+                                                  " ")
                                                (if (cdr nodes)
                                                    continue-prefix
                                                    "  "))
