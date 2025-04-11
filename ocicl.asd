@@ -30,12 +30,11 @@
   :version (:read-file-form "version.sexp")
   :serial t
   :components ((:module "runtime"
-                        :components ((:static-file "asdf.lisp")
-                                     (:static-file "ocicl-runtime.lisp")))
+                :components ((:static-file "asdf.lisp")
+                             (:static-file "ocicl-runtime.lisp")))
                (:file "package")
                (:file "ocicl" :depends-on ("runtime" "package")))
-  :depends-on ( :with-user-abort
-                :unix-opts :dexador :cl-json :cl-interpol :tar
+  :depends-on ( :with-user-abort :unix-opts :dexador :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff
 
                 ;; sbcl internals
