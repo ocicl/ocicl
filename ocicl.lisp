@@ -25,7 +25,7 @@
 
 (in-package #:ocicl)
 
-(named-readtables:in-readtable :interpol-syntax)
+;(named-readtables:in-readtable :interpol-syntax)
 
 #+sbcl(require 'sb-introspect)
 
@@ -185,7 +185,9 @@ Distributed under the terms of the MIT License"
         (debug-log (format nil "getting bearer token for ~A" server))
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
-                     (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull" :verbose *verbose*)))))
+                     (dex:get
+                       (format nil "https://~a/token?scope=repository:~a/~a:pull" server repository system )
+                       :verbose *verbose*)))))
     (error (e)
       (declare (ignore e))
       nil)))
@@ -203,9 +205,9 @@ Distributed under the terms of the MIT License"
           (sort
            (cdr (assoc :tags
                        (cl-json:decode-json-from-string
-                        (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
+                        (dex:get (format nil "https://~a/v2/~a/~a/tags/list?n=1024&last=latest" server repository system)
                                  :verbose *verbose*
-                                 :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
+                                 :headers `(("Authorization" . ,(format nil "Bearer ~a" token)))))))
            #'string>)))
     (error (e)
       (declare (ignore e))
@@ -266,13 +268,14 @@ Distributed under the terms of the MIT License"
                         (server (get-up-to-first-slash registry))
                         (repository (get-repository-name registry)))
                    (multiple-value-bind (manifest manifest-digest)
-                       (get-manifest registry #?"${system}-changes.txt" version)
+                       (get-manifest registry (format nil "~a-changes.txt" system) version)
                      (declare (ignore manifest-digest))
                      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-                            (changes (dex:get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
-                                              :force-string t
-                                              :verbose *verbose*
-                                              :headers `(("Authorization" . ,#?"Bearer ${token}")))))
+                            (changes (dex:get
+                                       (format nil "https://~a/v2/~a/~a-changes.txt/blobs/~a" server repository system digest)
+                                       :force-string t
+                                       :verbose *verbose*
+                                       :headers `(("Authorization" . ,(format nil "Bearer ~a" token))))))
                        (return-from get-changes changes)))))
              (error (e)
                (declare (ignore e))
@@ -403,9 +406,9 @@ Distributed under the terms of the MIT License"
                             (filter-strings
                              (cdr (assoc :tags
                                          (cl-json:decode-json-from-string
-                                          (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
+                                          (dex:get (format nil "https://~a/v2/~a/~a/tags/list?n=1024&last=latest" server repository system)
                                                    :verbose *verbose*
-                                                   :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
+                                                   :headers `(("Authorization" . ,(format nil "Bearer ~a" token)))))))))
                           (p (position version all-versions :test #'string=)))
                      (when p (cdr (nthcdr p all-versions))))))
              (dexador.error:http-request-forbidden (e)
@@ -1264,10 +1267,10 @@ Distributed under the terms of the MIT License"
         (server (get-up-to-first-slash registry))
         (repository (get-repository-name registry)))
     (multiple-value-bind (body status response-headers)
-        (dex:get #?"https://${server}/v2/${repository}/${system}/manifests/${tag}"
+        (dex:get (format nil "https://~a/v2/~a/~a/manifests/~a" server repository system tag)
                  :force-string t
                  :verbose *verbose*
-                 :headers `(("Authorization" . ,#?"Bearer ${token}")
+                 :headers `(("Authorization" . ,(format nil "Bearer ~a" token))
                             ("Accept" . "application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json")))
       (declare (ignore status))
       (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers)))))
@@ -1279,11 +1282,11 @@ Distributed under the terms of the MIT License"
     (multiple-value-bind (manifest manifest-digest)
         (get-manifest registry system tag)
       (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-             (input (dex:get #?"https://${server}/v2/${repository}/${system}/blobs/${digest}"
+             (input (dex:get (format nil "https://~a/v2/~a/~a/blobs/~a" server repository system digest)
                              :force-binary t
                              :want-stream t
                              :verbose *verbose*
-                             :headers `(("Authorization" . ,#?"Bearer ${token}")))))
+                             :headers `(("Authorization" . ,(format nil "Bearer ~a" token))))))
         (handler-bind
             ((tar-simple-extract:broken-or-circular-links-error
               (lambda (condition)
@@ -1301,10 +1304,10 @@ Distributed under the terms of the MIT License"
            (uiop:with-current-directory (dl-dir)
              (handler-case
                  (progn
-                   (debug-log #?"attempting to pull ${fullname}")
+                   (debug-log (format nil "attempting to pull ~a" fullname))
                    (cl-ppcre:register-groups-bind (registry name digest)
                        ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
-                     (let ((manifest-digest (get-blob registry name #?"sha256:${digest}" dl-dir)))
+                     (let ((manifest-digest (get-blob registry name (format nil "sha256:~a" digest) dl-dir)))
                        (declare (ignore manifest-digest))
                        (copy-directory:copy dl-dir *systems-dir*))))
                (error (e)
@@ -1331,7 +1334,7 @@ download the system unless a version is specified."
                              (cl-ppcre:register-groups-bind (registry name digest)
                                  ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
                                (declare (ignore registry name))
-                               #?"sha256:${digest}")))
+                               (format nil "sha256:~a" digest))))
          (version (or requested-version existing-version "latest"))
          (asd-file (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*))))
     (if (and (not requested-version)
@@ -1359,9 +1362,9 @@ download the system unless a version is specified."
                                                                                                             :separator (list (uiop:directory-separator-for-host))))))))
                                                  (copy-directory:copy dl-dir *systems-dir*)
                                                  (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
-                                                   (debug-log #?"registering ${s}")
+                                                   (debug-log (format nil "registering ~a" s))
                                                    (setf (gethash (mangle (pathname-name s)) *ocicl-systems*)
-                                                         (cons #?"${registry}/${mangled-name}@${manifest-digest}"
+                                                         (cons (format nil "~a/~a@~a" registry mangled-name manifest-digest)
                                                                (enough-namestring (namestring s) *systems-dir*))))))
                                              t)
                                          (error (e)

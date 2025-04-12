@@ -36,7 +36,7 @@
                (:file "package")
                (:file "ocicl" :depends-on ("runtime" "package" "tree")))
 
-  :depends-on ( :with-user-abort :unix-opts :dexador :cl-json :cl-interpol :tar
+  :depends-on ( :with-user-abort :unix-opts :dexador :cl-json :tar
                 :tar/simple-extract :copy-directory :diff
 
                 ;; sbcl internals
