@@ -35,9 +35,19 @@
                (:file "tree")
                (:file "package")
                (:file "ocicl" :depends-on ("runtime" "package" "tree")))
-  :depends-on (:with-user-abort :unix-opts :dexador :cl-json :cl-interpol :tar :tar/simple-extract :copy-directory :diff
+
+  :depends-on ( :with-user-abort :unix-opts :dexador :cl-json :cl-interpol :tar
+                :tar/simple-extract :copy-directory :diff
+
                 ;; sbcl internals
-                :sb-posix :sb-bsd-sockets :sb-rotate-byte :sb-cltl2 :sb-introspect :sb-concurrency :sb-sprof :sb-md5 :sb-introspect)
+                (:feature :sbcl :sb-posix)
+                (:feature :sbcl :sb-bsd-sockets)
+                (:feature :sbcl :sb-rotate-byte)
+                (:feature :sbcl :sb-cltl2)
+                (:feature :sbcl :sb-introspect)
+                (:feature :sbcl :sb-concurrency)
+                (:feature :sbcl :sb-sprof)
+                (:feature :sbcl :sb-md5))
   :build-operation "program-op"
   :build-pathname "ocicl"
   :entry-point "ocicl:main")

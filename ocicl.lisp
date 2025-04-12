@@ -27,7 +27,7 @@
 
 (named-readtables:in-readtable :interpol-syntax)
 
-(require 'sb-introspect)
+#+sbcl(require 'sb-introspect)
 
 (defvar *ocicl-registries* (list "ghcr.io/ocicl"))
 (defvar *ocicl-globaldir* nil)
@@ -50,12 +50,12 @@
 (defparameter +version+ #.(uiop:read-file-form "version.sexp"))
 
 (defparameter +runtime+
-  (let* ((runtime #.(uiop:read-file-string "runtime/ocicl-runtime.lisp"))
+  #.(let* ((runtime (uiop:read-file-string "runtime/ocicl-runtime.lisp"))
          (start (search "UNKNOWN" runtime)))
     (if start
         (concatenate 'string
                      (subseq runtime 0 start)
-                     +version+
+                     (uiop:read-file-form "version.sexp")
                      (subseq runtime (+ start 7)))
         runtime)))
 
@@ -92,7 +92,7 @@
                      arg
                      (progn
                        (usage)
-                       (sb-ext:exit :code 1)))))
+                       (uiop:quit 1)))))
   (:name :depth
    :description "maximum depth for the tree command (integer or \"max\", default 1)"
    :short #\d
@@ -160,7 +160,7 @@ Distributed under the terms of the MIT License"
    :usage-of "ocicl"
    :args     "command"))
 
-(defvar *systems-dir* nil)
+(defvar *systems-dir* "")
 
 (defun debug-log (s)
   (when *verbose*
@@ -211,6 +211,7 @@ Distributed under the terms of the MIT License"
       (declare (ignore e))
       (format t "; ~A(~A) not found~%" system registry))))
 
+
 (defun do-list (args)
   (handler-case
       (when args
@@ -223,7 +224,23 @@ Distributed under the terms of the MIT License"
                          (format t "~T~A~%" tag))
                        (return))))
           (format t "~%")))
+    #+sbcl
     (sb-int:broken-pipe (e)
+      (declare (ignore e))
+      ())
+
+    ;; The "broken-pipe" error for sbcl is defined this way in
+    ;; sbcl source code: (src/code/target-error.lisp:2282)
+    ;;
+    ;;   (define-condition simple-stream-error (simple-condition stream-error) ())
+    ;;   (define-condition broken-pipe (simple-stream-error) ())
+    ;;
+    ;; Hopefully using the base stream-error will help catch similar conditions
+    ;; in other implementations
+    
+
+    #-sbcl
+    (stream-error (e)
       (declare (ignore e))
       ())))
 
@@ -269,7 +286,8 @@ Distributed under the terms of the MIT License"
         (*error-output* (if *verbose*
                             *error-output*
                             (make-broadcast-stream))))
-    (handler-bind (((or warning sb-ext:compiler-note)
+    (handler-bind ((#+sbcl(or warning sb-ext:compiler-note)
+                    #-sbcl(or warning)
                      (lambda (w)
                        (unless *verbose*
                          (muffle-warning w)))))
@@ -302,11 +320,11 @@ Distributed under the terms of the MIT License"
         (if (position #\: system)
             (progn
               (format uiop:*stderr* "Error: version tag specified for system ~A.~%" system)
-              (sb-ext:quit)))
+              (uiop:quit)))
         (unless (download-system (concatenate 'string system ":latest"))
             (progn
               (format uiop:*stderr* "Error: system ~A not found.~%" system)
-              (sb-ext:quit))
+              (uiop:quit))
             (download-system-dependencies system)))
       ;; Download latest versions of all systems.
       (let ((blobs (make-hash-table :test #'equal)))
@@ -351,7 +369,7 @@ Distributed under the terms of the MIT License"
                (error (e)
                  (declare (ignore e))
                  (format uiop:*stderr* "Error: directory ~A does not exist.~%" (car args))
-                 (sb-ext:quit)))
+                 (uiop:quit)))
           (uiop:chdir original-directory)))
       (let ((old-config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
         (when (probe-file old-config-file)
@@ -567,7 +585,7 @@ Distributed under the terms of the MIT License"
               (unless (download-and-install system)
                 (progn
                   (format uiop:*stderr* "Error: can't download ~A.~%" system)
-                  (sb-ext:quit))))
+                  (uiop:quit))))
           (let* ((slist (split-on-delimiter system #\:))
                  (name (car slist)))
             (when (download-system system)
@@ -587,6 +605,19 @@ Distributed under the terms of the MIT License"
                               (merge-pathnames path2)))))
     (or (not enough-directory)
         (eql :relative (first enough-directory)))))
+
+
+;; this function needs to be defined above its first use if it is inline
+(declaim (inline find-asd-files))
+(defun find-asd-files (dir)
+  "Recursively find all files with the .asd extension in a directory."
+  ;; Force a trailing slash to support uiop change in behavior:
+  ;; https://github.com/fare/asdf/commit/6138d709eb25bf75c1d1f7dc45a63d174f982321
+  (directory (merge-pathnames
+              (make-pathname :name :wild
+                             :type "asd"
+                             :directory '(:relative :wild-inferiors))
+              (uiop:ensure-directory-pathname dir))))
 
 (defun system-group (system)
   "Return systems that are known to ocicl and in the same directory tree as SYSTEM"
@@ -627,32 +658,32 @@ Distributed under the terms of the MIT License"
   (let* ((slist (split-on-delimiter system #\:))
          (name (car slist))
          (mangled-name (mangle name))
-         (system-info (gethash mangled-name *ocicl-systems*))
-         (fullname (car system-info))
-         (relative-asd-path (cdr system-info))
-         (absolute-asd-path (when system-info (merge-pathnames relative-asd-path *systems-dir*)))
-         (system-directory (when system-info
-                             (merge-pathnames
-                              (make-pathname
-                               :directory
-                               `(:relative
-                                 ,(second
-                                   (pathname-directory
-                                    (enough-namestring absolute-asd-path *systems-dir*)))))
-                              *systems-dir*)))
-         (system-group (system-group system)))
-    (unless system-info
-      (format t "; no system to remove: ~A~%" name))
-    (when (and modify-ocicl-systems system-info)
-      (dolist (system system-group)
-        (remhash system *ocicl-systems*)))
-    (when (and system-directory (uiop:directory-exists-p system-directory))
-      (uiop:delete-directory-tree
-       system-directory
-       :validate (lambda (path)
-                   ;; ensure directory being deleted is a subdirectory of *systems-dir*
-                   (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
-      (format t "; removed ~A~%" (file-namestring fullname)))))
+         (system-info (gethash mangled-name *ocicl-systems*)))
+
+    (if (null system-info)
+      (format t "; no system to remove: ~A~%" name) ;return here, fixes type warnings to merge-pathnames
+      (let* ((fullname (car system-info))
+             (relative-asd-path (cdr system-info))
+             (absolute-asd-path (merge-pathnames relative-asd-path *systems-dir*))
+             (system-directory (merge-pathnames
+                                 (make-pathname
+                                   :directory
+                                   `(:relative
+                                      ,(second
+                                         (pathname-directory
+                                           (enough-namestring absolute-asd-path *systems-dir*)))))
+                                 *systems-dir*))
+             (system-group (system-group system)))
+        (when (and modify-ocicl-systems system-info)
+          (dolist (system system-group)
+            (remhash system *ocicl-systems*)))
+        (when (uiop:directory-exists-p system-directory)
+          (uiop:delete-directory-tree
+            system-directory
+            :validate (lambda (path)
+                        ;; ensure directory being deleted is a subdirectory of *systems-dir*
+                        (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
+          (format t "; removed ~A~%" (file-namestring fullname)))))))
 
 (defun resolve-dependency-name (dependency)
   "Resolve ASDF dependency name."
@@ -833,11 +864,11 @@ Distributed under the terms of the MIT License"
 (defun do-diff (args)
   (declare (optimize (speed 3) (safety 1)))
   (if (fourth args)
-      (progn (usage) (sb-ext:exit :code 1))
+      (progn (usage) (uiop:quit 1))
       (let* ((system-name (first args))
              (given-v1 (second args))
              (given-v2 (third args))
-             (latest-version (when (or (string= given-v1 "latest")
+             (latest-version (when (or (equal given-v1 "latest")
                                        (equal given-v2 "latest")
                                        (and (null given-v1) (null given-v2)))
                                (system-latest-version system-name)))
@@ -867,7 +898,7 @@ Distributed under the terms of the MIT License"
                                                         :print-error t))))
           (when (not (or version1 version1-system-info))
             (format *error-output* "; Error: system ~A not installed. Install it or specify two versions to diff.~%" system-name)
-            (sb-ext:exit :code 1))
+            (uiop:quit :code 1))
           (if (and version1-system-info version2-system-info)
               (let* ((version1-dir (merge-pathnames
                                     (make-pathname
@@ -917,7 +948,7 @@ Distributed under the terms of the MIT License"
                                 (when (binary-files-differ-p pathname-1 pathname-2)
                                   (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))))))
                       (format t "~&Only in ~a: ~a~%" (cdr file) (car file)))))
-              (sb-ext:exit :code 1))))))
+              (uiop:quit 1))))))
 
 (defun do-clean (args)
   (when args
@@ -1105,19 +1136,28 @@ Distributed under the terms of the MIT License"
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
            ;; FIXME: required because ocicl's version of unix-opts does not
            ;; yet have :default
-           (let ((color (getf options :color)))
-             (setf *color* (or (string= color "always")
-                               (and (or (string= color "auto")
-                                        (and (not color)
-                                             (not (uiop:getenvp "NO_COLOR"))))
-                                    (handler-case
-                                        (not (zerop
-                                              (sb-unix:unix-isatty
-                                               (sb-sys:fd-stream-fd
-                                                (if  (typep *standard-output* 'synonym-stream)
-                                                     (symbol-value (synonym-stream-symbol *standard-output*))
-                                                     *standard-output*)))))
-                                      (error () nil))))))
+
+           (flet ((get-output-stream ()
+                    (if (typep *standard-output* 'synonym-stream)
+                        (symbol-value (synonym-stream-symbol *standard-output*))
+                        *standard-output*)))
+             (let* ((color (getf options :color))
+                    (color-allowed?
+                      (or (string= color "auto")
+                          (and (not color)
+                               (not (uiop:getenvp "NO_COLOR")))))
+                    (tty?
+                      (handler-case
+                          #+sbcl
+                          (/= 0 (sb-unix:unix-isatty
+                                  (sb-sys:fd-stream-fd
+                                    (get-output-stream))))
+                          #-sbcl
+                          (interactive-stream-p (get-output-stream))
+                        (error () nil))))
+               (setf *color* (or (string= color "always")
+                                 (and tty? color-allowed?)))))
+
            (let ((depth (getf options :depth)))
              (setf *tree-depth* (if (eql depth :max)
                                     nil
@@ -1161,12 +1201,12 @@ Distributed under the terms of the MIT License"
                          ((string= cmd "version")
                           (do-version (cdr free-args)))
                          (t (usage)))))))))))
-    (with-user-abort:user-abort () (sb-ext:exit :code 130))
+    (with-user-abort:user-abort () (uiop:quit 130))
     (stream-error (e)
       (format *error-output* "ocicl: stream error during output~%")
       (when *verbose*
         (format *error-output* "~a~&" e))
-      (sb-ext:exit :code 1))))
+      (uiop:quit 1))))
 
 (defun replace-plus-with-string (str)
   (let ((mangled (with-output-to-string (s)
@@ -1190,16 +1230,6 @@ Distributed under the terms of the MIT License"
     (merge-pathnames (eval `(make-pathname :directory '(:relative ,rdir)))
                      (uiop:default-temporary-directory))))
 
-(declaim (inline find-asd-files))
-(defun find-asd-files (dir)
-  "Recursively find all files with the .asd extension in a directory."
-  ;; Force a trailing slash to support uiop change in behavior:
-  ;; https://github.com/fare/asdf/commit/6138d709eb25bf75c1d1f7dc45a63d174f982321
-  (directory (merge-pathnames
-              (make-pathname :name :wild
-                             :type "asd"
-                             :directory '(:relative :wild-inferiors))
-              (uiop:ensure-directory-pathname dir))))
 
 (defun extract-sha256 (str)
   (let* ((start (search "sha256:" str))
@@ -1362,71 +1392,83 @@ download the system unless a version is specified."
                  (string= (pathname-name system-file) name))
         system-file))))
 
-;; just to be safe, try loading internal SBCL systems in the event they're
-;; actually needed by a defsystem, since we're going to make these unloadable
-;; later.
-(handler-bind ((warning (lambda (c) (muffle-warning c))))
-  (dolist (system '(:sb-aclrepl
-                    :sb-bsd-sockets
-                    :sb-capstone
-                    :sb-cltl2
-                    :sb-concurrency
-                    :sb-cover
-                    :sb-executable
-                    :sb-gmp
-                    :sb-grovel
-                    :sb-introspect
-                    :sb-md5
-                    :sb-mpfr
-                    :sb-posix
-                    :sb-queue
-                    :sb-rotate-byte
-                    :sb-rt
-                    :sb-simple-streams
-                    :sb-sprof))
-    (ignore-errors (require system))))
-
 (setf asdf:*system-definition-search-functions*
       (append asdf:*system-definition-search-functions*
               (list 'system-definition-searcher)))
 
+;; just to be safe, try loading internal SBCL systems in the event they're
+;; actually needed by a defsystem, since we're going to make these unloadable
+;; later.
+#+sbcl
+(handler-bind ((warning (lambda (c) (muffle-warning c))))
+  (dolist
+    (system
+      '(:sb-aclrepl
+         :sb-bsd-sockets
+         :sb-capstone
+         :sb-cltl2
+         :sb-concurrency
+         :sb-cover
+         :sb-executable
+         :sb-gmp
+         :sb-grovel
+         :sb-introspect
+         :sb-md5
+         :sb-mpfr
+         :sb-posix
+         :sb-queue
+         :sb-rotate-byte
+         :sb-rt
+         :sb-simple-streams
+         :sb-sprof))
+    (ignore-errors (require system))))
+
 ;; Register known internal systems as "immutable" so that find-system inside
 ;; the ocicl executable does not try to load them
-(dolist (system '(:sb-aclrepl
-                  :sb-bsd-sockets
-                  :sb-capstone
-                  :sb-cltl2
-                  :sb-concurrency
-                  :sb-cover
-                  :sb-executable
-                  :sb-gmp
-                  :sb-grovel
-                  :sb-introspect
-                  :sb-md5
-                  :sb-mpfr
-                  :sb-perf
-                  :sb-posix
-                  :sb-queue
-                  :sb-rotate-byte
-                  :sb-rt
-                  :sb-simd
-                  :sb-simple-streams
-                  :sb-sprof
 
-                  ;; Register some non-SBCL internal systems that don't exist
-                  ;; in the ocicl repo
+(let* ((sbcl-systems
+         #+sbcl
+         '(
+           :sb-aclrepl
+           :sb-bsd-sockets
+           :sb-capstone
+           :sb-cltl2
+           :sb-concurrency
+           :sb-cover
+           :sb-executable
+           :sb-gmp
+           :sb-grovel
+           :sb-introspect
+           :sb-md5
+           :sb-mpfr
+           :sb-perf
+           :sb-posix
+           :sb-queue
+           :sb-rotate-byte
+           :sb-rt
+           :sb-simd
+           :sb-simple-streams
+           :sb-sprof))
+       (base-systems 
+         '(
+           ;; Register some non-SBCL internal systems that don't exist
+           ;; in the ocicl repo
 
-                  ;; corman
-                  :threads
-                  ;; clisp
-                  :syscalls
-                  ;; abcl
-                  :extensible-sequences
-                  ;; cmucl
-                  :unix
-                  ;; allegro
-                  :osi))
-  (asdf:register-immutable-system system))
+           ;; corman
+           :threads
+           ;; clisp
+           :syscalls
+           ;; abcl
+           :extensible-sequences
+           ;; cmucl
+           :unix
+           ;; allegro
+           :osi)))
+  (dolist
+    (system (append base-systems sbcl-systems))
+    (asdf:register-immutable-system system)))
+
+
 
 ;; clear systems to avoid collision with systems loaded into executable
 (asdf/system-registry:clear-registered-systems)
