@@ -159,15 +159,17 @@ Choose from the following ocicl commands:
 
    help                            Print this help text
    changes [SYSTEM[:VERSION]]...   Display changes
-   diff SYSTEM                     Diff between the installed and latest versions.
-   diff SYSTEM VERSION             Diff between the installed version and VERSION.
-   diff SYSTEM VERSION1 VERSION2   Diff between files in different system versions.
+   clean                           Remove system directories not listed in ocicl.csv
+   diff SYSTEM                     Diff between the installed and latest versions
+   diff SYSTEM VERSION             Diff between the installed version and VERSION
+   diff SYSTEM VERSION1 VERSION2   Diff between files in different system versions
    install [SYSTEM[:VERSION]]...   Install systems
    latest [SYSTEM]...              Install latest version of systems
    libyear                         Calculate the libyear dependency freshness metric
    list SYSTEM...                  List available system versions
    remove [SYSTEM]...              Remove systems
    setup [GLOBALDIR]               Mandatory ocicl configuration
+   tree [SYSTEM]...                Print tree of installed systems
    version                         Show the ocicl version information
 
 Distributed under the terms of the MIT License

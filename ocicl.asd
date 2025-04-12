@@ -32,8 +32,10 @@
   :components ((:module "runtime"
                 :components ((:static-file "asdf.lisp")
                              (:static-file "ocicl-runtime.lisp")))
+               (:file "tree")
                (:file "package")
-               (:file "ocicl" :depends-on ("runtime" "package")))
+               (:file "ocicl" :depends-on ("runtime" "package" "tree")))
+
   :depends-on ( :with-user-abort :unix-opts :dexador :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff
 

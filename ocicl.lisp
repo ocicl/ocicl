@@ -92,7 +92,17 @@
                      arg
                      (progn
                        (usage)
-                       (uiop:quit 1))))))
+                       (uiop:quit 1)))))
+  (:name :depth
+   :description "maximum depth for the tree command (integer or \"max\", default 1)"
+   :short #\d
+   :long "depth"
+   :meta-var "NUM"
+   :arg-parser (lambda (arg)
+                 (cond ((equal arg "max") :max)
+                       ((ignore-errors (parse-integer arg)))
+                       (t (usage)
+                          (uiop:quit 1))))))
 
 (defun unknown-option (condition)
   (format t "warning: ~s option is unknown!~%" (opts:option condition))
@@ -133,15 +143,17 @@
 
    help                            Print this help text
    changes [SYSTEM[:VERSION]]...   Display changes
-   diff SYSTEM                     Diff between the installed and latest versions.
-   diff SYSTEM VERSION             Diff between the installed version and VERSION.
-   diff SYSTEM VERSION1 VERSION2   Diff between files in different system versions.
+   clean                           Remove system directories not listed in ocicl.csv
+   diff SYSTEM                     Diff between the installed and latest versions
+   diff SYSTEM VERSION             Diff between the installed version and VERSION
+   diff SYSTEM VERSION1 VERSION2   Diff between files in different system versions
    install [SYSTEM[:VERSION]]...   Install systems
    latest [SYSTEM]...              Install latest version of systems
    libyear                         Calculate the libyear dependency freshness metric
    list SYSTEM...                  List available system versions
    remove [SYSTEM]...              Remove systems
    setup [GLOBALDIR]               Mandatory ocicl configuration
+   tree [SYSTEM]...                Print tree of installed systems
    version                         Show the ocicl version information
 
 Distributed under the terms of the MIT License"
@@ -710,7 +722,7 @@ Distributed under the terms of the MIT License"
            (progn
              (maphash (lambda (system info)
                         (declare (ignore info))
-                        (full-dependency-table system dependency-table))
+                        (full-dependency-table (unmangle system) dependency-table))
                       *ocicl-systems*)
              (alexandria:hash-table-alist dependency-table)))
          (seen-system-groups (make-hash-table :test #'equal)))
@@ -938,6 +950,123 @@ Distributed under the terms of the MIT License"
                       (format t "~&Only in ~a: ~a~%" (cdr file) (car file)))))
               (uiop:quit 1))))))
 
+(defun do-clean (args)
+  (when args
+    (usage)
+    (uiop:quit 1))
+  (let* ((system-directories (directory
+                              (make-pathname
+                               :name :wild :type :wild
+                               :defaults *systems-dir*)))
+         (registered-directories
+           (let ((directories))
+             (maphash (lambda (system values)
+                        (declare (ignore system))
+                        (destructuring-bind (version . asd) values
+                          (declare (ignore version))
+                          ;; get just the top directory
+                          (push
+                           (merge-pathnames
+                            (make-pathname
+                             :directory (subseq (pathname-directory asd) 0 2))
+                            *systems-dir*)
+                           directories)))
+                      *ocicl-systems*)
+             (remove-duplicates directories :test #'equal)))
+         (directories-to-clean
+           (set-difference system-directories registered-directories
+                           :test #'equal)))
+    (mapc
+     (lambda (directory)
+       (uiop:delete-directory-tree
+        directory
+        :validate
+        (lambda (path)
+          ;; ensure directory being deleted is a subdirectory of *systems-dir*
+          (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*)))))))
+     directories-to-clean)))
+
+(defvar *tree-depth* nil)
+
+(defstruct tree-not-found name)
+
+(defstruct tree-top systems)
+
+(defvar *tree-seen* (make-hash-table))
+
+(defmethod tree:node-children ((system tree-top))
+  (let ((*inhibit-download-during-search* t))
+    (mapcar
+     (lambda (name)
+       (or (ignore-errors (quiet-find-system name nil))
+           (make-tree-not-found :name name)))
+     (tree-top-systems system))))
+
+(defmethod tree:print-node ((system tree-top) stream)
+  (when *color*
+    (write-string *color-reset*))
+  (princ *systems-csv*)
+  (when *color*
+    (write-string *color-dim*)))
+
+(defmethod tree:node-children ((system asdf:system))
+  (let ((*inhibit-download-during-search* t))
+    (unless (eql (gethash system *tree-seen*) :expanded)
+      (setf (gethash system *tree-seen*) :expanded)
+      (let ((dependency-names (sort
+                               (mapcar
+                                #'resolve-dependency-name
+                                (asdf:system-depends-on system))
+                               #'string<)))
+        (mapcar
+         (lambda (dependency)
+           (or (ignore-errors (quiet-find-system dependency nil))
+               (make-tree-not-found :name dependency)))
+         dependency-names)))))
+
+(defmethod tree:print-node ((system tree-not-found) stream)
+  (when *color*
+    (write-string *color-reset*)
+    (write-string *color-bold*)
+    (write-string *color-bright-red*))
+  (princ (tree-not-found-name system))
+  (princ "!")
+  (when *color*
+    (write-string *color-reset*)
+    (write-string *color-dim*)))
+
+(defmethod tree:print-node ((system asdf:system) stream)
+  (let ((seen (gethash system *tree-seen*)))
+    (when (and *color* (not seen))
+      (write-string *color-reset*)
+      (write-string *color-bold*)
+      (write-string *color-bright-green*))
+    (princ (asdf:component-name system))
+    (when (and (eql seen :expanded) (asdf:system-depends-on system))
+      (princ "*"))
+    (when (and *color* (not seen))
+      (write-string *color-reset*)
+      (write-string *color-dim*))
+    (unless seen
+      (setf (gethash system *tree-seen*) :printed))))
+
+(defun do-tree (args)
+  (when *color*
+    (write-string *color-dim*))
+  (let ((top (make-tree-top
+              :systems
+              (or (remove-duplicates args :test #'equal)
+                  (mapcar
+                   #'unmangle
+                   (sort (alexandria:hash-table-keys *ocicl-systems*) #'string<))))))
+    (tree:print-tree
+     top
+     :unicode t
+     :max-depth (when *tree-depth*
+                  (+ *tree-depth* (if args 1 0)))))
+  (when *color*
+    (write-string *color-reset*)))
+
 (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
   (if (uiop:directory-pathname-p file)
@@ -1007,6 +1136,7 @@ Distributed under the terms of the MIT License"
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
            ;; FIXME: required because ocicl's version of unix-opts does not
            ;; yet have :default
+
            (flet ((get-output-stream ()
                     (if (typep *standard-output* 'synonym-stream)
                         (symbol-value (synonym-stream-symbol *standard-output*))
@@ -1027,6 +1157,11 @@ Distributed under the terms of the MIT License"
                         (error () nil))))
                (setf *color* (or (string= color "always")
                                  (and tty? color-allowed?)))))
+
+           (let ((depth (getf options :depth)))
+             (setf *tree-depth* (if (eql depth :max)
+                                    nil
+                                    (or depth 1))))
 
 
            (setf workdir (find-workdir workdir))
@@ -1055,8 +1190,12 @@ Distributed under the terms of the MIT License"
                           (do-latest (cdr free-args)))
                          ((string= cmd "list")
                           (do-list (cdr free-args)))
-                         ((string= cmd  "diff")
+                         ((string= cmd "tree")
+                          (do-tree (cdr free-args)))
+                         ((string= cmd "diff")
                           (do-diff (cdr free-args)))
+                         ((string= cmd "clean")
+                          (do-clean (cdr free-args)))
                          ((string= cmd "setup")
                           (do-setup (cdr free-args)))
                          ((string= cmd "version")
@@ -1223,12 +1362,12 @@ download the system unless a version is specified."
                                                    (debug-log #?"registering ${s}")
                                                    (setf (gethash (mangle (pathname-name s)) *ocicl-systems*)
                                                          (cons #?"${registry}/${mangled-name}@${manifest-digest}"
-                                                               (subseq (namestring s) (length (namestring *systems-dir*))))))))
+                                                               (enough-namestring (namestring s) *systems-dir*))))))
                                              t)
                                          (error (e)
-                                           (declare (ignore e))
                                            (when (or *verbose* print-error)
-                                             (format *error-output* "; error downloading ~A from registry ~A~%" system registry))))))
+                                             (format *error-output* "; error downloading ~A from registry ~A~%" system registry))
+                                           (debug-log e)))))
                    (when write-systems-csv
                      (write-systems-csv))
                    (gethash mangled-name *ocicl-systems*)))
