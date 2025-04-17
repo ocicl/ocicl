@@ -113,9 +113,14 @@
   (when (should-log)
     (format *verbose* "; loading ~A~%" systems-csv))
   (let ((ht (make-hash-table :test #'equal)))
-    (dolist (line (uiop:read-file-lines systems-csv))
-      (let ((vlist (split-csv-line line)))
-        (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))
+    (when (probe-file systems-csv)
+      (dolist (line (uiop:read-file-lines systems-csv))
+        (let ((vlist (split-csv-line line)))
+          (destructuring-bind (system version asd &optional user-or-dep) vlist
+            (setf (gethash system ht)
+                  (list version asd
+                        (when user-or-dep
+                          (read-from-string user-or-dep))))))))
     ht))
 
 (defun check-if-program-exists (program-name)
@@ -240,7 +245,7 @@ appropriately based on existing CSV files or defaults."
   (labels ((try-load (systems systems-dir)
              (let ((match (and systems (gethash (mangle name) systems))))
                (if match
-                   (let ((pn (pathname (concatenate 'string (namestring systems-dir) (cdr match)))))
+                   (let ((pn (pathname (concatenate 'string (namestring systems-dir) (second match)))))
                      (when (should-log)
                        (format *verbose* "; checking for ~A: " pn))
                      (let ((found (probe-file pn)))
@@ -279,5 +284,84 @@ appropriately based on existing CSV files or defaults."
           (when *global-ocicl-systems*
             (loop for key being the hash-keys of *global-ocicl-systems*
                   collect key))))
+
+(defun write-systems-csv (systems-table systems-csv)
+  (with-open-file (stream systems-csv
+                          :direction :output
+                          :if-exists :supersede)
+    (let ((systems-list (sort
+                         (let ((alist))
+                           (maphash
+                            (lambda (key value)
+                              (push (cons key value) alist))
+                            systems-table)
+                           alist)
+                         #'string<
+                         :key #'car)))
+      (mapc
+       (lambda (system)
+         (destructuring-bind (system fullname asd &optional user-or-dep) system
+           (format stream "~A, ~A, ~A, ~S~%" system fullname asd (or user-or-dep :dependency))))
+       systems-list))))
+
+(defun top-level-directory (path)
+  (let ((directory-list (pathname-directory (pathname path))))
+    (if (and directory-list (> (length directory-list) 1))
+        (second directory-list)
+        nil)))
+
+(defun resolve-dependency-name (dependency)
+  "Resolve ASDF dependency name."
+  (declare (optimize (speed 3) (safety 1)))
+  (if (consp dependency)
+      (resolve-dependency-name (case (car dependency)
+                                 (:version (second dependency))
+                                 (:feature (third dependency))
+                                 (:require (second dependency))))
+      dependency))
+
+(defmethod asdf:perform :around ((op asdf:load-op) (system asdf:system))
+  (prog1 (call-next-method)
+    (initialize-globals)
+    (let ((source-file (asdf:system-source-file system)))
+      (unless (or (not source-file)
+                  (typep system 'asdf:require-system)
+                  (eql :relative (first (pathname-directory (enough-namestring source-file *local-systems-dir*))))
+                  (eql :relative (first (pathname-directory (enough-namestring source-file *global-systems-dir*)))))
+        (dolist (system-info (list (list *local-systems-dir*
+                                         *local-ocicl-systems*
+                                         *local-systems-csv*)
+                                   (list *global-systems-dir*
+                                         *global-ocicl-systems*
+                                         *global-systems-csv*)))
+          (destructuring-bind (systems-dir systems-table systems-csv) system-info
+            (let* ((user-systems
+                     (remove-if-not
+                      (lambda (dependency)
+                        (let ((system (asdf:registered-system (resolve-dependency-name dependency))))
+                          (and system
+                               (asdf:system-source-file system)
+                               (eql :relative
+                                    (first
+                                     (pathname-directory
+                                      (enough-namestring (asdf:system-source-file system)
+                                                         systems-dir)))))))
+                      (asdf:system-depends-on system))))
+              (when user-systems
+                (mapc
+                 (lambda (name)
+                   (let* ((mangled (mangle name))
+                          (info (gethash mangled systems-table))
+                          (relative-asd-path (second info)))
+                     (when info
+                       (setf (third info) :user)
+                       (maphash (lambda (key value)
+                                  (declare (ignore key))
+                                  (when (equal (top-level-directory (second value))
+                                               (top-level-directory relative-asd-path))
+                                    (setf (third value) :user)))
+                                systems-table))))
+                 user-systems)
+                (write-systems-csv systems-table systems-csv)))))))))
 
 (pushnew :OCICL *features*)
