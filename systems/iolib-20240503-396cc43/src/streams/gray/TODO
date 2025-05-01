@@ -1,0 +1,4 @@
+-*- outline -*-
+
+* High priority
+- make sure the stream code works with non-blocking FDs

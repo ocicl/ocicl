@@ -1,0 +1,23 @@
+(in-package :mgl-pax-test)
+
+(deftest test-util ()
+  (test-relativize-pathname))
+
+(deftest test-relativize-pathname ()
+  (dolist (*default-pathname-defaults*
+           (list (make-pathname :directory '(:absolute))
+                 (make-pathname)))
+    (is (equal (namestring (pax::relativize-pathname "a/b" "x"))
+               "a/b"))
+    (is (equal (namestring (pax::relativize-pathname "x" "a/b"))
+               "../x"))
+    (is (equal (namestring (pax::relativize-pathname "a/b/c" "a/x"))
+               "b/c"))
+    (is (equal (namestring (pax::relativize-pathname "a/x" "a/b/c"))
+               "../x"))
+    (is (equal (namestring (pax::relativize-pathname "a/b/c" "a/x/y"))
+               "../b/c"))
+    (is (equal (namestring (pax::relativize-pathname "a/x/y" "a/b/c"))
+               "../x/y"))
+    (is (equal (namestring (pax::relativize-pathname "a/b/c" "a/x/y/"))
+               "../../b/c"))))

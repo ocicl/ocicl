@@ -1,0 +1,39 @@
+os: linux
+dist: jammy
+language: generic
+
+env:
+  jobs:
+    - LISP=sbcl
+    - LISP=ccl
+    - LISP=ecl
+    # - LISP=allegro
+    # - LISP=cmucl
+
+jobs:
+  fast_finish: true
+  allow_failures:
+    # - env: LISP=allegro
+    # - env: LISP=cmucl
+    - env: LISP=ecl
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+  irc:
+    channels:
+      - "irc.libera.chat#iolib"
+    on_success: change
+    on_failure: always
+    use_notice: true
+    skip_join: true
+
+install:
+  - curl -L https://raw.githubusercontent.com/lispci/cl-travis/master/install.sh | sh
+  - sudo ./install-repo.bash "$LISP"
+
+script:
+  - cl -e "(cl:in-package :cl-user)
+           (ql:quickload :iolib/tests :verbose t)
+           (uiop:quit (if (5am:run! :iolib) 0 1))"

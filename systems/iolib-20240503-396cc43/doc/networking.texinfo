@@ -1,0 +1,237 @@
+@menu
+* Networking Overview::
+* Sockets::
+* Addresses::
+* DNS::
+* Services::
+* Protocols::
+* Network Interfaces::
+@end menu
+
+@node Networking Overview
+@section Overview
+
+Describe networking here.
+
+@node Sockets
+@section Sockets
+
+@menu
+* Socket Classes::
+* Socket Operators::
+* Socket Accessors::
+* Socket Predicates::
+* Socket Options::
+@end menu
+
+@node Socket Classes
+@subsection Socket Classes
+
+@include include/class-sockets-socket.texinfo
+@include include/class-sockets-stream-socket.texinfo
+@include include/class-sockets-datagram-socket.texinfo
+@include include/class-sockets-internet-socket.texinfo
+@include include/class-sockets-local-socket.texinfo
+@include include/class-sockets-active-socket.texinfo
+@include include/class-sockets-passive-socket.texinfo
+@include include/class-sockets-socket-stream-internet-active.texinfo
+@include include/class-sockets-socket-stream-internet-passive.texinfo
+@include include/class-sockets-socket-stream-local-active.texinfo
+@include include/class-sockets-socket-stream-local-passive.texinfo
+@include include/class-sockets-socket-datagram-internet-active.texinfo
+@include include/class-sockets-socket-datagram-local-active.texinfo
+
+@node Socket Operators
+@subsection Socket Operators and Macros
+
+@include include/fun-sockets-make-socket.texinfo
+@include include/macro-sockets-with-open-socket.texinfo
+@include include/fun-sockets-make-socket-from-fd.texinfo
+@include include/fun-sockets-make-socket-pair.texinfo
+@include include/fun-sockets-send-to.texinfo
+@include include/fun-sockets-receive-from.texinfo
+@include include/fun-sockets-bind-address.texinfo
+@include include/fun-sockets-listen-on.texinfo
+@include include/fun-sockets-accept-connection.texinfo
+@include include/macro-sockets-with-accept-connection.texinfo
+@include include/fun-sockets-connect.texinfo
+@include include/fun-sockets-disconnect.texinfo
+@include include/fun-sockets-shutdown.texinfo
+@include include/fun-sockets-send-file-descriptor.texinfo
+@include include/fun-sockets-receive-file-descriptor.texinfo
+
+@node Socket Accessors
+@subsection Socket Accessors
+@include include/fun-sockets-socket-os-fd.texinfo
+@include include/fun-sockets-socket-type.texinfo
+@include include/fun-sockets-socket-protocol.texinfo
+@include include/fun-sockets-socket-address-family.texinfo
+@include include/fun-sockets-local-name.texinfo
+@include include/fun-sockets-local-host.texinfo
+@include include/fun-sockets-local-port.texinfo
+@include include/fun-sockets-local-filename.texinfo
+@include include/fun-sockets-remote-name.texinfo
+@include include/fun-sockets-remote-host.texinfo
+@include include/fun-sockets-remote-port.texinfo
+@include include/fun-sockets-remote-filename.texinfo
+
+@node Socket Predicates
+@subsection Socket Predicates
+@include include/fun-sockets-socket-open-p.texinfo
+@include include/fun-sockets-socket-connected-p.texinfo
+@include include/fun-sockets-socket-ipv6-p.texinfo
+
+@node Socket Options
+@subsection Socket Options
+
+@node Addresses
+@section Socket Addresses
+
+@menu
+* Address Objects::
+* Address Predicates::
+* Address Arithmetic::
+* Low-level Address Manipulation::
+@end menu
+
+@node Address Objects
+@subsection Address Objects
+
+@menu
+* Address Classes::
+* Address Functions::
+* Address Constants::
+@end menu
+
+@node Address Classes
+@subsubsection Classes
+
+@include include/class-sockets-address.texinfo
+@include include/class-sockets-inet-address.texinfo
+@include include/class-sockets-ipv4-address.texinfo
+@include include/class-sockets-ipv6-address.texinfo
+@include include/class-sockets-local-address.texinfo
+
+@node Address Functions
+@subsubsection Functions
+
+@include include/fun-sockets-make-address.texinfo
+@include include/fun-sockets-copy-address.texinfo
+@include include/fun-sockets-ensure-address.texinfo
+@include include/fun-sockets-address-to-string.texinfo
+@include include/fun-sockets-address-to-vector.texinfo
+
+@node Address Constants
+@subsubsection Constants
+
+@include include/constant-sockets-plus-ipv4-loopback-plus.texinfo
+@include include/constant-sockets-plus-ipv4-unspecified-plus.texinfo
+@include include/constant-sockets-plus-ipv6-interface-local-all-nodes-plus.texinfo
+@include include/constant-sockets-plus-ipv6-interface-local-all-routers-plus.texinfo
+@include include/constant-sockets-plus-ipv6-link-local-all-nodes-plus.texinfo
+@include include/constant-sockets-plus-ipv6-link-local-all-routers-plus.texinfo
+@include include/constant-sockets-plus-ipv6-loopback-plus.texinfo
+@include include/constant-sockets-plus-ipv6-site-local-all-routers-plus.texinfo
+@include include/constant-sockets-plus-ipv6-unspecified-plus.texinfo
+@c @include include/constant-sockets-plus-any-host-plus.texinfo
+@c @include include/constant-sockets-plus-loopback-plus.texinfo
+
+@node Address Predicates
+@subsection Address Predicates
+
+@include include/fun-sockets-addressp.texinfo
+@include include/fun-sockets-address=.texinfo
+@include include/fun-sockets-address-equal-p.texinfo
+@include include/fun-sockets-ipv4-address-p.texinfo
+@include include/fun-sockets-ipv6-address-p.texinfo
+@include include/fun-sockets-local-address-p.texinfo
+@include include/fun-sockets-abstract-address-p.texinfo
+@include include/fun-sockets-address-type.texinfo
+@include include/fun-sockets-inet-address-loopback-p.texinfo
+@include include/fun-sockets-inet-address-multicast-p.texinfo
+@include include/fun-sockets-inet-address-type.texinfo
+@include include/fun-sockets-inet-address-unicast-p.texinfo
+@include include/fun-sockets-inet-address-unspecified-p.texinfo
+@include include/fun-sockets-ipv6-admin-local-multicast-p.texinfo
+@include include/fun-sockets-ipv6-global-multicast-p.texinfo
+@include include/fun-sockets-ipv6-global-unicast-p.texinfo
+@include include/fun-sockets-ipv6-interface-local-multicast-p.texinfo
+@include include/fun-sockets-ipv6-ipv4-mapped-p.texinfo
+@include include/fun-sockets-ipv6-link-local-multicast-p.texinfo
+@include include/fun-sockets-ipv6-link-local-unicast-p.texinfo
+@include include/fun-sockets-ipv6-multicast-type.texinfo
+@include include/fun-sockets-ipv6-organization-local-multicast-p.texinfo
+@include include/fun-sockets-ipv6-reserved-multicast-p.texinfo
+@include include/fun-sockets-ipv6-site-local-multicast-p.texinfo
+@include include/fun-sockets-ipv6-site-local-unicast-p.texinfo
+@include include/fun-sockets-ipv6-solicited-node-multicast-p.texinfo
+@include include/fun-sockets-ipv6-transient-multicast-p.texinfo
+@include include/fun-sockets-ipv6-unassigned-multicast-p.texinfo
+@include include/fun-sockets-ipv6-unicast-type.texinfo
+
+@node Address Arithmetic
+@subsection Address Arithmetic
+@include include/fun-sockets-make-netmask.texinfo
+@include include/fun-sockets-ensure-netmask.texinfo
+@include include/fun-sockets-inet-address-network-portion.texinfo
+@include include/fun-sockets-inet-address-host-portion.texinfo
+@include include/fun-sockets-inet-address-in-network-p.texinfo
+@include include/fun-sockets-inet-addresses-in-same-network-p.texinfo
+@include include/fun-sockets-inet-address-network-class.texinfo
+@include include/fun-sockets-inet-address-private-p.texinfo
+
+@node Low-level Address Manipulation
+@subsection Low-level Address Manipulation
+
+@include include/constant-sockets-plus-max-ipv4-value-plus.texinfo
+@include include/fun-sockets-dotted-to-integer.texinfo
+@include include/fun-sockets-integer-to-dotted.texinfo
+@include include/fun-sockets-vector-to-integer.texinfo
+@include include/fun-sockets-integer-to-vector.texinfo
+@include include/fun-sockets-dotted-to-vector.texinfo
+@include include/fun-sockets-vector-to-dotted.texinfo
+@include include/fun-sockets-colon-separated-to-vector.texinfo
+@include include/fun-sockets-vector-to-colon-separated.texinfo
+@include include/fun-sockets-string-address-to-vector.texinfo
+@include include/fun-sockets-map-ipv4-address-to-ipv6.texinfo
+@include include/fun-sockets-map-ipv6-address-to-ipv4.texinfo
+
+@node DNS
+@section DNS
+
+@subsection Functions
+@include include/fun-sockets-lookup-hostname.texinfo
+@include include/fun-sockets-ensure-hostname.texinfo
+
+@subsection Conditions
+@include include/condition-sockets-resolver-error.texinfo
+@include include/fun-sockets-resolver-error-datum.texinfo
+@include include/condition-sockets-resolver-again-error.texinfo
+@include include/condition-sockets-resolver-fail-error.texinfo
+@include include/condition-sockets-resolver-no-name-error.texinfo
+@include include/condition-sockets-resolver-unknown-error.texinfo
+
+@node Services
+@section Services
+
+@include include/fun-sockets-lookup-service.texinfo
+@include include/condition-sockets-unknown-service.texinfo
+@include include/fun-sockets-unknown-service-datum.texinfo
+
+@node Protocols
+@section Protocols
+
+@include include/fun-sockets-lookup-protocol.texinfo
+@include include/condition-sockets-unknown-protocol.texinfo
+@include include/fun-sockets-unknown-protocol-datum.texinfo
+
+@node Network Interfaces
+@section Network Interfaces
+
+@include include/fun-sockets-interface-index.texinfo
+@include include/fun-sockets-interface-name.texinfo
+@include include/fun-sockets-make-interface.texinfo
+@include include/fun-sockets-lookup-interface.texinfo
+@include include/fun-sockets-list-network-interfaces.texinfo
+@include include/condition-sockets-unknown-interface.texinfo
+@include include/fun-sockets-unknown-interface-datum.texinfo

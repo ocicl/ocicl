@@ -1,0 +1,109 @@
+-*- mode: outline; fill-column: 78 -*-
+
+* Changes in 0.7.3 -> 0.8.0:
+
+** Dependencies
+* Add dependency on libFixPOSIX
+* Add dependencies on SPLIT-SEQUENCE, IDNA
+
+** API changes
+* Add parameter NS to LOOKUP-HOSTNAME
+* Remove accessor FD-NON-BLOCKING of FD-MIXIN
+  - Stream file descriptors are always non-blocking now
+* Rewrote CREATE-PROCESS and RUN-PROGRAM
+  - Add attributes setuid, setgid, resetids and cwd
+  - Coalesce process name and arguments into a single parameter
+  - Remove keyarg SEARCH
+  - Redirect standard descriptors to pipes by default
+  - Add support for PTYs
+  - Add keyarg EXTERNAL-FORMAT
+  - Keep standard streams unbound in a PROCESS instance if not connected
+  - Use /bin/sh as system shell
+* RUN-PROGRAM: a null EXTERNAL-FORMAT will make it return STDOUT and STDERR as octet arrays
+* PROCESS-WAIT: change return values
+  - Return only the exit status on normal exit otherwise
+    (values signal coredump-p), signal being a keyword
+* PROCESS-KILL: make the signal optional(default SIGTERM) and allow keywords too
+* Turn PROCESS-STATUS, PROCESS-ACTIVEP and PROCESS-KILL into generic functions
+* Export GET-MONOTONIC-TIME from IOLIB.OS
+* Allow passing a FOREIGN-POINTER to SEND-TO
+* ACCEPT-CONNECTION now returns the remote port as third value for TCP sockets
+* Remove stream finalizers
+* Add keyarg DUP to MAKE-SOCKET-FROM-FD, null by default
+* DELETE-FILES: avoid following symlinks by default, add a keyword argument to enable it
+
+** New features
+* Add support for IDN to LOOKUP-HOSTNAME
+* Wrap syscalls sendfile(), syslog()
+* Add accessor WTERMSIG*
+* New socket options: IP_HDRINCL, IP_RECVERR, ICMP_FILTER
+* Add raw sockets, sponsored by Walled Inc.
+* DNS resolver: add support for SRV records
+* Export DNS resolver functionality
+* Add ABCL gray streams support
+
+** Bug fixes:
+* Various fixes for Scieneer
+* Fix printing of DUAL-CHANNEL-GRAY-STREAM instances: print the actual type
+* SOCKET-CONNECTED-P: ignore EINVAL as well
+* Make sure that OPEN-STREAM-P works on stream sockets.
+* %stream-read-sequence and %stream-write-sequence: fix case where (= start end)
+* Fix segfault in LIST-NETWORK-INTERFACES
+* EPOLL-MULTIPLEXER: allocate an array large enough to hold events for all FDs
+* Remove event-loop exit timer after timeout
+
+** Misc
+* Reworked build system for ASDF3
+  - Systems are now to be referred to as iolib/name, the oldsystem names are
+    available for backwards-compatibility; likewise for package names
+  - The new .asd files are iolib.asd and asdf2-compat/*.asd
+
+
+
+* Changes since 0.7.1:
+
+** Bug fixes:
+- Don't redefine Alexandria functions (patch by Nikodemus Siivola)
+
+
+
+* Changes since 0.7.0:
+
+** Bug fixes:
+- Only import a few symbols from ASDF into IOLIB.ASDF, which sometimes caused
+  problems with ASDF2
+- Fix compilation on OSX
+
+
+
+* Changes since 0.6.0:
+
+** API changes
+- IOLIB.SOCKETS:LOOKUP-HOST was renamed to LOOKUP-HOSTNAME
+- IOLIB.SOCKETS:IPV6-SOCKET-P was renamed to SOCKET-IPV6-P
+- When creating an AF_LOCAL socket, IOLIB.SOCKETS:MAKE-SOCKET accepts :FILE as
+  :TYPE synonim of :LOCAL
+- IOLIB.SOCKETS:ACCEPT-CONNECTION : keyword arg TIMEOUT has been coalesced
+  into WAIT
+- IOLIB.SOCKETS:CONNECT : keyword arg TIMEOUT has been coalesced into WAIT
+
+** New features
+- Add support for abstract UNIX addresses (patch by Julian Stecklina)
+- UNIX addresses are now printed as strings. Abstract addresses have a leading #\@
+
+** Bug fixes:
+- EVENT-DISPATCH now calculates the distance to the next timer correctly
+  (reported by Ariel Badichi)
+- fixed possible fd load in the the select() multiplexer (reported by Ariel
+  Badichi)
+- reading from socket streams with non-blocking FDs now works (reported by
+  Chaitanya Gupta)
+- make RESOLVER-ERROR actually a subtype of IOLIB-ERROR (reported by Ariel Badichi)
+- socket syscalls that return EINTR now work
+- when setting send/receive timeouts on blocking sockets, stream methods now
+  properly signal ISYS:EWOULDBLOCK upon timeout
+- fix bug in HEAP-PARENT, used in the multiplexer (reported by Ole Arndt on sbcl-devel)
+- fix define-designator for when *print-case* is :downcase.
+
+** Misc
+- Sources have been reorganized, ASDF system files are now inside src/

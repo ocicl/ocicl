@@ -1,0 +1,42 @@
+language: lisp
+sudo: required
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - libstdc++-7-dev
+      - lib32stdc++-7-dev
+
+env:
+  matrix:
+    - LISP=abcl
+    - LISP=sbcl-bin COVERALLS=true
+      # This uses an older version of sbcl, and tests without instrumentation
+    - LISP=sbcl
+    - LISP=sbcl32
+    - LISP=ccl
+    - LISP=ccl32
+    - LISP=clisp
+    - LISP=clisp32
+
+jobs:
+  allow_failures:
+    - env: LISP=ccl32
+
+# this bit is just testing that travis correctly sets up ASDF to find
+# systems placed somewhere within ~/lisp. You can remove this section
+# in your own .travis.yml file.
+before_script:
+  - echo "(defsystem :dummy-cl-travis-system)" > ~/lisp/dummy-cl-travis-system.asd
+
+install:
+  - ./travis-install.bash
+
+script:
+  - ./run-tests.bash
+
+
+notifications:
+  email: false

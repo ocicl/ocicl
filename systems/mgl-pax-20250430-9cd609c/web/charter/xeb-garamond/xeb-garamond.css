@@ -1,0 +1,29 @@
+@charset "UTF-8";
+
+@font-face {
+  font-family: "XEB Garamond";
+  src: url("XEBGaramond-Regular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "XEB Garamond";
+  src: url("XEBGaramond-Bold.otf") format("opentype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "XEB Garamond";
+  src: url("XEBGaramond-Italic.otf") format("opentype");
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "XEB Garamond";
+  src: url("XEBGaramond-BoldItalic.otf") format("opentype");
+  font-weight: bold;
+  font-style: italic;
+}

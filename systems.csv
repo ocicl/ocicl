@@ -43,6 +43,8 @@ dexador-test, ghcr.io/ocicl/dexador@sha256:d1e8ca389d304fcab5d05a85015b9b75d98c9
 dexador-usocket, ghcr.io/ocicl/dexador@sha256:d1e8ca389d304fcab5d05a85015b9b75d98c9aab3618c9e895a12dee278b6122, dexador-20240925-d7ac217/dexador-usocket.asd
 diff, ghcr.io/ocicl/diff@sha256:6401bc1fbfa25888448d0eeeb71002c4c752bd8f30f9714bc6b2a0162a935d87, diff-20240503-9c84bef/diff.asd
 documentation-utils, ghcr.io/ocicl/documentation-utils@sha256:b2a1b3f3bcd1a738af85ae2b0168d408c177661eab6d6bbebb254e394d983f54, documentation-utils-20230511-98630dd/documentation-utils.asd
+dref, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:b236744e670f7c2566a92998c632b776255aaec7df914806ac3d19e229e8ecce, mgl-pax-20250430-9cd609c/dref/dref.asd
+dref-test, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:b236744e670f7c2566a92998c632b776255aaec7df914806ac3d19e229e8ecce, mgl-pax-20250430-9cd609c/dref/dref-test.asd
 fast-http, ghcr.io/ocicl/fast-http@sha256:44e98b5239c0ded4921dc0b04ae272cff00583d93797a657543db782979eb50c, fast-http-20240503-2232fc9/fast-http.asd
 fast-http-test, ghcr.io/ocicl/fast-http@sha256:44e98b5239c0ded4921dc0b04ae272cff00583d93797a657543db782979eb50c, fast-http-20240503-2232fc9/fast-http-test.asd
 fast-io, ghcr.io/ocicl/fast-io@sha256:7ba35a0eddf00b3c25656b3c5a93e95460f6cb8f807afbc04ef4f50076d95aff, fast-io-20240503-a4c5ad6/fast-io.asd
@@ -66,6 +68,10 @@ iterate, ghcr.io/ocicl/iterate@sha256:f4d54a883bb9ca79037c3ea52581c375117a700fc5
 lisp-namespace, ghcr.io/ocicl/lisp-namespace@sha256:ae08006e0b267958c50160658c729c799c6e1c18d94eef83f2ce5cf6ab8bbd20, lisp-namespace-20240503-699fccb/lisp-namespace.asd
 lisp-namespace.test, ghcr.io/ocicl/lisp-namespace@sha256:ae08006e0b267958c50160658c729c799c6e1c18d94eef83f2ce5cf6ab8bbd20, lisp-namespace-20240503-699fccb/lisp-namespace.test.asd
 local-time, ghcr.io/ocicl/local-time@sha256:7f53539308b9fdfd32cfd6a632ee25f5c3a4187cf5ef858d33846e6b1e33d3df, local-time-20250427-fea5b15/local-time.asd
+mgl-pax, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:b236744e670f7c2566a92998c632b776255aaec7df914806ac3d19e229e8ecce, mgl-pax-20250430-9cd609c/mgl-pax.asd
+mgl-pax-bootstrap, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:b236744e670f7c2566a92998c632b776255aaec7df914806ac3d19e229e8ecce, mgl-pax-20250430-9cd609c/mgl-pax-bootstrap.asd
+mgl-pax-test, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:b236744e670f7c2566a92998c632b776255aaec7df914806ac3d19e229e8ecce, mgl-pax-20250430-9cd609c/mgl-pax-test.asd
+mgl-pax.asdf, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:b236744e670f7c2566a92998c632b776255aaec7df914806ac3d19e229e8ecce, mgl-pax-20250430-9cd609c/mgl-pax.asdf.asd
 multilang-documentation-utils, ghcr.io/ocicl/documentation-utils@sha256:b2a1b3f3bcd1a738af85ae2b0168d408c177661eab6d6bbebb254e394d983f54, documentation-utils-20230511-98630dd/multilang-documentation-utils.asd
 named-readtables, ghcr.io/ocicl/named-readtables@sha256:ec1b0c733273e16ddc3f4385773b81e731d8f9125f23a813fdba63d4ae97024e, named-readtables-20250423-b59cc4c/named-readtables.asd
 named-readtables-test, ghcr.io/ocicl/named-readtables@sha256:ec1b0c733273e16ddc3f4385773b81e731d8f9125f23a813fdba63d4ae97024e, named-readtables-20250423-b59cc4c/named-readtables-test.asd
@@ -90,6 +96,7 @@ tar, ghcr.io/ocicl/tar@sha256:66dfa78c17d2cc74973e6232f2687e9c9e5d16a479e5278257
 tar-cli, ghcr.io/ocicl/tar@sha256:66dfa78c17d2cc74973e6232f2687e9c9e5d16a479e5278257ad58f0ac6f8955, cl-tar-20240503-7c6e07a/tar-cli.asd
 tar-cli-asdf, ghcr.io/ocicl/tar@sha256:66dfa78c17d2cc74973e6232f2687e9c9e5d16a479e5278257ad58f0ac6f8955, cl-tar-20240503-7c6e07a/tar-cli-asdf.asd
 tar-file, ghcr.io/ocicl/tar-file@sha256:5f8c99e73924abdc4a59de9d38c73f5e574aebebc8cbc25df73e8b3fa4dde131, cl-tar-file-20240503-0c10bc8/tar-file.asd
+test-systems, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:b236744e670f7c2566a92998c632b776255aaec7df914806ac3d19e229e8ecce, mgl-pax-20250430-9cd609c/test/test-systems.asd
 trivia, ghcr.io/ocicl/trivia@sha256:51db74757bc31ceaf3a643914a8ffa87825799097dea4912650e6ac62bed5209, trivia-20240904-4383dd8/trivia.asd
 trivia.balland2006, ghcr.io/ocicl/trivia@sha256:51db74757bc31ceaf3a643914a8ffa87825799097dea4912650e6ac62bed5209, trivia-20240904-4383dd8/trivia.balland2006.asd
 trivia.benchmark, ghcr.io/ocicl/trivia@sha256:51db74757bc31ceaf3a643914a8ffa87825799097dea4912650e6ac62bed5209, trivia-20240904-4383dd8/trivia.benchmark.asd
