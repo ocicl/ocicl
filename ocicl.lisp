@@ -431,7 +431,9 @@ Distributed under the terms of the MIT License"
                            "")))
          (padding-length (max 0 (- 75 (length base))))
          (padding (make-string padding-length :initial-element #\=)))
-    (concatenate 'string base padding)))
+    (if *color*
+        (concatenate 'string *color-bold* base padding *color-reset*)
+        (concatenate 'string base padding))))
 
 (defun top-level-directory (path)
   (let ((directory-list (pathname-directory (pathname path))))
