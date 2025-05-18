@@ -341,7 +341,7 @@ Security
 
 All system tarballs have their sha256sum digest digitally signed with
 the ocicl-tarball-signer key:
-B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8.
+[`B96ACDBF35C5C1AB81596FB6D3AFE1884397BDC8`](https://raw.githubusercontent.com/ocicl/ocicl/refs/heads/main/ocicl-tarball-signer-public-key.asc).
 
 You can download the unexpanded tarballs using [skopeo](https://github.com/containers/skopeo) or [oras](https://oras.land/) like so:
 ```
