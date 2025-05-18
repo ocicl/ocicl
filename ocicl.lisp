@@ -203,7 +203,7 @@ Distributed under the terms of the MIT License"
           (sort
            (cdr (assoc :tags
                        (cl-json:decode-json-from-string
-                        (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
+                        (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
                                  :verbose *verbose*
                                  :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
            #'string>)))
@@ -219,7 +219,7 @@ Distributed under the terms of the MIT License"
           (loop for registry in *ocicl-registries*
                 do (let ((tags (system-version-list system registry)))
                      (when tags
-                       (format t "~A(~A):~%~Tlatest~%" system registry)
+                       (format t "~A(~A):~%" system registry)
                        (dolist (tag tags)
                          (format t "~T~A~%" tag))
                        (return))))
@@ -237,7 +237,7 @@ Distributed under the terms of the MIT License"
     ;;
     ;; Hopefully using the base stream-error will help catch similar conditions
     ;; in other implementations
-    
+
 
     #-sbcl
     (stream-error (e)
@@ -1451,7 +1451,7 @@ download the system unless a version is specified."
            :sb-simd
            :sb-simple-streams
            :sb-sprof))
-       (base-systems 
+       (base-systems
          '(
            ;; Register some non-SBCL internal systems that don't exist
            ;; in the ocicl repo
