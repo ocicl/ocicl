@@ -900,7 +900,7 @@ Distributed under the terms of the MIT License"
                                                         :print-error t))))
           (when (not (or version1 version1-system-info))
             (format *error-output* "; Error: system ~A not installed. Install it or specify two versions to diff.~%" system-name)
-            (uiop:quit :code 1))
+            (uiop:quit 1))
           (if (and version1-system-info version2-system-info)
               (let* ((version1-dir (merge-pathnames
                                     (make-pathname
