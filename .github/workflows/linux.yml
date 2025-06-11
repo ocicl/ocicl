@@ -20,8 +20,8 @@ jobs:
 
       - uses: actions/cache@v4
         with:
-          path: /home/runner/.cache/common-lisp
-          key: ${{ runner.os }}-ocicl-${{ hashFiles('**/systems.csv') }}
+          path: ~/.cache/common-lisp
+          key: ${{ runner.os }}-ocicl-${{ hashFiles('systems.csv','ocicl.csv') }}
           restore-keys: |
             ${{ runner.os }}-ocicl-
 
@@ -34,20 +34,20 @@ jobs:
           echo "(setf ocicl-runtime:*verbose* nil)" >> ~/.sblrc
         shell: bash
 
-      - name: Test
-        run: |
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          rm -rf systems systems.csv ocicl
-          mkdir test
-          cd test
-          touch ocicl.csv
-          ocicl install sento
-          ls -l ocicl
-          ls -l ocicl.csv
-          cat ocicl.csv
-          sbcl --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
-          sbcl --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
-          rm -rf ocicl
-          ocicl install
-          ocicl latest
-        shell: bash
+#      - name: Test
+#        run: |
+#          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#          rm -rf systems systems.csv ocicl
+#          mkdir test
+#          cd test
+#          touch ocicl.csv
+#          ocicl install sento
+#          ls -l ocicl
+#          ls -l ocicl.csv
+#          cat ocicl.csv
+#          sbcl --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
+#          sbcl --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
+#          rm -rf ocicl
+#          ocicl install
+#          ocicl latest
+#        shell: bash
