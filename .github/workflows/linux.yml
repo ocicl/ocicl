@@ -18,6 +18,13 @@ jobs:
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew install sbcl
 
+      - uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/common-lisp
+          key: ${{ runner.os }}-${{ hashFiles('**/{ocicl.csv,systems.csv}') }}
+          restore-keys: |
+            ${{ runner.os }}-ocicl-
+
       - name: Build and Install
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
