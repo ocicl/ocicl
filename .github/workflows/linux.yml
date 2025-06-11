@@ -22,9 +22,9 @@ jobs:
         id: restore-fasl-cache
         with:
           path: |
-            ocicl
+            systems
             ~/.cache/common-lisp
-          key: ${{ runner.os }}-ocicl-${{ hashFiles('ocicl.csv') }}
+          key: ${{ runner.os }}-ocicl-${{ hashFiles('systems.csv') }}
           restore-keys: |
             ${{ runner.os }}-ocicl-
 
