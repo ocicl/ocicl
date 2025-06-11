@@ -10,24 +10,26 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Install SBCL
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SBCL
         run: |
-          curl -L -O "https://downloads.sourceforge.net/project/sbcl/sbcl/2.3.4/sbcl-2.3.4-x86-64-linux-binary.tar.bz2"
-          tar -xf sbcl-2.3.4-x86-64-linux-binary.tar.bz2
-          cd sbcl-2.3.4-x86-64-linux
-          ./install.sh --prefix=$HOME/.local
-          cd ..
-          rm -rf sbcl-2.3.4-x86-64-linux-binary.tar.bz2 sbcl-2.3.4-x86-64-linux
-        shell: bash
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install sbcl
+
       - name: Build and Install
         run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           sbcl --load setup.lisp
+          ocicl version
           ocicl setup > ~/.sbclrc
-          echo "(setf ocicl-runtime:*verbose* t)" >> ~/.sblrc
+          echo "(setf ocicl-runtime:*verbose* nil)" >> ~/.sblrc
         shell: bash
+
       - name: Test
         run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           rm -rf systems systems.csv ocicl
           mkdir test
           cd test
