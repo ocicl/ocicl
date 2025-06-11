@@ -19,11 +19,18 @@ jobs:
           brew install sbcl
 
       - uses: actions/cache@v4
+        id: restore-fasl-cache
         with:
           path: ~/.cache/common-lisp
           key: ${{ runner.os }}-ocicl-${{ hashFiles('systems.csv','ocicl.csv') }}
           restore-keys: |
             ${{ runner.os }}-ocicl-
+
+      - name: Bump FASL timestamps (Linux/macOS)
+        if: steps.restore-fasl-cache.outputs.cache-hit == 'true'
+        run: |
+          # Recursively touch every *.fasl in the ASDF cache
+          find "~/.cache/common-lisp" -type f -name '*.fasl' -print0 | xargs -0 touch
 
       - name: Build and Install
         run: |
