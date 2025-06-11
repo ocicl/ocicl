@@ -30,7 +30,7 @@ jobs:
         if: steps.restore-fasl-cache.outputs.cache-hit == 'true'
         run: |
           # Recursively touch every *.fasl in the ASDF cache
-          find "~/.cache/common-lisp" -type f -name '*.fasl' -print0 | xargs -0 touch
+          find ~/.cache/common-lisp -type f -name '*.fasl' -print0 | xargs -0 touch
 
       - name: Build and Install
         run: |
