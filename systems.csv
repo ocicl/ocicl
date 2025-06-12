@@ -27,6 +27,7 @@ cl-json, ghcr.io/ocicl/cl-json@sha256:54c4d00901c2c5b0ea9da11eed8f0104fc5819e1ed
 cl-postgres_plus_local-time, ghcr.io/ocicl/local-time@sha256:7f53539308b9fdfd32cfd6a632ee25f5c3a4187cf5ef858d33846e6b1e33d3df, local-time-20250427-fea5b15/cl-postgres+local-time.asd
 cl-ppcre, ghcr.io/ocicl/cl-ppcre@sha256:584907e0683621973579f397115945ef73e9d5b7afa77fae7cacecb3ad272f89, cl-ppcre-20240503-80fb19d/cl-ppcre.asd
 cl-ppcre-unicode, ghcr.io/ocicl/cl-ppcre@sha256:584907e0683621973579f397115945ef73e9d5b7afa77fae7cacecb3ad272f89, cl-ppcre-20240503-80fb19d/cl-ppcre-unicode.asd
+cl-template, ghcr.io/ocicl/cl-template@sha256:77fe11d9e0a68bbc8333b94825145c8313dbeba422a71588f6d8e00e1d3807a4, cl-template-20240503-46193a9/cl-template.asd
 cl-unicode, ghcr.io/ocicl/cl-unicode@sha256:d98f12c1271fb3c1812a27d64dfbe95b0bc5bcfd545b71b8101874e61270b120, cl-unicode-20240503-07e7ff5/cl-unicode.asd
 cl-utilities, ghcr.io/ocicl/cl-utilities@sha256:e5e0676a4e0627332a0fe64d56ed4f1890f0466d715a11e8d95561b4c2baa38f, cl-utilities-20240503-6b4de39/cl-utilities.asd
 cl_plus_ssl, ghcr.io/ocicl/cl_plus_ssl@sha256:c7cc1593354e63ba3466fdd37ef3fefd2a68304542c965976f98d8744bed8f0d, cl-plus-ssl-20250424-38e501f/cl+ssl.asd
@@ -123,7 +124,6 @@ type-i, ghcr.io/ocicl/type-i@sha256:de5c3e7f7b72409c5ec49885eea8c6fe2e02def2846c
 type-i.test, ghcr.io/ocicl/type-i@sha256:de5c3e7f7b72409c5ec49885eea8c6fe2e02def2846cf97f70c1c21f21a1567c, type-i-20240503-4407a68/type-i.test.asd
 uffi, ghcr.io/ocicl/cffi@sha256:386698d4f568be8c321ca8f54247a8bf69222819c116c011d6ae53d80772f611, cffi-20250311-48eaef6/uffi-compat/uffi.asd
 unix-opts, ghcr.io/ocicl/unix-opts@sha256:af3d240e3ee9cd6f63c2d3187307159ab980a90e05f9e6e745e8aab049daba84, unix-opts-20250319-0e61f34/unix-opts.asd
-unix-opts-tests, ghcr.io/ocicl/unix-opts@sha256:21fadcd8f80f1b344dfd90892ae36888ff50f8b778ae37c1b1f0bc4a9f0ea5e2, unix-opts-0.1.7/unix-opts-tests.asd
 usocket, ghcr.io/ocicl/usocket@sha256:015b8cdb91cdc25aefd08054e8ede6a5d054d10bc87916904cf0d0670b3f4a68, usocket-0.8.8/usocket.asd
 usocket-server, ghcr.io/ocicl/usocket@sha256:015b8cdb91cdc25aefd08054e8ede6a5d054d10bc87916904cf0d0670b3f4a68, usocket-0.8.8/usocket-server.asd
 usocket-test, ghcr.io/ocicl/usocket@sha256:015b8cdb91cdc25aefd08054e8ede6a5d054d10bc87916904cf0d0670b3f4a68, usocket-0.8.8/usocket-test.asd
