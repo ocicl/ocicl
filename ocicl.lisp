@@ -1169,9 +1169,15 @@ If FORCE is NIL, skip files that already exist."
   (let* ((app-name (first args))
          (rest     (rest  args))
          ;; TEMPLATE is explicit if the next token lacks "="
-         (template (if (and rest (not (search "=" (first rest))))
-                       (prog1 (first rest) (setf rest (rest rest)))
-                       "basic"))
+         (template
+           (cond
+             ;; explicit on CLI
+             ((and rest (not (search "=" (first rest))))
+              (prog1 (first rest) (setf rest (rest rest))))
+             ;; implicit "user" in any search directory
+             ((assoc "user" (discover-templates) :test #'string=) "user")
+             ;; final fall-back
+             (t "basic")))
          (user-plist
            (loop for s in rest
                  append
