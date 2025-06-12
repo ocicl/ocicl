@@ -19,7 +19,6 @@ jobs:
           brew install sbcl
 
       - uses: actions/cache@v4
-        id: restore-fasl-cache
         with:
           path: |
             systems
