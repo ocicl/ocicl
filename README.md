@@ -447,25 +447,32 @@ The list of ocicl systems is always available at
 Contributions are welcome and appreciated!  See
 https://github.com/ocicl/request-system-additions-here for details.
 
-# Project Templates
+## Project Templates
 
-The `ocicl new` command creates a new application from a template. Templates can be stored locally in your template directories or use the built-in templates that come with `ocicl`.
+The `ocicl new` command creates a new application from a
+template. Templates are a hierarchy of directories containing files
+that a processed before being copied into your current working
+directory.  They are processed using
+[cl-template](https://github.com/alpha123/cl-template) and optional
+key/value pairs that you pass into the templating engine. Templates
+can be stored locally in your template directories or use the built-in
+templates that come with `ocicl`.
 
-## Usage
+### Usage
 
 ```bash
 ocicl new APP-NAME [TEMPLATE] [KEY=VALUE]...
 ```
 
-### Arguments
+#### Arguments
 
-| Argument  | Description |
+| Argument | Description |
 |-----------|------------|
 | `APP-NAME` | Name of the directory to create for your new project. This value is also available inside templates as the `#:app-name` keyword. |
 | `TEMPLATE` | *(Optional)* Template to use. Defaults to `basic`. If you have a template named `user`, it will override the `basic` default. |
 | `KEY=VALUE` | *(Optional)* Additional template variables (e.g., `author=Alice`, `license=MIT`). Keys are automatically converted to keywords (`#:AUTHOR`, `#:LICENSE`, etc.). |
 
-### Example
+#### Example
 
 ```bash
 # Create a basic project
@@ -475,7 +482,7 @@ ocicl new my-blog
 ocicl new my-api web-service author="Jane Doe" license=GPL3
 ```
 
-## Template Discovery
+### Template Discovery
 
 Templates are searched in the following order (first match wins):
 
@@ -484,14 +491,14 @@ Templates are searched in the following order (first match wins):
 3. **Configuration file**: `~/.local/share/ocicl/config/ocicl/ocicl-template-path.cfg` (one directory per line)
 4. **Default location**: `~/.local/share/ocicl/templates/` (installed by `ocicl setup`)
 
-### Template Management Commands
+#### Template Management Commands
 
 - **List available templates**: `ocicl templates [list]`
 - **Show template directories**: `ocicl templates dirs`
 
-## How Templates Work
+### How Templates Work
 
-### File Processing
+#### File Processing
 
 **Text files** are processed as templates when they:
 - End with the `.clt` extension, OR
@@ -503,50 +510,11 @@ These files use [cl-template](https://github.com/alpha123/cl-template) syntax fo
 
 **Git directories** (`.git/`) are ignored during template processing.
 
-### File and Directory Naming
+#### File and Directory Naming
 
 Use the `{{app-name}}` token (case-insensitive) in file or directory names to have it replaced with your `APP-NAME`.
 
 Example: A template file named `{{app-name}}.asd` becomes `blog.asd` when you run `ocicl new blog`.
-
-Project Templates
-------------------
-
-`ocicl new` bootstraps an entire application from a template that
-lives either in one of your template search-path directories or in the
-templates bundled with `ocicl`.
-
-`ocicl new APP-NAME [TEMPLATE] [KEY=VALUE]...`
-
-| Argument  | Description                                                                                                                               |
-|-----------|------------------------------------------------------------------------------------------------------------------------------------------- |
-| APP-NAME  | Directory to be created. Also exposed inside templates as the keyword `#:app-name`.                                                       |
-| TEMPLATE  | Optional. Defaults to `basic`. If a template called `user` is visible it overrides basic.                                                 |
-| KEY=VALUE | Zero or more additional template variable.. eg: `author=Alice`, `license=MIT`, ... Keys are converted to keywords (`#:AUTHOR`, `#:LICENSE`, ...). |
-
-
-### Template search-path (first hit wins)
-
-* `--template-dir DIR`  (option may be repeated)
-* `$OCICL_TEMPLATE_PATH` (colon-separated)
-* `~/.local/share/ocicl/config/ocicl/ocicl-template-path.cfg` (one directory per line)
-* `~/.local/share/ocicl/templates/*` (installed by `ocicl setup`)
-
-To list all available templates, use `ocicl templates [list]`.
-
-To list all template directories, use `ocicl templates dirs`.
-
-### What gets rendered?
-
-Text files are rendered when they end in `.clt`, or contain at least one `<% ... %>` directive.
-Inside such files use the familiar [cl-template](https://github.com/alpha123/cl-template) syntax.
-
-File / directory names: the token `{{app-name}}` (case-insensitive) is replaced with the provided APP-NAME.
-Example: `{{app-name}}.asd` → `blog.asd`.
-
-Binary files (any file containing a NUL byte) are copied verbatim.
-
-Anything under a `.git/` directory is ignored.
 
 Tips and Troubleshooting
 ------------------------
