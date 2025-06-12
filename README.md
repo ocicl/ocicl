@@ -458,9 +458,9 @@ executable itself.
 
 | Argument  | Description                                                                                                                               |
 |-----------|------------------------------------------------------------------------------------------------------------------------------------------- |
-| APP-NAME  | Directory to be created. Also exposed inside templates as the keyword #:app-name.                                                         |
-| TEMPLATE  | Optional. Defaults to basic. If a template called user is visible it overrides basic.                                                     |
-| KEY=VALUE | Zero or more additional template variable.. eg: author=Alice, license=MIT, ... Keys are converted to keywords (#:AUTHOR, #:LICENSE, ...). |
+| APP-NAME  | Directory to be created. Also exposed inside templates as the keyword `#:app-name`.                                                       |
+| TEMPLATE  | Optional. Defaults to `basic`. If a template called `user` is visible it overrides basic.                                                 |
+| KEY=VALUE | Zero or more additional template variable.. eg: `author=Alice`, `license=MIT`, ... Keys are converted to keywords (`#:AUTHOR`, `#:LICENSE`, ...). |
 
 
 ### Template search-path (first hit wins)
