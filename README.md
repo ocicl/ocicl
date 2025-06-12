@@ -507,7 +507,8 @@ These files use [cl-template](https://github.com/alpha123/cl-template) syntax fo
 
 Use the `{{app-name}}` token (case-insensitive) in file or directory names to have it replaced with your `APP-NAME`.
 
-**Example**: A template file named `{{app-name}}.asd` becomes `blog.asd` when you run `ocicl new blog`.
+Example: A template file named `{{app-name}}.asd` becomes `blog.asd` when you run `ocicl new blog`.
+
 Project Templates
 ------------------
 
