@@ -450,9 +450,9 @@ https://github.com/ocicl/request-system-additions-here for details.
 Project Templates
 ------------------
 
-`ocicl new` bootstraps an entire application from a template that lives
-either in one of your template search-path directories or inside the
-executable itself.
+`ocicl new` bootstraps an entire application from a template that
+lives either in one of your template search-path directories or in the
+templates bundled with `ocicl`.
 
 `ocicl new APP-NAME [TEMPLATE] [KEY=VALUE]...`
 
@@ -470,10 +470,9 @@ executable itself.
 * `~/.local/share/ocicl/config/ocicl/ocicl-template-path.cfg` (one directory per line)
 * `~/.local/share/ocicl/templates/` (installed by ocicl setup)
 
-List everything currently visible:
+To list all available templates, use `ocicl templates [list]`.
 
-List all available templates with `ocicl templates [list]`.
-List all template directories as `ocicl templates dirs`.
+To list all template directories, use `ocicl templates dirs`.
 
 ### What gets rendered?
 
