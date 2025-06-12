@@ -46,7 +46,6 @@
 (defvar *color-bright-green* #.(format nil "~c[92m" #\escape))
 (defvar *color-bright-cyan* #.(format nil "~c[96m" #\escape))
 
-
 (defparameter +version+ #.(uiop:read-file-form "version.sexp"))
 
 (defparameter +runtime+
@@ -59,7 +58,26 @@
                      (subseq runtime (+ start 7)))
         runtime)))
 
+(defparameter +builtin-templates+
+  #.(let* ((root  (merge-pathnames "templates/"
+                     (uiop:pathname-directory-pathname
+                      (or *compile-file-truename* *load-truename*))))
+           (wild  (make-pathname :directory '(:relative :wild-inferiors)
+                                 :name :wild :type :wild))
+           (files (directory (merge-pathnames wild root)))
+           (alist (loop for file in files
+                        unless (uiop:directory-pathname-p file)
+                          collect (cons (enough-namestring file root)
+                                        (uiop:read-file-string file)))))
+      (print alist)
+      ;; return a *quoted* alist so that the value is data, not a form
+      `(quote ,alist)))
+
 (defparameter +asdf+ #.(uiop:read-file-string "runtime/asdf.lisp"))
+
+(defvar *template-params* nil)
+
+(defvar *template-dirs* nil)
 
 (opts:define-opts
   (:name :verbose
@@ -102,7 +120,15 @@
                  (cond ((equal arg "max") :max)
                        ((ignore-errors (parse-integer arg)))
                        (t (usage)
-                          (uiop:quit 1))))))
+                          (uiop:quit 1)))))
+  )
+#|
+  (:name :template-dir
+   :description "prepend DIR to template search path (may be repeated)"
+   :long "template-dir"
+   :meta-var "DIR"
+   :repeat t))
+|#
 
 (defun unknown-option (condition)
   (format t "warning: ~s option is unknown!~%" (opts:option condition))
@@ -141,20 +167,23 @@
    :prefix (format nil "ocicl ~A - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>" +version+)
    :suffix "Choose from the following ocicl commands:
 
-   help                            Print this help text
-   changes [SYSTEM[:VERSION]]...   Display changes
-   clean                           Remove system directories not listed in ocicl.csv
-   diff SYSTEM                     Diff between the installed and latest versions
-   diff SYSTEM VERSION             Diff between the installed version and VERSION
-   diff SYSTEM VERSION1 VERSION2   Diff between files in different system versions
-   install [SYSTEM[:VERSION]]...   Install systems
-   latest [SYSTEM]...              Install latest version of systems
-   libyear                         Calculate the libyear dependency freshness metric
-   list SYSTEM...                  List available system versions
-   remove [SYSTEM]...              Remove systems
-   setup [GLOBALDIR]               Mandatory ocicl configuration
-   tree [SYSTEM]...                Print tree of installed systems
-   version                         Show the ocicl version information
+   help                                   Print this help text
+   changes [SYSTEM[:VERSION]]...          Display changes
+   clean                                  Remove system directories not listed in ocicl.csv
+   diff SYSTEM                            Diff between the installed and latest versions
+   diff SYSTEM VERSION                    Diff between the installed version and VERSION
+   diff SYSTEM VERSION1 VERSION2          Diff between files in different system versions
+   install [SYSTEM[:VERSION]]...          Install systems
+   latest [SYSTEM]...                     Install latest version of systems
+   libyear                                Calculate the libyear dependency freshness metric
+   list SYSTEM...                         List available system versions
+   new APP-NAME [TEMPLATE] [KEY=VALUE]... Create a new app
+   remove [SYSTEM]...                     Remove systems
+   setup [GLOBALDIR]                      Mandatory ocicl configuration
+   templates [list]                       List available templates
+   templates dirs                         Show template search path
+   tree [SYSTEM]...                       Print tree of installed systems
+   version                                Show the ocicl version information
 
 Distributed under the terms of the MIT License"
    :usage-of "ocicl"
@@ -347,6 +376,22 @@ Distributed under the terms of the MIT License"
   (format t "Lisp runtime:    ~A ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version) (get-memory-in-gb))
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
 
+(defun install-builtin-templates (&key (force nil))
+  "Write the embedded templates to ~/.local/share/ocicl/templates/ .
+If FORCE is NIL, skip files that already exist."
+  (let* ((base (merge-pathnames "templates/" (get-ocicl-dir))))
+    (dolist (tpl +builtin-templates+)
+      (destructuring-bind (rel . text) tpl
+        (let* ((target (merge-pathnames rel base)))
+          (unless (and (not force) (probe-file target))
+            (uiop:ensure-all-directories-exist
+             (list (uiop:pathname-directory-pathname target)))
+            (with-open-file (out target
+                                 :direction :output
+                                 :if-exists :supersede
+                                 :if-does-not-exist :create)
+              (write-string text out))))))))
+
 (defun do-setup (args)
   (if (or *force*
           (not (probe-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg"))))
@@ -374,6 +419,8 @@ Distributed under the terms of the MIT License"
       (let ((old-config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
         (when (probe-file old-config-file)
           (delete-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))))
+
+  (install-builtin-templates :force *force*)
 
   (let* ((odir (get-ocicl-dir))
          (runtime-source (merge-pathnames odir "ocicl-runtime.lisp"))
@@ -790,7 +837,6 @@ Distributed under the terms of the MIT License"
   ()
   (:default-initargs :window-class 'colorful-unified-diff-window))
 
-
 (defmethod diff:render-diff-window :before ((window diff::unified-diff-window) stream)
   (let ((original-length (diff::original-window-length window))
         (modified-length (diff::modified-window-length window)))
@@ -1069,6 +1115,90 @@ Distributed under the terms of the MIT License"
   (when *color*
     (write-string *color-reset*)))
 
+(defun render-template-file (in-path out-path env)
+  "Read template text from IN-PATH, render with ENV, write to OUT-PATH."
+  (uiop:ensure-all-directories-exist
+   (list (uiop:pathname-directory-pathname out-path)))
+  (let ((template-text (uiop:read-file-string in-path)))
+    (handler-bind ((style-warning #'muffle-warning))
+      (let ((fn (cl-template:compile-template template-text)))
+        (with-open-file (out out-path :direction :output :if-exists :supersede)
+          (format out "~A" (funcall fn env))))))
+  out-path)
+
+(defun string-replace-ci (hay token replacement)
+  "Case-insensitive TOKEN → REPLACEMENT in HAY.  Returns a fresh string."
+  (loop with out   = (make-array 0 :element-type 'character
+                                 :adjustable t :fill-pointer 0)
+        with len-h = (length hay)
+        with len-t = (length token)
+        for i from 0 below len-h
+        do (if (and (<= (+ i len-t) len-h)
+                    (string-equal hay token :start1 i :end1 (+ i len-t)))
+               ;; Copy the replacement and jump ahead
+               (progn
+                 (loop for ch across replacement
+                       do (vector-push-extend ch out))
+                 (incf i (1- len-t)))           ; loop will incf once more
+               ;; Normal character
+               (vector-push-extend (char hay i) out))
+        finally (return out)))
+
+(defun expand-appname (path app-name)
+  (string-replace-ci path "{{app-name}}" app-name))
+
+(defun copy-template-tree (src dst)
+  (dolist (p (directory (merge-pathnames
+                         (make-pathname :directory '(:relative :wild-inferiors)
+                                        :name :wild :type :wild)
+                         src)))
+    (let* (;; relative pathname of template file/dir
+           (rel (enough-namestring p src))
+           ;; swap {{app-name}} → real name in every component
+           (rendered (expand-appname rel
+                                     (getf *template-params* :app-name)))
+           ;; where to write it
+           (out (merge-pathnames rendered dst)))
+      (if (uiop:directory-pathname-p p)
+          (uiop:ensure-directory-pathname out)
+          (render-template-file p out *template-params*)))))
+
+(defun do-new (args)
+  "ocicl new APP [TEMPLATE] [KEY=VAL]..."
+  (unless args (usage) (uiop:quit 1))
+
+  (let* ((app-name (first args))
+         (rest     (rest  args))
+         ;; TEMPLATE is explicit if the next token lacks "="
+         (template (if (and rest (not (search "=" (first rest))))
+                       (prog1 (first rest) (setf rest (rest rest)))
+                       "basic"))
+         (user-plist
+           (loop for s in rest
+                 append
+                 (destructuring-bind (k v)
+                     (uiop:split-string s :separator "=")
+                   (list (intern (string-upcase k) :keyword) v))))
+         (*template-params*
+           (append (list :app-name app-name) user-plist)))
+
+    ;; look up the template in the unified search path
+    (let* ((tpl-entry (assoc template (discover-templates) :test #'equal))
+           (tpl       (cdr tpl-entry)))
+      (unless tpl
+        (format *error-output* "ocicl: template “~A” not found~%" template)
+        (uiop:quit 1))
+
+      (let* ((dest (merge-pathnames
+                    (make-pathname :directory `(:relative ,app-name))
+                    (uiop:getcwd))))
+        (when (probe-file dest)
+          (format *error-output* "; “~A” already exists – choose another name~%" app-name)
+          (uiop:quit 1))
+
+        (copy-template-tree tpl dest)
+        (format t "; created “~A” from template “~A”~%" app-name template)))))
+
 (defmethod parent ((file pathname))
   "Return the parent directory of FILE."
   (if (uiop:directory-pathname-p file)
@@ -1096,6 +1226,37 @@ Distributed under the terms of the MIT License"
                                                         `(:relative ,(pathname-name existing-csv))))
                           dir)
                          (t workdir))))))
+
+(defun discover-templates ()
+  "Return an alist (TEMPLATE-NAME . ABSOLUTE-PATH).  First hit wins."
+  (labels ((dirname (pn)                 ;→ \"basic\" for .../templates/basic/
+             (let* ((parts (pathname-directory pn))
+                    (leaf  (first (last parts))))
+               (etypecase leaf
+                 (string leaf)
+                 (symbol (string-downcase (symbol-name leaf)))))))
+    (let ((table (make-hash-table :test #'equal)))
+      (dolist (dir *template-dirs*)
+        (dolist (d (directory
+                    (merge-pathnames (make-pathname :directory '(:relative :wild))
+                                     (uiop:ensure-directory-pathname dir))))
+          (when (uiop:directory-pathname-p d)
+            (let ((name (dirname d)))
+              (unless (gethash name table)
+                (setf (gethash name table) d))))))
+      (alexandria:hash-table-alist table))))
+
+(defun do-templates (args)
+  "Without args: list all visible templates.
+   With “dirs”:  show the current template search-path."
+  (cond
+    ((or (null args) (string= (first args) "list"))
+     (dolist (tpl (sort (discover-templates) #'string< :key #'car))
+       (format t "~A~30T~A~%" (car tpl) (cdr tpl))))
+    ((string= (first args) "dirs")
+     (dolist (d *template-dirs*)
+       (format t "~A~%" d)))
+    (t (usage))))
 
 (defun main ()
   (setf *random-state* (make-random-state t))
@@ -1138,6 +1299,29 @@ Distributed under the terms of the MIT License"
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
            ;; FIXME: required because ocicl's version of unix-opts does not
            ;; yet have :default
+
+           ;; 1.  dirs given on the CLI (earlier option instances should win → reverse)
+           (setf *template-dirs*
+                 (reverse (getf options :template-dir)))
+
+           ;; 2.  config-file (~/.config/ocicl/ocicl-template-path.cfg)
+           (let ((cfg (merge-pathnames (get-ocicl-dir) "ocicl-template-path.cfg")))
+             (when (probe-file cfg)
+               (alexandria:appendf *template-dirs*
+                        (uiop:read-file-lines cfg))))
+
+           ;; 3.  environment variable
+           (when (uiop:getenvp "OCICL_TEMPLATE_PATH")
+             (alexandria:appendf *template-dirs*
+                      (uiop:split-string (uiop:getenv "OCICL_TEMPLATE_PATH")
+                                         :separator (string #\:))))
+
+           ;; 4.  hard defaults (user dir first, then built-in share dir)
+           (alexandria:appendf *template-dirs*
+                    (list (merge-pathnames "templates/" (get-ocicl-dir))))
+
+           ;; collapse duplicates while preserving order
+           (setf *template-dirs* (remove-duplicates *template-dirs* :test #'equal))
 
            (flet ((get-output-stream ()
                     (if (typep *standard-output* 'synonym-stream)
@@ -1192,8 +1376,12 @@ Distributed under the terms of the MIT License"
                           (do-latest (cdr free-args)))
                          ((string= cmd "list")
                           (do-list (cdr free-args)))
+                         ((string= cmd "new")
+                          (do-new (cdr free-args)))
                          ((string= cmd "tree")
                           (do-tree (cdr free-args)))
+                         ((string= cmd "templates")
+                          (do-templates (cdr free-args)))
                          ((string= cmd "diff")
                           (do-diff (cdr free-args)))
                          ((string= cmd "clean")
@@ -1469,8 +1657,6 @@ download the system unless a version is specified."
   (dolist
     (system (append base-systems sbcl-systems))
     (asdf:register-immutable-system system)))
-
-
 
 ;; clear systems to avoid collision with systems loaded into executable
 (asdf/system-registry:clear-registered-systems)

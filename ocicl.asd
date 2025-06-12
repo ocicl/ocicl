@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Copyright (C) 2023, 2024  Anthony Green <green@moxielogic.com>
+;;; Copyright (C) 2023, 2024, 2025  Anthony Green <green@moxielogic.com>
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;;; of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@
                (:file "ocicl" :depends-on ("runtime" "package" "tree")))
 
   :depends-on ( :with-user-abort :unix-opts :dexador :cl-json :cl-interpol :tar
-                :tar/simple-extract :copy-directory :diff
+                :tar/simple-extract :copy-directory :diff :cl-template
 
                 ;; sbcl internals
                 (:feature :sbcl :sb-posix)
