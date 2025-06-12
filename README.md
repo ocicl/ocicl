@@ -477,7 +477,7 @@ To list all template directories, use `ocicl templates dirs`.
 ### What gets rendered?
 
 Text files are rendered when they end in `.clt`, or contain at least one `<% ... %>` directive.
-Inside such files use the familiar `cl-template` syntax.
+Inside such files use the familiar [cl-template](https://github.com/alpha123/cl-template) syntax.
 
 File / directory names: the token `{{app-name}}` (case-insensitive) is replaced with the provided APP-NAME.
 Example: `{{app-name}}.asd` → `blog.asd`.
