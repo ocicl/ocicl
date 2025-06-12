@@ -144,33 +144,38 @@ using the library versions locked in your ``ocicl.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.5.24 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.6.0 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
 
-Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY] command
+Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
+             [-c|--color WHEN] [-d|--depth NUM] command
 
 Available options:
-  -v, --verbose            produce verbose output
-  -f, --force              force action
-  -g, --global             operate on the global system collection
-  -r, --registry REGISTRY  use alternate oci registry
-  -c, --color WHEN         color the output WHEN (auto, always, or never)
+  -v, --verbose           produce verbose output
+  -f, --force             force action
+  -g, --global            operate on the global system collection
+  -r, --registry REGISTRY use alternate oci registry [Default: ghcr.io/ocicl]
+  -c, --color WHEN        color the output WHEN (auto, always, or never)
+  -d, --depth NUM         maximum depth for the tree command (integer or "max", default 1)
 
 Choose from the following ocicl commands:
 
-   help                            Print this help text
-   changes [SYSTEM[:VERSION]]...   Display changes
-   clean                           Remove system directories not listed in ocicl.csv
-   diff SYSTEM                     Diff between the installed and latest versions
-   diff SYSTEM VERSION             Diff between the installed version and VERSION
-   diff SYSTEM VERSION1 VERSION2   Diff between files in different system versions
-   install [SYSTEM[:VERSION]]...   Install systems
-   latest [SYSTEM]...              Install latest version of systems
-   libyear                         Calculate the libyear dependency freshness metric
-   list SYSTEM...                  List available system versions
-   remove [SYSTEM]...              Remove systems
-   setup [GLOBALDIR]               Mandatory ocicl configuration
-   tree [SYSTEM]...                Print tree of installed systems
-   version                         Show the ocicl version information
+   help                                   Print this help text
+   changes [SYSTEM[:VERSION]]...          Display changes
+   clean                                  Remove system directories not listed in ocicl.csv
+   diff SYSTEM                            Diff between the installed and latest versions
+   diff SYSTEM VERSION                    Diff between the installed version and VERSION
+   diff SYSTEM VERSION1 VERSION2          Diff between files in different system versions
+   install [SYSTEM[:VERSION]]...          Install systems
+   latest [SYSTEM]...                     Install latest version of systems
+   libyear                                Calculate the libyear dependency freshness metric
+   list SYSTEM...                         List available system versions
+   new APP-NAME [TEMPLATE] [KEY=VALUE]... Create a new app
+   remove [SYSTEM]...                     Remove systems
+   setup [GLOBALDIR]                      Mandatory ocicl configuration
+   templates [list]                       List available templates
+   templates dirs                         Show template search path
+   tree [SYSTEM]...                       Print tree of installed systems
+   version                                Show the ocicl version information
 
 Distributed under the terms of the MIT License
 ```
