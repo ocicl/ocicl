@@ -1146,21 +1146,51 @@ If FORCE is NIL, skip files that already exist."
 (defun expand-appname (path app-name)
   (string-replace-ci path "{{app-name}}" app-name))
 
+;;; helper: does the pathname have type "clt" (case-insensitive)?
+(defun template-file-p (pn)
+  (let ((type (pathname-type pn)))
+    (and type (string-equal type "clt"))))
+
+(defun ensure-parent-dir (pathname)
+  "Make sure the directory that will hold PATHNAME exists."
+  (uiop:ensure-all-directories-exist
+   (list (uiop:pathname-directory-pathname pathname))))
+
 (defun copy-template-tree (src dst)
-  (dolist (p (directory (merge-pathnames
-                         (make-pathname :directory '(:relative :wild-inferiors)
-                                        :name :wild :type :wild)
-                         src)))
-    (let* (;; relative pathname of template file/dir
-           (rel (enough-namestring p src))
-           ;; swap {{app-name}} → real name in every component
-           (rendered (expand-appname rel
-                                     (getf *template-params* :app-name)))
-           ;; where to write it
-           (out (merge-pathnames rendered dst)))
-      (if (uiop:directory-pathname-p p)
-          (uiop:ensure-directory-pathname out)
-          (render-template-file p out *template-params*)))))
+  (uiop:ensure-directory-pathname dst)          ; top-level target dir
+
+  (let ((app-name (getf *template-params* :app-name)))
+    (dolist (p (directory
+                (merge-pathnames
+                 (make-pathname :directory '(:relative :wild-inferiors)
+                                :name      :wild
+                                :type      :wild)
+                 src)))
+
+      ;; ── skip anything in a .git directory ──
+      (unless (member ".git" (pathname-directory p) :test #'string=)
+
+        ;; decide destination name
+        (multiple-value-bind (is-template-p out-path)
+            (let* ((rel       (enough-namestring p src))
+                   (clean-rel (if (template-file-p p)
+                                  (make-pathname :type nil :defaults rel)
+                                  rel))
+                   (rendered  (expand-appname clean-rel app-name))
+                   (out-pn    (merge-pathnames rendered dst)))
+              (values (template-file-p p) out-pn))
+
+          (cond
+            ((uiop:directory-pathname-p p)
+             (uiop:ensure-directory-pathname out-path))
+
+            (is-template-p
+             (ensure-parent-dir out-path)
+             (render-template-file p out-path *template-params*))
+
+            (t
+             (ensure-parent-dir out-path)
+             (uiop:copy-file p out-path))))))))
 
 (defun do-new (args)
   "ocicl new APP [TEMPLATE] [KEY=VAL]..."
@@ -1309,8 +1339,8 @@ If FORCE is NIL, skip files that already exist."
            (setf *template-dirs*
                  (reverse (getf options :template-dir)))
 
-           ;; 2.  config-file (~/.config/ocicl/ocicl-template-path.cfg)
-           (let ((cfg (merge-pathnames (get-ocicl-dir) "ocicl-template-path.cfg")))
+           ;; 2.  config-file
+           (let ((cfg (merge-pathnames (get-ocicl-dir) "ocicl-templates.cfg")))
              (when (probe-file cfg)
                (alexandria:appendf *template-dirs*
                         (uiop:read-file-lines cfg))))
