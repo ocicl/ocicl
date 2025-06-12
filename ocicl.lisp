@@ -69,7 +69,6 @@
                         unless (uiop:directory-pathname-p file)
                           collect (cons (enough-namestring file root)
                                         (uiop:read-file-string file)))))
-      (print alist)
       ;; return a *quoted* alist so that the value is data, not a form
       `(quote ,alist)))
 
