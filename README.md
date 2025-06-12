@@ -526,10 +526,10 @@ templates bundled with `ocicl`.
 
 ### Template search-path (first hit wins)
 
-* `--template-dir DIR  (option may be repeated)`
-* `$OCICL_TEMPLATE_PATH (colon-separated)`
+* `--template-dir DIR`  (option may be repeated)
+* `$OCICL_TEMPLATE_PATH` (colon-separated)
 * `~/.local/share/ocicl/config/ocicl/ocicl-template-path.cfg` (one directory per line)
-* `~/.local/share/ocicl/templates/` (installed by ocicl setup)
+* `~/.local/share/ocicl/templates/*` (installed by `ocicl setup`)
 
 To list all available templates, use `ocicl templates [list]`.
 
