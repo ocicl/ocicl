@@ -447,6 +447,46 @@ The list of ocicl systems is always available at
 Contributions are welcome and appreciated!  See
 https://github.com/ocicl/request-system-additions-here for details.
 
+Project Templates
+------------------
+
+`ocicl new` bootstraps an entire application from a template that lives
+either in one of your template search-path directories or inside the
+executable itself.
+
+`ocicl new APP-NAME [TEMPLATE] [KEY=VALUE]...`
+
+| Argument  | Description                                                                                                                               |
+|-----------+-------------------------------------------------------------------------------------------------------------------------------------------|
+| APP-NAME  | Directory to be created. Also exposed inside templates as the keyword #:app-name.                                                         |
+| TEMPLATE  | Optional. Defaults to basic. If a template called user is visible it overrides basic.                                                     |
+| KEY=VALUE | Zero or more additional template variable.. eg: author=Alice, license=MIT, ... Keys are converted to keywords (#:AUTHOR, #:LICENSE, ...). |
+
+
+### Template search-path (first hit wins)
+
+* `--template-dir DIR  (option may be repeated)`
+* `$OCICL_TEMPLATE_PATH (colon-separated)`
+* `~/.local/share/ocicl/config/ocicl/ocicl-template-path.cfg` (one directory per line)
+* `~/.local/share/ocicl/templates/` (installed by ocicl setup)
+
+List everything currently visible:
+
+List all available templates with `ocicl templates [list]`.
+List all template directories as `ocicl templates dirs`.
+
+### What gets rendered?
+
+Text files are rendered when they end in `.clt`, or contain at least one `<% ... %>` directive.
+Inside such files use the familiar `cl-template` syntax.
+
+File / directory names: the token `{{app-name}}` (case-insensitive) is replaced with the provided APP-NAME.
+Example: `{{app-name}}.asd` → `blog.asd`.
+
+Binary files (any file containing a NUL byte) are copied verbatim.
+
+Anything under a `.git/` directory is ignored.
+
 Tips and Troubleshooting
 ------------------------
 

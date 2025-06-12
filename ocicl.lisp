@@ -1146,11 +1146,6 @@ If FORCE is NIL, skip files that already exist."
 (defun expand-appname (path app-name)
   (string-replace-ci path "{{app-name}}" app-name))
 
-;;; helper: does the pathname have type "clt" (case-insensitive)?
-(defun template-file-p (pn)
-  (let ((type (pathname-type pn)))
-    (and type (string-equal type "clt"))))
-
 (defun ensure-parent-dir (pathname)
   "Make sure the directory that will hold PATHNAME exists."
   (uiop:ensure-all-directories-exist
@@ -1171,20 +1166,15 @@ If FORCE is NIL, skip files that already exist."
       (unless (member ".git" (pathname-directory p) :test #'string=)
 
         ;; decide destination name
-        (multiple-value-bind (is-template-p out-path)
-            (let* ((rel       (enough-namestring p src))
-                   (clean-rel (if (template-file-p p)
-                                  (make-pathname :type nil :defaults rel)
-                                  rel))
-                   (rendered  (expand-appname clean-rel app-name))
-                   (out-pn    (merge-pathnames rendered dst)))
-              (values (template-file-p p) out-pn))
+        (let* ((rel       (enough-namestring p src))
+               (rendered  (expand-appname rel app-name))
+               (out-path  (merge-pathnames rendered dst)))
 
           (cond
             ((uiop:directory-pathname-p p)
              (uiop:ensure-directory-pathname out-path))
 
-            (is-template-p
+            ((not (binary-file-p p))
              (ensure-parent-dir out-path)
              (render-template-file p out-path *template-params*))
 
