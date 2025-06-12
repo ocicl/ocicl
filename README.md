@@ -486,6 +486,7 @@ Binary files (any file containing a NUL byte) are copied verbatim.
 
 Anything under a `.git/` directory is ignored.
 
+
 Tips and Troubleshooting
 ------------------------
 
