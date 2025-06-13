@@ -1,5 +1,0 @@
-asdf-package-system is not supported anymore.
-
-Please just use ASDF 3.1 or later, that comes with this feature builtin.
-
-See the ASDF manual for documentation of the package-inferred-system feature.

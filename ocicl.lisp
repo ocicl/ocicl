@@ -68,7 +68,7 @@
            (alist (loop for file in files
                         unless (uiop:directory-pathname-p file)
                           collect (cons (enough-namestring file root)
-                                        (uiop:read-file-string file)))))
+                                        (alexandria:read-file-into-byte-vector file)))))
       ;; return a *quoted* alist so that the value is data, not a form
       `(quote ,alist)))
 
@@ -380,16 +380,11 @@ Distributed under the terms of the MIT License"
 If FORCE is NIL, skip files that already exist."
   (let* ((base (merge-pathnames "templates/" (get-ocicl-dir))))
     (dolist (tpl +builtin-templates+)
-      (destructuring-bind (rel . text) tpl
+      (destructuring-bind (rel . data) tpl
         (let* ((target (merge-pathnames rel base)))
-          (unless (and (not force) (probe-file target))
-            (uiop:ensure-all-directories-exist
-             (list (uiop:pathname-directory-pathname target)))
-            (with-open-file (out target
-                                 :direction :output
-                                 :if-exists :supersede
-                                 :if-does-not-exist :create)
-              (write-string text out))))))))
+          (uiop:ensure-all-directories-exist
+           (list (uiop:pathname-directory-pathname target)))
+          (alexandria:write-byte-vector-into-file data target :if-exists :overwrite :if-does-not-exist :create))))))
 
 (defun do-setup (args)
   (if (or *force*
