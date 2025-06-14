@@ -154,11 +154,13 @@
   (let ((systems-file (merge-pathnames (uiop:getcwd) *systems-csv*))
         (ht (make-hash-table :test #'equal)))
     (when (probe-file systems-file)
-      (progn
-        (dolist (line (uiop:read-file-lines systems-file))
-          (let ((vlist (split-csv-line line)))
-            (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))
-            ))))
+      (dolist (line (uiop:read-file-lines systems-file))
+        (let ((vlist (split-csv-line line)))
+          (destructuring-bind (system version asd &optional user-or-dep) vlist
+            (setf (gethash system ht)
+                  (list version asd
+                        (when user-or-dep
+                          (read-from-string user-or-dep))))))))
     ht))
 
 (defun usage ()
@@ -545,7 +547,7 @@ If FORCE is NIL, skip files that already exist."
 (defun do-libyear ()
   (let ((projects (make-hash-table :test #'equal)))
     (maphash (lambda (key value)
-               (setf (gethash (namestring (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
+               (setf (gethash (namestring (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (second value))))
                                                                  (uiop:merge-pathnames* *relative-systems-dir*
                                                                                         "_00_OCICL_VERSION")))
                               projects)
@@ -553,7 +555,7 @@ If FORCE is NIL, skip files that already exist."
              *ocicl-systems*)
     (let ((age 0))
       (maphash (lambda (skey value)
-                 (let* ((asd (cdr (gethash value *ocicl-systems*)))
+                 (let* ((asd (second (gethash value *ocicl-systems*)))
                         (version (get-project-version asd))
                         (project-name (get-project-name asd)))
                    (let* ((newer-versions (get-versions-since value version))
@@ -584,7 +586,7 @@ If FORCE is NIL, skip files that already exist."
       (dolist (system-maybe-version args)
         (let ((system (car (split-on-delimiter system-maybe-version #\:)))
               (version (cadr (split-on-delimiter system-maybe-version #\:))))
-          (let ((asd (cdr (gethash system *ocicl-systems*))))
+          (let ((asd (second (gethash system *ocicl-systems*))))
             (let ((version (or version
                                (and asd (get-project-version asd))))
                   (project-name (or (and asd (get-project-name asd)) system)))
@@ -594,7 +596,7 @@ If FORCE is NIL, skip files that already exist."
                       (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle system) v)))))))))
       (let ((projects (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
-                   (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
+                   (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (second value))))
                                                          (uiop:merge-pathnames* *relative-systems-dir*
                                                                                 "_00_OCICL_VERSION"))
                                   projects)
@@ -631,14 +633,16 @@ If FORCE is NIL, skip files that already exist."
                   (uiop:quit))))
           (let* ((slist (split-on-delimiter system #\:))
                  (name (car slist)))
-            (when (download-system system)
+            (when (download-system system :set-user t)
               (download-system-dependencies name)))))
       ;; Download all systems in systems.csv.
       (maphash (lambda (key value)
                  (declare (ignore key))
-                 (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
-                   (format t "; downloading ~A~%" (car value))
-                   (download-and-install (car value))))
+                 (destructuring-bind (system dir &optional user-or-dep) value
+                   (declare (ignore user-or-dep))
+                   (when (not (probe-file (merge-pathnames dir (namestring *systems-dir*))))
+                     (format t "; downloading ~A~%" system)
+                     (download-and-install (car value)))))
                *ocicl-systems*)))
 
 (defun subpath-p (path1 path2)
@@ -705,8 +709,8 @@ If FORCE is NIL, skip files that already exist."
 
     (if (null system-info)
       (format t "; no system to remove: ~A~%" name) ;return here, fixes type warnings to merge-pathnames
-      (let* ((fullname (car system-info))
-             (relative-asd-path (cdr system-info))
+      (let* ((fullname (first system-info))
+             (relative-asd-path (second system-info))
              (absolute-asd-path (merge-pathnames relative-asd-path *systems-dir*))
              (system-directory (merge-pathnames
                                  (make-pathname
@@ -947,7 +951,7 @@ If FORCE is NIL, skip files that already exist."
                                      :directory `(:relative
                                                   ,(second
                                                     (pathname-directory
-                                                     (the string (cdr version1-system-info))))))
+                                                     (the string (second version1-system-info))))))
                                     *systems-dir*))
                      (version1-files (mapcar
                                       (lambda (file)
@@ -958,7 +962,7 @@ If FORCE is NIL, skip files that already exist."
                                      :directory `(:relative
                                                   ,(second
                                                     (pathname-directory
-                                                     (the string (cdr version2-system-info))))))
+                                                     (the string (second version2-system-info))))))
                                     *systems-dir*))
                      (version2-files (mapcar
                                       (lambda (file)
@@ -1004,7 +1008,7 @@ If FORCE is NIL, skip files that already exist."
            (let ((directories))
              (maphash (lambda (system values)
                         (declare (ignore system))
-                        (destructuring-bind (version . asd) values
+                        (destructuring-bind (version asd) values
                           (declare (ignore version))
                           ;; get just the top directory
                           (push
@@ -1464,8 +1468,8 @@ If FORCE is NIL, skip files that already exist."
                               :key #'car)))
       (mapc
        (lambda (system)
-         (destructuring-bind (system fullname . asd) system
-           (format stream "~A, ~A, ~A~%" system fullname asd)))
+         (destructuring-bind (system fullname asd &optional user-or-dep) system
+           (format stream "~A, ~A, ~A, ~S~%" system fullname asd (or user-or-dep :dependency))))
        systems-list)))
   (debug-log (format nil "wrote new ~a" *systems-csv*)))
 
@@ -1525,6 +1529,7 @@ If FORCE is NIL, skip files that already exist."
 
 (defun download-system (system &key
                                  (write-systems-csv t)
+                                 set-user
                                  print-error)
   "Downloads SYSTEM, which may be specified as NAME[:VERSION].
 
@@ -1535,8 +1540,9 @@ download the system unless a version is specified."
          (requested-version (second slist))
          (mangled-name (mangle name))
          (system-info (gethash mangled-name *ocicl-systems*))
-         (fullname (car system-info))
-         (relative-asd-path (cdr system-info))
+         (fullname (first system-info))
+         (relative-asd-path (second system-info))
+         (user-or-dep (third system-info))
          (existing-version (when system-info
                              (cl-ppcre:register-groups-bind (registry name digest)
                                  ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
@@ -1551,6 +1557,17 @@ download the system unless a version is specified."
              (not *force*))
         (progn
           (format t "; ~A:~A already exists~%" system (get-project-version relative-asd-path))
+          (when (or (not user-or-dep)
+                    (not (eql user-or-dep :user)))
+            (setf (third system-info) :user)
+            (maphash (lambda (key value)
+                       (declare (ignore key))
+                       (when (equal (top-level-directory (second value))
+                                    (top-level-directory relative-asd-path))
+                         (setf (third value) :user)))
+                     *ocicl-systems*)
+            (write-systems-csv)
+            (format t "; ~A:~A set as user system~%" system (get-project-version relative-asd-path)))
           (gethash mangled-name *ocicl-systems*))
         (let ((dl-dir (get-temp-ocicl-dl-pathname)))
           (unwind-protect
@@ -1571,8 +1588,9 @@ download the system unless a version is specified."
                                                  (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
                                                    (debug-log #?"registering ${s}")
                                                    (setf (gethash (mangle (pathname-name s)) *ocicl-systems*)
-                                                         (cons #?"${registry}/${mangled-name}@${manifest-digest}"
-                                                               (enough-namestring (namestring s) *systems-dir*))))))
+                                                         (list #?"${registry}/${mangled-name}@${manifest-digest}"
+                                                               (enough-namestring (namestring s) *systems-dir*)
+                                                               (if set-user :user :dependency))))))
                                              t)
                                          (error (e)
                                            (when (or *verbose* print-error)
@@ -1585,11 +1603,11 @@ download the system unless a version is specified."
 
 (defun find-asdf-system-file (name)
   (let* ((system-info (gethash (mangle name) *ocicl-systems*))
-         (system-asd (when system-info (merge-pathnames (cdr system-info) *systems-dir*))))
+         (system-asd (when system-info (merge-pathnames (second system-info) *systems-dir*))))
     (cond ((and system-asd (probe-file system-asd)))
           ((not *inhibit-download-during-search*)
            (handler-case
-               (probe-file (merge-pathnames (cdr (download-system name)) *systems-dir*))
+               (probe-file (merge-pathnames (second (download-system name)) *systems-dir*))
              (error (e)
                (declare (ignore e))
                nil))))))
