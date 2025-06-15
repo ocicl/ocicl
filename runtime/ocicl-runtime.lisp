@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Copyright (C) 2023, 2024  Anthony Green <green@moxielogic.com>
+;;; Copyright (C) 2023, 2024, 2025  Anthony Green <green@moxielogic.com>
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining
 ;;; a copy of this software and associated documentation files (the
@@ -120,10 +120,10 @@
 
 (defun check-if-program-exists (program-name)
   "Check if PROGRAM-NAME exists and is executable."
-  (multiple-value-bind (out error exit-code)
-      (uiop:run-program (list program-name) :ignore-error-status t)
-    (declare (ignore out error))
-    (not (or (= exit-code 127) (= exit-code 126)))))
+  (multiple-value-bind (_ err code)
+      (uiop:run-program (list program) :ignore-error-status t)
+    (declare (ignore _ err))
+    (not (member code '(126 127)))))
 
 (defun warn-if-program-doesnt-exist (program-name)
   "If VERBOSE, print a warning if PROGRAM-NAME doesn't exist or isn't executable."
