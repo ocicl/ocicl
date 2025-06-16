@@ -207,7 +207,7 @@ Distributed under the terms of the MIT License"
     (subseq url start-pos (when pos pos))))
 
 (defun get-bearer-token (registry system)
-  (handler-case
+;;  (handler-case
       (let* ((server (get-up-to-first-slash registry))
              (repository (get-repository-name registry)))
         (debug-log (format nil "getting bearer token for ~A" server))
@@ -215,11 +215,13 @@ Distributed under the terms of the MIT License"
                     (cl-json:decode-json-from-string
                      (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${system}:pull"
                                           :force-string t
-                                          :verbose *verbose*)))))
-    (error (e)
+                                          :verbose *verbose*))))) )
+#|
+(error (e)
       ;; (declare (ignore e))
       (print e)
       nil)))
+|#
 
 (defun system-latest-version (system)
   (loop :for registry in *ocicl-registries*
