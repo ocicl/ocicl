@@ -1,0 +1,1678 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="clixdoc.xsl" ?>
+
+<clix:documentation xmlns='http://www.w3.org/1999/xhtml' xmlns:clix='http://bknr.net/clixdoc'>
+  <clix:title>Drakma - A Common Lisp HTTP client</clix:title>
+  <clix:short-description>
+    Drakma is a full-featured HTTP client implemented in Common Lisp.
+    It knows how to handle <a href="#chunked">HTTP/1.1 chunking</a>,
+    <a href="#arg-keep-alive">persistent connections</a>, <a
+    href="#ex-reuse-connection">re-usable sockets</a>, <a
+    href="#ex-chunked-https">SSL</a>, <a
+    href="#ex-assemble-request-content">continuable uploads</a>, <a
+    href="#arg-parameters">file uploads</a>, <a
+    href="#arg-cookie-jar">cookies</a>, and more.
+  </clix:short-description>
+
+  <h2>Drakma - A Common Lisp HTTP client</h2>
+
+  <blockquote>
+    <clix:chapter name='abstract' title='Abstract'>
+      <p>
+        Drakma is a full-featured HTTP client implemented in Common
+        Lisp.  It knows how to handle <a href="#chunked">HTTP/1.1
+        chunking</a>, <a href="#arg-keep-alive">persistent
+        connections</a>, <a href="#ex-reuse-connection">re-usable
+        sockets</a>, <a href="#ex-chunked-https">SSL</a>, <a
+        href="#ex-assemble-request-content">continuable uploads</a>,
+        <a href="#arg-parameters">file uploads</a>, <a
+        href="#arg-cookie-jar">cookies</a>, and more.
+      </p>
+      <p>
+        The code comes with a <a
+        href="http://www.opensource.org/licenses/bsd-license.php">BSD-style
+        license</a> so you can basically do with it whatever you want.
+      </p>
+    </clix:chapter>
+  </blockquote>
+
+  <clix:chapter name='contents' title='Contents'></clix:chapter>
+  <clix:contents></clix:contents>
+    
+  <clix:chapter name='examples' title='Examples'>
+
+    <style type="text/css">
+      body { margin-left: 2em; }
+      p, blockquote { max-width: 45em; }
+      pre { margin-left: 3em; margin-right: 3em; word-wrap: break-word; overflow-x: auto; background: #eee; }
+      .arglist-spacer { margin-left: 6em; max-width: 45em; }
+      .repl-output { color: black; }
+      .repl-input { font-weight: bold; }
+      .headers-out { color: SteelBlue; }
+      .headers-in { color: SeaGreen; }
+    </style>
+
+    <p>
+      Here is a collection of example uses of Drakma to which
+      demonstrate some of its features.  In the examples, text is
+      color coded to indicate where it comes from (<tt><span
+      class="repl-input">REPL input</span>, <span
+      class="repl-output">REPL output</span>, <span
+      class="headers-out">HTTP headers sent</span></tt> and <tt><span
+      class="headers-in">HTTP headers received</span></tt>).  Headers
+      particularly relevant to the example at hand are shown <tt><span
+      class="headers-out"><b>in</b></span> <span
+      class="headers-in"><b>bold</b></span></tt>.
+    </p>
+
+    <clix:subchapter name='ex-loading' title='Loading Drakma with Quicklisp'>
+      <pre><span class="repl-output">? </span><span class="repl-input">(ql:quickload :drakma)</span>
+<span class="repl-output">To load "drakma":
+  Load 1 ASDF system:
+    drakma
+; Loading "drakma"
+To load "cl+ssl":
+  Load 1 ASDF system:
+    flexi-streams
+  Install 8 Quicklisp releases:
+    alexandria babel bordeaux-threads cffi cl+ssl
+    trivial-features trivial-garbage trivial-gray-streams
+...
+; Loading "drakma"
+
+(:DRAKMA)
+</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-logging' title='Log headers to the REPL output stream'>
+      <p>
+        In some of the following examples, the headers exchanged
+        between Drakma and the HTTP server should be shown, for
+        illustration purposes.  This can be achieved like so:
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(setf drakma:*header-stream* *standard-output*)</span>
+<span class="repl-output">#&lt;SYNONYM-STREAM to *TERMINAL-IO* #x3020006AC7DD&gt;</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-request-redirect' title='Requesting a page with redirection'>
+      <p>
+        Request a page.  Note how Drakma automatically follows the 301
+        redirect and how the fourth return value shows the
+        <em>new</em> URI.
+      </p>
+<pre><span class="repl-output">? </span><span class="repl-input">(<a href="#http-request">drakma:http-request</a> "http://lisp.org/")</span>
+<span class="headers-out">GET / HTTP/1.1
+Host: lisp.org
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+</span>
+<span class="headers-in">HTTP/1.1 <b>307  Temporary Redirect</b>
+Date: Sun, 09 Dec 2012 08:01:56 GMT
+Connection: Close
+Server: AllegroServe/1.2.65
+Transfer-Encoding: chunked
+<b>LOCATION: http://lisp.org/index.html</b>
+</span>
+<span class="headers-out"><b>GET /index.html HTTP/1.1</b>
+Host: lisp.org
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+</span>
+<span class="headers-in">HTTP/1.1 200  OK
+Date: Sun, 09 Dec 2012 08:01:56 GMT
+Connection: Close
+Server: AllegroServe/1.2.65
+Content-Type: text/html
+Content-Length: 459
+LAST-MODIFIED: Wed, 26 Oct 2011 02:26:26 GMT
+</span>
+<span class="repl-output">"&lt;HTML&gt;
+&lt;HEAD&gt;
+  &lt;title&gt;John McCarthy, 1927-2011&lt;/title&gt;
+  &lt;STYLE type=\"text/css\"&gt;
+    BODY {text-align: center}
+  &lt;/STYLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&lt;h1&gt;John McCarthy&lt;/h1&gt;
+&lt;img src=\"jmccolor.jpg\" alt=\"a picture of John McCarthy, from his website\"/&gt;
+&lt;h3&gt;1927-2011&lt;/h3&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;a href=\"http://www-formal.stanford.edu/jmc/\"&gt;John McCarthy's Home Page&lt;/a&gt;&lt;br&gt;
+&lt;a href=\"http://news.stanford.edu/news/2011/october/john-mccarthy-obit-102511.html\"&gt;Obituary&lt;/a&gt;
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+"
+200
+((:DATE . "Sun, 09 Dec 2012 08:01:56 GMT") (:CONNECTION . "Close") (:SERVER . "AllegroServe/1.2.65")
+ (:CONTENT-TYPE . "text/html") (:CONTENT-LENGTH . "459") (:LAST-MODIFIED . "Wed, 26 Oct 2011 02:26:26 GMT"))
+#&lt;URI http://lisp.org/index.html&gt;
+#&lt;FLEXI-STREAMS:FLEXI-IO-STREAM #x30200155DB1D&gt;
+T
+" OK"</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-charsets' title='Requesting a page containing non-ASCII characters'>
+      <p>
+        Drakma automatically interprets the 'charset=utf-8' part
+        correctly.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(subseq (<a href="#http-request">drakma:http-request</a> "http://www.cl.cam.ac.uk/~mgk25/ucs/examples/digraphs.txt") 0 298)</span>
+<span class="headers-out">GET /~mgk25/ucs/examples/digraphs.txt HTTP/1.1
+Host: www.cl.cam.ac.uk
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Date: Sun, 09 Dec 2012 08:15:04 GMT
+Server: Apache/2.2.3 (CentOS)
+Last-Modified: Mon, 06 Apr 2009 18:13:43 GMT
+ETag: "17cd62-298-466e6dbcd03c0"
+Accept-Ranges: bytes
+Content-Length: 664
+X-UA-Compatible: IE=edge
+Connection: close
+<b>Content-Type: text/plain; charset=utf-8</b>
+</span>
+<span class="repl-output">"Latin Digraphs and Ligatures in ISO10646-1
+
+A short table of ligatures and digraphs follows. Some of these may not be
+ligatures/digraphs in the technical sense, (for example, æ is a seperate
+letter in English), but visually they behave that way.
+
+AÆE : U+00C6
+aæe : U+00E6
+ſßs : U+00DF
+IĲJ : U+0132"</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-binary-data' title='Requesting binary data'>
+      <p>
+        For non-textual content types, a vector of octets is returned.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(<a href="#http-request">drakma:http-request</a> "https://api.github.com/repos/edicl/drakma/git/tags/tag-does-not-exist")</span>
+<span class="headers-out">GET /repos/edicl/drakma/git/tags/tag-does-not-exist HTTP/1.1
+Host: api.github.com
+User-Agent: Drakma/1.3.0 (SBCL 1.1.1.31.master.2-9fac43f-dirty; Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+</span>
+<span class="headers-in">HTTP/1.1 404 Not Found
+Server: nginx
+Date: Fri, 28 Dec 2012 08:37:31 GMT
+<b>Content-Type: application/json; charset=utf-8</b>
+Connection: close
+Status: 404 Not Found
+X-GitHub-Media-Type: github.beta
+X-RateLimit-Remaining: 48
+X-RateLimit-Limit: 60
+Content-Length: 23
+X-Content-Type-Options: nosniff
+Cache-Control: 
+</span>
+<span class="repl-output">#(123 34 109 101 115 115 97 103 101 34 58 34 78 111 116 32 70 111 117 110 100 34 125)
+404
+((:SERVER . "nginx") (:DATE . "Fri, 28 Dec 2012 08:37:31 GMT") (:CONTENT-TYPE . "application/json; charset=utf-8")
+ (:CONNECTION . "close") (:STATUS . "404 Not Found") (:X-GITHUB-MEDIA-TYPE . "github.beta") (:X-RATELIMIT-REMAINING . "48")
+ (:X-RATELIMIT-LIMIT . "60") (:CONTENT-LENGTH . "23") (:X-CONTENT-TYPE-OPTIONS . "nosniff") (:CACHE-CONTROL . ""))
+#&lt;PURI:URI https://api.github.com/repos/edicl/drakma/git/tags/tag-does-not-exist&gt;
+#&lt;FLEXI-STREAMS:FLEXI-IO-STREAM {101C40C043}&gt;
+T
+"Not Found"</span>
+<span class="repl-output">? </span><span class="repl-input">(<a href="http://weitz.de/flexi-streams/#octets-to-string" target="_new">flexi-streams:octets-to-string</a> *)</span>
+<span class="repl-output">"{\"message\":\"Not Found\"}"</span></pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-chunked-https' title='Chunked transfers and HTTPS'>
+      <p>
+        Request a page using the HTTPS protocol.  Also note that the
+        server uses <a name="chunked"
+        href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1">chunked
+        transfer encoding</a> for its reply
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(ql:quickload :cl-ppcre)</span>
+<span class="repl-output">? </span><span class="repl-input">(cl-ppcre:scan-to-strings "(?s)You have.*your data."
+                            (<a href="#http-request">drakma:http-request</a> "https://www.fortify.net/cgi/ssl_2.pl"))</span>
+<span class="headers-out">GET /cgi/ssl_2.pl HTTP/1.1
+Host: www.fortify.net
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Date: Sun, 09 Dec 2012 08:15:31 GMT
+Server: Apache
+Connection: close
+<b>Transfer-Encoding: chunked</b>
+Content-Type: text/html
+</span>
+<span class="repl-output">"You have connected to this web server using the RC4-SHA encryption cipher
+ with a key length of 128 bits.
+ &lt;p&gt;
+ This is a high-grade encryption connection, regarded by most experts as being suitable
+ for sending or receiving even the most sensitive or valuable information
+ across a network.
+ &lt;p&gt;
+ In a crude analogy, using this cipher is similar to sending or storing your data inside
+ a high quality safe - compared to an export-grade cipher which is similar to using
+ a paper envelope to protect your data."
+#()</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-fake-ua' title='Faking a user agent header'>
+      <p>
+        Some servers adapt their behavior according to the Browser
+        that is used.  Drakma can claim to be i.e. MS Internet
+        Explorer.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(cl-ppcre:scan-to-strings "&lt;h4&gt;.*" (<a href="#http-request">drakma:http-request</a> "http://whatsmyuseragent.com/" <a href="#arg-user-agent">:user-agent :explorer</a>))</span>
+<span class="headers-out">GET / HTTP/1.1
+Host: whatsmyuseragent.com
+<b>User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)</b>
+Accept: */*
+Connection: close
+</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Date: Sun, 09 Dec 2012 08:23:50 GMT
+Server: Apache
+X-Powered-By: PHP/5.2.17
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: text/html
+</span>
+<span class="repl-output">"&lt;h4&gt;Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)&lt;/h4&gt;"
+#()</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-post-and-cookie' title='Posting data and using cookies'>
+      <p>
+        Drakma can send parameters in a POST request and knows how to
+        deal with <a href="#cookie">cookies</a>.  Note how Drakma
+        sends the cookie back in the second request.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(let ((cookie-jar (make-instance <a href="#cookie-jar">'drakma:cookie-jar</a>)))
+    (<a href="#http-request">drakma:http-request</a> "http://www.phpsecurepages.com/test/test.php"
+                         <a href="#arg-method">:method :post</a>
+                         <a href="#arg-parameters">:parameters '(("entered_login" . "test")
+                                       ("entered_password" . "test"))</a>
+                         <a href="#arg-cookie-jar">:cookie-jar cookie-jar</a>)
+    (<a href="#http-request">drakma:http-request</a> "http://www.phpsecurepages.com/test/test2.php"
+                         <a href="#arg-cookie-jar">:cookie-jar cookie-jar</a>)
+    (<a href="#cookie-jar-cookies">drakma:cookie-jar-cookies</a> cookie-jar))</span>
+<span class="headers-out">POST /test/test.php HTTP/1.1
+Host: www.phpsecurepages.com
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 40
+</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Date: Sun, 09 Dec 2012 08:25:13 GMT
+Server:  
+X-Powered-By: PHP/5.2.17
+<b>Set-Cookie: PHPSESSID=vijk3706eojs7n8u5cdpi3ju05; path=/</b>
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Pragma: no-cache
+X-Powered-By: PleskLin
+Content-Length: 4479
+Connection: close
+Content-Type: text/html
+</span>
+<span class="headers-out">GET /test/test2.php HTTP/1.1
+Host: www.phpsecurepages.com
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+<b>Cookie: PHPSESSID=vijk3706eojs7n8u5cdpi3ju05</b>
+Connection: close
+</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Date: Sun, 09 Dec 2012 08:25:16 GMT
+Server:  
+X-Powered-By: PHP/5.2.17
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Pragma: no-cache
+X-Powered-By: PleskLin
+Content-Length: 4479
+Connection: close
+Content-Type: text/html
+</span>
+<span class="repl-output">(#&lt;COOKIE PHPSESSID=vijk3706eojs7n8u5cdpi3ju05; path=/; domain=www.phpsecurepages.com&gt;)</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-reuse-connection' title='Reusing a connection to a server'>
+      <p>
+        Drakma can <a name="re-use">use</a> a connection to a server for multiple requests.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(let ((stream (nth-value 4 (<a href="#http-request">drakma:http-request</a> "http://www.lispworks.com/" <a href="#arg-close">:close nil</a>))))
+    (nth-value 2 (<a href="#http-request">drakma:http-request</a> "http://www.lispworks.com/success-stories/index.html"
+                                      <a href="#arg-stream">:stream stream</a>)))</span>
+<span class="headers-out">GET / HTTP/1.1
+Host: www.lispworks.com
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Date: Sun, 09 Dec 2012 08:25:56 GMT
+Server: Apache/2.2.22 (Unix) mod_ssl/2.2.22 OpenSSL/1.0.1c mod_apreq2-20051231/2.6.0 mod_perl/2.0.5 Perl/v5.8.9
+Last-Modified: Tue, 20 Nov 2012 12:27:40 GMT
+ETag: "336280-28eb-4ceec5c1f4700"
+Accept-Ranges: bytes
+Content-Length: 10475
+Content-Type: text/html
+</span>
+<span class="headers-out">GET /success-stories/index.html HTTP/1.1
+Host: www.lispworks.com
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+<b>Connection: close</b>
+</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Date: Sun, 09 Dec 2012 08:25:56 GMT
+Server: Apache/2.2.22 (Unix) mod_ssl/2.2.22 OpenSSL/1.0.1c mod_apreq2-20051231/2.6.0 mod_perl/2.0.5 Perl/v5.8.9
+Last-Modified: Tue, 20 Nov 2012 12:28:52 GMT
+ETag: "336386-2940-4ceec6069e900"
+Accept-Ranges: bytes
+Content-Length: 10560
+<b>Connection: close</b>
+Content-Type: text/html
+</span>
+<span class="repl-output">((:DATE . "Sun, 09 Dec 2012 08:25:56 GMT")
+ (:SERVER . "Apache/2.2.22 (Unix) mod_ssl/2.2.22 OpenSSL/1.0.1c mod_apreq2-20051231/2.6.0 mod_perl/2.0.5 Perl/v5.8.9")
+ (:LAST-MODIFIED . "Tue, 20 Nov 2012 12:28:52 GMT") (:ETAG . "\"336386-2940-4ceec6069e900\"") (:ACCEPT-RANGES . "bytes")
+ (:CONTENT-LENGTH . "10560") (:CONNECTION . "close") (:CONTENT-TYPE . "text/html"))</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-basic-auth' title='Basic Authorization'>
+      <p>
+        Drakma supports basic authorization.  In this example, we use
+        a locally running <a
+        href="http://weitz.de/hunchentoot">Hunchentoot</a> server.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(ql:quickload :hunchentoot-test)</span>
+<span class="repl-output">To load "hunchentoot-test":
+  Load 4 ASDF systems:
+    cl-ppcre cl-who drakma hunchentoot
+  Install 1 Quicklisp release:
+    hunchentoot
+...
+; Loading "hunchentoot-test"
+
+(:HUNCHENTOOT-TEST)
+? </span><span class="repl-input">(hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 4242))</span>
+<span class="repl-output">#&lt;EASY-ACCEPTOR (host *, port 4242)&gt;
+? </span><span class="repl-input">(nth-value 1 (<a href="#http-request">drakma:http-request</a> "http://localhost:4242/hunchentoot/test/authorization.html"))</span>
+<span class="headers-out">GET /hunchentoot/test/authorization.html HTTP/1.1
+Host: localhost:4242
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+</span>
+<span class="repl-output">127.0.0.1 - [2012-12-09 09:27:40] "GET /hunchentoot/test/authorization.html HTTP/1.1" 401 543 "-" "Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)"</span>
+<span class="headers-in">HTTP/1.1 <b>401 Authorization Required</b>
+Content-Length: 543
+Date: Sun, 09 Dec 2012 08:27:40 GMT
+Server: Hunchentoot 1.2.5
+Connection: Close
+Www-Authenticate: Basic realm="Hunchentoot"
+Content-Type: text/html; charset=iso-8859-1
+</span>
+<span class="repl-output">401
+? </span><span class="repl-input">(nth-value 1 (<a href="#http-request">drakma:http-request</a> "http://localhost:4242/hunchentoot/test/authorization.html"
+                                    <a href="#arg-basic-authorization">:basic-authorization '("nanook" "igloo")</a>))</span>
+<span class="headers-out">GET /hunchentoot/test/authorization.html HTTP/1.1
+Host: localhost:4242
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+<b>Authorization: Basic bmFub29rOmlnbG9v</b>
+Accept: */*
+Connection: close
+</span>
+<span class="repl-output">127.0.0.1 nanook [2012-12-09 09:28:15] "GET /hunchentoot/test/authorization.html HTTP/1.1" 200 907 "-" "Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)"</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Content-Length: 907
+Date: Sun, 09 Dec 2012 08:28:15 GMT
+Server: Hunchentoot 1.2.5
+Connection: Close
+Content-Type: text/html; charset=utf-8
+</span>
+<span class="repl-output">200</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-response-stream' title='Reading the response from a stream'>
+      <p>
+        Drakma can return a stream to the application so that the
+        reply is not completely buffered in memory first.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(let ((stream (<a href="#http-request">drakma:http-request</a> "https://api.github.com/orgs/edicl/public_members"
+                                      <b>:want-stream t</b>)))
+    (setf (<a href="http://weitz.de/flexi-streams/#flexi-stream-external-format" target="_new">flexi-streams:flexi-stream-external-format</a> stream) :utf-8)
+    (<a href="http://common-lisp.net/project/yason/#parse" target="_new">yason:parse</a> stream :object-as :plist))</span>
+<span class="headers-out">GET /orgs/edicl/public_members HTTP/1.1
+Host: api.github.com
+User-Agent: Drakma/1.3.0 (SBCL 1.1.1.31.master.2-9fac43f-dirty; Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Server: nginx
+Date: Fri, 28 Dec 2012 10:27:34 GMT
+Content-Type: application/json; charset=utf-8
+Connection: close
+Status: 200 OK
+Last-Modified: Sat, 22 Dec 2012 18:39:14 GMT
+X-Content-Type-Options: nosniff
+X-RateLimit-Limit: 60
+X-GitHub-Media-Type: github.beta
+Vary: Accept
+Content-Length: 1899
+Cache-Control: public, max-age=60, s-maxage=60
+ETag: "66a5dd35e79146a53029a1807293f9d3"
+X-RateLimit-Remaining: 56
+</span>
+<span class="repl-output">(("type" "User" "repos_url" "https://api.github.com/users/hanshuebner/repos" "followers_url"
+  "https://api.github.com/users/hanshuebner/followers" "login" "hanshuebner" "gists_url"
+  "https://api.github.com/users/hanshuebner/gists{/gist_id}" "following_url"
+  "https://api.github.com/users/hanshuebner/following" "events_url"
+  "https://api.github.com/users/hanshuebner/events{/privacy}" "organizations_url"
+  "https://api.github.com/users/hanshuebner/orgs" "received_events_url"
+  "https://api.github.com/users/hanshuebner/received_events" "url"
+  "https://api.github.com/users/hanshuebner" "avatar_url"
+  "https://secure.gravatar.com/avatar/280d76aa82179ae04550534649de1e6e?d=https://a248.e.akamai.net/assets.github.com%2Fimages%2Fgravatars%2Fgravatar-user-420.png"
+  "subscriptions_url" "https://api.github.com/users/hanshuebner/subscriptions" "starred_url"
+  "https://api.github.com/users/hanshuebner/starred{/owner}{/repo}" "id" 108751 "gravatar_id"
+  "280d76aa82179ae04550534649de1e6e")
+ ("type" "User" "repos_url" "https://api.github.com/users/nhabedi/repos" "followers_url"
+  "https://api.github.com/users/nhabedi/followers" "login" "nhabedi" "gists_url"
+  "https://api.github.com/users/nhabedi/gists{/gist_id}" "following_url"
+  "https://api.github.com/users/nhabedi/following" "events_url"
+  "https://api.github.com/users/nhabedi/events{/privacy}" "organizations_url"
+  "https://api.github.com/users/nhabedi/orgs" "received_events_url"
+  "https://api.github.com/users/nhabedi/received_events" "url"
+  "https://api.github.com/users/nhabedi" "avatar_url"
+  "https://secure.gravatar.com/avatar/24c09c7b0b2c0481283d854bacdd7926?d=https://a248.e.akamai.net/assets.github.com%2Fimages%2Fgravatars%2Fgravatar-user-420.png"
+  "subscriptions_url" "https://api.github.com/users/nhabedi/subscriptions" "starred_url"
+  "https://api.github.com/users/nhabedi/starred{/owner}{/repo}" "id" 537618 "gravatar_id"
+  "24c09c7b0b2c0481283d854bacdd7926"))</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-assemble-request-content' title='Piecemeal assembly of request contents'>
+      <p>
+        Request contents can be assembled from various sources, and
+        chunked encoding can be used by request bodies.  Many servers
+        do not support chunked encoding for request bodies, though.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(let ((temp-file (ensure-directories-exist #p"/tmp/quux.txt"))
+        (continuation (<a href="#http-request">drakma:http-request</a> "http://localhost:4242/hunchentoot/test/parameter_latin1_post.html"
+                                           <a href="#arg-method">:method :post</a>
+                                           <a href="#arg-content">:content :continuation</a>)))
+    (funcall continuation "foo=" t)
+    (funcall continuation (list (char-code #\z) (char-code #\a)) t)
+    (funcall continuation (lambda (stream)
+                            (write-char #\p stream)) t)
+    (with-open-file (out temp-file
+                         :direction :output
+                         :if-does-not-exist :create
+                         :if-exists :supersede)
+      (write-string "p" out))
+    (funcall continuation temp-file t)
+    (cl-ppcre:scan-to-strings "zappzerapp" (funcall continuation "zerapp")))</span>
+<span class="headers-out">POST /hunchentoot/test/parameter_latin1_post.html HTTP/1.1
+Host: localhost:4242
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+<b>Transfer-Encoding: chunked</b>
+</span>
+<span class="repl-output">127.0.0.1 - [2012-12-09 10:06:44] "POST /hunchentoot/test/parameter_latin1_post.html HTTP/1.1" 200 1312 "-" "Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)"</span>
+<span class="headers-in">HTTP/1.1 200 OK
+Content-Length: 1312
+Date: Sun, 09 Dec 2012 09:06:44 GMT
+Server: Hunchentoot 1.2.5
+Connection: Close
+Last-Modified: Sun, 09 Dec 2012 09:06:44 GMT
+Pragma: no-cache
+Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Content-Type: text/html; charset=ISO-8859-1
+</span>
+<span class="repl-output">"zappzerapp"
+#()</span>
+</pre>
+    </clix:subchapter>
+    <clix:subchapter name='ex-partial-transfers' title='Partial transfers'>
+      <p>
+        <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35"
+           target="_new">Partial transfers</a> of resources are possible.
+      </p>
+      <pre><span class="repl-output">? </span><span class="repl-input">(cl-ppcre:regex-replace-all
+   "&lt;.*?&gt;"
+   (format nil "~A~%~A"
+           (<a href="#http-request">drakma:http-request</a> "http://members.shaw.ca/mitb/hunchentoot.html"
+                                <a href="#arg-range">:range '(998 1034)</a>)
+           (<a href="#http-request">drakma:http-request</a> "http://members.shaw.ca/mitb/hunchentoot.html"
+                                <a href="#arg-range">:range '(1213 1249)</a>))
+   "")</span>
+<span class="headers-out">GET /mitb/hunchentoot.html HTTP/1.1
+Host: members.shaw.ca
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+<b>Range: bytes=998-1034</b>
+</span>
+<span class="headers-in">HTTP/1.1 206 Partial Content
+Date: Sun, 09 Dec 2012 09:16:16 GMT
+Server: Apache/2.2.20 (Unix) mod_ldap_userdir/1.1.17
+Last-Modified: Wed, 14 Mar 2012 23:22:04 GMT
+ETag: "3b7eed-3238-4bb3c3e453f00"
+Accept-Ranges: bytes
+Content-Length: 37
+<b>Content-Range: bytes 998-1034/12856</b>
+Content-Type: text/html
+Connection: close
+</span>
+<span class="headers-out">GET /mitb/hunchentoot.html HTTP/1.1
+Host: members.shaw.ca
+User-Agent: Drakma/1.3.0 (Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664); Darwin; 12.2.0; http://weitz.de/drakma/)
+Accept: */*
+Connection: close
+<b>Range: bytes=1213-1249</b>
+</span>
+<span class="headers-in">HTTP/1.1 206 Partial Content
+Date: Sun, 09 Dec 2012 09:16:16 GMT
+Server: Apache/2.2.20 (Unix) mod_ldap_userdir/1.1.17
+Last-Modified: Wed, 14 Mar 2012 23:22:04 GMT
+ETag: "3b7eed-3238-4bb3c3e453f00"
+Accept-Ranges: bytes
+Content-Length: 37
+<b>Content-Range: bytes 1213-1249/12856</b>
+Content-Type: text/html
+</span>
+<span class="repl-output">"DRAKMA (Queen of Cosmic Greed)
+HUNCHENTOOT (The Giant Spider)"
+T</span>
+</pre>
+    </clix:subchapter>
+  </clix:chapter>
+
+  <clix:chapter name="install" title="Download and Installation">
+    <p>
+      Drakma depends on a number of open source libraries, so the
+      preferred method to download, compile and load it is via <a
+      href="http://www.quicklisp.org/">Quicklisp</a>.  Drakma's
+      current version number is <clix:library-version/>.
+    </p>
+    <p>
+      The canonical location for the latest version of Drakma is <a
+      href="http://weitz.de/files/drakma.tar.gz">http://weitz.de/files/drakma.tar.gz</a>.
+    </p>
+  </clix:chapter>
+
+  <clix:chapter name="patches" title="Development and patches">
+    <p>
+      The development version of Drakma can be found <a
+      href="https://github.com/edicl/drakma" target="_new">on
+      github</a>.  Please use the github issue tracking system to
+      submit bug reports.  Patches are welcome, please use <a
+      href="https://github.com/edicl/drakma/pulls">GitHub pull
+      requests</a>.  If you want to make a change, please <a
+      href="http://weitz.de/patches.html" target="_new">read this
+      first</a>.
+    </p>
+  </clix:chapter>
+
+  <clix:chapter name="dictionary" title="The Drakma dictionary">
+
+    <clix:subchapter name="dict-request" title="Requests">
+
+      <p>
+        The <clix:ref>HTTP-REQUEST</clix:ref> function is the heart of
+        Drakma.  It is used to send requests to web servers and will
+        either return the message body of the server's reply or (if
+        the user so wishes) a stream one can read from.  The wealth of
+        keyword parameters might look a bit intimidating first, but
+        you will rarely need more than two or three of them - the
+        default behavior of Drakma is (hopefully) designed to do The
+        Right Thing[TM] in most cases.
+      </p>
+      <p>
+        You can use the <clix:ref>*HEADER-STREAM*</clix:ref> variable
+        to debug requests handled by Drakma in a way similar to <a
+        href="http://livehttpheaders.mozdev.org/">LiveHTTPHeaders</a>.
+      </p>
+
+      <clix:function name="http-request">
+        <clix:special-definition>
+          [Function]<br/>
+          <b>http-request</b> <i>uri</i><div class="arglist-spacer">&amp;rest args</div>
+          <div class="arglist-spacer">&amp;key
+            <a href="#arg-protocol">protocol</a>
+            <a href="#arg-method">method</a>
+            <a href="#arg-force-ssl">force-ssl</a>
+            <a href="#arg-certificate">certificate</a>
+            <a href="#arg-key">key</a>
+            <a href="#arg-certificate-password">certificate-password</a>
+            <a href="#arg-verify">verify</a>
+            <a href="#arg-max-depth">max-depth</a>
+            <a href="#arg-ca-file">ca-file</a>
+            <a href="#arg-ca-directory">ca-directory</a>
+            <a href="#arg-parameters">parameters</a>
+            <a href="#arg-url-encoder">url-encoder</a>
+            <a href="#arg-content">content</a>
+            <a href="#arg-content-type">content-type</a>
+            <a href="#arg-content-length">content-length</a>
+            <a href="#arg-form-data">form-data</a>
+            <a href="#arg-cookie-jar">cookie-jar</a>
+            <a href="#arg-basic-authorization">basic-authorization</a>
+            <a href="#arg-user-agent">user-agent</a>
+            <a href="#arg-accept">accept</a>
+            <a href="#arg-range">range</a>
+            <a href="#arg-proxy">proxy</a>
+            <a href="#arg-proxy-basic-authorization">proxy-basic-authorization</a>
+            <a href="#arg-real-host">real-host</a>
+            <a href="#arg-additional-headers">additional-headers</a>
+            <a href="#arg-redirect">redirect</a>
+            <a href="#arg-auto-referer">auto-referer</a>
+            <a href="#arg-keep-alive">keep-alive</a>
+            <a href="#arg-close">close</a>
+            <a href="#arg-external-format-out">external-format-out</a>
+            <a href="#arg-external-format-in">external-format-in</a>
+            <a href="#arg-force-binary">force-binary</a>
+            <a href="#arg-want-stream">want-stream</a>
+            <a href="#arg-stream">stream</a>
+            <a href="#arg-preserve-uri">preserve-uri</a>
+            <a href="#arg-connection-timeout">connection-timeout</a>
+            <a href="#arg-deadline">deadline</a>
+          </div>
+          <div class="arglist-spacer">
+            =&gt; body-or-stream<sup>0</sup>, status-code<sup>1</sup>,
+            headers<sup>2</sup>, uri<sup>3</sup>, stream<sup>4</sup>,
+            <a href="#arg-want-stream">must-close<sup>5</sup></a>,
+            reason-phrase<sup>6</sup>
+          </div>
+        </clix:special-definition>
+        <clix:description>
+          <p>
+            Sends an <a
+            href="http://www.w3.org/Protocols/rfc2616/rfc2616.html">HTTP</a>
+            request to a web server and returns its reply.
+            <clix:arg>uri</clix:arg> is where the request is sent to,
+            and it is either a string denoting a uniform resource
+            identifier or a <code>PURI:URI</code> object.  The scheme
+            of <clix:arg>uri</clix:arg> must be `http' or `https'.
+            The function returns SEVEN values - the body of the
+            reply<sup>0</sup> (but see below), the status
+            code<sup>1</sup> as an integer, an alist of the
+            headers<sup>2</sup> sent by the server where for each
+            element the car (the name of the header) is a keyword and
+            the cdr (the value of the header) is a string, the
+            uri<sup>3</sup> the reply comes from (which might be
+            different from the <clix:arg>uri</clix:arg> the request
+            was sent to in case of redirects), the stream<sup>4</sup>
+            the reply was read from, a generalized boolean<sup>5</sup>
+            which denotes whether the stream should be closed (and
+            which you can usually ignore), and finally the reason
+            phrase<sup>6</sup> from the status line as a string.
+          </p>
+          <p>
+            <a name="arg-protocol"/>
+            <clix:arg>protocol</clix:arg> is the HTTP protocol version
+            which is going to be used in the request line.  It must be
+            one of the keywords <code>:HTTP/1.0</code> or
+            <code>:HTTP/1.1</code>.
+          </p>
+          <p>
+            <a name="arg-method"/>
+            <clix:arg>method</clix:arg> is the method used in the
+            request line, a keyword (like <code>:GET</code> or
+            <code>:HEAD</code>) denoting a valid HTTP/1.1 or WebDAV
+            request method, or <code>:REPORT</code>, as described in
+            the Versioning Extensions to WebDAV.  Additionally, you
+            can also use the pseudo method <code>:OPTIONS*</code>
+            which is like <code>:OPTIONS</code> but means that an
+            "OPTIONS *" request line will be sent, i.e. the
+            <clix:arg>uri</clix:arg>'s path and query parts will be
+            ignored.
+          </p>
+          <p><a name="arg-force-ssl"/>
+            If <clix:arg>force-ssl</clix:arg> is true, SSL will be
+            attached to the socket stream which connects Drakma with
+            the web server.  Usually, you don't have to provide this
+            argument, as SSL will be attached anyway if the scheme of
+            <clix:arg>uri</clix:arg> is `https'.
+          </p>
+          <p><a name="arg-certificate"/><a
+          name="arg-certificate-password"/><a name="arg-key"/>
+          <clix:arg>certificate</clix:arg> is the file name of the PEM
+          encoded client certificate to present to the server when
+          making a SSL connection.  <clix:arg>key</clix:arg> specifies
+          the file name of the PEM encoded private key matching the
+          certificate.  <clix:arg>certificate-password</clix:arg>
+          specifies the pass phrase to use to decrypt the private key.
+          </p>
+          <p>
+            <a name="arg-verify"/>
+            <clix:arg>verify</clix:arg> can be specified to force
+            verification of the certificate that is presented by the
+            server in an SSL connection.  It can be specified either
+            as <code>NIL</code> if no check should be performed,
+            <code>:OPTIONAL</code> to verify the server's certificate
+            if it presented one or <code>:REQUIRED</code> to verify
+            the server's certificate and fail if an invalid or no
+            certificate was presented.
+          </p>
+          <p>
+            <a name="arg-max-depth"/>
+            <clix:arg>max-depth</clix:arg> can be specified to change
+            the maximum allowed certificate signing depth that is
+            accepted.  The default is 10.
+          </p>
+          <p>
+            <a name="arg-ca-file"/>
+            <a name="arg-ca-directory"/>
+            <clix:arg>ca-file</clix:arg> and
+            <clix:arg>ca-directory</clix:arg> can be specified to set
+            the certificate authority bundle file or directory to use
+            for certificate validation.
+          </p>
+          <p>
+            The <clix:arg>certificate</clix:arg>,
+            <clix:arg>key</clix:arg>,
+            <clix:arg>certificate-password</clix:arg>,
+            <clix:arg>verify</clix:arg>,
+            <clix:arg>max-depth</clix:arg>,
+            <clix:arg>ca-file</clix:arg> and
+            <clix:arg>ca-directory</clix:arg> parameters are ignored
+            for non-SSL requests.  They are also ignored on LispWorks.
+          </p>
+          <p>
+            <a name="arg-parameters"/>
+            <a name="arg-form-data"/>
+            <clix:arg>parameters</clix:arg> is an alist of name/value
+            pairs (the car and the cdr each being a string) which
+            denotes the parameters which are added to the query part
+            of the URL or (in the case of a POST request) comprise the
+            body of the request.  (But see
+            <clix:arg>content</clix:arg> below.)  The values can also
+            be <code>NIL</code> in which case only the name (without
+            an equal sign) is used in the query string.  The
+            name/value pairs are URL-encoded using the FLEXI-STREAMS
+            external format <clix:arg>external-format-out</clix:arg>
+            before they are sent to the server unless
+            <clix:arg>form-data</clix:arg> is true in which case the
+            POST request body is sent as `multipart/form-data' using
+            <clix:arg>external-format-out</clix:arg>.  The values of
+            the <clix:arg>parameters</clix:arg> alist can also be
+            pathnames, open binary input streams, unary functions, or
+            lists where the first element is of one of the former
+            types.  These values denote files which should be sent as
+            part of the request body.  If files are present in
+            <clix:arg>parameters</clix:arg>, the content type of the
+            request is always `multipart/form-data'.  If the value is
+            a list, the part of the list behind the first element is
+            treated as a plist which can be used to specify a content
+            type and/or a filename for the file, i.e. such a value
+            could look like, e.g., <tt>(#p"/tmp/my_file.doc"
+            :content-type "application/msword" :filename
+            "upload.doc")</tt>.
+          </p>
+          <p>
+            <a name="arg-url-encoder"/>
+            <clix:arg>url-encoder</clix:arg> specifies a custom URL
+            encoder function which will be used by drakma to
+            URL-encode parameter names and values.  It needs to be a
+            function of two arguments.  The arguments are the string
+            to encode and the external format to use (as accepted by
+            FLEXI-STREAMS:STRING-TO-OCTETS).  The return value must be
+            the URL-encoded string.  This can be used if specific
+            encoding rules are required.
+          </p>
+          <p>
+            <a name="arg-content"/>
+            <a name="arg-external-format-out"/>
+            <clix:arg>content</clix:arg>, if not <code>NIL</code>, is
+            used as the request body - <clix:arg>parameters</clix:arg>
+            is ignored in this case.  <clix:arg>content</clix:arg> can
+            be a string, a sequence of octets, a pathname, an open
+            binary input stream, or a function designator.  If
+            <clix:arg>content</clix:arg> is a sequence, it will be
+            directly sent to the server (using
+            <clix:arg>external-format-out</clix:arg> in the case of
+            strings).  If <clix:arg>content</clix:arg> is a pathname,
+            the binary contents of the corresponding file will be sent
+            to the server.  If <clix:arg>content</clix:arg> is a
+            stream, everything that can be read from the stream until
+            EOF will be sent to the server.  If
+            <clix:arg>content</clix:arg> is a function designator, the
+            corresponding function will be called with one argument,
+            the stream to the server, to which it should send data.
+          </p>
+          <p>
+            Finally, <clix:arg>content</clix:arg> can also be the
+            keyword <code>:CONTINUATION</code> in which case
+            <clix:ref>HTTP-REQUEST</clix:ref> returns only one value -
+            a `continuation' function.  This function has one required
+            argument and one optional argument.  The first argument
+            will be interpreted like <clix:arg>content</clix:arg>
+            above (but it cannot be a keyword), i.e. it will be sent
+            to the server according to its type.  If the second
+            argument is true, the continuation function can be called
+            again to send more content, if it is <code>NIL</code> the
+            continuation function returns what
+            <clix:ref>HTTP-REQUEST</clix:ref> would have returned.
+          </p>
+          <p>
+            If <clix:arg>content</clix:arg> is a sequence, Drakma will
+            use LENGTH to determine its length and will use the result
+            for the `Content-Length' header sent to the server.  You
+            can overwrite this with the
+            <clix:arg>content-length</clix:arg> parameter (a
+            non-negative integer) which you can also use for the cases
+            where Drakma can't or won't determine the content length
+            itself.  You can also explicitly provide a
+            <clix:arg>content-length</clix:arg> argument of
+            <code>NIL</code> which will imply that no `Content-Length'
+            header will be sent in any case.  If no `Content-Length'
+            header is sent, Drakma will use chunked encoding to send
+            the content body.  Note that this will not work with older
+            web servers.
+          </p>
+          <p>
+            <a name="arg-content-length"/>
+            Providing a true <clix:arg>content-length</clix:arg>
+            argument which is not a non-negative integer means that
+            Drakma /must/ build the request body in RAM and compute
+            the content length even if it would have otherwise used
+            chunked encoding, for example in the case of file uploads.
+          </p>
+          <p>
+            <a name="arg-content-type"/>
+            <clix:arg>content-type</clix:arg> is the corresponding
+            `Content-Type' header to be sent and will be ignored
+            unless <clix:arg>content</clix:arg> is provided as well.
+          </p>
+          <p>
+            Note that a query already contained in
+            <clix:arg>uri</clix:arg> will always be sent with the
+            request line anyway in addition to other parameters sent
+            by Drakma.
+          </p>
+          <p>
+            <a name="arg-cookie-jar"/>
+            <clix:arg>cookie-jar</clix:arg> is a cookie jar containing
+            cookies which will potentially be sent to the server (if
+            the domain matches, if they haven't expired, etc.) - this
+            cookie jar will be modified according to the `Set-Cookie'
+            header(s) sent back by the server.
+          </p>
+          <p>
+            <a name="arg-basic-authorization"/>
+            <clix:arg>basic-authorization</clix:arg>, if not
+            <code>NIL</code>, should be a list of two strings
+            (username and password) which will be sent to the server
+            for basic authorization.
+          </p>
+          <p>
+            <a name="arg-user-agent"/>
+            <clix:arg>user-agent</clix:arg>, if not <code>NIL</code>,
+            denotes which `User-Agent' header will be sent with the
+            request.  It can be one of the keywords
+            <code>:DRAKMA</code>, <code>:FIREFOX</code>,
+            <code>:EXPLORER</code>, <code>:OPERA</code>, or
+            <code>:SAFARI</code> which denote the current version of
+            Drakma or, in the latter four cases, a fixed string
+            corresponding to a more or less recent (as of August 2006)
+            version of the corresponding browser.  Or it can be a
+            string which is used directly.
+          </p>
+          <p>
+            <a name="arg-accept"/>
+            <clix:arg>accept</clix:arg>, if not <code>NIL</code>,
+            specifies the contents of the `Accept' header sent.
+          </p>
+          <p>
+            <a name="arg-range"/>
+            <clix:arg>range</clix:arg> optionally specifies a subrange
+            of the resource to be requested.  It must be specified as
+            a list of two integers which indicate the start and
+            (inclusive) end offset of the requested range, in bytes
+            (i.e. octets).
+          </p>
+          <p>
+            <a name="arg-proxy"/>
+            <a name="arg-proxy-basic-authorization"/>
+            If <clix:arg>proxy</clix:arg> is not <code>NIL</code>, it
+            should be a string denoting a proxy server through which
+            the request should be sent.  Or it can be a list of two
+            values - a string denoting the proxy server and an integer
+            denoting the port to use (which will default to 80
+            otherwise).  Defaults to
+            <clix:arg>*default-http-proxy*</clix:arg>.
+            <clix:arg>proxy-basic-authorization</clix:arg> is used
+            like <clix:arg>basic-authorization</clix:arg>, but for the
+            proxy, and only if <clix:arg>proxy</clix:arg> is true.  If
+            the host portion of the uri is present in the
+            <clix:ref>*NO-PROXY-DOMAINS*</clix:ref> or the
+            <clix:arg>NO-PROXY-DOMAINS</clix:arg> list then the proxy
+            setting will be ignored for this request.
+          </p>
+          <p>
+            If <clix:arg>NO-PROXY-DOMAINS</clix:arg> is set then it
+            will supersede the <clix:ref>*NO-PROXY-DOMAINS*</clix:ref>
+            variable. Inserting domains into this list will allow them
+            to ignore the proxy setting.
+          </p>
+          <p>
+            <a name="arg-real-host"/>
+            If <clix:arg>real-host</clix:arg> is not <code>NIL</code>,
+            request is sent to the denoted host instead of the
+            <clix:arg>uri</clix:arg> host.  When specified,
+            <clix:arg>real-host</clix:arg> supersedes
+            <clix:arg>proxy</clix:arg>.
+          </p>
+          <p>
+            <a name="arg-additional-headers"/>
+            <clix:arg>additional-headers</clix:arg> is a name/value
+            alist of additional HTTP headers which should be sent with
+            the request.  Unlike in <clix:arg>parameters</clix:arg>,
+            the cdrs can not only be strings but also designators for
+            unary functions (which should in turn return a string) in
+            which case the function is called each time the header is
+            written.
+          </p>
+          <p>
+            <a name="arg-redirect"/>
+            <a name="arg-auto-referer"/>
+            If <clix:arg>redirect</clix:arg> is not <code>NIL</code>,
+            it must be a non-negative integer or T.  If
+            <clix:arg>redirect</clix:arg> is true, Drakma will follow
+            redirects (return codes 301, 302, 303, or 307) unless
+            <clix:arg>redirect</clix:arg> is 0.  If
+            <clix:arg>redirect</clix:arg> is an integer, it will be
+            decreased by 1 with each redirect.  Furthermore, if
+            <clix:arg>auto-referer</clix:arg> is true when following
+            redirects, Drakma will populate the `Referer' header with
+            the <clix:arg>uri</clix:arg> that triggered the
+            redirection, overwriting an existing `Referer' header (in
+            <clix:arg>additional-headers</clix:arg>) if necessary.
+          </p>
+          <p>
+            <a name="arg-keep-alive"/>
+            <a name="arg-close"/>
+            If <clix:arg>keep-alive</clix:arg> is T, the server will
+            be asked to keep the connection alive, i.e. not to close
+            it after the reply has been sent.  (Note that this not
+            necessary if both the client and the server use HTTP 1.1.)
+            If <clix:arg>close</clix:arg> is T, the server is
+            explicitly asked to close the connection after the reply
+            has been sent.  <clix:arg>keep-alive</clix:arg> and
+            <clix:arg>close</clix:arg> are obviously mutually
+            exclusive.
+          </p>
+          <p>
+            <a name="arg-external-format-in"/>
+            <a name="arg-force-binary"/>
+            If the message body sent by the server has a text content
+            type, Drakma will try to return it as a Lisp string.
+            It'll first check if the `Content-Type' header denotes an
+            encoding to be used, or otherwise it will use the
+            <clix:arg>external-format-in</clix:arg> argument.  The
+            body is decoded using FLEXI-STREAMS.  If FLEXI-STREAMS
+            doesn't know the external format, the body is returned as
+            an array of octets.  If the body is empty, Drakma will
+            return <code>NIL</code>.
+          </p>
+          <p>
+            If the message body doesn't have a text content type or if
+            <clix:arg>force-binary</clix:arg> is true, the body is
+            always returned as an array of octets.
+          </p>
+          <p>
+            <a name="arg-want-stream"/>
+            If <clix:arg>want-stream</clix:arg> is true, the message
+            body is NOT read and instead the (open) socket stream is
+            returned as the first return value.  If the sixth value of
+            <clix:ref>HTTP-REQUEST</clix:ref> is true, the stream
+            should be closed (and not be re-used) after the body has
+            been read.  The stream returned is a <a
+            href="http://weitz.de/flexi-streams/">flexi-stream</a>
+            with a <a href="http://weitz.de/chunga/"
+            target="_new">chunked stream</a> as its underlying stream.
+            If you want to read binary data from this stream, read
+            from the underlying stream which you can get with
+            FLEXI-STREAM-STREAM.
+          </p>
+          <p>
+            <a name="arg-stream"/>
+            Drakma will usually create a new socket connection for
+            each HTTP request.  However, you can use the
+            <clix:arg>stream</clix:arg> argument to provide an open
+            socket stream which should be re-used.
+            <clix:arg>stream</clix:arg> MUST be a stream returned by a
+            previous invocation of <clix:ref>HTTP-REQUEST</clix:ref>
+            where the sixth return value wasn't true.  Obviously, it
+            must also be connected to the correct server and at the
+            right position (i.e. the message body, if any, must have
+            been read).  Drakma will NEVER attach SSL to a stream
+            provided as the <clix:arg>stream</clix:arg> argument.
+          </p>
+          <p>
+            <a name="arg-connection-timeout"/>
+            <clix:arg>connection-timeout</clix:arg> is the time (in
+            seconds) Drakma will wait until it considers an attempt to
+            connect to a server as a failure. It is supported only on
+            some platforms (currently abcl, clisp, LispWorks, mcl,
+            openmcl and sbcl). READ-TIMEOUT and WRITE-TIMEOUT are the
+            read and write timeouts (in seconds) for the socket stream
+            to the server.  All three timeout arguments can also be
+            <code>NIL</code> (meaning no timeout), and they don't
+            apply if an existing stream is re-used.  READ-TIMEOUT
+            argument is only available for LispWorks, WRITE-TIMEOUT is
+            only available for LispWorks 5.0 or higher.
+          </p>
+          <p>
+            <a name="arg-deadline"/>
+            <clix:arg>deadline</clix:arg>, a time in the future,
+            specifies the time until which the request should be
+            finished.  The deadline is specified in internal time
+            units.  If the server fails to respond until that time, a
+            COMMUNICATION-DEADLINE-EXPIRED condition is signalled.
+            <clix:arg>deadline</clix:arg> is only available on CCL 1.2
+            and later.
+          </p>
+          <p>
+            <a name="arg-preserve-uri"/>
+            If <clix:arg>preserve-uri</clix:arg> is not
+            <code>NIL</code>, the given <clix:arg>uri</clix:arg> will
+            not be processed. This means that the
+            <clix:arg>uri</clix:arg> will be sent as-is to the remote
+            server and it is the responsibility of the client to make
+            sure that all parameters are encoded properly. Note that
+            if this parameter is given, and the request is not a POST
+            with a content-type of `multipart/form-data',
+            <clix:arg>parameters</clix:arg> will not be used.
+          </p>
+          <p>
+            If <clix:arg>decode-content</clix:arg> is not
+            <code>NIL</code>, then the content will automatically be
+            decoded according to any encodings specified in the
+            Content-Encoding header. The actual decoding is done by
+            the <clix:ref>decode-stream</clix:ref> generic function,
+            and you can implement new methods to support additional
+            encodings.  Any encodings in Transfer-Encoding, such as
+            chunking, are always performed.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:function name="parameter-present-p">
+        <clix:lambda-list>name parameters</clix:lambda-list>
+        <clix:returns>boolean</clix:returns>
+        <clix:description>
+          <p>
+            If <clix:arg>parameters</clix:arg> is an alist of
+            parameters as returned by, for example,
+            READ-TOKENS-AND-PARAMETERS and <clix:arg>name</clix:arg>
+            is a string naming a parameter, this function returns the
+            full parameter (name and value) - or <code>NIL</code> if
+            it's not in <clix:arg>parameters</clix:arg>.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:function name="parameter-value">
+        <clix:lambda-list>name parameters</clix:lambda-list>
+        <clix:returns>(or string null)</clix:returns>
+        <clix:description>
+          <p>
+            If <clix:arg>parameters</clix:arg> is an alist of
+            parameters as returned by, for example,
+            READ-TOKENS-AND-PARAMETERS and <clix:arg>name</clix:arg>
+            is a string naming a parameter, this function returns the
+            value of this parameter - or <code>NIL</code> if it's not
+            in <clix:arg>parameters</clix:arg>.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:function name="url-encode">
+        <clix:lambda-list>string external-format</clix:lambda-list>
+        <clix:returns>string</clix:returns>
+        <clix:description>
+          <p>
+            Returns a URL-encoded version of the string
+            <clix:arg>string</clix:arg> using the external format
+            <clix:arg>external-format</clix:arg>.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:function name="decode-stream">
+        <clix:lambda-list>encoding-type stream</clix:lambda-list>
+        <clix:returns>stream</clix:returns>
+        <clix:description>
+          <p>
+            Generic function to decode a stream.  This is a generic
+            function which decodes the stream based on the
+            encoding-type.  If a response contains one or more
+            transfer or content encodings, then decode-stream is
+            called for each encoding type in the correct order to
+            properly decode the stream to its original content.
+          </p>
+          <p>
+            <clix:arg>encoding-type</clix:arg> will be a keyword
+            created by upcasing and interning the encoding type from
+            the header.  <clix:arg>stream</clix:arg> will be the
+            stream that needs to be
+            decoded. <clix:ref>decode-stream</clix:ref> returns a new
+            stream from which you can read the decoded data.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:special-variable name="*body-format-function*">
+        <clix:description>
+          <p>
+            A function which determines whether the content body
+            returned by the server is text and should be treated as
+            such or not.  The function is called after the request
+            <clix:ref>headers</clix:ref> have been read and it must
+            accept two arguments, <code><i>headers</i></code> and
+            <code><i>external-format-in</i></code>, where
+            <code><i>headers</i></code> is like the third return value
+            of <clix:ref>HTTP-REQUEST</clix:ref> while
+            <code><i>external-format-in</i></code> is the
+            <clix:ref>HTTP-REQUEST</clix:ref> argument of the same
+            name.  It should return <code>NIL</code> if the body
+            should be regarded as binary content, or a <a
+            href="http://weitz.de/flexi-streams/">FLEXI-STREAMS</a>
+            external format (which will be used to read the body)
+            otherwise.
+          </p>
+          <p>
+            This function will only be called if the <a
+            href="#arg-force-binary"><code><i>force-binary</i></code></a>
+            argument to <clix:ref>HTTP-REQUEST</clix:ref> is
+            <code>NIL</code>.
+          </p>
+          <p>
+            The initial value of this variable is a function which
+            uses <clix:ref>*TEXT-CONTENT-TYPES*</clix:ref> to
+            determine whether the body is text and then proceeds as
+            described in the <clix:ref>HTTP-REQUEST</clix:ref>
+            documentation entry.
+          </p>
+        </clix:description>
+      </clix:special-variable>
+
+      <clix:special-variable name="*default-http-proxy*">
+        <clix:description>
+          <p>
+	    HTTP proxy to be used as default for the proxy keyword
+	    argument of <clix:ref>HTTP-REQUEST</clix:ref>. If not
+	    <code>NIL</code>, it should be a string denoting a proxy
+	    server through which the request should be sent.  Or it
+	    can be a list of two values - a string denoting the proxy
+	    server and an integer denoting the port to use (which
+	    will default to 80 otherwise).
+          </p>
+        </clix:description>
+      </clix:special-variable>
+
+      <clix:special-variable name="*no-proxy-domains*">
+        <clix:description>
+          <p>
+            A list of domains for which a proxy should not be used.
+          </p>
+        </clix:description>
+      </clix:special-variable>
+
+      <clix:special-variable name="*drakma-default-external-format*">
+        <clix:description>
+          <p>
+            The default value for the external format keyword
+            arguments of <clix:ref>HTTP-REQUEST</clix:ref>.  The value
+            of this variable will be interpreted by <a
+            href="http://weitz.de/flexi-streams/">FLEXI-STREAMS</a>.
+            The initial value is the keyword <code>:LATIN-1</code>.
+            (Note that Drakma binds <a
+            href="http://weitz.de/flexi-streams/#*default-eol-style*"><code>*DEFAULT-EOL-STYLE*</code></a>
+            to <code>:LF</code>).
+          </p>
+        </clix:description>
+      </clix:special-variable>
+
+      <clix:special-variable name="*header-stream*">
+        <clix:description>
+          <p>
+            If this variable is not <code>NIL</code>, it should be
+            bound to a stream to which incoming and outgoing headers
+            will be written for debugging purposes.
+          </p>
+        </clix:description>
+      </clix:special-variable>
+
+      <clix:special-variable name="*text-content-types*">
+        <clix:description>
+          <p>
+            A list of conses which are used by the default value of
+            <clix:ref>*BODY-FORMAT-FUNCTION*</clix:ref> to decide
+            whether a 'Content-Type' header denotes text content.  The
+            car and cdr of each cons should each be a string or
+            <code>NIL</code>.  A content type matches one of these
+            entries (and thus denotes text) if the type part is <a
+            href="http://www.lispworks.com/documentation/HyperSpec/Body/f_stgeq_.htm"><code>STRING-EQUAL</code></a>
+            to the car or if the car is <code>NIL</code> and if the
+            subtype part is <a
+            href="http://www.lispworks.com/documentation/HyperSpec/Body/f_stgeq_.htm"><code>STRING-EQUAL</code></a>
+            to the cdr or if the cdr is <code>NIL</code>.
+          </p>
+          <p>
+            The initial value of this variable is the list
+            <pre>(("text" . nil))</pre> which means that every content
+            type that starts with "text/" is regarded as text, no
+            matter what the subtype is.
+          </p>
+        </clix:description>
+      </clix:special-variable>
+
+    </clix:subchapter>
+
+    <clix:subchapter name="headers" title="Headers">
+      <p>
+        This section assembles a couple of convenience functions which
+        can be used to access information returned as the third value
+        (<code><i>headers</i></code>) of
+        <clix:ref>HTTP-REQUEST</clix:ref>.
+      </p>
+      <p>
+        Note that if the server sends <a
+        href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2">multiple
+        headers with the same name</a>, these are comprised into one
+        entry by <clix:ref>HTTP-REQUEST</clix:ref>.  The values are
+        separated by commas.
+      </p>
+
+      <clix:function name="get-content-type">
+        <clix:lambda-list>headers</clix:lambda-list>
+        <clix:returns>list</clix:returns>
+        <clix:description>
+          <p>
+            Reads and parses a `Content-Type' header and returns it as
+            three values - the type, the subtype, and an alist
+            (possibly empty) of name/value pairs for the optional
+            parameters.  <clix:arg>headers</clix:arg> is supposed to
+            be an alist of headers as returned by
+            <clix:ref>HTTP-REQUEST</clix:ref>.  Returns
+            <code>NIL</code> if there is no such header amongst
+            <clix:arg>headers</clix:arg>.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:function name="header-value">
+        <clix:lambda-list>name headers</clix:lambda-list>
+        <clix:returns>(or string null)</clix:returns>
+        <clix:description>
+          <p>
+            If <clix:arg>headers</clix:arg> is an alist of headers as
+            returned by <clix:ref>HTTP-REQUEST</clix:ref> and
+            <clix:arg>name</clix:arg> is a keyword naming a header,
+            this function returns the corresponding value of this
+            header (or <code>NIL</code> if it's not in
+            <clix:arg>headers</clix:arg>).
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:function name="read-tokens-and-parameters">
+        <clix:lambda-list>string &amp;key value-required-p</clix:lambda-list>
+        <clix:returns>list</clix:returns>
+        <clix:description>
+          <p>
+            Reads a comma-separated list of tokens from the string
+            <clix:arg>string</clix:arg>.  Each token can be followed
+            by an optional, semicolon-separated list of
+            attribute/value pairs where the attributes are tokens
+            followed by a #\= character and a token or a quoted
+            string.  Returned is a list where each element is either a
+            string (for a simple token) or a cons of a string (the
+            token) and an alist (the attribute/value pairs).  If
+            <clix:arg>value-required-p</clix:arg> is <code>NIL</code>,
+            the value part (including the #\= character) of each
+            attribute/value pair is optional.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:function name="split-tokens">
+        <clix:lambda-list>string</clix:lambda-list>
+        <clix:returns>list</clix:returns>
+        <clix:description>
+          <p>
+            Splits the string <clix:arg>string</clix:arg> into a list
+            of substrings separated by commas and optional whitespace.
+            Empty substrings are ignored.
+          </p>
+        </clix:description>
+      </clix:function>
+
+    </clix:subchapter>
+
+    <clix:subchapter name="cookies" title="Cookies">
+      <p>
+        <clix:ref>HTTP-REQUEST</clix:ref> can deal with <a
+        href="http://en.wikipedia.org/wiki/HTTP_cookie">HTTP
+        cookies</a> if it gets a <a href="#cookie-jar">cookie jar</a>,
+        a collection of <clix:ref>COOKIE</clix:ref> objects, as its <a
+        href="#arg-cookie-jar">cookie-jar</a> argument.  Cookies sent
+        by the web server will be added to the cookie jar (or updated)
+        if appropriate and cookies already in the cookie jar will be
+        sent to the server together with the request.
+      </p>
+      <p>
+        Drakma will never remove cookies from a cookie jar
+        automatically.  You have to do it manually using
+        <clix:ref>DELETE-OLD-COOKIES</clix:ref>.
+      </p>
+
+      <clix:class name="cookie">
+        <clix:description>
+          <p>
+            Instances of this class represent <a
+            href="http://en.wikipedia.org/wiki/HTTP_cookie">HTTP
+            cookies</a>.  If you need to create your own cookies, you
+            should use <a
+            href="http://www.lispworks.com/documentation/HyperSpec/Body/f_mk_ins.htm"><code>MAKE-INSTANCE</code></a>
+            with the initargs <code>:NAME</code>, <code>:DOMAIN</code>,
+            <code>:VALUE</code>, <code>:PATH</code>,
+            <code>:EXPIRES</code>, <code>:SECUREP</code>, and
+            <code>:HTTP-ONLY-P</code> all of which are optional except
+            for the first two.  The meaning of these initargs and <a
+            href="#cookie-name">the corresponding accessors</a> should
+            be pretty clear if one looks at the <a
+            href="http://curl.haxx.se/rfc/cookie_spec.html">original
+            cookie specification</a> (and at <a
+            href="http://msdn2.microsoft.com/en-us/library/ms533046.aspx">this
+            page</a> for the <code>HttpOnly</code> extension).
+          </p>
+          <pre><span class="repl-output">? </span><span class="repl-input">(make-instance 'drakma:cookie
+                 :name "Foo" 
+                 :value "Bar"
+                 :expires (+ (get-universal-time) 3600)
+                 :domain ".weitz.de")</span>
+<span class="repl-output">#&lt;COOKIE Foo=Bar; expires=Sun, 09-12-2012 20:37:42 GMT; path=/; domain=.weitz.de&gt;</span>
+</pre>
+        </clix:description>
+      </clix:class>
+
+      <clix:function name="parse-cookie-date">
+        <clix:lambda-list>string</clix:lambda-list>
+        <clix:returns>universal-time</clix:returns>
+        <clix:description>
+          <p>
+            Parses a cookie expiry date and returns it as a Lisp <a
+            href="http://www.lispworks.com/documentation/HyperSpec/Body/25_adb.htm">universal
+            time</a>.  Currently understands the following formats:
+          </p>
+          <pre>"Wed, 06-Feb-2008 21:01:38 GMT"
+"Wed, 06-Feb-08 21:01:38 GMT"
+"Tue Feb 13 08:00:00 2007 GMT"
+"Wednesday, 07-February-2027 08:55:23 GMT"
+"Wed, 07-02-2017 10:34:45 GMT"</pre>
+          <p>
+            Instead of "GMT" time zone abbreviations like "CEST" and UTC
+            offsets like "GMT-01:30" are also allowed.
+          </p>
+          <p>
+            While this function has "cookie" in its name, it might
+            come in handy in other situations as well and it is thus
+            exported as a convenience function.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:function name="cookie=">
+        <clix:lambda-list>cookie1 cookie2</clix:lambda-list>
+        <clix:returns>boolean</clix:returns>
+        <clix:description>
+          Returns a true value if the cookies
+          <clix:arg>cookie1</clix:arg> and
+          <clix:arg>cookie2</clix:arg> are equal.  Two cookies are
+          considered to be equal if name and path are equal.
+        </clix:description>
+      </clix:function>
+
+      <clix:accessors generic='true'>
+        <clix:listed-accessor generic='true' name='cookie-name'>
+          <clix:lambda-list>cookie</clix:lambda-list>
+          <clix:returns>string</clix:returns>
+        </clix:listed-accessor>
+        <clix:listed-accessor generic='true' name='cookie-value'>
+          <clix:lambda-list>cookie</clix:lambda-list>
+          <clix:returns>(or string null)</clix:returns>
+        </clix:listed-accessor>
+        <clix:listed-accessor generic='true' name='cookie-domain'>
+          <clix:lambda-list>cookie</clix:lambda-list>
+          <clix:returns>string</clix:returns>
+        </clix:listed-accessor>
+        <clix:listed-accessor generic='true' name='cookie-path'>
+          <clix:lambda-list>cookie</clix:lambda-list>
+          <clix:returns>(or string null)</clix:returns>
+        </clix:listed-accessor>
+        <clix:listed-accessor generic='true' name='cookie-expires'>
+          <clix:lambda-list>cookie</clix:lambda-list>
+          <clix:returns>(or integer null)</clix:returns>
+        </clix:listed-accessor>
+        <clix:listed-accessor generic='true' name='cookie-http-only-p'>
+          <clix:lambda-list>cookie</clix:lambda-list>
+          <clix:returns>boolean</clix:returns>
+        </clix:listed-accessor>
+        <clix:listed-accessor generic='true' name='cookie-securep'>
+          <clix:lambda-list>cookie</clix:lambda-list>
+          <clix:returns>boolean</clix:returns>
+        </clix:listed-accessor>
+      </clix:accessors>
+
+      <clix:class name="cookie-jar">
+        <clix:description>
+          <p>
+            An object of this class encapsulates a collection (a list,
+            actually) of <code>COOKIE</code> objects. You create a new
+            cookie jar with <code>(MAKE-INSTANCE 'COOKIE-JAR)</code>
+            where you can optionally provide a list of
+            <clix:ref>COOKIE</clix:ref> objects with the
+            <code>:COOKIES</code> initarg. The cookies in a cookie jar
+            are accessed with <clix:ref>COOKIE-JAR-COOKIES</clix:ref>.
+          </p>
+        </clix:description>
+      </clix:class>
+
+      <clix:accessors generic='true'>
+        <clix:listed-accessor generic='true' name='cookie-jar-cookies'>
+          <clix:lambda-list>cookie-jar</clix:lambda-list>
+          <clix:returns>list</clix:returns>
+        </clix:listed-accessor>
+      </clix:accessors>
+
+      <clix:function name="delete-old-cookies">
+        <clix:lambda-list>cookie-jar</clix:lambda-list>
+        <clix:returns>cookie-jar</clix:returns>
+        <clix:description>
+          <p>
+            Removes all cookies from <clix:arg>cookie-jar</clix:arg>
+            which have either expired or which don't have an expiry
+            date.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:special-variable name="*allow-dotless-cookie-domains-p*">
+        <clix:description>
+          <p>
+            When this variable is not <code>NIL</code>, cookie domains
+            containing no dots are considered valid.  The default is
+            <code>NIL</code>, meaning to disallow such domains except
+            for "localhost".
+          </p>
+        </clix:description>
+      </clix:special-variable>
+
+      <clix:special-variable name="*ignore-unparseable-cookie-dates-p*">
+        <clix:description>
+          <p>
+            Whether Drakma is allowed to treat `Expires' dates in
+            cookie headers as non-existent if it can't parse them.  If
+            the value of this variable is <code>NIL</code> (which is
+            the default), an error will be signalled instead.
+          </p>
+        </clix:description>
+      </clix:special-variable>
+
+      <clix:special-variable name="*remove-duplicate-cookies-p*">
+        <clix:description>
+          <p>
+            Determines how duplicate cookies in the response are
+            handled, defaults to <code>T</code>.  Cookies are
+            considered duplicate using <a
+            href="#cookie="><code>COOKIE=</code></a>.
+          </p>
+          <p>
+            Valid values are:
+            <ul>
+              <li><code>NIL</code> - duplicates will not be
+              removed,</li>
+              <li><code>T</code> or <code>:KEEP-LAST</code> - for
+              duplicates, only the last cookie value will be kept,
+              based on the order of the response header,</li>
+              <li><code>:KEEP-FIRST</code> - for duplicates, only the
+              first cookie value will be kept, based on the order of
+              the response header.</li>
+            </ul>
+          </p>
+          <p>
+            Misbehaving servers may send duplicate cookies back in the
+            same <code>Set-Cookie</code> header:
+          </p>
+<pre>HTTP/1.1 200  OK
+Server: My-hand-rolled-server
+Date: Wed, 07 Apr 2010 15:12:30 GMT
+Connection: Close
+Content-Type: text/html
+Content-Length: 82
+Set-Cookie: a=1; Path=/; Secure, a=2; Path=/; Secure
+</pre>
+          <p>
+            In this case Drakma has to choose whether cookie "a" has
+            the value "1" or "2".  By default, Drakma will choose the
+            last value specified, in this case "2".
+          </p>
+          <p>
+            By default, Drakma conforms to <a
+            href="http://www.w3.org/Protocols/rfc2109/rfc2109">RFC2109
+            HTTP State Management Mechanism</a>, section 4.3.3 Cookie
+            Management:
+
+            <blockquote>
+              <em>
+                If a user agent receives a Set-Cookie response header
+                whose NAME is the same as a pre-existing cookie, and
+                whose Domain and Path attribute values exactly
+                (string) match those of a pre-existing cookie, the new
+                cookie supersedes the old.
+              </em>
+            </blockquote>
+          </p>
+        </clix:description>
+      </clix:special-variable>
+    </clix:subchapter>
+
+    <clix:subchapter name="conditions" title="Conditions">
+      <p>
+        This section lists all the condition types that are defined by
+        Drakma.
+      </p>
+
+      <clix:condition name="cookie-date-parse-error">
+        <clix:description>
+          <p>
+            Signalled if Drakma tries to parse the date of an incoming
+            cookie header and can't interpret it.
+          </p>
+        </clix:description>
+      </clix:condition>
+
+      <clix:condition name="cookie-error">
+        <clix:description>
+          <p>
+            Signalled if someone tries to create a COOKIE object
+            that's not valid.
+          </p>
+        </clix:description>
+      </clix:condition>
+
+      <clix:function name="cookie-error-cookie" generic="true">
+        <clix:lambda-list>cookie-error</clix:lambda-list>
+        <clix:returns>(or cookie null)</clix:returns>
+        <clix:description>
+          <p>
+            The <code>COOKIE</code> object that caused this error.
+            Can be <code>NIL</code> in case such an object couldn't be
+            initialized.
+          </p>
+        </clix:description>
+      </clix:function>
+
+      <clix:condition name="parameter-error">
+        <clix:description>
+          <p>
+            Signalled if a function was called with inconsistent or
+            illegal parameters.
+          </p>
+        </clix:description>
+      </clix:condition>
+
+      <clix:condition name="syntax-error">
+        <clix:description>
+          <p>
+            Signalled if Drakma encounters wrong or unknown syntax
+            when reading the reply from the server.
+          </p>
+        </clix:description>
+      </clix:condition>
+
+      <clix:condition name="drakma-condition">
+        <clix:description>
+          <p>
+            Superclass for all conditions related to Drakma.
+          </p>
+        </clix:description>
+      </clix:condition>
+
+      <clix:condition name="drakma-error">
+        <clix:description>
+          <p>
+            Superclass for all errors related to Drakma.
+          </p>
+        </clix:description>
+      </clix:condition>
+
+      <clix:condition name="drakma-warning">
+        <clix:description>
+          <p>
+            Superclass for all warnings related to Drakma.
+          </p>
+        </clix:description>
+      </clix:condition>
+    </clix:subchapter>
+  </clix:chapter>
+
+  <clix:chapter name="index" title="Symbol index">
+    <clix:index/>
+  </clix:chapter>
+
+</clix:documentation>

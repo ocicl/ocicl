@@ -1,0 +1,346 @@
+Version 2.0.8
+2021-07-17
+
+Version 2.0.7
+2019-10-23
+Don't pass :TLSEXT-HOST-NAME on older LispWorks.
+
+Version 2.0.6
+2019-09-27
+Pass :TLSEXT-HOST-NAME option when ATTACH-SSL on LispWorks (Xiangyu He)
+
+Version 2.0.5
+2019-04-07
+
+Version 2.0.4
+2017-08-28
+Support all :VERIFY options with cl+ssl. (Anton Vodonosov)
+
+Version 2.0.3
+2016-12-19
+Allegro CL Express SSL fix (Chris Riesbeck)
+Use force-ssl, verify and other SSL settings when using proxy (lsxvdqe)
+verify, ca-path, ca-directory and max-depth for CL+SSL (lsxvdqe)
+Using host from :additional-headers when specified (Azamat S. Kalimoulline)
+
+Version 2.0.2
+2015-10-08
+Support SNI with cl+ssl. (Paul M. Rodriguez)
+
+Version 2.0.1
+2015-07-10
+Revert "Use quri instead of puri" (Hans Hübner)
+Merge pull request #56 from tmccombs/test-op (Hans Hübner)
+Add test-op to ASDF for drakma and drakma-test systems. (Thayne McCombs)
+
+Version 2.0.0
+2015-07-10
+Use quri instead of puri for URIs. (Thayne McCombs)
+
+Version 1.3.15
+2015-07-07
+Refactor time zone parsing into regular expression (Hans Huebner)
+Update README.md (Hans Hübner)
+make-ssl-stream: declare additional variables ignorable (Mark David)
+
+Version 1.3.14
+2015-03-14
+Update documentation (Hans Huebner)
+Add DECODE-CONTENT option (Thayne McCombs)
+
+Version 1.3.13
+2015-03-11
+Workaround for ABCL streams bug More information here: http://abcl.org/trac/ticket/377 (Elias Martenson)
+Fix code to generate version number in HTML docs (Hans Huebner)
+
+Version 1.3.12
+2015-01-15
+Preserve octet element-type with :force-binary t. (Jan Moringen)
+
+Version 1.3.11
+2014-11-28
+Update support info (Hans Huebner)
+Do not escape URI twice. (Orivej Desh)
+
+Version 1.3.10
+2014-09-16
+Implement gzip and deflate decoding for responses. (Thayne McCombs)
+Fix error in example (reported by David Vázquez Púa, closes #44) (Hans Huebner)
+
+Version 1.3.9
+2014-05-01
+Added SSL/TLS support for mocl (Wukix Inc)
+reindent and refactor cond into if (Hans Huebner)
+
+Version 1.3.8
+2014-02-25
+Determine version number from asdf package (Hans Huebner)
+Silence warning on LispWorks (Hans Huebner)
+All symbols from puri are prefixed with puri:. (Kilian Sprotte)
+
+Version 1.3.7
+2013-11-21
+Dummy without any functional changes
+
+Version 1.3.6
+Documentation fixes (thanks to sarvid and stassats for the report)
+
+Version 1.3.5
+Ignore incoming Content-Length header when chunking is on
+Make POST requests use external-format-out for multipart/form-data. (Raymond Wiker)
+Fixed the link to the SBCL documentation pertaining to "defining constants" (Aaron France)
+Added *NO-PROXY-DOMAINS* special variable (Aaron France)
+
+Version 1.3.4
+Add *default-http-proxy* special variable (Tomas Zellerin)
+
+Version 1.3.3
+Change handling of empty and missing Location headers (Paul M. Rodriguez)
+
+Version 1.3.2
+Redirect to GET only for POST requests (Vsevolod Dyomkin)
+
+Version 1.3.1
+2013-03-23
+When redirecting from POST to GET, clear the FORM-DATA flag
+Add trivial test suite (Anton Vodonosov)
+
+Version 1.3.0
+2012-12-28
+Redirect HTTP 302 and 303 using GET (Orivej Desh)
+Add URL-ENCODER keyword argument
+Move documentation to XML format and update docstrings
+
+Version 1.2.9
+2012-10-18
+Fix bug with Content-Length computation (Manabu Takayama)
+Add REAL-HOST keyword argument (Orivej Desh)
+
+Version 1.2.8
+2012-09-12
+fix the computation of request's Content-Length (Manabu Takayama)
+
+Version 1.2.7
+2012-08-16
+Support :REPORT method (Cyrus Harmon)
+Make PRESERVE-URI work better - PURI:URI mangles paths with encoded &'s.
+
+Version 1.2.6
+2012-03-03
+Enable timeouts for more implementations (Francisco Vides Fernández)
+Export URL-ENCODE (suggested by Rob Blackwell)
+Fix incorrect range header syntax
+
+Version 1.2.5
+2012-01-30
+use cl-ppcre:split instead of split-string to fix bug with GET
+parameter handling (thanks to Rob Blackwell)
+use :nodelay :if-supported (Anton Vodonosov)
+Allow specification of client certificate (all platforms)
+Add arguments that allow validation of server certificate
+
+Version 1.2.4
+2011-08-31
+Make sure GET parameters are always URL-encoded
+Add :RANGE keyword argument (Hans Huebner)
+Better handling of optional filenames when uploading (Stas Boukarev)
+Don't funcall symbols that aren't FBOUNDP (Fare Rideau)
+Allow disabling of SSL when building (Marko Kocic)
+
+Version 1.2.3
+2010-08-05
+Fix UPDATE-COOKIES (Vsevolod Dyomkin)
+Fix typo in documentation HTML (Walter Rader)
+
+Version 1.2.2
+2010-07-10
+Make sure pathless URIs work (Hans Huebner, Manuel Odendahl)
+
+Version 1.2.1
+2010-05-19
+Fix a couple of typos (thanks to Stelian Ionescu, Giovanni Gigante, and Zach Beane)
+
+Version 1.2.0
+2010-05-19
+Introduced *REMOVE-DUPLICATE-COOKIES-P* (Ryan Davis)
+Enabled https through a proxy (Bill St. Clair and Dave Lambert)
+Bugfix for redirect of a request through a proxy (Bill St. Clair)
+Export PARSE-COOKIE-DATE
+Safer method to render URIs
+Allowed for GET/POST parameters without a value (seen on Lotus webservers)
+
+Version 1.1.0
+2009-12-01
+Allowed additional headers to be function designators (suggested by Xiangjun Wu)
+Be more liberal when parsing cookies (thanks to Andrei Stebakov)
+Added HTTP method PATCH (thanks to Xiangjun Wu)
+Don't send GET parameters again when redirecting (reported by Eugene Ossintsev)
+Solidify feature expressions (thanks to Joshua Taylor)
+Make SEND-COOKIE-P work for pathless URIs (thanks to Tomo Matsumoto)
+
+Version 1.0.0
+2009-02-19
+Use the new ("binary") version of Chunga
+Added conditions types
+Some performance improvements
+Be more lenient about content length (thanks to Zach Beane and "pix")
+Added *ALLOW-DOTLESS-COOKIE-DOMAINS-P* (thanks to Daniel Janus)
+Fix generation of user agent header (bug caught by Chaitanya Gupta)
+Added DEADLINE parameter for CCL (thanks to Hans Huebner)
+Fixed bug where READ-BODY returned NIL although TEXTP was true (thanks to Hans Huebner)
+
+Version 0.11.5
+2008-03-21
+Added workaround for CLISP (thanks to Anton Vodonosov)
+
+Version 0.11.4
+2008-02-13
+Improved error detection in MAKE-FORM-DATA-FUNCTION (suggested by Daniel Janus)
+
+Version 0.11.3
+2008-01-14
+The previous change is only needed for Windows
+
+Version 0.11.2
+2008-01-14
+Disable WRITE-TIMEOUT for LW 5.0 if SSL is used (reported by Nico de Jager)
+
+Version 0.11.1
+2007-10-11
+Make Drakma work with AllegroCL's "modern" mode (patch by Ross Jekel)
+Needs at least Chunga 0.4.1 and FLEXI-STREAMS 0.13.1
+
+Version 0.11.0
+2007-10-01
+Added *TEXT-CONTENT-TYPES* and *BODY-FORMAT-FUNCTION* (suggested by Peter Eddy)
+
+Version 0.10.2
+2007-09-29
+Fixed bug introduced in latest change... (reported by Ross Jekel)
+
+Version 0.10.1
+2007-09-25
+Use parameters in URI if they weren't used up for the content body (suggested by Jan Rychter)
+
+Version 0.10.0
+2007-09-18
+Added support for "HttpOnly" cookie attribute (due to a bug report by Alexey Goldin)
+
+Version 0.9.1
+2007-07-12
+Improved CL+SSL support (patch by David Lichteblau)
+
+Version 0.9.0
+2007-06-30
+Added reason phrase to return values (patch by Holger Duerer)
+
+Version 0.8.0
+2007-06-25
+In cookie dates, accept time zones different from "GMT" (reported by Didier Verna)
+Added *ignore-unparseable-cookie-dates-p*
+
+Version 0.7.1
+2007-06-17
+Allow streams or functions as file designators (suggested by Andrei Stebakov)
+
+Version 0.7.0
+2007-04-07
+Switched from trivial-sockets to usocket (patch by Erik Huelsmann)
+
+Version 0.6.2
+2007-03-09
+Fixed release dates (thanks to Jeffrey Cunningham)
+
+Version 0.6.1
+2007-03-08
+Changed SPLIT-STRING so that it doesn't rely on unspecified behaviour (reported by Jianshi Huang)
+
+Version 0.6.0
+2007-02-08
+Make sure stream is closed in case of early errors (thanks to Chris Dean for test data)
+Robustified cookie parsing
+Send all outgoing cookies in one fell swoop (for Sun's buggy web server)
+Deal with empty Location headers
+Deal with corrupted Content-Type headers
+
+Version 0.5.5
+2007-02-05
+Fixed socket leak in case of redirects (bug report by Chris Dean)
+
+Version 0.5.4
+2006-12-01
+Workaround for servers which send headers after 100 status line (provided by Donavon Keithley)
+
+Version 0.5.3
+2006-10-11
+Set stream element type for binary streams as needed for CLISP (reported by Magnus Henoch)
+
+Version 0.5.2
+2006-10-08
+Adhere to user-provided content length if FORM-DATA is true
+
+Version 0.5.1
+2006-10-07
+Take Content-Encoding header into account (due to a bug report by Gregory Tod)
+
+Version 0.5.0
+2006-09-25
+Fixed bug where body sometimes wasn't read (reported by Ivan Toshkov)
+Added AUTO-REFERER feature (thanks to Colin Simmonds)
+
+Version 0.4.4
+2006-09-24
+Treat "localhost" special for cookies (reported by Ivan Toshkov)
+
+Version 0.4.3
+2006-09-24
+Circumvent CL+SSL for AllegroCL (suggested by David Lichteblau)
+
+Version 0.4.2
+2006-09-07
+Fixed :OPTIONS* method
+
+Version 0.4.1
+2006-09-07
+Added more methods including :OPTIONS* pseudo method (suggested by Ralf Mattes)
+Always (except for POST) add parameters to URI query
+Always read body (unless there's no chunking and no content length)
+
+Version 0.4.0
+2006-09-05
+Added file uploads
+Added multipart/form-data
+Added enforced computation of request bodies in RAM
+Use LF line endings in default external format
+
+Version 0.3.1
+2006-09-04
+Don't use underlying streams of flexi streams anymore
+Returned streams now have element type OCTET when FORCE-BINARY is true
+Better default "User-Agent" header for some Lisps
+Added info about mailing lists
+Added note about Gentoo
+
+Version 0.3.0
+2006-09-02
+Added client-side chunked encoding and various ways to send the content
+
+Version 0.2.0
+2006-09-01
+Completely re-factored for portability, chunking code is in Chunga now
+
+Version 0.1.3
+2006-08-30
+REQUIRE "comm" before WITH-STREAM-INPUT-BUFFER is used
+
+Version 0.1.2
+2006-08-27
+Notes about SSL and listener font
+
+Version 0.1.1
+2006-08-27
+Note about CL-BASE64 and KMRCL
+
+Version 0.1.0
+2006-08-27
+First public release
