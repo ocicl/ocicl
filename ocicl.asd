@@ -32,11 +32,12 @@
   :components ((:module "runtime"
                 :components ((:static-file "asdf.lisp")
                              (:static-file "ocicl-runtime.lisp")))
+               (:file "http")
                (:file "tree")
                (:file "package")
-               (:file "ocicl" :depends-on ("runtime" "package" "tree")))
+               (:file "ocicl" :depends-on ("runtime" "http" "package" "tree")))
 
-  :depends-on ( :with-user-abort :unix-opts :dexador :cl-json :cl-interpol :tar
+  :depends-on ( :with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
 
                 ;; sbcl internals

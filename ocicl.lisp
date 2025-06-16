@@ -213,7 +213,9 @@ Distributed under the terms of the MIT License"
         (debug-log (format nil "getting bearer token for ~A" server))
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
-                     (dex:get #?"https://${server}/token?scope=repository:${repository}/${system}:pull" :verbose *verbose*)))))
+                     (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${system}:pull"
+                                          :force-string t
+                                          :verbose *verbose*)))))
     (error (e)
       (declare (ignore e))
       nil)))
@@ -231,14 +233,14 @@ Distributed under the terms of the MIT License"
           (sort
            (cdr (assoc :tags
                        (cl-json:decode-json-from-string
-                        (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
-                                 :verbose *verbose*
-                                 :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
+                        (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
+                                             :force-string t
+                                             :verbose *verbose*
+                                             :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
            #'string>)))
     (error (e)
       (declare (ignore e))
       (format t "; ~A(~A) not found~%" system registry))))
-
 
 (defun do-list (args)
   (handler-case
@@ -297,7 +299,7 @@ Distributed under the terms of the MIT License"
                        (get-manifest registry #?"${system}-changes.txt" version)
                      (declare (ignore manifest-digest))
                      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-                            (changes (dex:get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
+                            (changes (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
                                               :force-string t
                                               :verbose *verbose*
                                               :headers `(("Authorization" . ,#?"Bearer ${token}")))))
@@ -444,12 +446,13 @@ If FORCE is NIL, skip files that already exist."
                             (filter-strings
                              (cdr (assoc :tags
                                          (cl-json:decode-json-from-string
-                                          (dex:get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
-                                                   :verbose *verbose*
-                                                   :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
+                                          (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
+                                                               :force-string t
+                                                               :verbose *verbose*
+                                                               :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
                           (p (position version all-versions :test #'string=)))
                      (when p (cdr (nthcdr p all-versions))))))
-             (dexador.error:http-request-forbidden (e)
+             (drakma:drakma-error (e)
                (declare (ignore e))))))
 
 (defun number-to-ordinal-suffix (n)
@@ -1280,6 +1283,8 @@ If FORCE is NIL, skip files that already exist."
 
 (defun main ()
   (setf *random-state* (make-random-state t))
+  (ocicl.http:configure-drakma-proxy-from-env)
+
   (handler-case
       (with-user-abort:with-user-abort
 
@@ -1474,7 +1479,7 @@ If FORCE is NIL, skip files that already exist."
         (server (get-up-to-first-slash registry))
         (repository (get-repository-name registry)))
     (multiple-value-bind (body status response-headers)
-        (dex:get #?"https://${server}/v2/${repository}/${system}/manifests/${tag}"
+        (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/manifests/${tag}"
                  :force-string t
                  :verbose *verbose*
                  :headers `(("Authorization" . ,#?"Bearer ${token}")
@@ -1489,7 +1494,7 @@ If FORCE is NIL, skip files that already exist."
     (multiple-value-bind (manifest manifest-digest)
         (get-manifest registry system tag)
       (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-             (input (dex:get #?"https://${server}/v2/${repository}/${system}/blobs/${digest}"
+             (input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/blobs/${digest}"
                              :force-binary t
                              :want-stream t
                              :verbose *verbose*
