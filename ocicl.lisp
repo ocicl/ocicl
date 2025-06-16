@@ -1629,6 +1629,7 @@ download the system unless a version is specified."
          :sb-grovel
          :sb-introspect
          :sb-md5
+         #-windows
          :sb-mpfr
          :sb-posix
          :sb-queue
