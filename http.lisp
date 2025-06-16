@@ -71,17 +71,22 @@
          (progn
            (when verbose
              (setf drakma:*header-stream* verbose))
-           (multiple-value-bind (body status-code response-headers _uri _stream)
-               ;; Drakma uses :additional-headers, not :headers.
-               (drakma:http-request url
-                                    :method :get
-                                    :additional-headers headers
-                                    :want-stream want-stream
-                                    :force-binary force-binary)
-             ;; Convert Drakma’s header alist to the hash-table expected elsewhere.
-             (let ((body (if (and force-string (not want-stream))
-                             ;; ensure body is a Lisp string; leave it untouched otherwise
-                             (babel:octets-to-string body :encoding :utf-8)
-                             body)))
-               (values body status-code (header-alist->hash-table response-headers)))))
-      (setf drakma:*header-stream* old-header-stream))))
+           (handler-bind
+               ((error (lambda (c)
+                         (format *error-output* "~&~A: ~A~%" (type-of c) c)
+                         (sb-debug:backtrace depth)
+                         (invoke-debugger c))))
+             (multiple-value-bind (body status-code response-headers _uri _stream)
+                 ;; Drakma uses :additional-headers, not :headers.
+                 (drakma:http-request url
+                                      :method :get
+                                      :additional-headers headers
+                                      :want-stream want-stream
+                                      :force-binary force-binary)
+               ;; Convert Drakma’s header alist to the hash-table expected elsewhere.
+               (let ((body (if (and force-string (not want-stream))
+                               ;; ensure body is a Lisp string; leave it untouched otherwise
+                               (babel:octets-to-string body :encoding :utf-8)
+                               body)))
+                 (values body status-code (header-alist->hash-table response-headers))))))
+           (setf drakma:*header-stream* old-header-stream))))
