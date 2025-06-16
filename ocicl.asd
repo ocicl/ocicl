@@ -27,7 +27,7 @@
   :description "Common Lisp system management"
   :author "Anthony Green <green@moxielogic.com>"
   :license "MIT"
-  :version (:read-file-form "version.sexp")
+  :version "2.6.0"
   :serial t
   :components ((:module "runtime"
                 :components ((:static-file "asdf.lisp")
@@ -39,6 +39,7 @@
 
   :depends-on ( :with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
+                :version-string
 
                 ;; sbcl internals
                 (:feature :sbcl :sb-posix)

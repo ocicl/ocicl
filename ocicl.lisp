@@ -46,7 +46,7 @@
 (defvar *color-bright-green* #.(format nil "~c[92m" #\escape))
 (defvar *color-bright-cyan* #.(format nil "~c[96m" #\escape))
 
-(defparameter +version+ #.(uiop:read-file-form "version.sexp"))
+(version-string:define-version-parameter +version+ :ocicl)
 
 (defparameter +runtime+
   #.(let* ((runtime (uiop:read-file-string "runtime/ocicl-runtime.lisp"))
