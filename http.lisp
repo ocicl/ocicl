@@ -69,7 +69,7 @@
   - HEADERS is a hash-table whose keys are *string* header names."
   (setf verbose t)
   (when verbose
-    (format verbose drakma:*no-proxy-domains*))
+    (print drakma:*no-proxy-domains*))
   (let ((old-header-stream drakma:*header-stream*))
     (unwind-protect
          (progn
