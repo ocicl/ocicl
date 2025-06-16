@@ -57,6 +57,10 @@
       (destructuring-bind (name . value) h
         (setf (gethash name ht) value)))))
 
+(defun debug-log (s)
+  (when *verbose*
+    (format t "; ~A~%" s)))
+
 (defun http-get (url &key headers force-string force-binary want-stream verbose)
   "Roughly emulates the subset of DEXADOR:GET used by ocicl.
 
@@ -77,6 +81,7 @@
                          (format *error-output* "~&~A: ~A~%" (type-of c) c)
                          (sb-debug:backtrace depth)
                          (invoke-debugger c))))
+             (debug-log (format nil "About to http-request ~A" url))
              (multiple-value-bind (body status-code response-headers _uri _stream)
                  ;; Drakma uses :additional-headers, not :headers.
                  (drakma:http-request url
@@ -84,13 +89,14 @@
                                       :additional-headers headers
                                       :want-stream want-stream
                                       :force-binary force-binary)
+               (debug-log "ran http-request")
                ;; Convert Drakma’s header alist to the hash-table expected elsewhere.
                (let ((body (if (and force-string (not want-stream))
                                ;; ensure body is a Lisp string; leave it untouched otherwise
                                (babel:octets-to-string body :encoding :utf-8)
                                body)))
-                 (print "===============================")
-                 (print body)
+                 (debug-log "===============================")
+                 (debug-log body)
                  (print "===============================")
                  (values body status-code (header-alist->hash-table response-headers))))))
            (setf drakma:*header-stream* old-header-stream))))
