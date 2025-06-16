@@ -64,8 +64,8 @@
   - BODY is a string unless WANT-STREAM is T.
   - STATUS is the numeric HTTP status code.
   - HEADERS is a hash-table whose keys are *string* header names."
-  (when *verbose*
-    (format *verbose* drakma:*no-proxy-domains*))
+  (when verbose
+    (format verbose drakma:*no-proxy-domains*))
   (let ((old-header-stream drakma:*header-stream*))
     (unwind-protect
          (progn
