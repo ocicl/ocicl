@@ -29,18 +29,16 @@ jobs:
       - name: Show OpenSSL version
         shell: pwsh
         run: |
-          openssl version              # should print e.g. "OpenSSL 3.3.1..."
+          openssl version
           where libssl*.dll
       - name: Ensure OpenSSL runtime is present
         shell: pwsh
         run: |
-          # If the DLL isn't already there, install the light runtime
           if (-not (Test-Path 'C:\Program Files\OpenSSL-Win64\bin\libssl-3-x64.dll')) {
               choco install openssl.light --version 3.3.1 -y --no-progress   # or any version you need
           }
-          # Make sure the DLL directory is on PATH for the rest of the job
           echo "C:\Program Files\OpenSSL-Win64\bin" | Out-File $env:GITHUB_PATH -Append
-    - name: Set git to use LF
+      - name: Set git to use LF
         shell: bash
         run: |
           git config --global core.autocrlf false
