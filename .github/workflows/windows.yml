@@ -49,8 +49,8 @@ jobs:
           ls -l ocicl
           ls -l ocicl.csv
           cat ocicl.csv
-          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(ocicl-runtime:*verbose* t)" --eval "(asdf:load-system :sento)" --eval "(quit)"
-          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(ocicl-runtime:*verbose* t)" --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(setf ocicl-runtime:*verbose* t)" --eval "(asdf:load-system :sento)" --eval "(quit)"
+          /c/sbcl/Pfiles/"Steel Bank Common Lisp"/sbcl.exe --non-interactive --eval "(setf ocicl-runtime:*verbose* t)" --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
           rm -rf ocicl
           ocicl.exe install
           ocicl.exe latest
