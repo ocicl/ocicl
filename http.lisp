@@ -64,6 +64,7 @@
   - BODY is a string unless WANT-STREAM is T.
   - STATUS is the numeric HTTP status code.
   - HEADERS is a hash-table whose keys are *string* header names."
+  (setf verbose t)
   (when verbose
     (format verbose drakma:*no-proxy-domains*))
   (let ((old-header-stream drakma:*header-stream*))
@@ -88,5 +89,8 @@
                                ;; ensure body is a Lisp string; leave it untouched otherwise
                                (babel:octets-to-string body :encoding :utf-8)
                                body)))
+                 (print "===============================")
+                 (print body)
+                 (print "===============================")
                  (values body status-code (header-alist->hash-table response-headers))))))
            (setf drakma:*header-stream* old-header-stream))))
