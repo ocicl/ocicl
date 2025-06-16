@@ -58,8 +58,7 @@
         (setf (gethash name ht) value)))))
 
 (defun debug-log (s)
-  (when *verbose*
-    (format t "; ~A~%" s)))
+  (format t "; ~A~%" s))
 
 (defun http-get (url &key headers force-string force-binary want-stream verbose)
   "Roughly emulates the subset of DEXADOR:GET used by ocicl.
