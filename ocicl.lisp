@@ -217,7 +217,8 @@ Distributed under the terms of the MIT License"
                                           :force-string t
                                           :verbose *verbose*)))))
     (error (e)
-      (declare (ignore e))
+      ;; (declare (ignore e))
+      (print e)
       nil)))
 
 (defun system-latest-version (system)
