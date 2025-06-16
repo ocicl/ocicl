@@ -211,6 +211,9 @@ Distributed under the terms of the MIT License"
       (let* ((server (get-up-to-first-slash registry))
              (repository (get-repository-name registry)))
         (debug-log (format nil "getting bearer token for ~A" server))
+        (print repository)
+        (print system)
+        (debug-log #?"https://${server}/token?scope=repository:${repository}/${system}:pull")
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
                      (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${system}:pull"
