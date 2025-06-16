@@ -216,7 +216,8 @@ Distributed under the terms of the MIT License"
         (debug-log #?"https://${server}/token?scope=repository:${repository}/${system}:pull")
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
-                     (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${system}:pull"
+;;                     (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${system}:pull"
+                     (ocicl.http:http-get (format nil "https://~A/token?scope=repository:~A/~A:pull" server repository system)
                                           :force-string t
                                           :verbose *verbose*))))) )
 #|
