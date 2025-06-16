@@ -121,7 +121,7 @@
 (defun check-if-program-exists (program-name)
   "Check if PROGRAM-NAME exists and is executable."
   (multiple-value-bind (_ err code)
-      (uiop:run-program (list program) :ignore-error-status t)
+      (uiop:run-program (list program-name) :ignore-error-status t)
     (declare (ignore _ err))
     (not (member code '(126 127)))))
 
