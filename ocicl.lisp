@@ -54,7 +54,7 @@
     (if start
         (concatenate 'string
                      (subseq runtime 0 start)
-                     (uiop:read-file-form "version.sexp")
+                     (version-string:make-version-string :ocicl :include-git-p t)
                      (subseq runtime (+ start 7)))
         runtime)))
 
@@ -379,6 +379,7 @@ Distributed under the terms of the MIT License"
 (defun install-builtin-templates (&key (force nil))
   "Write the embedded templates to ~/.local/share/ocicl/templates/ .
 If FORCE is NIL, skip files that already exist."
+  (declare (ignore force))
   (let* ((base (merge-pathnames "templates/" (get-ocicl-dir))))
     (dolist (tpl +builtin-templates+)
       (destructuring-bind (rel . data) tpl
