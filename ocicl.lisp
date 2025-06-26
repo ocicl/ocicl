@@ -248,7 +248,10 @@ Distributed under the terms of the MIT License"
           (loop for registry in *ocicl-registries*
                 do (let ((tags (system-version-list system registry)))
                      (when tags
-                       (format t "~A(~A):~%" system registry)
+                       (if *color*
+                           (format t #?"${*color-bold*}${*color-bright-green*}${system} ~
+                                        ${*color-reset*}${*color-dim*}(${registry})${*color-reset*}:~%")
+                           (format t "~A (~A):~%" system registry))
                        (dolist (tag tags)
                          (format t "~T~A~%" tag))
                        (return))))
@@ -569,12 +572,19 @@ If FORCE is NIL, skip files that already exist."
                                  (difference-in-years (parse-date-to-universal-time
                                                        (subseq most-recent-version 0 8))
                                                       using-date)))
-                           (format t "~A~20T~A libyears (~A days)~%" project-name
+                           (format t (if *color*
+                                         #?"${*color-bold*}${*color-bright-green*}~A${*color-reset*}~40T~
+                                            ${*color-bold*}~A${*color-reset*} libyears ~
+                                            (${*color-bold*}~A${*color-reset*} days)~%"
+                                         "~A~27T~A libyears (~A days)~%")
+                                   project-name
                                    (round-up-to-decimal p-age 2)
                                    (round-up-to-decimal (* p-age 365.25) 2))
                            (incf age p-age))))))
                projects)
-      (format t "~&~%TOTAL libyears: ~A (~A days)~%"
+      (format t (if *color*
+                    #?"~&~%TOTAL libyears: ${*color-bold*}~A${*color-reset*} (${*color-bold*}~A${*color-reset*} days)~%"
+                    "~&~%TOTAL libyears: ~A (~A days)~%")
               (round-up-to-decimal age 2)
               (round-up-to-decimal (* age 365.25) 2)))))
 
@@ -638,10 +648,13 @@ If FORCE is NIL, skip files that already exist."
               (download-system-dependencies name)))))
       ;; Download all systems in systems.csv.
       (maphash (lambda (key value)
-                 (declare (ignore key))
                  (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
-                   (format t "; downloading ~A~%" (car value))
-                   (download-and-install (car value))))
+                   (download-and-install (car value))
+                   (if *color*
+                       (format t #?"${*color-dim*};${*color-reset*} downloaded ~
+                                    ${*color-bold*}${*color-bright-green*}${(unmangle key)}${*color-reset*} ~
+                                    from ${*color-dim*}${(car value)}${*color-reset*}~%")
+                       (format t "; downloaded ~A from ~A~%" (unmangle key) (car value)))))
                *ocicl-systems*)))
 
 (defun subpath-p (path1 path2)
@@ -705,31 +718,34 @@ If FORCE is NIL, skip files that already exist."
          (name (car slist))
          (mangled-name (mangle name))
          (system-info (gethash mangled-name *ocicl-systems*)))
-
     (if (null system-info)
-      (format t "; no system to remove: ~A~%" name) ;return here, fixes type warnings to merge-pathnames
-      (let* ((fullname (car system-info))
-             (relative-asd-path (cdr system-info))
-             (absolute-asd-path (merge-pathnames relative-asd-path *systems-dir*))
-             (system-directory (merge-pathnames
-                                 (make-pathname
+        (if *color*
+            (format t #?"${*color-dim*};${*color-reset*} ~
+                         no system to remove: ~
+                         ${*color-bold*}${*color-bright-red*}${name}${*color-reset*}~%")
+            (format t "; no system to remove: ~A~%" name)) ;return here, fixes type warnings to merge-pathnames
+        (let* ((fullname (car system-info))
+               (relative-asd-path (cdr system-info))
+               (absolute-asd-path (merge-pathnames relative-asd-path *systems-dir*))
+               (system-directory (merge-pathnames
+                                  (make-pathname
                                    :directory
                                    `(:relative
-                                      ,(second
-                                         (pathname-directory
-                                           (enough-namestring absolute-asd-path *systems-dir*)))))
-                                 *systems-dir*))
-             (system-group (system-group system)))
-        (when (and modify-ocicl-systems system-info)
-          (dolist (system system-group)
-            (remhash system *ocicl-systems*)))
-        (when (uiop:directory-exists-p system-directory)
-          (uiop:delete-directory-tree
-            system-directory
-            :validate (lambda (path)
-                        ;; ensure directory being deleted is a subdirectory of *systems-dir*
-                        (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
-          (format t "; removed ~A~%" (file-namestring fullname)))))))
+                                     ,(second
+                                       (pathname-directory
+                                        (enough-namestring absolute-asd-path *systems-dir*)))))
+                                  *systems-dir*))
+               (system-group (system-group system)))
+          (when (and modify-ocicl-systems system-info)
+            (dolist (system system-group)
+              (remhash system *ocicl-systems*)))
+          (when (uiop:directory-exists-p system-directory)
+            (uiop:delete-directory-tree
+             system-directory
+             :validate (lambda (path)
+                         ;; ensure directory being deleted is a subdirectory of *systems-dir*
+                         (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
+            (format t "; removed ~A~%" (file-namestring fullname)))))))
 
 (defun resolve-dependency-name (dependency)
   "Resolve ASDF dependency name."
@@ -814,7 +830,10 @@ If FORCE is NIL, skip files that already exist."
                  (graph (set-difference all-systems flat-groups
                                         :test (lambda (a b)
                                                 (member (car a) b :test #'equal)))))
-            (format t "~{; no system to remove: ~A~^~%~}~&" nonexistent-systems)
+            (if *color*
+                (format t #?"~{${*color-dim*};${*color-reset*} no system to remove: ~
+                               ${*color-bold*}${*color-bright-red*}~A${*color-reset*}~^~%~}~&" nonexistent-systems)
+                (format t "~{; no system to remove: ~A~^~%~}~&" nonexistent-systems))
             (remove-trees dependency-trees graph)
             ;; modify ocicl-systems
             (maphash
@@ -822,7 +841,11 @@ If FORCE is NIL, skip files that already exist."
                (let ((*print-pretty* nil))
                  (if (eql value :removed)
                      (mapc (lambda (system) (remhash (mangle system) *ocicl-systems*)) system-group)
-                     (format t "~&; not removing systems ~a, depended on by: ~a~%" system-group value))))
+                     (if *color*
+                         (format t #?"${*color-dim*};${*color-reset*} not removing systems ~
+                                      (~{${*color-bold*}${*color-bright-green*}~A${*color-reset*}~^ ~}), ~
+                                      depended on by: ${*color-bold*}${*color-bright-green*}~a${*color-reset*}~%" system-group value)
+                         (format t "~&; not removing systems ~a, depended on by: ~a~%" system-group value)))))
              seen-system-groups)))
       (write-systems-csv))))
 
@@ -1555,7 +1578,12 @@ download the system unless a version is specified."
              (probe-file asd-file)
              (not *force*))
         (progn
-          (format t "; ~A:~A already exists~%" system (get-project-version relative-asd-path))
+          (if *color*
+              (format t #?"${*color-dim*};~
+                           ${*color-reset*}${*color-bold*}${*color-bright-green*} ${system}~
+                           ${*color-reset*}${*color-dim*}:${(get-project-version relative-asd-path)}~
+                           ${*color-reset*} already exists~%")
+              (write-string #?"; ${system}:${(get-project-version relative-asd-path)} already exists\n"))
           (gethash mangled-name *ocicl-systems*))
         (let ((dl-dir (get-temp-ocicl-dl-pathname)))
           (unwind-protect
@@ -1567,7 +1595,12 @@ download the system unless a version is specified."
                                            (progn
                                              (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
                                              (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
-                                               (format t "; downloaded ~A@~A~%" name manifest-digest)
+                                               (if *color*
+                                                   (format t #?"${*color-dim*};~
+                                                                ${*color-reset*} downloaded~
+                                                                ${*color-bold*}${*color-bright-green*} ${name}~
+                                                                ${*color-reset*}${*color-dim*}@${manifest-digest}~%")
+                                                   (format t "; downloaded ~A@~A~%" name manifest-digest))
                                                (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
                                                       (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
                                                                                          (uiop:split-string (namestring abs-dirname)
