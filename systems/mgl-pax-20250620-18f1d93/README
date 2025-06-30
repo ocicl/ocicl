@@ -1,0 +1,3888 @@
+# PAX Manual
+
+###### [in package MGL-PAX with nicknames PAX]
+
+## Introduction
+
+What if documentation really lived in the code?
+
+Docstrings are already there. If some narrative glued them together,
+we'd be able develop and explore the code along with the
+documentation due to their physical proximity. The main tool that
+PAX provides for this is DEFSECTION:
+
+    (defsection @foo-random-manual (:title "Foo Random manual")
+      "Foo Random is a random number generator library."
+      (foo-random-state class)
+      (uniform-random function)
+      (@foo-random-examples section))
+
+Like this one, sections can have docstrings and
+references to
+definitions (e.g. (UNIFORM-RANDOM FUNCTION)). These docstrings and
+references are the glue. To support interactive development, PAX
+
+- makes SLIME's M-. work with references and
+
+- adds a documentation browser.
+
+See Emacs Setup.
+
+Beyond interactive workflows, Generating Documentation from
+sections and all the referenced items in Markdown or HTML format is
+also implemented.
+
+With the simplistic tools provided, one may emphasize the narrative
+as with Literate Programming, but documentation is generated from
+code, not vice versa, and there is no support for chunking.
+
+Code is first, code must look pretty, documentation is code.
+
+##### Docstrings
+
+PAX automatically recognizes and marks up code with
+backticks and links names in code to their definitions.
+Take, for instance, SBCL's ABORT function, whose docstring is
+written in the usual style, uppercasing names of symbols:
+
+    (docstring #'abort)
+    => "Transfer control to a restart named ABORT, signalling
+    a CONTROL-ERROR if none exists."
+
+Note how in the generated documentation, ABORT is set with a
+monospace font, while CONTROL-ERROR is Autolinked:
+
+- [function] ABORT &OPTIONAL CONDITION
+
+    Transfer control to a restart named ABORT, signalling
+    a CONTROL-ERROR if none exists.
+
+[6bc0]: http://www.lispworks.com/documentation/HyperSpec/Body/e_contro.htm "CONTROL-ERROR CONDITION"
+
+The following transcript shows the raw Markdown for
+the previous example.
+
+    (document #'abort :format :markdown)
+    .. - [function] **ABORT** *&OPTIONAL CONDITION*
+    ..
+    ..     Transfer control to a restart named `ABORT`, signalling
+    ..     a [`CONTROL-ERROR`][7c2c] if none exists.
+    ..
+    ..   [7c2c]: http://www.lispworks.com/documentation/HyperSpec/Body/e_contro.htm "CONTROL-ERROR (MGL-PAX:CLHS CONDITION)"
+    ..
+
+##### A Complete Example
+
+Here is an example of how it all works together:
+
+    (mgl-pax:define-package :foo-random
+      (:documentation "This package provides various utilities for random.
+      See FOO-RANDOM:@FOO-RANDOM-MANUAL.")
+      (:use #:common-lisp #:mgl-pax))
+    
+    (in-package :foo-random)
+    
+    (defsection @foo-random-manual (:title "Foo Random manual")
+      "FOO-RANDOM is a random number generator library inspired by CL:RANDOM.
+      Functions such as UNIFORM-RANDOM use *FOO-STATE* and have a
+      :RANDOM-STATE keyword arg."
+      (foo-random-state class)
+      (state (reader foo-random-state))
+      "Hey we can also print states!"
+      (print-object (method (foo-random-state t)))
+      (*foo-state* variable)
+      (gaussian-random function)
+      (uniform-random function)
+      ;; This is a subsection.
+      (@foo-random-examples section))
+    
+    (defclass foo-random-state ()
+      ((state :reader state)))
+    
+    (defmethod print-object ((object foo-random-state) stream)
+      (print-unreadable-object (object stream :type t)))
+    
+    (defvar *foo-state* (make-instance 'foo-random-state)
+      "Much like *RANDOM-STATE* but uses the FOO algorithm.")
+    
+    (defun uniform-random (limit &key (random-state *foo-state*))
+      "Return a random number from the between 0 and LIMIT (exclusive)
+      uniform distribution."
+      nil)
+    
+    (defun gaussian-random (stddev &key (random-state *foo-state*))
+      "Return a random number from a zero mean normal distribution with
+      STDDEV."
+      nil)
+    
+    (defsection @foo-random-examples (:title "Examples")
+      "Let's see the transcript of a real session of someone working
+      with FOO:
+    
+      ```cl-transcript
+      (values (princ :hello) (list 1 2))
+      .. HELLO
+      => :HELLO
+      => (1 2)
+    
+      (make-instance 'foo-random-state)
+      ==> #<FOO-RANDOM-STATE >
+      ```")
+
+Note how (VARIABLE *FOO-STATE*) in the DEFSECTION form both
+exports *FOO-STATE* and includes its documentation in
+@FOO-RANDOM-MANUAL. The symbols VARIABLE and
+FUNCTION are just two instances of locatives,
+which are used in DEFSECTION to refer to definitions tied to
+symbols.
+
+(DOCUMENT @FOO-RANDOM-MANUAL) generates fancy Markdown or HTML
+output with automatic markup and Autolinks uppercase words found in docstrings,
+numbers sections, and creates a table of contents.
+
+One can even generate documentation for different but related
+libraries at the same time with the output going to different files
+but with cross-page links being automatically added for symbols
+mentioned in docstrings. In fact, this is what PAX World does. See
+Generating Documentation for some convenience functions to cover
+the most common cases.
+
+The transcript in the code block tagged with
+cl-transcript is automatically checked for up-to-dateness when
+documentation is generated.
+
+## Links and Systems
+
+Here is the [official
+repository](https://github.com/melisgl/mgl-pax) and the [HTML
+documentation](http://melisgl.github.io/mgl-pax-world/mgl-pax-manual.html)
+for the latest version. There is also a PAX channel on
+youtube with a couple of videos.
+
+[pax-yt]: https://www.youtube.com/playlist?list=PLxbqYr4DvjX68AEdLky4IiHG69VJu6f5s
+
+PAX is built on top of the DRef library (bundled in the same repository).
+
+- Installation for deployment
+
+    The base system is mgl-pax. It has very few
+    dependencies and is sufficient as a dependency for systems using
+    the Basics to add documentation. This is to keep deployed code
+    small. To install only the bare minimum, with no intention of
+    using Navigating Sources in Emacs, Generating Documentation,
+    Browsing Live Documentation or using Transcripts, under
+    Quicklisp for example, PAX could be installed as:
+
+        (ql:quickload "mgl-pax")
+
+- Installation for development
+
+    The heavier dependencies are on the other systems, which
+    correspond to the main functionalities provided, intended to be
+    used primarily during development. To install the dependencies
+    for all features under Quicklisp, do
+
+        (ql:quickload "mgl-pax/full")
+
+    Having thus installed the dependencies, it is enough to load the
+    base system, which will autoload the other systems as necessary.
+
+- [system] "mgl-pax"
+
+    - Version: 0.4.4
+
+    - Description: Documentation system, browser, generator. See the
+    PAX Manual.
+
+    - Long Description: The base system. See Links and Systems.
+
+    - Licence: MIT, see COPYING.
+
+    - Author: Gábor Melis
+
+    - Mailto: [mega@retes.hu](mailto:mega@retes.hu)
+
+    - Homepage: [http://github.com/melisgl/mgl-pax](http://github.com/melisgl/mgl-pax)
+
+    - Bug tracker: [https://github.com/melisgl/mgl-pax/issues](https://github.com/melisgl/mgl-pax/issues)
+
+    - Source control: [GIT](https://github.com/melisgl/mgl-pax.git)
+
+    - Depends on: dref, mgl-pax-bootstrap, named-readtables, pythonic-string-reader
+
+    - Defsystem depends on: mgl-pax.asdf
+
+- [system] "mgl-pax/navigate"
+
+    - Description: Support for Navigating Sources in Emacs via Slime's
+    M-. in MGL-PAX.
+
+    - Depends on: alexandria, dref/full, mgl-pax, swank(?)
+
+    - Defsystem depends on: mgl-pax.asdf
+
+- [system] "mgl-pax/document"
+
+    - Description: Support for Generating Documentation in
+    MGL-PAX.
+
+    - Depends on: 3bmd, 3bmd-ext-code-blocks, 3bmd-ext-math, alexandria, colorize, md5, mgl-pax/navigate, mgl-pax/transcribe, trivial-utf-8
+
+    - Defsystem depends on: mgl-pax.asdf
+
+- [system] "mgl-pax/web"
+
+    - Description: Web server for Browsing Live Documentation
+    in MGL-PAX.
+
+    - Depends on: hunchentoot, mgl-pax/document
+
+    - Defsystem depends on: mgl-pax.asdf
+
+- [system] "mgl-pax/transcribe"
+
+    - Description: Support for Transcripts in
+    MGL-PAX.
+
+    - Depends on: alexandria, mgl-pax/navigate
+
+    - Defsystem depends on: mgl-pax.asdf
+
+- [system] "mgl-pax/full"
+
+    - Description: The mgl-pax system with all features
+    preloaded.
+
+    - Depends on: mgl-pax/document, mgl-pax/navigate, mgl-pax/transcribe, mgl-pax/web
+
+## Emacs Setup
+
+Here is a quick recipe for setting up PAX for use via SLIME to
+take advantage of the conveniences on offer.
+Conversely, there is no need to do any of this just to use
+DEFSECTION, write docstrings and for Generating Documentation.
+
+If PAX was installed from Quicklisp, then evaluate this in CL to
+install the Elisp code in a stable location:
+
+    (mgl-pax:install-pax-elisp "~/quicklisp/")
+
+Assuming the Elisp file is in the ~/quicklisp/ directory, add
+something like this to your .emacs:
+
+    (add-to-list 'load-path "~/quicklisp/")
+    (require 'mgl-pax)
+    (global-set-key (kbd "C-.") 'mgl-pax-document)
+    (global-set-key (kbd "s-x t") 'mgl-pax-transcribe-last-expression)
+    (global-set-key (kbd "s-x r") 'mgl-pax-retranscribe-region)
+
+When Browsing with Other Browsers, for clicking on the locative
+next to a definition to visit the corresponding source location in
+Emacs, permission needs to be given:
+
+    (setq slime-enable-evaluate-in-emacs t)
+
+### Functionality Provided
+
+- For Navigating Sources in Emacs, loading mgl-pax extends
+  slime-edit-definitions (M-.) by adding
+  mgl-pax-edit-definitions to slime-edit-definition-hooks. There
+  are no related variables to customize.
+
+- For Browsing Live Documentation, mgl-pax-browser-function and
+  mgl-pax-web-server-port can be customized in Elisp. To browse
+  within Emacs, choose w3m-browse-url (see w3m), and make sure
+  both the w3m binary and the w3m Emacs package are installed. On
+  Debian, simply install the w3m-el package. With other browser
+  functions, a HUNCHENTOOT web server is started.
+
+- See Transcribing with Emacs for how to use the transcription
+  features. There are no related variables to customize.
+
+Independently from the Common Lisp side, the Elisp functions
+mgl-pax-hideshow-documentation and mgl-pax-hideshow-comments
+help focus on the code only by folding or unfolding
+MGL-PAX:DEFSECTION, MGL-PAX:DEFINE-GLOSSARY-TERM forms and long
+strings, or comments.
+
+### Installing from Quicklisp
+
+If you installed PAX with Quicklisp, the location of mgl-pax.el
+may change with updates, and you may want to copy the current
+version of mgl-pax.el to a stable location by evaluating this in
+CL:
+
+    (mgl-pax:install-pax-elisp "~/quicklisp/")
+
+If working from, say, a git checkout, there is no need for this
+step.
+
+- [function] INSTALL-PAX-ELISP TARGET-DIR
+
+    Install mgl-pax.el distributed with this package in TARGET-DIR.
+
+### Loading PAX
+
+Assuming the Elisp file is in the ~/quicklisp/ directory, add
+something like this to your .emacs:
+
+    (add-to-list 'load-path "~/quicklisp/")
+    (require 'mgl-pax)
+
+If the Elisp variable mgl-pax-autoload is true (the default), then
+PAX will be loaded in the connected Lisp on-demand via SLIME.
+
+If loading fails, mgl-pax will be unloaded from Emacs and any
+overridden Slime key bindings restored.
+
+### Setting up Keys
+
+The recommended key bindings are this:
+
+    (global-set-key (kbd "C-.") 'mgl-pax-document)
+    (global-set-key (kbd "s-x t") 'mgl-pax-transcribe-last-expression)
+    (global-set-key (kbd "s-x r") 'mgl-pax-retranscribe-region)
+
+The global key bindings above are global because their commands work
+in any mode. If that's not desired, one may bind C-. locally in
+all Slime related modes like this:
+
+    (slime-bind-keys slime-parent-map nil '(("C-." mgl-pax-document)))
+
+If the customizable variable mgl-pax-hijack-slime-doc-keys is
+true, then upon loading mgl-pax, the following changes are made to
+slime-doc-map (assuming it's bound to C-c C-d):
+
+- C-c C-d a: replaces slime-apropos with mgl-pax-apropos
+
+- C-c C-d z: replaces slime-apropos-all with mgl-pax-apropos-all
+
+- C-c C-d p: replaces slime-apropos-package with mgl-pax-apropos-package
+
+- C-c C-d f: replaces slime-describe-function with mgl-pax-document
+
+- C-c C-d d: replaces slime-describe-symbol with
+   mgl-pax-hideshow-documentation
+
+- C-c C-d c: installs mgl-pax-hideshow-comments
+
+- C-c C-d u: installs mgl-pax-edit-parent-section
+
+Calling mgl-pax-unhijack-slime-doc-keys reverts these changes.
+
+## Background
+
+As a user, I frequently run into documentation that's incomplete
+and out of date, so I tend to stay in the editor and explore the
+code by jumping around with SLIME's M-. (slime-edit-definition).
+As a library author, I spend a great deal of time polishing code but
+precious little writing documentation.
+
+In fact, I rarely write anything more comprehensive than docstrings
+for exported stuff. Writing docstrings feels easier than writing a
+separate user manual, and they are always close at hand during
+development. The drawback of this style is that users of the library
+have to piece the big picture together themselves.
+
+That's easy to solve, I thought, let's just put all the narrative
+that holds docstrings together in the code and be a bit like a
+Literate Programmer turned inside out. The original prototype, which
+did almost everything I wanted, was this:
+
+    (defmacro defsection (name docstring)
+      `(defun ,name () ,docstring))
+
+Armed with this DEFSECTION, I soon found myself
+organizing code following the flow of user-level documentation and
+relegated comments to implementation details entirely. However, some
+parts of DEFSECTION docstrings were just listings of
+all the functions, macros and variables related to the narrative,
+and this list was repeated in the DEFPACKAGE form complete with
+little comments that were like section names. A clear violation of
+OAOO, one of them had to go, so DEFSECTION got a list
+of symbols to export.
+
+That was great, but soon I found that the listing of symbols is
+ambiguous if, for example, a function, a compiler macro and a class
+were named by the same symbol. This did not concern exporting, of
+course, but it didn't help readability. Distractingly, on such
+symbols, M-. was popping up selection dialogs. There were two
+birds to kill, and the symbol got accompanied by a type, which was
+later generalized into the concept of locatives:
+
+    (defsection @introduction ()
+      "A single line for one man ..."
+      (foo class)
+      (bar function))
+
+After a bit of elisp hacking, M-. was smart enough to
+disambiguate based on the locative found in the vicinity of the
+symbol, and everything was good for a while.
+
+Then, I realized that sections could refer to other sections if
+there were a SECTION locative. Going down that path, I soon began to
+feel the urge to generate pretty documentation as all the necessary
+information was available in the DEFSECTION forms. The design
+constraint imposed on documentation generation was that following
+the typical style of upcasing symbols in docstrings, there should be
+no need to explicitly mark up links: if M-. works, then the
+documentation generator shall also be able figure out what's being
+referred to.
+
+I settled on Markdown as a reasonably non-intrusive format, and a
+few thousand lines later PAX was born. Since then, locatives and
+references were factored out into the DRef
+library to let PAX focus on M-. and documentation.
+
+## Basics
+
+Now let's examine the most important pieces.
+
+- [macro] DEFSECTION NAME (&KEY (PACKAGE '*PACKAGE*) (READTABLE '*READTABLE*) (EXPORT T) TITLE LINK-TITLE-TO (DISCARD-DOCUMENTATION-P *DISCARD-DOCUMENTATION-P*)) &BODY ENTRIES
+
+    Define a documentation section and maybe export referenced symbols.
+    A bit behind the scenes, a global variable with NAME is defined and
+    is bound to a SECTION object. By convention, section names
+    start with the character @. See Introduction for an example.
+
+    Entries
+
+    ENTRIES consists of docstrings and references in any order.
+    Docstrings are arbitrary strings in Markdown format.
+
+    References are XREFs given in the form (NAME LOCATIVE).
+    For example, (FOO FUNCTION) refers to the function FOO, (@BAR
+    SECTION) says that @BAR is a subsection of this
+    one. (BAZ (METHOD (T T T))) refers to the default method of the
+    three argument generic function BAZ. (FOO FUNCTION) is
+    equivalent to (FOO (FUNCTION)). See the DRef Introduction
+    for more.
+
+    The same name may occur in multiple references, typically with
+    different locatives, but this is not required.
+
+    The references are not LOCATEd until documentation is generated, so
+    they may refer to things yet to be defined.
+
+    Exporting
+
+    If EXPORT is true (the default), NAME and the names of references
+    among ENTRIES which are SYMBOLs are candidates for exporting. A
+    candidate symbol is exported if
+
+    - it is accessible in PACKAGE, and
+
+    - there is a reference to it in the section being defined which is
+      approved by EXPORTABLE-REFERENCE-P.
+
+    See DEFINE-PACKAGE if you use the export feature. The idea with
+    confounding documentation and exporting is to force documentation of
+    all exported symbols.
+
+    Misc
+
+    TITLE is a string containing Markdown or NIL. If non-NIL, it
+    determines the text of the heading in the generated output.
+    LINK-TITLE-TO is a reference given as an (NAME LOCATIVE) pair or
+    NIL, to which the heading will link when generating HTML. If not
+    specified, the heading will link to its own anchor.
+
+    When DISCARD-DOCUMENTATION-P (defaults to *DISCARD-DOCUMENTATION-P*)
+    is true, ENTRIES will not be recorded to save memory.
+
+- [variable] *DISCARD-DOCUMENTATION-P* NIL
+
+    The default value of DEFSECTION's DISCARD-DOCUMENTATION-P argument.
+    One may want to set *DISCARD-DOCUMENTATION-P* to true before
+    building a binary application.
+
+- [macro] DEFINE-PACKAGE PACKAGE &REST OPTIONS
+
+    This is like CL:DEFPACKAGE but silences warnings and errors
+    signalled when the redefined package is at variance with the current
+    state of the package. Typically this situation occurs when symbols
+    are exported by calling EXPORT (as is the case with DEFSECTION) as
+    opposed to adding :EXPORT forms to the DEFPACKAGE form and the
+    package definition is subsequently reevaluated. See the section on
+    [package variance](http://www.sbcl.org/manual/#Package-Variance) in
+    the SBCL manual.
+
+    The bottom line is that if you rely on DEFSECTION to do the
+    exporting, then you'd better use DEFINE-PACKAGE.
+
+- [macro] DEFINE-GLOSSARY-TERM NAME (&KEY TITLE URL (DISCARD-DOCUMENTATION-P *DISCARD-DOCUMENTATION-P*)) &BODY DOCSTRING
+
+    Define a global variable with NAME, and set it to a GLOSSARY-TERM object. TITLE, URL and DOCSTRING are Markdown strings or
+    NIL. Glossary terms are DOCUMENTed in the lightweight bullet +
+    locative + name/title style. See the glossary entry name for an
+    example.
+
+    When a glossary term is linked to in documentation, its TITLE will
+    be the link text instead of the name of the symbol (as with
+    SECTIONs).
+
+    Glossary entries with a non-NIL URL are like external links: they
+    are linked to their URL in the generated documentation. These offer
+    a more reliable alternative to using Markdown reference links and
+    are usually not included in SECTIONs.
+
+    When DISCARD-DOCUMENTATION-P (defaults to *DISCARD-DOCUMENTATION-P*)
+    is true, DOCSTRING will not be recorded to save memory.
+
+- [macro] NOTE &BODY ARGS
+
+    Define a note with an optional NAME and an optional
+    DOCSTRING. The DOCSTRING of the note is its
+    own docstring concatenated with docstrings of other notes in the
+    lexical scope of BODY.
+
+    ARGS has the form [NAME] [DOCSTRING] BODY, where the square
+    brackets indicate optional arguments. See below for the details of
+    parsing ARGS.
+
+    NOTE is experimental and as such subject to change.
+
+    NOTE can occur in an any evaluated position without changing its
+    BODY's run-time behaviour or introducing any run-time overhead. Top
+    level forms remain top level when whrapped in NOTE. The names
+    of notes live in the same global namespace regardless of nesting or
+    whether they are top level forms. These properties come at
+    the price of NOTE being weird: it defines named notes at
+    macro-expansion time (or load time). But the definitions are
+    idempotent, so it's fine to macroexpand NOTE any number of times.
+
+    Notes are similar to Lisp comments, but they can be included in the
+    documentation. In fact, notes are auto-included: a Specific Link to
+    a note is equivalent to including it with the DOCSTRING locative.
+
+    Notes are intended to help reduce the distance between code and its
+    documentation when there is no convenient definition docstring to
+    use nearby.
+
+        (note @xxx "We change the package."
+          (in-package :mgl-pax))
+        ==> #<PACKAGE "MGL-PAX">
+        (values (docstring (dref '@xxx 'note)))
+        => "We change the package."
+
+    Here is an example of how to overdo things:
+
+        (note @1+*
+          "This is a seriously overdone example."
+          (defun 1+* (x)
+            "[@1+* note][docstring]"
+            (if (stringp x)
+                (note (@1+*/1 :join #\Newline)
+                  "- If X is a STRING, then it is parsed as a REAL number."
+                  (let ((obj (read-from-string x)))
+                    (note "It is an error if X does not contain a REAL."
+                      (unless (realp obj)
+                        (assert nil)))
+                    (1+ obj)))
+                (note "- Else, X is assumed to be REAL number, and we simply
+                         add 1 to it."
+                  (1+ x)))))
+        
+        (1+* "7")
+        => 8
+        
+        (values (docstring (dref '@1+* 'note)))
+        => "This is a seriously overdone example.
+        
+        - If X is a STRING, then it is parsed as a REAL number.
+        It is an error if X does not contain a REAL.
+        
+        - Else, X is assumed to be REAL number, and we simply
+        add 1 to it."
+
+    The parsing of ARGS:
+
+    - If the first element of ARGS is not a string, then it is a NAME (a
+      non-NIL SYMBOL) or name with options, currently destructured
+      as (NAME &KEY JOIN). As in DEFSECTION and DEFINE-GLOSSARY-TERM,
+      the convention is that NAME starts with a @ character.
+
+        JOIN is PRINCed before the docstring of a child note is output.
+        Its default value is a string of two newline characters.
+
+    - The next element of ARGS is a Markdown docstring. See
+      Markdown in Docstrings.
+
+    - The rest of ARGS is the BODY. If BODY is empty, then NIL is
+      returned.
+
+    Note that named and nameless notes can contain other named or
+    nameless notes without restriction, but nameless notes without a
+    lexically enclosing named note are just an implicit progn
+    with BODY, and their docstring is discarded.
+
+    If NOTE occurs as a top level form, then its SOURCE-LOCATION
+    is reliably recorded. Else, the quality of the source location
+    varies, but it is at least within the right top level form on all
+    implementations. On SBCL, exact source location is supported.
+
+## PAX Locatives
+
+To the Basic Locative Types defined by DRef,
+PAX adds a few of its own.
+
+- [locative] SECTION
+
+    - Direct locative supertypes: VARIABLE
+
+    Refers to a SECTION defined by DEFSECTION.
+
+    SECTION is EXPORTABLE-LOCATIVE-TYPE-P but not exported by
+    default (see EXPORTABLE-REFERENCE-P).
+
+- [locative] GLOSSARY-TERM
+
+    - Direct locative supertypes: VARIABLE
+
+    Refers to a GLOSSARY-TERM defined by DEFINE-GLOSSARY-TERM.
+
+    GLOSSARY-TERM is EXPORTABLE-LOCATIVE-TYPE-P but not exported by
+    default (see EXPORTABLE-REFERENCE-P).
+
+- [locative] NOTE
+
+    Refers to named notes defined by the NOTE macro.
+
+    If a single link would be made to a NOTE (be it either a
+    Specific Link or an unambiguous Unspecific Link), then the NOTE's
+    DOCSTRING is included as if with the DOCSTRING locative.
+
+    NOTE is EXPORTABLE-LOCATIVE-TYPE-P but not exported by default (see
+    EXPORTABLE-REFERENCE-P).
+
+- [locative] DISLOCATED
+
+    Refers to a symbol in a non-specific context. Useful for
+    suppressing Unspecific Autolinking. For example, if there is a
+    function called FOO then
+
+        `FOO`
+
+    will be linked (if *DOCUMENT-LINK-CODE*) to its definition. However,
+
+        [`FOO`][dislocated]
+
+    will not be. With a dislocated locative, LOCATE always fails with a
+    LOCATE-ERROR condition. Also see Escaping Autolinking.
+
+    DISLOCATED references do not RESOLVE.
+
+- [locative] ARGUMENT
+
+    An alias for DISLOCATED, so that one can refer to an
+    argument of a macro without accidentally linking to a class that has
+    the same name as that argument. In the following example,
+    FORMAT may link to CL:FORMAT (if we generated
+    documentation for it):
+
+        "See FORMAT in DOCUMENT."
+
+    Since ARGUMENT is a locative, we can prevent that linking by writing:
+
+        "See the FORMAT argument of DOCUMENT."
+
+    ARGUMENT references do not RESOLVE.
+
+- [locative] INCLUDE SOURCE &KEY LINE-PREFIX HEADER FOOTER HEADER-NL FOOTER-NL
+
+    This PSEUDO locative refers to a region of a file. SOURCE can be a
+    STRING or a PATHNAME, in which case the whole file
+    is being pointed to, or it can explicitly supply START, END
+    locatives. INCLUDE is typically used to include non-lisp files in
+    the documentation (say Markdown or Elisp as in the next example) or
+    regions of Lisp source files. This can reduce clutter and
+    duplication.
+
+        (defsection @example-section ()
+          (mgl-pax.el (include #.(asdf:system-relative-pathname
+                                  :mgl-pax "src/mgl-pax.el")
+                               :header-nl "```elisp" :footer-nl "```"))
+          (foo-example (include (:start (dref-ext:make-source-location function)
+                                 :end (dref-ext:source-location-p function))
+                                :header-nl "```"
+                                :footer-nl "```")))
+
+    In the above example, when documentation is generated, the entire
+    src/mgl-pax.el file is included in the Markdown output surrounded
+    by the strings given as HEADER-NL and FOOTER-NL. The documentation
+    of FOO-EXAMPLE will be the region of the file from the
+    SOURCE-LOCATION of the START reference (inclusive) to the
+    SOURCE-LOCATION of the END reference (exclusive). If only one of
+    START and END is specified, then they default to the beginning and
+    end of the file, respectively.
+
+    Since START and END are literal references, pressing M-. on
+    PAX.EL will open the src/mgl-pax.el file and put the cursor on
+    its first character. M-. on FOO-EXAMPLE will go to the source
+    location of the FOO function.
+
+    With the LAMBDA locative, one can specify positions in arbitrary
+    files.
+
+    - SOURCE is either an absolute pathname designator or a list
+      matching the destructuring lambda list (&KEY START END),
+      where START and END must be NIL or (<NAME> <LOCATIVE>)
+      lists (not evaluated) like a DEFSECTION entry. Their
+      SOURCE-LOCATIONs constitute the bounds of the region of the file
+      to be included. Note that the file of the source location of START
+      and END must be the same. If SOURCE is a pathname designator, then
+      it must be absolute so that the locative is context independent.
+
+    - If specified, LINE-PREFIX is a string that's prepended to each
+      line included in the documentation. For example, a string of four
+      spaces makes Markdown think it's a code block.
+
+    - HEADER and FOOTER, if non-NIL, are printed before the included
+      string.
+
+    - HEADER-NL and FOOTER-NL, if non-NIL, are printed between two
+      FRESH-LINE calls.
+
+    INCLUDE is not EXPORTABLE-LOCATIVE-TYPE-P, and INCLUDE references do
+    not RESOLVE.
+
+- [locative] DOCSTRING
+
+    DOCSTRING is a PSEUDO locative for including the parse tree of
+    the Markdown DOCSTRING of a definition in the parse tree
+    of a docstring when generating documentation. It has no source
+    location information and only works as an explicit link. This
+    construct is intended to allow docstrings to live closer to their
+    implementation, which typically involves a non-exported definition.
+
+        (defun div2 (x)
+          "X must be [even* type][docstring]."
+          (/ x 2))
+        
+        (deftype even* ()
+          "an even integer"
+          '(satisfies evenp))
+        
+        (document #'div2)
+        .. - [function] DIV2 X
+        ..
+        ..     X must be an even integer.
+        ..
+
+    There is no way to LOCATE DOCSTRINGs, so nothing to RESOLVE either.
+
+- [locative] GO (NAME LOCATIVE)
+
+    Redirect to a definition in the context of the reference
+    designated by NAME and LOCATIVE. This PSEUDO locative is intended for
+    things that have no explicit global definition.
+
+    As an example, consider this part of a hypothetical documentation of
+    CLOS:
+
+        (defsection @clos ()
+          (defmethod macro)
+          (call-next-method (go (defmethod macro))))
+
+    The GO reference exports the symbol CALL-NEXT-METHOD and also
+    produces a terse redirection message in the documentation.
+
+    GO behaves as described below.
+
+    - A GO reference RESOLVEs to what NAME with LOCATIVE resolves to:
+
+            (resolve (dref 'xxx '(go (print function))))
+            ==> #<FUNCTION PRINT>
+            => T
+
+    - The DOCSTRING of a GO reference is NIL.
+
+    - SOURCE-LOCATION (thus M-.) returns the source location of the
+      embedded reference:
+
+            (equal (source-location (dref 'xxx '(go (print function))))
+                   (source-location (dref 'print 'function)))
+            => T
+
+- [locative] CLHS &OPTIONAL NESTED-LOCATIVE
+
+    Refers to definitions, glossary entries, sections, issues and
+    issue summaries in the Common Lisp HyperSpec. These have no source
+    location so M-. will not work. What works is linking in
+    documentation, including Browsing Live Documentation. The generated
+    links are relative to *DOCUMENT-HYPERSPEC-ROOT* and work even if
+    *DOCUMENT-LINK-TO-HYPERSPEC* is NIL. All matching is
+    case-insensitive.
+
+    - definitions: These are typically unnecessary as DOCUMENT will
+      produce the same link for e.g. PPRINT, [PPRINT][function],
+      or [PPRINT][] if *DOCUMENT-LINK-TO-HYPERSPEC* is non-NIL and the
+      PPRINT function in the running Lisp is not linkable. When
+      Browsing Live Documentation, a slight difference is that
+      everything is linkable, so using the CLHS link bypasses the page
+      with the definition in the running Lisp.
+
+        - unambiguous definition: [pprint][clhs] (pprint)
+
+        - disambiguation page: [function][clhs] (function)
+
+        - specific: [function][(clhs class)] (function)
+
+    - glossary terms:
+
+        - [lambda list][(clhs glossary-term)]
+          (lambda list)
+
+    - issues:
+
+        - [ISSUE:AREF-1D][clhs] (ISSUE:AREF-1D)
+
+        - [ISSUE:AREF-1D][(clhs section)] (ISSUE:AREF-1D)
+
+    - issue summaries: These render
+       as (SUMMARY:CHARACTER-PROPOSAL:2-6-5):
+
+        - [SUMMARY:CHARACTER-PROPOSAL:2-6-5][clhs]
+
+        - [SUMMARY:CHARACTER-PROPOSAL:2-6-5][(clhs section)]
+
+        Since these summary ids are not particularly reader friendly,
+        the anchor text a Specific Reflink with Text may be used:
+
+        - [see this][SUMMARY:CHARACTER-PROPOSAL:2-6-5 (clhs section)]
+          (see this).
+
+    - sections:
+
+        - by section number: [3.4][clhs] or [3.4][(clhs
+          section)] (3.4)
+
+        - by section title: With the locative (CLHS SECTION),
+          substring matching against the title starting at word
+          boundaries is performed. With the locative CLHS (where
+          SECTION is not specified explicitly), the name must match
+          the title exactly. For example, [lambda list][(clhs
+          section)] refers to the same definition as [lambda
+          lists][clhs] (Lambda Lists).
+
+        - by filename: [03_d][clhs] or [03_d][(clhs
+          section)] (03_d)
+
+        - by alias
+
+            - Format directives are aliases of
+              the sections describing them. Thus, [~c][clhs] is
+              equivalent to [22.3.1.1][clhs] and [Tilde C:
+              Character][clhs]. The full list is
+              ~C ~% ~& ~|
+            ~~ ~R ~D ~B
+            ~O ~X ~F ~E
+            ~G ~$ ~A ~S
+            ~W ~_ ~< ~:>
+            ~I ~/ ~T ~< Justification
+            ~> ~* ~[ ~]
+            ~{ ~} ~? ~(
+            ~) ~P ~; ~^
+            ~Newline.
+
+            - Similarly, reader macro characters are aliases of
+              the sections describing them. The full list is
+              ( ) ' ;
+            " ` , #
+            #\\ #' #( #*
+            #: #. #B #O
+            #X #R #C #A
+            #S #P #= ##
+            #+ #- #| #<
+            #).
+
+            - Finally, loop keywords have
+              aliases to the sections describing them. For example, the
+              strings loop:for, for and :for are aliases of CLHS
+              6.1.2.1. The loop:* aliases are convenient for
+              completion at the prompt when
+              Browsing Live Documentation, while the other aliases are
+              for defaulting to buffer contents.
+
+    As the above examples show, the NESTED-LOCATIVE argument of the CLHS
+    locative may be omitted. In that case, definitions, glossary terms,
+    issues, issue summaries, and sections are considered in that order.
+    Sections are considered last because a substring of a section title
+    can be matched by chance easily.
+
+    All examples so far used Reflinks. Autolinking also works if the
+    name is marked up as code or is codified (e.g. in
+    COS clhs (COS clhs).
+
+    As mentioned above, M-. does not do anything over CLHS
+    references. Slightly more usefully, the live documentation
+    browser understands CLHS links so one
+    can enter inputs like 3.4 clhs, "lambda list" clhs or
+    error (clhs function).
+
+    CLHS references do not RESOLVE.
+
+## Navigating Sources in Emacs
+
+Integration into SLIME's M-. (slime-edit-definition) allows
+one to visit the SOURCE-LOCATION of a definition. PAX extends
+standard Slime functionality by
+
+- adding support for all kinds of definitions (see e.g.
+  ASDF:SYSTEM, READTABLE in
+  Basic Locative Types), not just the ones Slime knows about,
+
+- providing a portable way to refer to even standard definitions,
+
+- disambiguating the definition based on buffer content, and
+
+- adding more powerful completions.
+
+The definition is either determined from the buffer content at point
+or is prompted for. At the prompt, TAB-completion is available for
+both names and locatives. With a prefix argument (C-u M-.), the
+buffer contents are not consulted, and M-. always prompts.
+
+The M-. extensions can be enabled by loading src/mgl-pax.el. See
+Emacs Setup. In addition, the Elisp command
+mgl-pax-edit-parent-section visits the source location of the
+section containing the definition with point in it.
+
+A close relative of M-. is C-. for Browsing Live Documentation.
+
+### M-. Defaulting
+
+When M-. is invoked, it first tries to find a name in the
+current buffer at point. If no name is found, then it
+prompts.
+
+First, (slime-sexp-at-point) is taken as a word, from which the
+name will be parsed. Then, candidate locatives are
+looked for before and after the word. Thus, if a locative is the
+previous or the next expression, then M-. will go straight to the
+definition which corresponds to the locative. If that fails, M-.
+will try to find the definitions in the normal way, which may
+involve popping up an xref buffer and letting the user interactively
+select one of possible definitions.
+
+M-. works on parenthesized references, such as those in
+DEFSECTION:
+
+    (defsection @foo ()
+      (cos function))
+
+Here, when the cursor is on one of the characters of COS or just
+after COS, pressing M-. will visit the definition of the
+function COS.
+
+To play nice with Generating Documentation, forms suitable for
+Autolinking are recognized:
+
+    function cos
+    cos function
+
+... as well as Reflinks:
+
+    [cos][function]
+    [see this][cos function]
+
+... and Markdown inline code:
+
+    cos `function`
+    `cos` function
+    `cos` `function`
+
+Everything works the same way in comments and docstrings as in code.
+In the next example, pressing M-. on RESOLVE* will visit its
+denoted method:
+
+    ;;; See RESOLVE* (method (function-dref)) for how this all works.
+
+### M-. Prompting
+
+#### M-. Minibuffer Syntax
+
+At the minibuffer prompt, the definitions to edit
+can be specified as follows.
+
+- NAME: Refers to all DREF:DEFINITIONS of NAME with a Lisp locative
+  type. See these NAME -> DEFINITIONS
+  examples:
+
+        print    ->  PRINT FUNCTION
+        PRINT    ->  PRINT FUNCTION
+        MGL-PAX  ->  "mgl-pax" ASDF:SYSTEM, "MGL-PAX" package
+        pax      ->  "PAX" PACKAGE
+        "PAX"    ->  "PAX" PACKAGE
+
+    Note that depending on the Lisp implementation there may be more
+    definitions. For example, SBCL has an UNKNOWN
+    :DEFOPTIMIZER definition for PRINT.
+
+- NAME LOCATIVE: Refers to a single definition (as in (DREF:DREF
+  NAME LOCATIVE)). Example inputs of this form:
+
+        print function
+        dref-ext:docstring* (method (t))
+
+- LOCATIVE NAME: This has the same form as the previous: two sexps,
+  but here the first one is the locative. If ambiguous, this is
+  considered in addition to the previous one. Example inputs:
+
+        function print
+        (method (t)) dref-ext:docstring*
+
+In all of the above NAME is a raw name, meaning that print
+will be recognized as PRINT and pax as "PAX".
+
+The package in which symbols are read is the Elisp
+slime-current-package. In Lisp buffers, this is the buffer's
+package, else it's the package of the Slime repl buffer.
+
+#### M-. Completion
+
+When M-. prompts for the definition to edit, TAB-completion is
+available in the minibuffer for both names and locatives. To reduce
+clutter, string names are completed only if they are typed
+explicitly with an opening quotation mark, and they are
+case-sensitive. Examples:
+
+- pri<TAB> invokes the usual Slime completion.
+
+- print <TAB> (note the space) lists FUNCTION and (PAX:CLHS
+  FUNCTION) as locatives.
+
+- class dref:<TAB> lists DREF:XREF and DREF:DREF (all the classes
+  in the package DREF).
+
+- pax:locative <TAB> lists all locative types (see the CL
+  function DREF:LOCATIVE-TYPES).
+
+- package "MGL<TAB> lists the names of packages that start with
+  "MGL".
+
+- package <TAB> lists the names of all packages as strings and
+   also CLASS, MGL-PAX:LOCATIVE because PACKAGE denotes a class and
+   also a locative.
+
+For more powerful search, see Apropos.
+
+## Generating Documentation
+
+### The DOCUMENT Function
+
+- [function] DOCUMENT DOCUMENTABLE &KEY (STREAM T) PAGES (FORMAT :PLAIN)
+
+    Write DOCUMENTABLE in FORMAT to STREAM diverting some output to PAGES.
+    FORMAT is one of :PLAIN,
+    :MARKDOWN, :HTML and
+    :PDF or NIL. STREAM may be a
+    STREAM object, T or NIL as with CL:FORMAT.
+
+    To look up the documentation of the DOCUMENT function itself:
+
+        (document #'document)
+
+    The same with fancy markup:
+
+        (document #'document :format :markdown)
+
+    To document a SECTION:
+
+        (document pax::@pax-manual)
+
+    To generate the documentation for separate libraries with automatic
+    cross-links:
+
+        (document (list pax::@pax-manual dref::@dref-manual) :format :markdown)
+
+    See Utilities for Generating Documentation for more.
+
+    Definitions that do not define a first-class object are supported
+    via DRef:
+
+        (document (dref:locate 'foo 'type))
+
+    There are quite a few special variables that affect how output is
+    generated, see Codification, Linking to the HyperSpec,
+    Linking to Sections, Link Format and Output Formats.
+
+    For the details, see the following sections, starting with
+    DOCUMENTABLE. Also see Writing Extensions and DOCUMENT-OBJECT*.
+
+#### DOCUMENTABLE
+
+The DOCUMENTABLE argument of DOCUMENT may be a single object (e.g.
+#'PRINT'), a definition such as (DREF 'PRINT 'FUNCTION),
+a string, or a nested list of these. More precisely, DOCUMENTABLE is
+one of the following:
+
+- single definition designator: A DREF or anything else
+  that is LOCATEable. This includes non-DREF XREFs and
+  first-class objects such as FUNCTIONs. The generated
+  documentation typically includes the definition's DOCSTRING. See
+  Markdown Output for more.
+
+- docstring: A string, in which case it is processed like a
+  docstring in DEFSECTION. That is, with docstring sanitization, Codification, and Linking.
+
+- list of documentables: A nested list of LOCATEable objects and
+  docstrings. The objects in it are documented in depth-first order.
+  The structure of the list is otherwise unimportant.
+
+- [variable] *DOCUMENT-TIGHT* NIL
+
+    If NIL, then DOCUMENT adds a newline between consecutive
+    atomic documentables on the same page.
+
+#### Return Values
+
+If PAGES are NIL, then DOCUMENT - like CL:FORMAT - returns a
+string (when STREAM is NIL) else NIL.
+
+If PAGES, then a list of output designators are returned, one for
+each non-empty page (to which some output has been written), which
+are determined as follows.
+
+- The string itself if the output was to a string.
+
+- The stream if the output was to a stream.
+
+- The pathname of the file if the output was to a file.
+
+If the default page given by the STREAM argument of DOCUMENT was
+written to, then its output designator is the first element of the
+returned list. The rest of the designators correspond to the
+non-empty pages in the PAGES argument of DOCUMENT in that order.
+
+#### PAGES
+
+The PAGES argument of DOCUMENT is to create multi-page documents
+by routing some of the generated output to files, strings or
+streams. PAGES is a list of page specification elements. A page spec
+is a property list with keys :OBJECTS, :OUTPUT,
+:URI-FRAGMENT, :SOURCE-URI-FN, :HEADER-FN and :FOOTER-FN. OBJECTS is
+a list of objects (references are allowed but not required) whose
+documentation is to be sent to :OUTPUT.
+
+PAGES may look something like this:
+
+    `((;; The section about SECTIONs and everything below it ...
+       :objects (, @sections)
+       ;; ... is so boring that it's not worth the disk space, so
+       ;; send it to a string.
+       :output (nil)
+       ;; Explicitly tell other pages not to link to these guys.
+       :uri-fragment nil)
+      ;; Send the @EXTENSION-API section and everything reachable
+      ;; from it ...
+      (:objects (, @extension-api)
+       ;; ... to build/tmp/pax-extension-api.html.
+       :output "build/tmp/pax-extension-api.html"
+       ;; However, on the web server html files will be at this
+       ;; location relative to some common root, so override the
+       ;; default:
+       :uri-fragment "doc/dev/pax-extension-api.html"
+       ;; Set html page title, stylesheet, charset.
+       :header-fn 'write-html-header
+       ;; Just close the body.
+       :footer-fn 'write-html-footer)
+      ;; Catch references that were not reachable from the above. It
+      ;; is important for this page spec to be last.
+      (:objects (, @pax-manual)
+       :output "build/tmp/manual.html"
+       ;; Links from the extension api page to the manual page will
+       ;; be to ../user/pax-manual#<anchor>, while links going to
+       ;; the opposite direction will be to
+       ;; ../dev/pax-extension-api.html#<anchor>.
+       :uri-fragment "doc/user/pax-manual.html"
+       :header-fn 'write-html-header
+       :footer-fn 'write-html-footer))
+
+Documentation is initially sent to a default stream (the STREAM
+argument of DOCUMENT), but output is redirected if the thing being
+currently documented is the :OBJECT of a PAGE-SPEC.
+
+- :OUTPUT can be a number things:
+
+    - If it's NIL, then output will be collected in a string.
+
+    - If it's T, then output will be sent to *STANDARD-OUTPUT*.
+
+    - If it's a stream, then output will be sent to that stream.
+
+    - If it's a list whose first element is a string or a pathname, then
+      output will be sent to the file denoted by that and the rest of
+      the elements of the list are passed on to CL:OPEN. One extra
+      keyword argument is :ENSURE-DIRECTORIES-EXIST. If it's true,
+      ENSURE-DIRECTORIES-EXIST will be called on the pathname before
+      it's opened.
+
+    Note that even if PAGES is specified, STREAM acts as a catch all,
+    absorbing the generated documentation for references not claimed by
+    any pages.
+
+- :HEADER-FN, if not NIL, is a function of a single stream argument,
+  which is called just before the first write to the page. Since
+  :FORMAT :HTML only generates HTML fragments, this makes it
+  possible to print arbitrary headers, typically setting the title,
+  CSS stylesheet, or charset.
+
+- :FOOTER-FN is similar to :HEADER-FN, but it's called after the
+   last write to the page. For HTML, it typically just closes the
+   body.
+
+- :URI-FRAGMENT is a string such as "doc/manual.html" that specifies
+  where the page will be deployed on a webserver. It defines how
+  links between pages will look. If it's not specified and :OUTPUT
+  refers to a file, then it defaults to the name of the file. If
+  :URI-FRAGMENT is NIL, then no links will be made to or from that
+  page.
+
+- :SOURCE-URI-FN is a function of a single, DREF argument.
+  If it returns a value other than NIL, then it must be a string
+  representing an URI. This affects *DOCUMENT-MARK-UP-SIGNATURES*
+  and *DOCUMENT-FANCY-HTML-NAVIGATION*. Also see
+  MAKE-GIT-SOURCE-URI-FN.
+
+#### Package and Readtable
+
+While generating documentation, symbols may be read (e.g. from
+docstrings) and printed. What values of *PACKAGE* and *READTABLE*
+are used is determined separately for each definition being
+documented.
+
+- If the values of *PACKAGE* and *READTABLE* in effect at the time
+  of definition were captured (e.g. by DEFINE-LOCATIVE-TYPE and
+  DEFSECTION), then they are used.
+
+- Else, if the definition has a Home Section (see below), then the
+  home section's SECTION-PACKAGE and SECTION-READTABLE are used.
+
+- Else, if the definition has an argument list, then the package of
+  the first argument that's not external in any package is used.
+
+- Else, if the definition is named by a symbol, then its
+  SYMBOL-PACKAGE is used, and *READTABLE* is set to the standard
+  readtable (NAMED-READTABLES:FIND-READTABLE :COMMON-LISP).
+
+- Else, *PACKAGE* is set to the CL-USER package and *READTABLE* to
+  the standard readtable.
+
+The values thus determined come into effect after the name itself is
+printed, for printing of the arglist and the docstring.
+
+    CL-USER> (pax:document #'foo)
+    - [function] FOO <!> X Y &KEY (ERRORP T)
+    
+        Do something with X and Y.
+
+In the above, the <!> marks the place where *PACKAGE* and
+*READTABLE* are bound.
+
+##### Home Section
+
+The home section of an object is a SECTION that contains the
+object's definition in its SECTION-ENTRIES or NIL. In the
+overwhelming majority of cases there should be at most one
+containing section.
+
+If there are multiple containing sections, the following apply.
+
+- If the name of the definition is a non-keyword symbol, only
+  those containing sections are considered whose package is closest
+  to the SYMBOL-PACKAGE of the name, where closest is defined as
+  having the longest common prefix between the two PACKAGE-NAMEs.
+
+- If there are multiple sections with equally long matches or the
+  name is not a non-keyword symbol, then it's undefined which one is
+  the home section.
+
+For example, (MGL-PAX:DOCUMENT FUNCTION) is an entry in the
+MGL-PAX::@BASICS section. Unless another section that contains
+it is defined in the MGL-PAX package, the home section is guaranteed
+to be MGL-PAX::@BASICS because the SYMBOL-PACKAGEs of
+MGL-PAX:DOCUMENT and MGL-PAX::@BASICS are the same (hence their
+common prefix is maximally long).
+
+This scheme would also work, for example, if the home package
+of DOCUMENT were MGL-PAX/IMPL, and it were reexported from
+MGL-PAX because the only way to externally change the home package
+would be to define a containing section in a package like
+MGL-PAX/IMP.
+
+Thus, relying on the package system makes it possible to find the
+intended home section of a definition among multiple containing
+sections with high probability. However, for names which are not
+symbols, there is no package system to advantage of.
+
+- [variable] *DOCUMENT-NORMALIZE-PACKAGES* T
+
+    Whether to print [in package <package-name>] in the documentation
+    when the package changes.
+
+### Browsing Live Documentation
+
+Documentation for definitions in the running Lisp can be browsed
+directly without generating documentation in the offline manner.
+HTML documentation, complete with Codification and Linking, is
+generated from docstrings of all kinds of definitions and PAX
+SECTIONs in the running Lisp on the fly. This allows ad-hoc
+exploration of the Lisp, much like describe-function,
+apropos-command and other online help commands in Emacs, for which
+direct parallels are provided.
+
+Still, even without Emacs and SLIME, limited functionality can be
+accessed through PAX Live Home Page by starting the live
+documentation web server manually.
+
+If Emacs Setup has been done, the Elisp function
+mgl-pax-document (maybe bound to C-.) generates and displays
+documentation as a single HTML page. If necessary, a disambiguation
+page is generated with the documentation of all matching
+definitions. For example, to view the documentation of this very
+SECTION, one can do:
+
+    M-x mgl-pax-document
+    View Documentation of: pax::@browsing-live-documentation
+
+Alternatively, pressing C-. with point over the text
+pax::@browsing-live-documentation in a buffer achieves the same
+effect.
+
+In interactive use, mgl-pax-document behaves similarly to
+M-. except:
+
+- It shows the DOCUMENTation of some definition and does not visit
+  its SOURCE-LOCATION.
+
+- It considers definitions with all LOCATIVE-TYPES not just
+  LISP-LOCATIVE-TYPES because it doesn't need SOURCE-LOCATION.
+
+    This also means that completion works for CLHS
+    definitions:
+
+    - "lambda list<TAB> lists "lambda list" and "lambda list
+      keywords", both HyperSpec glossary entries. This is similar
+      to common-lisp-hyperspec-glossary-term in Elisp but also
+      works for HyperSpec section titles.
+
+    - "#<TAB> lists all sharpsign reader macros (similar to
+      common-lisp-hyperspec-lookup-reader-macro in Elisp).
+
+    - "~<TAB> lists all CL:FORMAT directives (similar to
+      common-lisp-hyperspec-format in Elisp).
+
+    - "loop:~<TAB> lists all loop keywords.
+
+- It works in non-lisp-mode buffers by reinterpreting a few lines
+  of text surrounding point as lisp code (hence the suggested
+  global binding).
+
+- It supports fragment syntax at the prompt:
+
+        NAME LOCATIVE FRAGMENT-NAME FRAGMENT-LOCATIVE
+
+    This is like NAME LOCATIVE, but the browser scrolls to the
+    definition of FRAGMENT-NAME FRAGMENT-LOCATIVE within that
+    page.
+
+    For example, entering this at the prompt will generate the
+    entire PAX manual as a single page and scroll to the very
+    section you are reading within it:
+
+        pax::@pax-manual pax:section pax::@browsing-live-documentation pax:section
+
+- If the empty string is entered at the prompt, and there is no
+  existing w3m buffer or w3m is not used, then PAX Live Home Page
+  is visited. If there is a w3m buffer, then entering the empty
+  string displays that buffer.
+
+The convenience function
+mgl-pax-current-definition-toggle-view (C-c C-d c) documents the
+definition with point in it.
+
+#### Browsing with w3m
+
+When the value of the Elisp variable mgl-pax-browser-function
+is w3m-browse-url (see Emacs Setup), the Emacs w3m browser is
+used without the need for a web server, and also offering somewhat
+tighter integration than Browsing with Other Browsers.
+
+With w3m's default key bindings, moving the cursor between links involves
+TAB and S-TAB (or <up> and <down>). RET and <right>
+follow a link, while B and <left> go back in history.
+
+In addition, the following PAX-specific key bindings are available:
+
+- M-. visits the source location of the definition corresponding
+  to the link under the point.
+
+- Invoking mgl-pax-document on a section title link will show the
+  documentation of that section on its own page.
+
+- n moves to the next PAX definition on the page.
+
+- p moves to the previous PAX definition on the page.
+
+- u follows the first Up: link (to the first containing
+  SECTION) if any.
+
+- U is like u but positions the cursor at the top of the page.
+
+- v visits the source location of the current definition (the one
+  under the cursor or the first one above it).
+
+- V visits the source location of the first definition on the
+  page.
+
+#### Browsing with Other Browsers
+
+When the value of the Elisp variable mgl-pax-browser-function
+is not w3m-browse-url (see Emacs Setup), requests are served via
+a web server started in the running Lisp, and documentation is most
+likely displayed in a separate browser window.
+
+By default, mgl-pax-browser-function is nil, which makes PAX use
+browse-url-browser-function. You may want to customize the related
+browse-url-new-window-flag or, for Chrome, set
+browse-url-chrome-arguments to ("--new-window").
+
+By default, mgl-pax-web-server-port is nil, and PAX will pick a
+free port automatically.
+
+In the browser, clicking on the locative on the left of the
+name (e.g. in - [function] PRINT) will raise and focus the Emacs
+window (if Emacs is not in text mode, and also subject to window
+manager focus stealing settings), then go to the corresponding
+source location. For sections, clicking on the lambda link will do
+the same (see *DOCUMENT-FANCY-HTML-NAVIGATION*).
+
+Finally, note that the URLs exposed by the web server are subject to
+change, and even the port used may vary by session if the Elisp
+variable mgl-pax-web-server-port is nil.
+
+- [variable] *BROWSE-HTML-STYLE* :CHARTER
+
+    The HTML style to use for browsing live documentation. Affects only
+    non-w3m browsers. See *DOCUMENT-HTML-DEFAULT-STYLE* for the possible
+    values.
+
+    If you change this variable, you may need to do a hard refresh in
+    the browser (often C-<f5>).
+
+#### Apropos
+
+The Elisp functions mgl-pax-apropos, mgl-pax-apropos-all, and
+mgl-pax-apropos-package can display the results of DREF-APROPOS in
+the live documentation browser.
+These extend the functionality of slime-apropos,
+slime-apropos-all and slime-apropos-package to support more
+kinds of definitions in an extensible way. The correspondence
+is so close that the PAX versions might take over the Slime key
+bindings.
+
+Note that apropos functionality is also exposed via the
+PAX Live Home Page.
+
+More concretely, the PAX versions supports the following extensions:
+
+- Definitions with string names. One can search for
+  ASDF:SYSTEMs, PACKAGEs and
+  CLHS sections, glossary entries, format directives,
+  reader macro characters, loop keywords.
+
+- Exact or substring matching of the name and the package.
+
+- Matching only symbol or string names.
+
+On the PAX Live Home Page, one may Browse by Locative Types, which
+gives access to some of the apropos functionality via the browser
+without involving Emacs.
+
+On the result page:
+
+- A DREF-APROPOS form to reproduce the results at the REPL is shown.
+
+- One may toggle the EXTERNAL-ONLY and CASE-SENSITIVE boolean
+  arguments.
+
+- One may switch between list, and detailed view. The list view only
+  shows the first, bulleted line for each
+  definition, while the detailed view includes the full
+  documentation of definitions with the exception of SECTIONs.
+
+- The returned references are presented in two groups: those with
+  non-symbol and those with symbol names. The non-symbol group is
+  sorted by locative type then by name. The symbol group is sorted
+  by name then by locative type.
+
+With mgl-pax-apropos-all and mgl-pax-apropos-package being
+simple convenience functions on top of mgl-pax-apropos, we only
+discuss the latter in detail here. For the others, see the Elisp
+docstrings.
+
+##### The STRING Argument of mgl-pax-apropos
+
+The STRING argument consists of a name pattern and a DTYPE.
+
+The name pattern has the following forms.
+
+- :print matches definitions whose names are the string print
+  or a symbol with SYMBOL-NAME print. Vertical bar form as in
+  :|prInt| is also also supported and is useful in when
+  CASE-SENSITIVE is true.
+
+- "print" matches definitions whose names contain print as
+  a substring.
+
+- print is like the previous, substring matching case. Use this
+  form to save typing if the pattern does not contain spaces and
+  does not start with a colon.
+
+- The empty string matches everything.
+
+After the name pattern, STRING may contain a
+DTYPE that the definitions must match.
+
+- print t matches definitions with LISP-LOCATIVE-TYPES, which is
+  the default (equivalent to print).
+
+- print function matches functions whose names contain
+  print (e.g. CL:PRINT and CL:PPRINT).
+
+- :print function is like the previous example but with exact
+  name match (so it matches CL:PRINT but not CL:PPRINT).
+
+- print variable matches for example *PRINT-ESCAPE*.
+
+- print (or variable function) matches all variables and functions
+  with print in their names.
+
+- array (or type (not class)) matches DEFTYPEs and but not CLASSes
+  with the string array in their names.
+
+- &nbsp;pax:section (note the leading space) matches all PAX
+  sections (EXTERNAL-ONLY NIL is necessary to see many of them).
+
+- print dref:pseudo matches definitions with PSEUDO-LOCATIVE-TYPES
+  such as MGL-PAX:CLHS.
+
+- print dref:top matches definitions with all locative
+  types (LOCATIVE-TYPES).
+
+##### The PACKAGE Argument of mgl-pax-apropos
+
+When mgl-pax-apropos is invoked with a prefix argument, it
+prompts for a package pattern among other things. The pattern may be
+like the following examples.
+
+- :none restricts matches to non-symbol names.
+
+- :any restricts matches to symbol names.
+
+- :cl restricts matches to symbols in the CL package.
+
+- :|X Y| is similar to the previous, but the vertical bar syntax
+  allows for spaces in names.
+
+- mgl restricts matches to packages whose name contains mgl as a
+  substring.
+
+- "x y" is the same as the previous, but the explicit quotes allow
+  for spaces in names.
+
+The above examples assume case-insensitive matching.
+
+#### PAX Live Home Page
+
+When Browsing Live Documentation, the home page provides
+quick access to documentation of the definitions in the system. In
+Emacs, when mgl-pax-document is invoked with the empty string, it
+visits the home page.
+
+The home page may also be accessed directly by going to the root
+page of the web server (if one is started). Here, unless the home
+page is viewed with w3m, one may directly look
+up documentation and access Apropos via the input boxes provided.
+
+- [function] ENSURE-WEB-SERVER &KEY PORT HYPERSPEC-ROOT
+
+    Start or update a web server on PORT for Browsing Live Documentation.
+    Returns the base URL of the server (e.g. http://localhost:32790),
+    which goes to the PAX Live Home Page. If the web server is running
+    already (ENSURE-WEB-SERVER) simply returns its base URL.
+
+    Note that even when using Emacs but Browsing with Other Browsers,
+    the web server is started automatically. When Browsing with w3m, no
+    web server is involved at all. Calling this function explicitly is
+    only needed if the Emacs integration is not used, or to override
+    PORT and HYPERSPEC-ROOT.
+
+    - If PORT is NIL or 0, then the server will use any free port.
+
+    - If there is a server already running and PORT is not NIL or 0,
+      then the server is restarted on PORT.
+
+    - If HYPERSPEC-ROOT is NIL, the HyperSpec pages will be served from
+      any previously provided HYPERSPEC-ROOT or, failing that, from
+      *DOCUMENT-HYPERSPEC-ROOT*.
+
+    - If HYPERSPEC-ROOT is non-NIL, then pages in the HyperSpec will be
+      served from HYPERSPEC-ROOT. The following command changes the root
+      without affecting the server in any other way:
+
+            (ensure-web-server :hyperspec-root "/usr/share/doc/hyperspec/")
+
+##### Top-level PAX Sections
+
+The PAX Live Home Page lists the top-level PAX sections: those
+that have no other SECTIONs referencing them (see DEFSECTION).
+
+##### ASDF:SYSTEMs and Related PACKAGEs
+
+The PAX Live Home Page lists all ASDF:SYSTEMs and PACKAGEs in the Lisp.
+For easier overview, the they are grouped based on their
+SOURCE-LOCATIONs. Two systems are in the same group if the directory
+of one (i.e. the directory of the .asd file in which it was
+defined) is the same or is below the other's.
+
+A PACKAGE presented under a group of systems, if the SOURCE-LOCATION
+of the package is below the the top-most directory among the systems
+in the group.
+
+##### Systemless Packages
+
+The PAX Live Home Page lists PACKAGEs
+unrelated to any ASDF:SYSTEM
+as systemless.
+
+##### Browse by Locative Types
+
+The PAX Live Home Page provides quick links to Apropos result
+pages for all Basic Locative Types which may have
+definitions.
+
+- [glossary-term] related
+
+    Two definitions are related if the directory of one's
+    SOURCE-LOCATIONs contains the directory of the other's.
+
+### Markdown Support
+
+Markdown in docstrings and titles is processed with the 3BMD library.
+
+#### Markdown in Docstrings
+
+- Docstrings can be indented in any of the usual styles. PAX
+  normalizes indentation by stripping the longest run of leading
+  spaces common to all non-blank lines except the first. Thus, the
+  following two docstrings are equivalent:
+
+        (defun foo ()
+          "This is
+          indented
+          differently")
+        
+        (defun foo ()
+          "This is
+        indented
+        differently")
+
+- When Browsing Live Documentation, the page displayed can be of,
+say, a single function within what would constitute the offline
+documentation of a library. Because Markdown reference link
+definitions, for example
+
+        [Daring Fireball]: http://daringfireball.net/
+
+    can be defined anywhere, they wouldn't be resolvable in that
+    case, their use is discouraged. Currently, only reflink
+    definitions within the documentation of the same
+    definition are guaranteed to be resolvable. This is left
+    intentionally vague because the specifics are subject to change.
+
+    See DEFINE-GLOSSARY-TERM for a better alternative to Markdown
+    reference links.
+
+Docstrings of definitions which do not have a Home Section and are
+not PAX constructs themselves (e.g SECTION, GLOSSARY-TERM, NOTE) are
+assumed to have been written with no knowledge of PAX and to conform
+to Markdown only by accident. These docstrings are thus sanitized
+more aggressively.
+
+- Indentation of what looks like blocks of Lisp code is rounded up to
+a multiple of 4. More precisely, non-zero indented lines between
+blank lines or the docstring boundaries are reindented if the first
+non-space character of the first line is an ( or a ; character.
+
+- Special HTML characters <& are escaped.
+
+- Furthermore, to reduce the chance of inadvertently introducing a
+Markdown heading, if a line starts with a string of # characters,
+then the first one is automatically escaped. Thus, the following two
+docstrings are equivalent:
+
+        The characters #\Space, #\Tab and
+        #Return are in the whitespace group.
+        
+        The characters #\Space, #\Tab and
+        \#Return are in the whitespace group.
+
+#### Markdown in Titles
+
+- [glossary-term] title
+
+    A title is a STRING associated with a definition (e.g. with
+    the TITLE argument of DEFSECTION or DEFINE-GLOSSARY-TERM). Titles
+    are accessible DOCTITLE and processed according to
+    Markdown in Titles.
+
+Titles undergo Codification and may be a single paragraph
+containing explicit Markdown inline code, Markdown emphasis,
+Markdown images, inline MathJax and HTML entities (e.g. &quot;).
+Other kinds of Markdown markup and block elements are not allowed.
+
+- [function] DOCTITLE OBJECT
+
+    Return the title of OBJECT if it has one or NIL. For
+    Codification, the title is interpreted in the package returned by
+    DOCSTRING. DOCTITLE can be extended via DOCTITLE*.
+
+#### Syntax Highlighting
+
+For syntax highlighting, GitHub's fenced code blocks Markdown
+extension to mark up code blocks with triple backticks is enabled so
+all you need to do is write:
+
+    ```elisp
+    (defun foo ())
+    ```
+
+to get syntactically marked up HTML output. Copy src/style.css
+from PAX and you are set. The language tag, elisp in this example,
+is optional and defaults to common-lisp.
+
+See the documentation of 3BMD and Colorize for the details.
+
+#### MathJax
+
+Displaying pretty mathematics between in TeX format is
+supported via MathJax.
+
+- Inline
+
+    It can be done inline (within a paragraph):
+
+        Pretty, eh? $\int_0^\infty e^{-x^2} dx=\frac{\sqrt{\pi}}{2}$ Yes.
+
+    which is displayed as
+
+    Pretty, eh? $\int_0^\infty e^{-x^2} dx=\frac{\sqrt{\pi}}{2}$ Yes.
+
+    To avoid rendering between $5 and $6 with inline math, both
+    the opening and the closing $ character must be followed /
+    preceded by a non-space character. This agrees with Pandoc.
+
+    Alternatively, the $`x_0`$ syntax may be used (renders as
+    $`x_0`$), which has no restriction on spacing.
+
+- Block
+
+    The $$ is supported as a block element:
+
+        Pretty, eh?
+        
+        $$\int_0^\infty e^{-x^2} dx=\frac{\sqrt{\pi}}{2}$$
+        
+        Yes.
+
+    which will be rendered in its own paragraph:
+
+    Pretty, eh?
+
+    $$\int_0^\infty e^{-x^2} dx=\frac{\sqrt{\pi}}{2}$$
+
+    Yes.
+
+    $$ is also legal to use inline, but it's not recommended as it
+    gets rendered inline on GitHub but as display math in
+    PDF Output.
+
+MathJax will leave inline code (e.g. those between single backticks)
+and code blocks (triple backtricks) alone. Outside code, use
+<span>$</span> to scare MathJax off.
+
+Escaping all those backslashes in TeX fragments embedded in Lisp
+strings can be a pain. Pythonic String Reader can help with that.
+
+### Codification
+
+- [variable] *DOCUMENT-UPPERCASE-IS-CODE* T
+
+    When true, interesting names extracted from codifiable words
+    marked up as code with backticks. For example, this docstring
+
+        "T PRINT CLASSes SECTION *PACKAGE* MGL-PAX ASDF
+        CaMeL Capital"
+
+    is equivalent to this:
+
+        "`T` `PRINT` `CLASS`es `SECTION` `*PACKAGE*` `MGL-PAX` `ASDF`
+        CaMel Capital"
+
+    and renders as
+
+    T PRINT CLASSes SECTION MGL-PAX ASDF CaMel Capital
+
+    where the links are added due to *DOCUMENT-LINK-CODE*.
+
+    To suppress codification, add a backslash to the beginning of the
+    a codifiable word or right after the leading * if it would
+    otherwise be parsed as Markdown emphasis:
+
+        "\\SECTION *\\PACKAGE*"
+
+    The number of backslashes is doubled above because that's how the
+    example looks in a docstring. Note that the backslash is discarded
+    even if *DOCUMENT-UPPERCASE-IS-CODE* is false.
+
+- [glossary-term] codifiable
+
+    A word is codifiable if
+
+    - it has a single uppercase character (e.g. it's T) and no
+      lowercase characters at all, or
+
+    - there is more than one uppercase character and no lowercase
+      characters between them (e.g. CLASSes, nonREADable,
+      CLASS-NAMEs but not Classes or aTe.
+
+- [glossary-term] interesting
+
+    A name is interesting if
+
+    - it names a symbol external to its package, or
+
+    - it is at least 3 characters long and names an interned symbol, or
+
+    - it names a Local Definition.
+
+    See Package and Readtable.
+
+- [variable] *DOCUMENT-DOWNCASE-UPPERCASE-CODE* NIL
+
+    If true, then all Markdown inline code (e.g. `code`, which
+    renders as code) – including Codification – which has no
+    lowercase characters is downcased in the output. Characters of
+    literal strings in the code may be of any case. If this variable is
+    :ONLY-IN-MARKUP and the output format does not support markup (e.g.
+    it's :PLAIN), then no downcasing is performed. For example,
+
+        `(PRINT "Hello")`
+
+    is downcased to
+
+        `(print "Hello")`
+
+    because it only contains uppercase characters outside the string.
+    However,
+
+        `MiXed "RESULTS"`
+
+    is not altered because it has lowercase characters.
+
+    If the first two characters are backslashes, then no downcasing is
+    performed, in addition to Escaping Autolinking. Use this to mark
+    inline code that's not Lisp.
+
+        Press `\\M-.` in Emacs.
+
+### Linking
+
+PAX supports linking to definitions either with
+explicit Reflinks or with Autolinks.
+
+When generating offline documentation, only the definitions in
+DOCUMENTABLE may be linkable, but when
+Browsing Live Documentation, everything is linkable as
+documentation is generated on-demand.
+
+Many examples in this section link to standard Common Lisp
+definitions. In the offline case, these will link to external
+URLs, while in the live case to
+disambiguation pages that list the definition in the running Lisp
+and in the HyperSpec.
+
+Invoking M-. on WORD or NAME in
+any of the following examples will disambiguate based on the textual
+context, determining the locative. This is because navigation and
+linking use the same Parsing algorithm, although linking is a bit
+more strict about trimming, depluralization, and it performs
+Filtering Links. On the other hand, M-. cannot visit the
+CLHS references because there are no associated source
+locations.
+
+- [glossary-term] stable printed locative
+
+    The Link Format relies on definitions having a unique
+    textual representation that doesn't change. More concretely, if
+    PRIN1 under WITH-STANDARD-IO-SYNTAX but with *PRINT-READABLY* NIL
+    produces the same unique string deterministically, then linking to
+    definitions works even with non-readable locatives. The
+    uniqueness condition requires that if two definitions are different
+    under XREF=, then their textual representations are also different.
+
+    On the other hand, for example, a method involving an EQL
+    specializer with an object printed with PRINT-UNREADABLE-OBJECT
+    :IDENTITY T does not produce a stable string and links will break.
+
+#### Reflink
+
+The Markdown reference link syntax [label][id] is
+repurposed for linking to definitions. In the following, we
+discuss the various forms of reflinks.
+
+##### Specific Reflink
+
+Format: [ WORD ][ LOCATIVE ]
+
+The first name in WORD (with depluralization) that forms a valid
+DREF with LOCATIVE is determined, and that definition is
+linked to. If there is no such DREF, then an UNRESOLVABLE-REFLINK
+warning is signalled.
+
+Examples:
+
+- [`EQL`][type] renders as EQL.
+
+- [EQL][type] renders as EQL.
+
+The Markdown link definition (i.e. type above) needs no backticks
+to mark it as code, but here and below, the second example relies on
+*DOCUMENT-UPPERCASE-IS-CODE* being true.
+
+##### Specific Reflink with Text
+
+Format: [LINK TEXT][ NAME LOCATIVE ]
+
+If NAME and LOCATIVE form a valid DREF, then that
+definition is linked to with link text LINK TEXT. If there is no
+such DREF, then an UNRESOLVABLE-REFLINK warning is signalled.
+
+In this form, if NAME starts with #\", then it's read as a string,
+else as a symbol.
+
+Examples:
+
+- [see this][eql type] renders as see this.
+
+- [see this]["MGL-PAX" package] renders as see this.
+
+##### Unspecific Reflink
+
+Format: [ WORD ][]
+
+The first name in WORD (with depluralization, symbols only) that
+has some DEFINITIONS is determined, and those definitions are linked
+to. If no name with any definition is found, then an
+UNRESOLVABLE-REFLINK warning is signalled.
+
+Examples:
+
+- single link: [PRINT][] renders as PRINT.
+
+- multiple links: [EQL][] renders as EQL.
+
+- no definitions: [BAD-NAME][] renders as BAD-NAME.
+
+##### Unspecific Reflink with Text
+
+Format: [LINK TEXT][ NAME ]
+
+The DEFINITIONS of NAME are determined, and those definitions are
+linked to. If NAME has no definitions, then an UNRESOLVABLE-REFLINK
+warning is signalled.
+
+In this form, if NAME starts with #\", then it's read as a string,
+else as as symbol.
+
+Examples:
+
+- [see this][print] renders as see this.
+
+- [see this][eql] renders as see this.
+
+##### Markdown Reflink
+
+Format: [label][id]
+
+This is a normal Markdown reference link if id is not a valid locative.
+
+- [see this][user-defined] renders unchanged.
+
+        (dref:dref 'user-defined 'locative)
+        .. debugger invoked on LOCATE-ERROR:
+        ..   Could not locate USER-DEFINED LOCATIVE.
+        ..   USER-DEFINED is not a valid locative type or locative alias.
+
+        (document "[see this][user-defined]" :format :markdown)
+        .. [see this][user-defined]
+        ..
+
+Use URLs with DEFINE-GLOSSARY-TERM as a better alternative to
+Markdown reference links (see Markdown in Docstrings).
+
+##### Unresolvable Links
+
+- [condition] UNRESOLVABLE-REFLINK WARNING
+
+    When DOCUMENT encounters a Reflink that looks
+    like a PAX construct but has no matching definition, it signals an
+    UNRESOLVABLE-REFLINK warning.
+
+    - If the OUTPUT-REFLINK restart is invoked, then no warning is
+      printed and the Markdown link is left unchanged. MUFFLE-WARNING is
+      equivalent to OUTPUT-REFLINK.
+
+    - If the OUTPUT-LABEL restart is invoked, then no warning is printed
+      and the Markdown link is replaced by its label. For example,
+      [NONEXISTENT][function] becomes NONEXISTENT.
+
+    - If the warning is not handled, then it is printed to
+      *ERROR-OUTPUT*, and it behaves as if OUTPUT-LABEL was invoked.
+
+- [function] OUTPUT-REFLINK &OPTIONAL CONDITION
+
+    Invoke the OUTPUT-REFLINK restart. See UNRESOLVABLE-REFLINK.
+
+- [function] OUTPUT-LABEL &OPTIONAL CONDITION
+
+    Invoke the OUTPUT-LABEL restart. See UNRESOLVABLE-REFLINK.
+
+#### Autolink
+
+Markdown inline code automatically links to the corresponding
+definitions without having to use Reflinks. This works especially
+well in conjunction with Codification. The following examples
+assume that *DOCUMENT-UPPERCASE-IS-CODE* is true. If that's not the
+case, explicit backticks are required on WORD (but not on
+LOCATIVE).
+
+##### Specific Autolink
+
+Format: WORD LOCATIVE or
+LOCATIVE WORD
+
+The first name in WORD (with depluralization) that forms a valid
+DREF with LOCATIVE is determined, and that definition is
+linked to. If no such name is found, then Unspecific Autolink is
+attempted.
+
+Examples:
+
+- PRINT function renders as PRINT function.
+
+- type EQL renders as type EQL.
+
+- type EQL function renders as type EQL function.
+
+If LOCATIVE has spaces, then it needs to be marked up as code, too.
+For example,
+
+    DREF-NAME `(reader dref)`
+
+renders as DREF-NAME (reader dref).
+
+##### Unspecific Autolink
+
+Format: WORD
+
+The first name in WORD (with depluralization, symbols only) that
+has some DEFINITIONS is determined, and those definitions are linked
+to. If no such name is found or the autolink to this name is
+suppressed (see below), then WORD is left unchanged. If a locative
+is found before or after WORD, then Specific Autolink is tried
+first.
+
+Examples:
+
+- PRINT renders as PRINT.
+
+- EQL renders as EQL.
+
+Unspecific Autolinking is suppressed if the name found has a
+Local Definition or was linked to before in the same docstring:
+
+- "My other CAR is also a CAR" renders as "My other CAR is also a
+  CAR".
+
+- "[COS][] and COS" renders as "COS and COS".
+
+- "[EQL][type] and EQL" renders as "EQL and EQL".
+
+- "EQ and the EQ function" renders as "EQ and the EQ function".
+
+Unspecific Autolinking to T and NIL is also suppressed (see
+*DOCUMENT-LINK-TO-HYPERSPEC*):
+
+- "T and NIL" renders as "T and NIL".
+
+As an exception, a single link (be it either a Specific Link or an
+unambiguous Unspecific Link) to a SECTION or GLOSSARY-TERM is not
+suppressed to allow their titles to be displayed properly:
+
+- "@NAME and @NAME" renders as "name and name".
+
+##### Escaping Autolinking
+
+In the common case, when *DOCUMENT-UPPERCASE-IS-CODE* is true,
+prefixing an uppercase word with a backslash prevents it from being
+codified and thus also prevents Autolinking form kicking in. For
+example,
+
+    \DOCUMENT
+
+renders as DOCUMENT. If it should be marked up as code but not
+autolinked, the backslash must be within backticks like this:
+
+    `\DOCUMENT`
+
+This renders as DOCUMENT. Alternatively, the
+DISLOCATED or the ARGUMENT locative may be used as in
+[DOCUMENT][dislocated].
+
+#### Linking to the HyperSpec
+
+- [variable] *DOCUMENT-LINK-TO-HYPERSPEC* T
+
+    If true, consider definitions found in the Common Lisp HyperSpec
+    for linking. For example,
+
+    - PRINT renders as PRINT.
+
+    In offline documentation, this would be a link to the hyperspec
+    unless #'PRINT in the running Lisp is DOCUMENTABLE.
+
+    When Browsing Live Documentation, everything is linkable, so the
+    generated link will go to a disambiguation page that lists the
+    definition in the Lisp and in the HyperSpec.
+
+    Locatives work as expected (see *DOCUMENT-LINK-CODE*): FIND-IF
+    links to FIND-IF, FUNCTION links to FUNCTION, and
+    [FUNCTION][type] links to FUNCTION.
+
+    Unspecific Autolinking to T and NIL is suppressed. If desired, use
+    Reflinks such as [T][] (that links to T) or
+    [T][constant] (that links to T).
+
+    Note that linking explicitly with the CLHS locative is not subject
+    to the value of this variable.
+
+- [variable] *DOCUMENT-HYPERSPEC-ROOT* "http://www.lispworks.com/documentation/HyperSpec/"
+
+    A URL of the Common Lisp HyperSpec.
+    The default value is the canonical location. When invoked from
+    Emacs, the Elisp variable
+    common-lisp-hyperspec-root is in effect.
+
+#### Linking to Sections
+
+The following variables control how to generate section numbering,
+table of contents and navigation links.
+
+- [variable] *DOCUMENT-LINK-SECTIONS* T
+
+    When true, HTML anchors and PDF destinations are generated before
+    the headings (e.g. of sections), which allows the table of contents
+    to contain links and also code-like references to sections (like
+    @FOO-MANUAL) to be translated to links with the
+    TITLE being the link text.
+
+- [variable] *DOCUMENT-MAX-NUMBERING-LEVEL* 3
+
+    A non-negative integer. In their hierarchy, sections on levels less
+    than this value get numbered in the format of 3.1.2. Setting it to
+    0 turns numbering off.
+
+- [variable] *DOCUMENT-MAX-TABLE-OF-CONTENTS-LEVEL* 3
+
+    An integer that determines the depth of the table of contents.
+
+    - If negative, then no table of contents is generated.
+
+    - If non-negative, and there are multiple top-level sections on a
+      page, then they are listed at the top of the page.
+
+    - If positive, then for each top-level section a table of contents
+      is printed after its heading, which includes a nested tree of
+      section titles whose depth is limited by this value.
+
+    If *DOCUMENT-LINK-SECTIONS* is true, then the tables will link to
+    the sections.
+
+- [variable] *DOCUMENT-TEXT-NAVIGATION* NIL
+
+    If true, then before each heading a line is printed with links to
+    the previous, parent and next section. Needs
+    *DOCUMENT-LINK-SECTIONS* to be on to work.
+
+- [variable] *DOCUMENT-FANCY-HTML-NAVIGATION* T
+
+    If true and the output format is HTML, then headings get a
+    navigation component that consists of links to the previous, parent,
+    next section, a self-link, and a link to the definition in the
+    source code if available (see :SOURCE-URI-FN in DOCUMENT). This
+    component is normally hidden, it is visible only when the mouse is
+    over the heading. Has no effect if *DOCUMENT-LINK-SECTIONS* is
+    false.
+
+#### Filtering Links
+
+- [variable] *DOCUMENT-LINK-CODE* T
+
+    Whether definitions of things other than SECTIONs
+    are allowed to be linkable.
+
+- [glossary-term] linkable
+
+    When a reference is encountered to definition D
+    while processing documentation for some page C, we say that
+    definition D is linkable (from C) if
+
+    - D denotes a SECTION and *DOCUMENT-LINK-SECTIONS* is true, or
+
+    - D does not denote a SECTION and *DOCUMENT-LINK-CODE* is true
+
+    ... and
+
+    - We are Browsing Live Documentation, or
+
+    - D is an external definition (CLHS or denotes a
+      GLOSSARY-TERM with a URL), or
+
+    - D's page is C, or
+
+    - D's page is relativizable to C.
+
+    In the above, D's page is the last of the pages in the
+    DOCUMENTABLE to which D's documentation is written (see :OBJECTS in
+    PAGES), and we say that a page is relativizable to another if it
+    is possible to construct a relative link between their
+    :URI-FRAGMENTs.
+
+##### Specific Link
+
+Specific links are those Reflinks and Autolinks that have a
+single locative and therefore at most a single matching
+definition. These are Specific Reflink,
+Specific Reflink with Text and Specific Autolink.
+
+A specific link to a linkable definition produces a link in the
+output. If the definition is not linkable, then the output will
+contain only what would otherwise be the link text.
+
+##### Unspecific Link
+
+Unspecific links are those Reflinks and Autolinks that do not
+specify a locative and match all definitions
+with a name. These are Unspecific Reflink,
+Unspecific Reflink with Text and Unspecific Autolink.
+
+To make the links predictable and manageable in number, the
+following steps are taken.
+
+1. Definitions that are not symbol-based (i.e. whose DREF-NAME
+is not a symbol) are filtered out to prevent unrelated
+PACKAGEs, ASDF:SYSTEMs and CLHS
+sections from cluttering the documentation without the control
+provided by importing symbols.
+
+2. All references with LOCATIVE-TYPE LOCATIVE are filtered out.
+
+3. Non-linkable definitions are removed.
+
+4. If the definitions include a GENERIC-FUNCTION, then
+all definitions with LOCATIVE-TYPE METHOD,
+ACCESSOR, READER and WRITER are
+removed to avoid linking to a possibly large number of methods.
+
+If at most a single definition remains, then the output is the same
+as with a Specific Link. If multiple definitions remain, then the
+link text is output followed by a number of numbered links, one to
+each definition.
+
+#### Link Format
+
+The following variables control various aspects of links and URLs.
+
+- [variable] *DOCUMENT-URL-VERSIONS* (2 1)
+
+    A list of versions of PAX URL formats to support in the
+    generated documentation. The first in the list is used to generate
+    links.
+
+    PAX emits HTML anchors before the documentation of SECTIONs
+    (see Linking to Sections) and other things (see Linking). For the
+    function FOO, in the current version (version 2), the anchor is
+    <a id="MGL-PAX:FOO%20FUNCTION">, and its URL will end
+    with #MGL-PAX:FOO%20FUNCTION.
+
+    Note that to make the URL independent of whether a symbol is
+    internal or external to their SYMBOL-PACKAGE, single
+    colon is printed where a double colon would be expected. Package and
+    symbol names are both printed verbatim except for escaping colons
+    and spaces with a backslash. For exported symbols with no funny
+    characters, this coincides with how PRIN1 would print the symbol,
+    while having the benefit of making the URL independent of the Lisp
+    printer's escaping strategy and producing human-readable output for
+    mixed-case symbols. No such promises are made for non-ASCII
+    characters, and their URLs may change in future versions. Locatives
+    are printed with PRIN1.
+
+    Version 1 is based on the more strict HTML4 standard and the id of
+    FOO is "x-28MGL-PAX-3A-3AFOO-20FUNCTION-29". This is supported
+    by GitHub-flavoured Markdown. Version 2 has minimal clutter and is
+    obviously preferred. However, in order not to break external links,
+    by default, both anchors are generated.
+
+    Let's understand the generated Markdown.
+
+        (defun foo (x))
+        
+        (document #'foo :format :markdown)
+        => ("<a id=\"x-28MGL-PAX-3AFOO-20FUNCTION-29\"></a>
+        <a id=\"MGL-PAX:FOO%20FUNCTION\"></a>
+        
+        - [function] **FOO** *X*
+        ")
+        
+        (let ((*document-url-versions* '(1)))
+          (document #'foo :format :markdown))
+        => ("<a id=\"x-28MGL-PAX-3AFOO-20FUNCTION-29\"></a>
+        
+        - [function] **FOO** *X*
+        ")
+
+- [variable] *DOCUMENT-MIN-LINK-HASH-LENGTH* 4
+
+    Recall that Markdown reference links (like [label][id]) are used for
+    Linking. It is desirable to have ids that are short to maintain
+    legibility of the generated Markdown, but also stable to reduce the
+    spurious diffs in the generated documentation, which can be a pain
+    in a version control system.
+
+    Clearly, there is a tradeoff here. This variable controls how many
+    characters of the MD5 sum of the full link id (the reference as a
+    string) are retained. If collisions are found due to the low number
+    of characters, then the length of the hash of the colliding
+    reference is increased.
+
+    This variable has no effect on the HTML generated from Markdown, but
+    it can make Markdown output more readable.
+
+- [variable] *DOCUMENT-BASE-URL* NIL
+
+    When *DOCUMENT-BASE-URL* is non-NIL, this is prepended to all
+    Markdown relative URLs. It must be a valid URL without no query and
+    fragment parts (that is, http://lisp.org/doc/ but not
+    http://lisp.org/doc?a=1 or http://lisp.org/doc#fragment). Note
+    that intra-page links using only URL fragments (e.g. and explicit
+    HTML links (e.g. <a href="...">) in Markdown are not
+    affected.
+
+### Local Definition
+
+While documentation is generated for a definition, that
+definition is considered local. Other local definitions may also be
+established. Local definitions inform Codification through
+interesting names and affect Unspecific Autolinking.
+
+    (defun foo (x)
+      "FOO adds one to X."
+      (1+ x)
+
+In this example, while the docstring of FOO is being processed, the
+global definition (DREF 'FOO 'FUNCTION) is also considered local,
+which suppresses linking FOO in the FOO's docstring back to its
+definition. If FOO has other definitions, Unspecific Autolinking to
+those is also suppressed.
+
+Furthermore, the purely local definition (DREF 'X 'ARGUMENT) is
+established, causing the argument name X to be
+codified because X is now interesting.
+
+See DOCUMENTING-DEFINITION and WITH-DISLOCATED-NAMES in
+Extending DOCUMENT.
+
+### Overview of Escaping
+
+Let's recap how escaping Codification,
+downcasing, and Linking
+works.
+
+- One backslash in front of a word turns codification off. Use this
+  to prevent codification words such as DOCUMENT, which is all
+  uppercase hence codifiable, and it names an exported symbol hence
+  it is interesting.
+
+- One backslash right after an opening backtick turns autolinking
+  off.
+
+- Two backslashes right after an opening backtick turns autolinking
+  and downcasing off. Use this for things that are not Lisp code but
+  which need to be in a monospace font.
+
+In the following examples capital C/D/A letters mark the presence,
+and a/b/c the absence of codification, downcasing, and autolinking
+assuming all these features are enabled by
+*DOCUMENT-UPPERCASE-IS-CODE*, *DOCUMENT-DOWNCASE-UPPERCASE-CODE*,
+and *DOCUMENT-LINK-CODE*.
+
+    DOCUMENT                => [`document`][1234]    (CDA)
+    \DOCUMENT               => DOCUMENT              (cda)
+    `\DOCUMENT`             => `document`            (CDa)
+    `\\DOCUMENT`            => `DOCUMENT`            (CdA)
+    [DOCUMENT][]            => [`document`][1234]    (CDA)
+    [\DOCUMENT][]           => [DOCUMENT][1234]      (cdA)
+    [`\DOCUMENT`][]         => [`document`][1234]    (CDA) *
+    [`\\DOCUMENT`][]        => [`DOCUMENT`][1234]    (CdA)
+    [DOCUMENT][dislocated]  => `document`            (CDa)
+
+Note that in the example marked with *, the single backslash,
+that would normally turn autolinking off, is ignored because it is
+in an explicit link.
+
+### Output Formats
+
+- [variable] *DOCUMENT-MARK-UP-SIGNATURES* T
+
+    When true, some things such as function names and arglists are
+    rendered as bold and italic. In HTML Output and PDF Output,
+    locative types become links to sources (if :SOURCE-URI-FN is
+    provided, see PAGES), and the symbol becomes a self-link for your
+    permalinking pleasure.
+
+    For example, a reference is rendered in Markdown roughly as:
+
+        - [function] foo x y
+
+    With this option on, the above becomes:
+
+        - [function] **foo** *x y*
+
+    Also, in HTML **foo** will be a link to that very entry and
+    [function] may turn into a link to sources.
+
+#### Plain Output
+
+This is the default :FORMAT of DOCUMENT, intended to be a
+replacement for CL:DOCUMENTATION. :PLAIN (short for plain text) is
+very similar to :MARKDOWN, but most of the markup that would make
+reading in, say, the REPL unpleasant is removed.
+
+- Markup for Markdown emphasis, Markdown inline code,
+  Markdown reference links and fenced code blocks is stripped from
+  the output.
+
+- No link anchors are emitted.
+
+- No section numbering.
+
+- No table of contents.
+
+#### Markdown Output
+
+By default, DREFs are documented in the following format.
+
+    - [<locative-type>] <name> <arglist>
+    
+        <docstring>
+
+The line with the bullet is printed with DOCUMENTING-DEFINITION. The
+docstring is processed with DOCUMENT-DOCSTRING while
+Local Definitions established with WITH-DISLOCATED-NAMES are in
+effect for all variables locally bound in a definition with ARGLIST,
+and *PACKAGE* is bound to the second return value of DOCSTRING.
+
+With this default format, PAX supports all locative types, but for
+some Basic Locative Types defined in DRef and the
+PAX Locatives, special provisions have been made.
+
+- For definitions with a VARIABLE or CONSTANT locative,
+their initform is printed as their arglist. The initform is the
+INITFORM argument of the locative if provided, or the global symbol
+value of their name. If no INITFORM is provided, and the symbol is
+globally unbound, then no arglist is printed.
+
+When the printed initform is too long, it is truncated.
+
+- Depending of what the SETF locative refers to, the ARGLIST of the
+setf expander, setf function, or the method
+signature is printed as with the METHOD locative.
+
+- For definitions with a METHOD locative, the arglist printed is
+the method signature, which consists of the locative's QUALIFIERS
+and SPECIALIZERS appended.
+
+- For definitions with an ACCESSOR, READER or
+WRITER locative, the class on which they are specialized is printed
+as their arglist.
+
+- For definitions with a STRUCTURE-ACCESSOR locative, the arglist
+printed is the locative's CLASS-NAME argument if provided.
+
+- For definitions with a CLASS locative, the arglist printed is the
+list of public superclasses with STANDARD-OBJECT and CONDITION
+omitted.
+
+- For definitions with a STRUCTURE locative, the arglist printed is
+the list of public superclasses with STRUCTURE-OBJECT omitted.
+
+- For definitions with a CONDITION locative, the arglist printed is
+the list of public superclasses with STANDARD-OBJECT and
+CONDITION omitted.
+
+- For definitions with a ASDF:SYSTEM locative, their most
+important slots are printed as an unnumbered list.
+
+- For definitions with the LOCATIVE locative type, their
+LOCATIVE-TYPE-DIRECT-SUPERS and LOCATIVE-TYPE-DIRECT-SUBS are
+printed.
+
+- When documentation is being generated for a definition with
+the SECTION locative, a new (sub)section is opened (see
+WITH-HEADING), within which documentation for its each of its
+SECTION-ENTRIES is generated. A fresh line is printed after all
+entries except the last.
+
+- For definitions with a GLOSSARY-TERM locative, no arglist is
+printed, and if non-NIL, GLOSSARY-TERM-TITLE is printed as name.
+
+- For definitions with a GO locative, its LOCATIVE-ARGS are printed
+as its arglist, along with a redirection message.
+
+- See the INCLUDE locative.
+
+- For definitions with a CLHS locative, the LOCATIVE-ARGS are printed
+as the arglist. For CLHS SECTIONs, the title is included in the
+arglist.
+
+- For definitions with an UNKNOWN locative, the LOCATIVE-ARGS are
+printed as the arglist. There is no docstring.
+
+- [glossary-term] public superclasses
+
+    The public superclasses of a class are tightest envelope of
+    superclasses with names exported from some package. This envelope is
+    constructed by recursing depth-first into the superclass hierarchy.
+    If the name of the superclass currently processed is exported from
+    any package, then it is collected as a public superclass, and we do
+    not recurse into its superclasses.
+
+#### PDF Output
+
+When invoked with :FORMAT :PDF, DOCUMENT generates
+Markdown Output and converts it to PDF with Pandoc, which in turn
+uses [LaTeX](https://www.latex-project.org/). Make sure that they
+are installed.
+
+    (with-open-file (s "x.pdf" :direction :output :if-exists :supersede
+                               :if-does-not-exist :create)
+      (pax:document "Hello, World!" :stream s :format :pdf))
+
+To see how the output looks like, visit
+pax-manual-v0.4.1.pdf and
+dref-manual-v0.4.1.pdf.
+
+[pax-manual-sample]: http://quotenil.com/blog-files/pax-manual-v0.4.1.pdf
+
+[dref-manual-sample]: http://quotenil.com/blog-files/dref-manual-v0.4.1.pdf
+
+PDF output is similar to *DOCUMENT-HTML-DEFAULT-STYLE* :CHARTER
+without the off-white tint and with coloured instead of underlined
+links. The latter is because underlining interferes with hyphenation
+in LaTeX. As in HTML output, locative types link to the respective
+definition in the sources on GitHub (see MAKE-GIT-SOURCE-URI-FN).
+
+Note that linking from one PDF to another is currently not supported
+due to the lack of consistent support in PDF viewers. Therefore,
+such links are replaced by their label or the title if any (e.g. of
+a SECTION or GLOSSARY-TERM).
+
+The generation of Markdown is subject to the standard
+variables (again see DOCUMENT). The Markdown to PDF conversion
+can be customized with the following variables.
+
+- [variable] *DOCUMENT-PANDOC-PROGRAM* "pandoc"
+
+    The name of the Pandoc binary. It need not be an absolute pathname
+    as PATH is searched.
+
+- [variable] *DOCUMENT-PANDOC-PDF-OPTIONS* (("-V" "papersize=a4") ("-V" "margin-left=1.03in") ("-V" "margin-right=1.03in")
+ ("-V" "margin-top=1.435in") ("-V" "margin-bottom=1.435in")
+ ("-V" "fontfamily=XCharter") ("-V" "fontsize=11pt") ("-V" "colorlinks=true")
+ ("-V" "linkcolor=blue") ("-V" "urlcolor=Maroon") ("-V" "toccolor=blue")
+ "--verbose")
+
+    The command-line options to invoke *DOCUMENT-PANDOC-PROGRAM* with.
+    For ease of manipulation, related options are grouped into sublists,
+    but the entire nested list is flattened to get the list of options
+    to pass to Pandoc. If --verbose is specified, then in addition to
+    Pandoc logging LaTeX sources, PAX will log to *ERROR-OUTPUT* the
+    Markdown that it converts to PDF via LaTeX. The Markdown includes
+    *DOCUMENT-PANDOC-PDF-HEADER-INCLUDES* and
+    *DOCUMENT-PANDOC-PDF-METADATA-BLOCK*.
+
+- [variable] *DOCUMENT-PANDOC-PDF-HEADER-INCLUDES* "<too messy to include>"
+
+    LaTeX code (a string) to include in the preamble via
+    [header-includes](https://pandoc.org/MANUAL.html#layout).
+
+    The default includes have no configuration knobs. Look at the value
+    to see how to customize it.
+
+- [variable] *DOCUMENT-PANDOC-PDF-METADATA-BLOCK* ""
+
+    A Pandoc YAML metadata block as a string.
+
+    Concatenate to this string to customize it.
+
+#### Dummy Output
+
+When the FORMAT argument of DOCUMENT is NIL, no output is
+generated, but Transcript Consistency Checking is still performed.
+Use this feature to quickly test documentation examples.
+
+For example, in Try the test would look
+like this:
+
+    (try:signals-not (transcription-consistency-error)
+      (document ... :format nil))
+
+### Documentation Generation Implementation Notes
+
+Documentation Generation is supported on ABCL, AllegroCL, CLISP,
+CCL, CMUCL, ECL and SBCL, but their outputs may differ due to the
+lack of some introspective capability. SBCL generates complete
+output. see ARGLIST, DOCSTRING and SOURCE-LOCATION for
+implementation notes.
+
+In addition, CLISP does not support the ambiguous case of
+Browsing Live Documentation because the current implementation
+relies on Swank to list definitions of symbols (as
+VARIABLE, FUNCTION, etc), and that simply
+doesn't work.
+
+### Utilities for Generating Documentation
+
+Two convenience functions are provided to serve the common case of
+having an ASDF system with some readmes and a directory with for the
+HTML documentation and the default CSS stylesheet.
+
+- [function] UPDATE-ASDF-SYSTEM-READMES OBJECT ASDF-SYSTEM &KEY (URL-VERSIONS '(1)) (FORMATS '(:MARKDOWN))
+
+    Convenience function to generate up to two readme files in the
+    directory holding the ASDF-SYSTEM definition. OBJECT is passed on to
+    DOCUMENT.
+
+    If :MARKDOWN is in FORMATS, then README.md is generated with
+    anchors, links, inline code, and other markup added. Not necessarily
+    the easiest on the eye in an editor but looks good on GitHub.
+
+    If :PLAIN is in FORMATS, then README is generated, which is
+    optimized for reading in text format. It has less cluttery markup
+    and no Autolinking.
+
+    Example usage:
+
+        (update-asdf-system-readmes @pax-manual :mgl-pax
+                                    :formats '(:markdown :plain))
+
+    Note that *DOCUMENT-URL-VERSIONS* is bound to URL-VERSIONS, which
+    defaults to using the uglier, version 1 style of URL for the sake of
+    GitHub.
+
+#### HTML Output
+
+- [function] UPDATE-ASDF-SYSTEM-HTML-DOCS SECTIONS ASDF-SYSTEM &KEY PAGES (TARGET-DIR (ASDF/SYSTEM:SYSTEM-RELATIVE-PATHNAME ASDF-SYSTEM "doc/")) (UPDATE-CSS-P T) (STYLE *DOCUMENT-HTML-DEFAULT-STYLE*)
+
+    Generate pretty HTML documentation for a single ASDF system,
+    possibly linking to GitHub. If UPDATE-CSS-P, copy the STYLE files to
+    TARGET-DIR (see *DOCUMENT-HTML-DEFAULT-STYLE*).
+
+    Example usage:
+
+        (update-asdf-system-html-docs @pax-manual :mgl-pax)
+
+    The same, linking to the sources on GitHub:
+
+        (update-asdf-system-html-docs
+          @pax-manual :mgl-pax
+          :pages
+          `((:objects (,mgl-pax::@pax-manual)
+             :source-uri-fn ,(make-git-source-uri-fn
+                              :mgl-pax
+                              "https://github.com/melisgl/mgl-pax"))))
+
+See the following variables, which control HTML generation.
+
+- [variable] *DOCUMENT-HTML-DEFAULT-STYLE* :DEFAULT
+
+    The HTML style to use. It's either STYLE is either :DEFAULT or
+    :CHARTER. The :DEFAULT CSS stylesheet relies on the default
+    fonts (sans-serif, serif, monospace), while :CHARTER bundles some
+    fonts for a more controlled look.
+
+    The value of this variable affects the default style of
+    UPDATE-ASDF-SYSTEM-HTML-DOCS.
+
+- [variable] *DOCUMENT-HTML-MAX-NAVIGATION-TABLE-OF-CONTENTS-LEVEL* NIL
+
+    NIL or a non-negative integer. If non-NIL, it overrides
+    *DOCUMENT-MAX-NUMBERING-LEVEL* in the dynamic HTML table of contents
+    on the left of the page.
+
+- [variable] *DOCUMENT-HTML-LANG* "en"
+
+    The value for the html element's xml:lang and lang
+    attributes in the generated HTML.
+
+- [variable] *DOCUMENT-HTML-CHARSET* "UTF-8"
+
+    The value for charset attribute of the <meta http-equiv='Content-Type'
+    content='text/html'> element in the generated HTML.
+
+- [variable] *DOCUMENT-HTML-HEAD* NIL
+
+    Stuff to be included in the <head> of the generated HTML.
+
+    - If NIL, nothing is included.
+
+    - If a STRING, then it is written to the HTML output as is without
+      any escaping.
+
+    - If a function designator, then it is called with a single
+      argument, the HTML stream, where it must write the output.
+
+- [variable] *DOCUMENT-HTML-SIDEBAR* NIL
+
+    Stuff to be included in the HTML sidebar.
+
+    - If NIL, a default sidebar is generated, with
+      *DOCUMENT-HTML-TOP-BLOCKS-OF-LINKS*, followed by the dynamic table
+      of contents, and *DOCUMENT-HTML-BOTTOM-BLOCKS-OF-LINKS*.
+
+    - If a STRING, then it is written to the HTML output as is without
+      any escaping.
+
+    - If a function designator, then it is called with a single
+      argument, the HTML stream, where it must write the output.
+
+- [variable] *DOCUMENT-HTML-TOP-BLOCKS-OF-LINKS* NIL
+
+    A list of blocks of links to be displayed on the sidebar on the left,
+    above the table of contents. A block is of the form (&KEY TITLE ID
+    LINKS), where TITLE will be displayed at the top of the block in a
+    HTML DIV with ID followed by the links. LINKS is a list of (URI
+    LABEL) elements, where URI maybe a string or an object being
+    DOCUMENTed or a REFERENCE thereof.
+
+- [variable] *DOCUMENT-HTML-BOTTOM-BLOCKS-OF-LINKS* NIL
+
+    Like *DOCUMENT-HTML-TOP-BLOCKS-OF-LINKS*, only it is displayed
+    below the table of contents.
+
+#### GitHub Workflow
+
+It is generally recommended to commit generated readmes (see
+UPDATE-ASDF-SYSTEM-READMES), so that users have something to read
+without reading the code and sites like GitHub can display them.
+
+HTML documentation can also be committed, but there is an issue with
+that: when linking to the sources (see MAKE-GIT-SOURCE-URI-FN), the
+commit id is in the link. This means that code changes need to be
+committed first, and only then can HTML documentation be regenerated
+and committed in a followup commit.
+
+The second issue is that GitHub is not very good at serving HTML
+files from the repository itself (and
+[http://htmlpreview.github.io](http://htmlpreview.github.io) chokes
+on links to the sources).
+
+The recommended workflow is to use
+[gh-pages](https://pages.github.com/), which can be made relatively
+painless with the git worktree command. The gist of it is to make
+the doc/ directory a checkout of the branch named gh-pages.
+There is a [good
+description](http://sangsoonam.github.io/2019/02/08/using-git-worktree-to-deploy-github-pages.html)
+of this general process. Two commits are needed still, but it is
+somewhat less painful.
+
+This way the HTML documentation will be available at
+
+    http://<username>.github.io/<repo-name>
+
+It is probably a good idea to add sections like the
+Links and Systems section to allow jumping between the repository
+and the gh-pages site.
+
+- [function] MAKE-GITHUB-SOURCE-URI-FN ASDF-SYSTEM GITHUB-URI &KEY GIT-VERSION
+
+    This function is a backward-compatibility wrapper around
+    MAKE-GIT-SOURCE-URI-FN, which supersedes MAKE-GITHUB-SOURCE-URI-FN.
+    All arguments are passed on to MAKE-GIT-SOURCE-URI-FN, leaving
+    URI-FORMAT-STRING at its default, which is suitable for GitHub.
+
+- [function] MAKE-GIT-SOURCE-URI-FN ASDF-SYSTEM GIT-FORGE-URI &KEY GIT-VERSION (URI-FORMAT-STRING "~A/blob/~A/~A#L~S")
+
+    Return an object suitable as :SOURCE-URI-FN of a page spec (see
+    the PAGES argument of DOCUMENT). The function looks at the source
+    location of the object passed to it, and if the location is found,
+    the path is made relative to the top-level directory of the git
+    checkout containing the file of the ASDF-SYSTEM and finally an URI
+    pointing to your git forge (such as GitHub) is returned. A warning
+    is signalled whenever the source location lookup fails or if the
+    source location points to a directory not below the directory of
+    ASDF-SYSTEM.
+
+    If GIT-FORGE-URI is "https://github.com/melisgl/mgl-pax/" and
+    GIT-VERSION is "master", then the returned URI may look like this:
+
+        https://github.com/melisgl/mgl-pax/blob/master/src/pax-early.lisp#L12
+
+    If GIT-VERSION is NIL, then an attempt is made to determine to
+    current commit id from the .git in the directory holding
+    ASDF-SYSTEM. If no .git directory is found, then no links to
+    the git forge will be generated.
+
+    URI-FORMAT-STRING is a CL:FORMAT control string for four arguments:
+
+    - GIT-FORGE-URI,
+
+    - GIT-VERSION,
+
+    - the relative path to the file of the source location of the reference,
+
+    - and the line number.
+
+    The default value of URI-FORMAT-STRING is for GitHub. If using a
+    non-standard git forge, such as Sourcehut or GitLab, simply pass a
+    suitable URI-FORMAT-STRING matching the URI scheme of your forge.
+
+#### PAX World
+
+PAX World is a registry of documents, which can generate
+cross-linked HTML documentation pages for all the registered
+documents. There is an official [PAX
+World](https://melisgl.github.io/mgl-pax-world/).
+
+- [function] REGISTER-DOC-IN-PAX-WORLD NAME SECTIONS PAGE-SPECS
+
+    Register SECTIONS and PAGE-SPECS under NAME (a symbol) in PAX
+    World. By default, UPDATE-PAX-WORLD generates documentation for all
+    of these. SECTIONS and PAGE-SPECS must be lists of SECTIONs and
+    PAGE-SPECs (SEE DOCUMENT) or designators of function of no arguments
+    that return such lists.
+
+For example, this is how PAX registers itself:
+
+    (defun pax-sections ()
+      (list @pax-manual))
+    
+    (defun pax-pages ()
+      `((:objects ,(pax-sections)
+         :source-uri-fn ,(make-git-source-uri-fn
+                          :mgl-pax
+                          "https://github.com/melisgl/mgl-pax"))))
+    
+    (register-doc-in-pax-world :pax 'pax-sections 'pax-pages)
+
+- [function] UPDATE-PAX-WORLD &KEY (DOCS *REGISTERED-PAX-WORLD-DOCS*) DIR UPDATE-CSS-P (STYLE *DOCUMENT-HTML-DEFAULT-STYLE*)
+
+    Generate HTML documentation for all DOCS. Files are created in
+    DIR ((asdf:system-relative-pathname :mgl-pax "world/") by
+    default if DIR is NIL). DOCS is a list of entries of the form (NAME
+    SECTIONS PAGE-SPECS). The default for DOCS is all the sections and
+    pages registered with REGISTER-DOC-IN-PAX-WORLD.
+
+    In the absence of :HEADER-FN :FOOTER-FN, :OUTPUT, every spec in
+    PAGE-SPECS is augmented with HTML headers, footers and output
+    location specifications (based on the name of the section).
+
+    If necessary a default page spec is created for every section.
+
+## Transcripts
+
+What are transcripts for? When writing a tutorial, one often wants
+to include a REPL session with maybe a few defuns and a couple of
+forms whose output or return values are shown. Also, in a function's
+docstring an example call with concrete arguments and return values
+speaks volumes. A transcript is a text that looks like a REPL
+session, but which has a light markup for printed output and return
+values, while no markup (i.e. prompt) for Lisp forms. PAX
+transcripts may include output and return values of all forms, or
+only selected ones. In either case, the transcript itself can be
+easily generated from the source code.
+
+The main worry associated with including examples in the
+documentation is that they tend to get out-of-sync with the code.
+This is solved by being able to parse back and update transcripts.
+In fact, this is exactly what happens during documentation
+generation with PAX. Code sections tagged with cl-transcript are
+retranscribed and checked for consistency (that is, no difference in
+output or return values). If the consistency check fails, an error
+is signalled that includes a reference to the object being
+documented.
+
+Going beyond documentation, transcript consistency checks can be
+used for writing simple tests in a very readable form. For example:
+
+    (+ 1 2)
+    => 3
+    
+    (values (princ :hello) (list 1 2))
+    .. HELLO
+    => :HELLO
+    => (1 2)
+
+All in all, transcripts are a handy tool especially when combined
+with the Emacs support to regenerate them and with
+PYTHONIC-STRING-READER's triple-quoted strings, that
+allow one to work with nested strings with less noise. The
+triple-quote syntax can be enabled with:
+
+    (in-readtable pythonic-string-syntax)
+
+### Transcribing with Emacs
+
+Typical transcript usage from within Emacs is simple: add a Lisp
+form to a docstring or comment at any indentation level. Move the
+cursor right after the end of the form as if you were to evaluate it
+with C-x C-e. The cursor is marked by #\^:
+
+    This is part of a docstring.
+    
+    ```cl-transcript
+    (values (princ :hello) (list 1 2))^
+    ```
+
+Note that the use of fenced code blocks with the language tag
+cl-transcript is only to tell PAX to perform consistency checks at
+documentation generation time.
+
+Now invoke the Elisp function mgl-pax-transcribe where the cursor
+is, and the fenced code block from the docstring becomes:
+
+    (values (princ :hello) (list 1 2))
+    .. HELLO
+    => :HELLO
+    => (1 2)
+    ^
+
+Then you change the printed message and add a comment to the second
+return value:
+
+    (values (princ :hello-world) (list 1 2))
+    .. HELLO
+    => :HELLO
+    => (1
+        ;; This value is arbitrary.
+        2)
+
+When generating the documentation you get a
+TRANSCRIPTION-CONSISTENCY-ERROR because the printed output and the
+first return value changed, so you regenerate the documentation by
+marking the region bounded by #\| and the cursor at #\^ in the
+example:
+
+    |(values (princ :hello-world) (list 1 2))
+    .. HELLO
+    => :HELLO
+    => (1
+        ;; This value is arbitrary.
+        2)
+    ^
+
+then invoke the Elisp function mgl-pax-retranscribe-region to get:
+
+    (values (princ :hello-world) (list 1 2))
+    .. HELLO-WORLD
+    => :HELLO-WORLD
+    => (1
+        ;; This value is arbitrary.
+        2)
+    ^
+
+Note how the indentation and the comment of (1 2) were left alone,
+but the output and the first return value got updated.
+
+Alternatively, C-u 1 mgl-pax-transcribe will emit commented markup:
+
+    (values (princ :hello) (list 1 2))
+    ;.. HELLO
+    ;=> :HELLO
+    ;=> (1 2)
+
+C-u 0 mgl-pax-retranscribe-region will turn commented into
+non-commented markup. In general, the numeric prefix argument is the
+index of the syntax to be used in *TRANSCRIBE-SYNTAXES*. Without a
+prefix argument, mgl-pax-retranscribe-region will not change the
+markup style.
+
+Finally, not only do both functions work at any indentation level
+but in comments too:
+
+    ;;;; (values (princ :hello) (list 1 2))
+    ;;;; .. HELLO
+    ;;;; => :HELLO
+    ;;;; => (1 2)
+
+The dynamic environment of the transcription is determined by the
+:DYNENV argument of the enclosing cl-transcript code block (see
+Controlling the Dynamic Environment).
+
+Transcription support in Emacs can be enabled by loading
+src/mgl-pax.el. See Emacs Setup.
+
+### Transcript API
+
+- [function] TRANSCRIBE INPUT OUTPUT &KEY UPDATE-ONLY (INCLUDE-NO-OUTPUT UPDATE-ONLY) (INCLUDE-NO-VALUE UPDATE-ONLY) (ECHO T) (CHECK-CONSISTENCY *TRANSCRIBE-CHECK-CONSISTENCY*) DEFAULT-SYNTAX (INPUT-SYNTAXES *TRANSCRIBE-SYNTAXES*) (OUTPUT-SYNTAXES *TRANSCRIBE-SYNTAXES*) DYNENV
+
+    Read forms from INPUT and write them (iff ECHO) to OUTPUT
+    followed by any output and return values produced by calling EVAL on
+    the form. The variables *, **, ***,
+    /, //, ///, -, +,
+    ++, +++ are locally bound and updated as in a
+    REPL. Since TRANSCRIBE EVALuates
+    arbitrary code anyway, forms are read with *READ-EVAL* T.
+
+    INPUT can be a stream or a string, while OUTPUT can be a stream or
+    NIL, in which case output goes into a string. The return value is
+    the OUTPUT stream or the string that was constructed.
+
+    Go up to Transcribing with Emacs for nice examples. A more
+    mind-bending one is this:
+
+        (transcribe "(princ 42) " nil)
+        => "(princ 42)
+        .. 42
+        => 42
+        "
+
+    However, the above may be a bit confusing since this documentation
+    uses TRANSCRIBE markup syntax in this very example, so let's do it
+    differently. If we have a file with these contents:
+
+        (values (princ 42) (list 1 2))
+
+    it is transcribed to:
+
+        (values (princ 42) (list 1 2))
+        .. 42
+        => 42
+        => (1 2)
+
+    Output to all standard streams is captured and printed with
+    the :OUTPUT prefix (".."). The return values above are printed
+    with the :READABLE prefix ("=>"). Note how these prefixes are
+    always printed on a new line to facilitate parsing.
+
+    Updating
+
+    TRANSCRIBE is able to parse its own output. If we transcribe the
+    previous output above, we get it back exactly. However, if we remove
+    all output markers, leave only a placeholder value marker and
+    pass :UPDATE-ONLY T with source:
+
+        (values (princ 42) (list 1 2))
+        =>
+
+    we get this:
+
+        (values (princ 42) (list 1 2))
+        => 42
+        => (1 2)
+
+    With UPDATE-ONLY, the printed output of a form is transcribed only
+    if there were output markers in the source. Similarly, with
+    UPDATE-ONLY, return values are transcribed only if there were value
+    markers in the source.
+
+    No Output/Values
+
+    If the form produces no output or returns no values, then whether or
+    not output and values are transcribed is controlled by
+    INCLUDE-NO-OUTPUT and INCLUDE-NO-VALUE, respectively. By default,
+    neither is on so:
+
+        (values)
+        ..
+        =>
+
+    is transcribed to
+
+        (values)
+
+    With UPDATE-ONLY true, we probably wouldn't like to lose those
+    markers since they were put there for a reason. Hence, with
+    UPDATE-ONLY, INCLUDE-NO-OUTPUT and INCLUDE-NO-VALUE default to true.
+    So, with UPDATE-ONLY the above example is transcribed to:
+
+        (values)
+        ..
+        => ; No value
+
+    where the last line is the :NO-VALUE prefix.
+
+    Consistency Checks
+
+    If CHECK-CONSISTENCY is true, then TRANSCRIBE signals a continuable
+    TRANSCRIPTION-OUTPUT-CONSISTENCY-ERROR whenever a form's output as a
+    string is different from what was in INPUT, provided that INPUT
+    contained the output. Similarly, for values, a continuable
+    TRANSCRIPTION-VALUES-CONSISTENCY-ERROR is signalled if a value read
+    from the source does not print as the as the value returned by EVAL.
+    This allows readable values to be hand-indented without failing
+    consistency checks:
+
+        (list 1 2)
+        => ;; This is commented, too.
+           (1
+              ;; Funny indent.
+              2)
+
+    See Transcript Consistency Checking for the full picture.
+
+    Unreadable Values
+
+    The above scheme involves READ, so consistency of unreadable values
+    cannot be treated the same. In fact, unreadable values must even be
+    printed differently for transcribe to be able to read them back:
+
+        (defclass some-class () ())
+        
+        (defmethod print-object ((obj some-class) stream)
+          (print-unreadable-object (obj stream :type t)
+            (format stream "~%~%end")))
+        
+        (make-instance 'some-class)
+        ==> #<SOME-CLASS 
+        -->
+        --> end>
+
+    where "==>" is the :UNREADABLE prefix and "-->" is the
+    :UNREADABLE-CONTINUATION prefix. As with outputs, a consistency
+    check between an unreadable value from the source and the value from
+    EVAL is performed with STRING= by default. That is, the value from
+    EVAL is printed to a string and compared to the source value. Hence,
+    any change to unreadable values will break consistency checks. This
+    is most troublesome with instances of classes with the default
+    PRINT-OBJECT method printing the memory address. See
+    Finer-Grained Consistency Checks.
+
+    Errors
+
+    If an ERROR condition is signalled, the error is printed to the
+    output and no values are returned.
+
+        (progn
+          (print "hello")
+          (error "no greeting"))
+        ..
+        .. "hello" 
+        .. debugger invoked on SIMPLE-ERROR:
+        ..   no greeting
+
+    To keep the textual representation somewhat likely to be portable,
+    the printing is done with (FORMAT T "#<~S ~S>" (TYPE-OF
+    ERROR) (PRINC-TO-STRING ERROR)). SIMPLE-CONDITIONs are formatted to
+    strings with SIMPLE-CONDITION-FORMAT-CONTROL and
+    SIMPLE-CONDITION-FORMAT-ARGUMENTS.
+
+    Syntaxes
+
+    Finally, a transcript may employ different syntaxes for the output
+    and values of different forms. When INPUT is read, the syntax for
+    each form is determined by trying to match all prefixes from all
+    syntaxes in INPUT-SYNTAXES against a line. If there are no output or
+    values for a form in INPUT, then the syntax remains undetermined.
+
+    When OUTPUT is written, the prefixes to be used are looked up in
+    DEFAULT-SYNTAX of OUTPUT-SYNTAXES, if DEFAULT-SYNTAX is not NIL. If
+    DEFAULT-SYNTAX is NIL, then the syntax used by the same form in the
+    INPUT is used or (if that could not be determined) the syntax of the
+    previous form. If there was no previous form, then the first syntax
+    if OUTPUT-SYNTAXES is used.
+
+    To produce a transcript that's executable Lisp code,
+    use :DEFAULT-SYNTAX :COMMENTED-1:
+
+        (make-instance 'some-class)
+        ;==> #<SOME-CLASS
+        ;-->
+        ;--> end>
+        
+        (list 1 2)
+        ;=> (1
+        ;->    2)
+
+    To translate the above to uncommented syntax,
+    use :DEFAULT-SYNTAX :DEFAULT. If DEFAULT-SYNTAX is NIL (the
+    default), the same syntax will be used in the output as in the input
+    as much as possible.
+
+    Dynamic Environment
+
+    If DYNENV is non-NIL, then it must be a function that establishes
+    the dynamic environment in which transcription shall take place. It
+    is called with a single argument: a thunk (a function of no
+    arguments). See Controlling the Dynamic Environment for an example.
+
+- [variable] *TRANSCRIBE-CHECK-CONSISTENCY* NIL
+
+    The default value of TRANSCRIBE's CHECK-CONSISTENCY argument.
+
+- [variable] *TRANSCRIBE-SYNTAXES* ((:DEFAULT (:OUTPUT "..") (:NO-VALUE "=> ; No value") (:READABLE "=>")
+  (:UNREADABLE "==>") (:UNREADABLE-CONTINUATION "-->"))
+ (:COMMENTED-1 (:OUTPUT ";..") (:NO-VALUE ";=> ; No value") (:READABLE ";=>")
+  (:READABLE-CONTINUATION ";->") (:UNREADABLE ";==>")
+  (:UNREADABLE-CONTINUATION ";-->"))
+ (:COMMENTED-2 (:OUTPUT ";;..") (:NO-VALUE ";;=> ; No value")
+  (:READABLE ";;=>") (:READABLE-CONTINUATION ";;->") (:UNREADABLE ";;==>")
+  (:UNREADABLE-CONTINUATION ";;-->")))
+
+    The default syntaxes used by TRANSCRIBE for reading and writing
+    lines containing output and values of an evaluated form.
+
+    A syntax is a list of of the form (SYNTAX-ID &REST PREFIXES) where
+    PREFIXES is a list of (PREFIX-ID PREFIX-STRING) elements. For
+    example the syntax :COMMENTED-1 looks like this:
+
+        (:commented-1
+         (:output ";..")
+         (:no-value ";=>  No value")
+         (:readable ";=>")
+         (:readable-continuation ";->")
+         (:unreadable ";==>")
+         (:unreadable-continuation ";-->"))
+
+    All of the above prefixes must be defined for every syntax except
+    for :READABLE-CONTINUATION. If that's missing (as in the :DEFAULT
+    syntax), then the following value is read with READ and printed with
+    PRIN1 (hence no need to mark up the following lines).
+
+    When writing, an extra space is added automatically if the line to
+    be prefixed is not empty. Similarly, the first space following the
+    prefix is discarded when reading.
+
+    See TRANSCRIBE for how the actual syntax to be used is selected.
+
+- [condition] TRANSCRIPTION-ERROR ERROR
+
+    Represents syntactic errors in the SOURCE argument
+    of TRANSCRIBE and also serves as the superclass of
+    TRANSCRIPTION-CONSISTENCY-ERROR.
+
+- [condition] TRANSCRIPTION-CONSISTENCY-ERROR TRANSCRIPTION-ERROR
+
+    A common superclass for
+    TRANSCRIPTION-OUTPUT-CONSISTENCY-ERROR and
+    TRANSCRIPTION-VALUES-CONSISTENCY-ERROR.
+
+- [condition] TRANSCRIPTION-OUTPUT-CONSISTENCY-ERROR TRANSCRIPTION-CONSISTENCY-ERROR
+
+    Signalled (with CERROR) by TRANSCRIBE when invoked
+    with :CHECK-CONSISTENCY and the output of a form is not the same as
+    what was parsed.
+
+- [condition] TRANSCRIPTION-VALUES-CONSISTENCY-ERROR TRANSCRIPTION-CONSISTENCY-ERROR
+
+    Signalled (with CERROR) by TRANSCRIBE when invoked
+    with :CHECK-CONSISTENCY and the values of a form are inconsistent
+    with their parsed representation.
+
+### Transcript Consistency Checking
+
+The main use case for consistency checking is detecting
+out-of-date examples in documentation, although using it for writing
+tests is also a possibility. Here, we focus on the former.
+
+When a Markdown code block tagged cl-transcript is processed
+during Generating Documentation, the code in it is replaced with
+the output of with (TRANSCRIBE <CODE> NIL :UPDATE-ONLY T
+:CHECK-CONSISTENCY T). Suppose we have the following example of the
+function GREET, that prints hello and returns 7.
+
+    ```cl-transcript
+    (greet)
+    .. hello
+    => 7
+    ```
+
+Now, if we change GREET to print or return something else, a
+TRANSCRIPTION-CONSISTENCY-ERROR will be signalled during
+documentation generation. Then we may fix the documentation or
+CONTINUE from the error.
+
+By default, comparisons of previous to current output, readable and
+unreadable return values are performed with STRING=, EQUAL, and
+STRING=, respectively, which is great in the simple case.
+Non-determinism aside, exact matching becomes brittle as soon as the
+notoriously unportable pretty printer is used or when unreadable
+objects are printed with their #<> syntax, especially when
+PRINT-UNREADABLE-OBJECT is used with :IDENTITY T.
+
+#### Finer-Grained Consistency Checks
+
+To get around this problem, consistency checking of output,
+readable and unreadable values can be customized individually by
+supplying TRANSCRIBE with a CHECK-CONSISTENCY argument
+like ((:OUTPUT <OUTPUT-CHECK>) (:READABLE
+<READABLE-CHECK>) (:UNREADABLE <UNREADABLE-CHECK>)). In this case,
+<OUTPUT-CHECK> may be NIL, T, or a function designator.
+
+- If it's NIL or there is no :OUTPUT entry in the list, then the
+  output is not checked for consistency.
+
+- If it's T, then the outputs are compared with the default,
+  STRING=.
+
+- If it's a function designator, then it's called with two strings
+  and must return whether they are consistent with each other.
+
+The case of <READABLE-CHECK> and <UNREADABLE-CHECK> is similar.
+
+Code blocks tagged cl-transcript can take arguments, which they
+pass on to TRANSCRIBE. The following shows how to check only the
+output.
+
+    ```cl-transcript (:check-consistency ((:output t)))
+    (error "Oh, no.")
+    .. debugger invoked on SIMPLE-ERROR:
+    ..   Oh, no.
+    
+    (make-condition 'simple-error)
+    ==> #<SIMPLE-ERROR {1008A81533}>
+    ```
+
+#### Controlling the Dynamic Environment
+
+The dynamic environment in which forms in the transcript are
+evaluated can be controlled via the :DYNENV argument of
+cl-transcript.
+
+    ```cl-transcript (:dynenv my-transcript)
+    ...
+    ```
+
+In this case, instead of calling TRANSCRIBE directly, the call will
+be wrapped in a function of no arguments and passed to the function
+MY-TRANSCRIPT, which establishes the desired dynamic environment
+and calls its argument. The following definition of MY-TRANSCRIPT
+simply packages up oft-used settings to TRANSCRIBE.
+
+    (defun my-transcript (fn)
+      (let ((*transcribe-check-consistency*
+              '((:output my-transcript-output=)
+                (:readable equal)
+                (:unreadable nil))))
+        (funcall fn)))
+    
+    (defun my-transcript-output= (string1 string2)
+      (string= (my-transcript-normalize-output string1)
+               (my-transcript-normalize-output string2)))
+    
+    (defun my-transcript-normalize-output (string)
+      (squeeze-whitespace (delete-trailing-whitespace (delete-comments string))))
+
+A more involved solution could rebind global variables set in
+transcripts, unintern symbols created or even create a temporary
+package for evaluation.
+
+#### Utilities for Consistency Checking
+
+- [function] SQUEEZE-WHITESPACE STRING
+
+    Replace consecutive whitespace characters with a single space in
+    STRING and trim whitespace from the right. This is useful to undo
+    the effects of pretty printing when building comparison functions
+    for TRANSCRIBE.
+
+- [function] DELETE-TRAILING-WHITESPACE STRING
+
+    Delete whitespace characters after the last non-whitespace
+    character in each line in STRING.
+
+- [function] DELETE-COMMENTS STRING &KEY (PATTERN ";")
+
+    For each line in STRING delete the rest of the line after and
+    including the first occurrence of PATTERN. On changed lines, delete
+    trailing whitespace too. This function does not parse STRING as Lisp
+    forms, hence all occurrences of PATTERN (even those seemingly in
+    string literals) are recognized as comments.
+
+    Let's define a comparison function:
+
+        (defun string=/no-comments (string1 string2)
+          (string= (delete-comments string1) (delete-comments string2)))
+
+    And use it to check consistency of output:
+
+        ```cl-transcript (:check-consistency ((:output string=/no-comments)))
+        (format t "hello~%world")
+        .. hello     ; This is the first line.
+        .. world     ; This is the second line.
+        ```
+
+    Just to make sure the above example works, here it is without being
+    quoted.
+
+        (format t "hello~%world")
+        .. hello     ; This is the first line.
+        .. world     ; This is the second line.
+
+## Parsing
+
+### Parsing Names
+
+When encountering a word such as CLASSes in a docstring, PAX
+needs to find the name, and how that's done varies slightly.
+Codification, for example, looks for interesting names,
+Navigating Sources in Emacs for names with Lisp DEFINITIONS, and Linking for names with any kind of
+definition.
+
+This is not as straightforward as it sounds because it needs to
+handle cases like nonREADable, PRINTed, and all the various forms of
+Linking in docstrings as well as in comments, and the (NAME
+LOCATIVE) syntax in DEFSECTION.
+
+- [glossary-term] word
+
+    A word is a string from which we want to extract a name. When
+    Navigating, the word is
+    slime-sexp-at-point or the label of a Markdown reference link if point
+    is over one. Similarly, when Generating Documentation, it is a
+    non-empty string between whitespace characters in a docstring or the
+    label of a Markdown reference link.
+
+- [glossary-term] raw name
+
+    A raw name is a string from which a name may be read. Raw names
+    correspond to an intermediate parsing step between words an names.
+    See Names in Raw Names.
+
+- [glossary-term] name
+
+    A name is a DRef name. That is, a symbol, a
+    string or a nested list of the previous associated with a
+    definition, whose kind is given by a locative.
+
+Depending on the context, trimming and depluralization may be
+enabled (see Raw Names in Words), while the possible names may be
+restricted to symbols (see Names in Raw Names).
+
+- Trimming: Enabled for M-. Defaulting and Codification.
+
+- Depluralization: Enabled when the word is part of the normal
+  flow of text (i.e. not for Specific Reflink with Text,
+  Unspecific Reflink with Text and various Elisp functions such as
+  mgl-pax-apropos unless they determine their argument from buffer
+  contents).
+
+- Symbols only: This is the case for Codification and
+  Unspecific Autolink to prevent string-based definitions from
+  littering the documentation with links without the control
+  provided by explicitly IMPORTing symbols.
+
+For a word, a number of raw names is generated by trimming
+delimiter characters and plural markers, and for each raw name a
+number of names are considered until one is found suitable in the
+context. The following subsections describe the details of the
+parsing algorithm.
+
+#### Raw Names in Words
+
+From words, raw names are parsed by trimming some
+prefixes and suffixes. For a given word, multiple raw names are
+considered in the following order.
+
+1. The entire word.
+
+2. Trimming the following characters from the left of the word:
+
+        #<{;"'`
+
+3. Trimming the following characters from the right of the word:
+
+        ,;:.>}"'`
+
+4. Trimming both of the previous two at the same time.
+
+5. From the result of 4., If a word ends with what looks like a plural marker (case-insensitive),
+then a name is created by removing it. For example, from the word
+BUSES the plural marker ES is removed to produce the name BUS.
+The list of plural markers considered is SES (e.g. GASSES),
+ES (e.g. BUSES), S (e.g. CARS), ZES (e.g. FEZZES), and
+REN (e.g. CHILDREN).
+
+6. From the result of 4., removing the prefix before the first, and the suffix after the last
+uppercase character if it contains at least one lowercase character.
+
+#### Names in Raw Names
+
+For each raw name from Raw Names in Words, various names
+may be considered until one is found that's suitable in the context.
+
+The following examples list the names considered for a given raw
+name, assuming that READTABLE-CASE is :UPCASE as well as that FOO
+and |Foo| are interned.
+
+- "foo": FOO, "foo", "FOO" (rules 1, 2, 3)
+
+- "FOO": FOO, "FOO" (rules 1, 2)
+
+- "Foo": "Foo", "FOO" (rules 2, 3)
+
+- "|Foo|": |Foo| (rule 4)
+
+- "\"foo\"": "foo" (rule 5)
+
+The rules are:
+
+1. If the raw name is not mixed case (i.e. it doesn't have both
+   upper- and lowercase characters) and it names an interned
+   symbol (subject to the current Package and Readtable), then that
+   symbol is considered as a name.
+
+2. The raw name itself (a string) is considered a name.
+
+3. The raw name upcased or downcased according to
+   READTABLE-CASE (subject to the current
+   readtable) but still as a string. This
+   is to allow [dref][package] to refer to the "DREF"
+   package regardless of whether the symbol DREF is interned in
+   the current package.
+
+4. If the raw name is explicitly a symbol (it starts with #\|),
+   and it names an interned symbol (subject to the current
+   Package and Readtable), then that symbol is considered as a name
+   and nothing else.
+
+5. If the raw name has an embedded string (it starts with #\") and
+   READ-FROM-STRING can read the embedded string from it, then that
+   string is considered as a name and nothing else.
+
+<br/>
+For example, when M-. is pressed while point is over
+nonREADable., the last word of the sentence It may be
+nonREADable., the following raw names are considered until one is
+found with a definition:
+
+1. The entire word, "nonREADable.".
+
+2. Trimming left does not produce a new raw name.
+
+3. Trimming right removes the dot and gives "nonREADable".
+
+4. Trimming both is the same as trimming right.
+
+5. No plural markers are found.
+
+6. The lowercase prefix and suffix is removed around the uppercase
+   core, giving "READ". This names an interned symbol which has a
+   definition, so M-. will visit it.
+
+When Generating Documentation, Autolinking behaves similarly.
+
+### Parsing Locatives
+
+Locatives are parsed almost as if by READ. They are found in
+buffer contents around a word when M-. Defaulting or
+Generating Documentation, and in the string entered when
+M-. Prompting, with a similar distinction when
+Browsing Live Documentation.
+
+Parsing deviates from READ in the following ways.
+
+- No new symbols are INTERNed during parsing. If an expression
+  contains uninterned symbols, then it is not parsable as a
+  locative.
+
+- Read-time evaluation (#.) follows normal READ semantics.
+  Thus, (method ((eql #.(find-package 'cl)))) may INTERN the
+  symbol CL.
+
+- A locative that involves unreadable objects that print using the
+  #< syntax (e.g. (METHOD ((EQL #<PACKAGE DREF>)))) is parsable
+  in the context of a name if each unreadable object in the
+  locative occurs in one of the DEFINITIONS of that name and it
+  prints to an equivalent string (e.g. #<PACKAGE DREF> above).
+
+- [glossary-term] prints to an equivalent string
+
+    An object with an unreadable representation is said to print to
+    some string S if its PRIN1 representation (under WITH-STANDARD-IO-SYNTAX
+    but in the current package and with *PRINT-READABLY* NIL) is the same as S, where consecutive whitepace characters are
+    replaced with a single space in both strings, and the comparison is case-insensitive.
+
+    See the related concept of stable printed locative, that requires
+    the printed representation of entire locatives to be unique and
+    non-changing to support Linking.
+
+## Writing Extensions
+
+### Adding New Locatives
+
+Once everything in Extending DRef has been done,
+there are only a couple of PAX generic functions left to extend.
+
+- [generic-function] DOCUMENT-OBJECT* OBJECT STREAM
+
+    Write OBJECT in *FORMAT* to STREAM.
+    Specialize this on a subclass of DREF if that subclass is
+    not RESOLVEable, else on the type of object it resolves to. This
+    function is for extension only. Don't call it directly.
+
+- [generic-function] EXPORTABLE-REFERENCE-P PACKAGE SYMBOL LOCATIVE-TYPE LOCATIVE-ARGS
+
+    Return true if SYMBOL is to be exported from
+    PACKAGE when it occurs in a DEFSECTION in a reference with
+    LOCATIVE-TYPE and LOCATIVE-ARGS. SYMBOL is accessible in
+    PACKAGE.
+
+    The default method calls EXPORTABLE-LOCATIVE-TYPE-P with
+    LOCATIVE-TYPE and ignores the other arguments.
+
+    By default, SECTIONs and GLOSSARY-TERMs are not exported although
+    they are EXPORTABLE-LOCATIVE-TYPE-P. To export symbols naming
+    sections from MGL-PAX, the following method could be added:
+
+        (defmethod exportable-reference-p ((package (eql (find-package 'mgl-pax)))
+                                           symbol (locative-type (eql 'section))
+                                           locative-args)
+          t)
+
+- [generic-function] EXPORTABLE-LOCATIVE-TYPE-P LOCATIVE-TYPE
+
+    Return true if symbols in references with
+    LOCATIVE-TYPE are to be exported by default when they occur in a
+    DEFSECTION. The default method returns T, while the methods for
+    locative types SECTION, GLOSSARY-TERM,
+    PACKAGE, ASDF:SYSTEM, METHOD and
+    INCLUDE return NIL.
+
+    This function is called by the default method of
+    EXPORTABLE-REFERENCE-P to decide what symbols DEFSECTION shall
+    export when its EXPORT argument is true.
+
+Also note that due to the Home Section logic, especially for
+locative types with string names, DREF-EXT:DOCSTRING* should
+probably return a non-NIL package.
+
+### Locative Aliases
+
+DEFINE-LOCATIVE-ALIAS can be used to help M-. and Specific Autolinks disambiguate
+references based on the context of a name as described on Parsing.
+
+The following example shows how to make docstrings read
+more naturally by defining an alias.
+
+    (defclass my-string ()
+      ())
+    
+    (defgeneric my-string (obj)
+      (:documentation "Convert OBJ to MY-STRING."))
+    
+    ;;; This version of FOO has a harder to read docstring because
+    ;;; it needs to disambiguate the MY-STRING reference.
+    (defun foo (x)
+      "FOO takes and argument X, a [MY-STRING][class] object.")
+    
+    ;;; Define OBJECT as an alias for the CLASS locative.
+    (define-locative-alias object class)
+    
+    ;;; Note how no explicit link is needed anymore.
+    (defun foo (x)
+      "FOO takes an argument X, a MY-CLASS object.")
+
+Similarly, defining the indefinite articles as aliases of the CLASS
+locative can reduce the need for explicit linking.
+
+    (define-locative-alias a class)
+    (define-locative-alias an class)
+
+Since these are unlikely to be universally helpful, make sure not to
+export the symbols A and AN.
+
+### Extending DOCUMENT
+
+For all definitions that it encounters, DOCUMENT calls
+DOCUMENT-OBJECT* to generate documentation. The following utilities
+are for writing new DOCUMENT-OBJECT* methods, which emit Markdown.
+
+- [variable] *FORMAT*
+
+    Bound by DOCUMENT to its FORMAT argument, this allows Markdown
+    output to depend on the output format.
+
+- [macro] WITH-HEADING (STREAM &KEY DREF LINK-TITLE-TO) &BODY BODY
+
+    Write a Markdown heading with the DOCTITLE of DREF to STREAM.
+
+    - DREF defaults to the definition for which documentation is
+      currently being generated.
+
+    - Nested WITH-HEADINGs produce nested headings.
+
+    - If *DOCUMENT-LINK-SECTIONS*, generate anchors based on DREF.
+
+    - LINK-TITLE-TO behaves like the LINK-TITLE-TO argument of
+      DEFSECTION.
+
+- [generic-function] DOCTITLE* OBJECT
+
+    DOCTITLE* extends DOCTITLE in the same way
+    as DOCSTRING* extends DOCSTRING.
+
+    The default method returns NIL.
+
+    This function is for extension only. Do not call it directly.
+
+- [macro] DOCUMENTING-DEFINITION (STREAM &KEY DREF PACKAGE READTABLE (ARGLIST NIL)) &BODY BODY
+
+    Write DREF to STREAM as described in
+    *DOCUMENT-MARK-UP-SIGNATURES*, and establish DREF as a
+     Local Definition for the processing of BODY.
+
+    - DREF defaults to the definition for which documentation is
+      currently being generated.
+
+    - If DREF has a DOCTITLE, then it is PRINCed after the
+      LOCATIVE-TYPE (see Markdown in Titles). Else, (DREF-NAME DREF)
+      is printed subject to *DOCUMENT-DOWNCASE-UPPERCASE-CODE* but with
+      all Markdown and MathJax markup escaped.
+
+    - *PACKAGE* and *READTABLE* are bound to PACKAGE and READTABLE for
+      the duration of printing the ARGLIST and the processing of BODY.
+      If either is NIL, then a default value is computed as described in
+      Package and Readtable.
+
+    - ARGLIST:
+
+        - If it is not provided, then it defaults to (ARGLIST DREF).
+
+        - If NIL, then it is not printed.
+
+        - If it is a list, then it is must be a lambda list and
+          is printed without the outermost parens and with the package
+          names removed from the argument names.
+
+        - If its is a string, then it must be valid Markdown.
+
+    - It is not allowed to have WITH-HEADING within the dynamic
+      extent of BODY.
+
+- [macro] WITH-DISLOCATED-NAMES NAMES &BODY BODY
+
+    For each name in NAMES, establish a Local Definition.
+
+- [function] DOCUMENT-DOCSTRING DOCSTRING STREAM &KEY (INDENTATION "    ") EXCLUDE-FIRST-LINE-P (PARAGRAPHP T)
+
+    Write DOCSTRING to STREAM, sanitizing the Markdown from it, performing Codification and
+    Linking, finally prefixing each line with INDENTATION. The prefix
+    is not added to the first line if EXCLUDE-FIRST-LINE-P. If
+    PARAGRAPHP, then add a newline before and after the output.
+
+- [function] ESCAPE-MARKDOWN STRING &KEY (ESCAPE-INLINE T) (ESCAPE-MATHJAX T) (ESCAPE-HTML T) (ESCAPE-BLOCK T)
+
+    Backslash escape Markdown constructs in STRING.
+
+    - If ESCAPE-INLINE, then escape the following characters:
+
+            *_`[]\
+
+    - If ESCAPE-MATHJAX, then escape $ characters.
+
+    - If ESCAPE-HTML, then escape the following characters:
+
+            <&
+
+    - If ESCAPE-BLOCK, then escape whatever is necessary to avoid
+      starting a new Markdown block (e.g. a paragraph, heading, etc).
+
+- [function] PRIN1-TO-MARKDOWN OBJECT &KEY (ESCAPE-INLINE T) (ESCAPE-MATHJAX T) (ESCAPE-HTML T) (ESCAPE-BLOCK T)
+
+    Like PRIN1-TO-STRING, but bind *PRINT-CASE* depending on
+    *DOCUMENT-DOWNCASE-UPPERCASE-CODE* and *FORMAT*, and
+    ESCAPE-MARKDOWN.
+
+### Sections
+
+SECTION objects rarely need to be dissected since
+DEFSECTION and DOCUMENT cover most needs. However, it is plausible
+that one wants to subclass them and maybe redefine how they are
+presented.
+
+- [class] SECTION
+
+    DEFSECTION stores its NAME, TITLE, PACKAGE,
+    READTABLE and ENTRIES arguments in SECTION
+    objects.
+
+- [reader] SECTION-NAME SECTION (:NAME)
+
+    The name of the global variable whose value is
+    this SECTION object.
+
+- [reader] SECTION-PACKAGE SECTION (:PACKAGE)
+
+    *PACKAGE* will be bound to this package when
+    generating documentation for this section.
+
+- [reader] SECTION-READTABLE SECTION (:READTABLE)
+
+    *READTABLE* will be bound to this when generating
+    documentation for this section.
+
+- [reader] SECTION-TITLE SECTION (:TITLE)
+
+    A title or NIL. Used in generated
+    documentation (see Markdown Output) and is returned by DOCTITLE
+    for SECTION objects and SECTION definitions.
+
+- [function] SECTION-LINK-TITLE-TO SECTION
+
+- [function] SECTION-ENTRIES SECTION
+
+    A list of Markdown docstrings and XREFs in the order they
+    occurred in DEFSECTION.
+
+### Glossary Terms
+
+GLOSSARY-TERM objects rarely need to be dissected since
+DEFINE-GLOSSARY-TERM and DOCUMENT cover most needs. However, it is
+plausible that one wants to subclass them and maybe redefine how
+they are presented.
+
+- [class] GLOSSARY-TERM
+
+    See DEFINE-GLOSSARY-TERM.
+
+- [reader] GLOSSARY-TERM-NAME GLOSSARY-TERM (:NAME)
+
+    The name of the global variable whose value is
+    this GLOSSARY-TERM object.
+
+- [reader] GLOSSARY-TERM-TITLE GLOSSARY-TERM (:TITLE)
+
+    A title or NIL. Used in generated
+    documentation (see Markdown Output) and is returned by DOCTITLE
+    for GLOSSARY-TERM objects and GLOSSARY-TERM definitions..
+
+- [reader] GLOSSARY-TERM-URL GLOSSARY-TERM (:URL)
+
+    A string or NIL.
+
+* * *
+###### \[generated by [MGL-PAX](https://github.com/melisgl/mgl-pax)\]

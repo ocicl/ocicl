@@ -80,6 +80,9 @@ dynamic memory space.  If you need a different amount, run it like so:
 sbcl --eval "(defconstant +dynamic-space-size+ 2048)" --load setup.lisp
 ```
 
+Note that on Windows systems you will need `openssl.dll`.  For Windows
+CI testing, we install `openssl.dll` using chocolatey, like so: `choco
+install openssl.light`.
 
 Now run ``ocicl setup``.  This is a mandatory step that installs the
 ``ocicl-runtime`` library, and suggests configurations for your
@@ -144,7 +147,7 @@ using the library versions locked in your ``ocicl.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.6.0 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.6.1 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
              [-c|--color WHEN] [-d|--depth NUM] command
