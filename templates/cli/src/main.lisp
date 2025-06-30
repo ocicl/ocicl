@@ -6,6 +6,8 @@
 
 (in-package #:<%= @ :app-name %>)
 
+(version-string:define-version-parameter +version+ :ctfg)
+
 ;;── CLI ────────────────────────────────────────────────────────────────────────
 
 (defun make-app ()
@@ -13,7 +15,7 @@
                                 :description "Don't really do it.")))
     (clingon:make-command
      :name    "<%= @ app-name %>"
-     :version "0.1.0"
+     :version +version+
      :description "A command-line tool"
      :authors (list "<%= (or (@ author) "Your Name") %>")
      :license "<%= (or (@ license) "MIT") %>"

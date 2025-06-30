@@ -9,7 +9,7 @@
   :author      "<%= (or (@ author) "Your Name") %>"
   :license     "<%= (or (@ license) "MIT") %>"
   :version     "0.1.0"
-  :depends-on (:clingon)
+  :depends-on (:clingon :version-string)
   :serial t
   :components ((:file "src/package")
                (:file "src/main"))
