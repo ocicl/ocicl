@@ -145,6 +145,7 @@ jobs:
     - name: Test ocicl through proxy
       # if: runner.os != 'Windows'
       run: |
+        set -x
         if [[ "$RUNNER_OS" == "Linux" ]]; then
           DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
           sudo $DEVPROXY_BIN cert ensure
