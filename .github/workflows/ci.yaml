@@ -125,36 +125,36 @@ jobs:
         ls -d ../*/cl-completions* >/dev/null 2>&1 || {
           echo "cl-completions* not found"; exit 1; }
 
-     - name: Run dev-proxy
-       run: .github/scripts/run-dev-proxy.sh &
+    - name: Run dev-proxy
+      run: .github/scripts/run-dev-proxy.sh &
 
-     # Linux
-     - name: Trust Dev Proxy certificate (Linux)
-       if: runner.os == 'Linux'
-       run: |
-         sudo cp "$DEVPROXY_CERT" /usr/local/share/ca-certificates/devproxy-ca.crt
-         sudo update-ca-certificates
+    # Linux
+    - name: Trust Dev Proxy certificate (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo cp "$DEVPROXY_CERT" /usr/local/share/ca-certificates/devproxy-ca.crt
+        sudo update-ca-certificates
 
-     # Windows
-     - name: Trust Dev Proxy certificate (Windows)
-       if: runner.os == 'Windows'
-       shell: pwsh
-       run: |
-         Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root `
-             -FilePath "$Env:DEVPROXY_CERT"
+    # Windows
+    - name: Trust Dev Proxy certificate (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root `
+            -FilePath "$Env:DEVPROXY_CERT"
 
-     - name: ocicl installs must go through Dev Proxy
-       run: |
-         echo "HTTPS_PROXY=$HTTPS_PROXY"
-         $OCICL_BIN list cl-ppcre
+    - name: ocicl installs must go through Dev Proxy
+      run: |
+        echo "HTTPS_PROXY=$HTTPS_PROXY"
+        $OCICL_BIN list cl-ppcre
 
-     - name: Check Dev Proxy log for ocicl traffic
-       run: |
-         grep -q "raw.githubusercontent.com" "$DEVPROXY_LOG" \
-           && echo "✅ ocicl used the proxy" \
-           || (echo "❌ ocicl never hit the proxy" && exit 1)
+    - name: Check Dev Proxy log for ocicl traffic
+      run: |
+        grep -q "raw.githubusercontent.com" "$DEVPROXY_LOG" \
+          && echo "✅ ocicl used the proxy" \
+          || (echo "❌ ocicl never hit the proxy" && exit 1)
 
-     - uses: actions/upload-artifact@v4
-       with:
-         name: devproxy-log-${{ runner.os }}
-         path: ${{ env.DEVPROXY_LOG }}
+    - uses: actions/upload-artifact@v4
+      with:
+        name: devproxy-log-${{ runner.os }}
+        path: ${{ env.DEVPROXY_LOG }}
