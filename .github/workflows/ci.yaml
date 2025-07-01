@@ -172,4 +172,4 @@ jobs:
       if: runner.os != 'Windows'
       with:
         name: devproxy-log-${{ runner.os }}
-        path: ${{ env.DEVPROXY_LOG }}
+        path: devproxy.log
