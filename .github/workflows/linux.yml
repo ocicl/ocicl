@@ -36,14 +36,43 @@ jobs:
           echo "(setf ocicl-runtime:*verbose* nil)" >> ~/.sblrc
         shell: bash
 
-      - name: Test
+      - name: Prepare test environment
+        run: rm -rf systems systems.csv
+
+      - name: Test basic Template
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          rm -rf systems systems.csv ocicl
-          mkdir test
-          cd test
+          rm -rf testdir && mkdir testdir && cd testdir
+          ocicl new basic-test cli
+          cd basic-test
+          make
+          ./basic-test | grep "Hello, world"
+        shell: bash
+
+      - name: Test cli Template
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          rm -rf testdir && mkdir testdir && cd testdir
           ocicl new cli-test cli
           cd cli-test
           make
           ./cli-test --help
+        shell: bash
+
+      - name: Test web1 Template
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          rm -rf testdir && mkdir testdir && cd testdir
+          ocicl new web1-test web1
+          cd web1-test
+          make
+          ./web1-test --help
+          ./web1-test -p 8765 &
+          APP_PID=$!
+          for i in {1..30}; do
+            curl --silent --fail http://localhost:8765/ && break
+            echo "Waiting for web1.." && sleep 1
+          done
+          curl -v http://localhost:8765/ | grep "Welcome"
+          kill $APP_PID
         shell: bash
