@@ -69,10 +69,33 @@ jobs:
 
       - name: Test basic Template
         run: |
-          set -x
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           rm -rf testdir && mkdir testdir && cd testdir
           ocicl new basic-test cli
           cd basic-test
           sbcl --eval "(asdf:load-system :basic-test)" --eval "(basic-test:main)" --eval "(uiop:quit 0)" | grep -v "Hello, world"
         shell: bash
+
+      - name: Test parent ocicl directory
+        run: |
+          set -euo pipefail
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+          # layout:  testdir/basic-test   (parent) ,  child-test (cwd)
+          mkdir -p testdir/basic-test
+          mkdir -p child-test
+          cd child-test
+
+          ocicl install completions
+
+          # ── Assert 1 ── current dir must still be empty
+          if [ "$(ls -A . | wc -l)" -ne 0 ]; then
+            echo "❌  child-test is not empty – ocicl should not write here." >&2
+            exit 1
+          fi
+
+          # ── Assert 2 ── completions must land in a sibling of the parent
+          if ! ls -d ../*/cl-completions* >/dev/null 2>&1; then
+            echo "❌  No ../*/cl-completions* directory was created." >&2
+            exit 1
+          fi
