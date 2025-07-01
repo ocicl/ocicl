@@ -47,6 +47,7 @@ jobs:
       run: |
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           echo "OCICL_BIN=ocicl.exe" >> "$GITHUB_ENV"
+          echo "$LOCALAPPDATA/ocicl/bin" >> "$GITHUB_PATH"
         else
           echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
         fi
@@ -58,11 +59,6 @@ jobs:
         $OCICL_BIN version               # sanity
         $OCICL_BIN setup > ~/.sbclrc
         echo "(setf ocicl-runtime:*verbose* nil)" >> ~/.sbclrc
-
-        # On Windows the executable drops in %LOCALAPPDATA%\ocicl\bin
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          echo "$LOCALAPPDATA/ocicl/bin" >> "$GITHUB_PATH"
-        fi
 
     # ── identical test-suite for every OS ────────────────────────────────
     - name: Prepare test env
