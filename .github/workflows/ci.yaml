@@ -148,10 +148,10 @@ jobs:
         set -x
         if [[ "$RUNNER_OS" == "Linux" ]]; then
           DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
-          sudo $DEVPROXY_BIN cert ensure
+          # sudo $DEVPROXY_BIN cert ensure
         else
           DEVPROXY_BIN=devproxy
-          $DEVPROXY_BIN cert ensure
+          # $DEVPROXY_BIN cert ensure
         fi
         $DEVPROXY_BIN -p 9091 --discover --record --log-level Information \
             > devproxy.log 2>&1 &
