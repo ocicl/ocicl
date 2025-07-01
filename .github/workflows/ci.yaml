@@ -27,6 +27,8 @@ jobs:
       if: runner.os == 'macos'
       run: |
         brew install sbcl
+        brew tap dotnet/dev-proxy
+        brew install dev-proxy
         # expose brew env to later steps
         brew shellenv | sed 's/^export //' >> "$GITHUB_ENV"
         echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
@@ -37,15 +39,18 @@ jobs:
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         brew install sbcl
+        brew tap dotnet/dev-proxy
+        brew install dev-proxy
         # expose brew env to later steps
         brew shellenv | sed 's/^export //' >> "$GITHUB_ENV"
         echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
         echo "$(brew --prefix)/sbin" >> "$GITHUB_PATH"
 
-    - name: Install deps (Windows via Chocolatey)
+    - name: Install deps (Windows via Chocolatey and winget)
       if: runner.os == 'Windows'
       shell: powershell
       run: |
+        winget install Microsoft.DevProxy --silent
         choco install -y sbcl openssl.light make wget
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
         # Git Bash already on PATH.  Add ocicl install dir later.
@@ -119,3 +124,37 @@ jobs:
         # completions must land beside parent
         ls -d ../*/cl-completions* >/dev/null 2>&1 || {
           echo "cl-completions* not found"; exit 1; }
+
+     - name: Run dev-proxy
+       run: .github/scripts/run-dev-proxy.sh &
+
+     # Linux
+     - name: Trust Dev Proxy certificate (Linux)
+       if: runner.os == 'Linux'
+       run: |
+         sudo cp "$DEVPROXY_CERT" /usr/local/share/ca-certificates/devproxy-ca.crt
+         sudo update-ca-certificates
+
+     # Windows
+     - name: Trust Dev Proxy certificate (Windows)
+       if: runner.os == 'Windows'
+       shell: pwsh
+       run: |
+         Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root `
+             -FilePath "$Env:DEVPROXY_CERT"
+
+     - name: ocicl installs must go through Dev Proxy
+       run: |
+         echo "HTTPS_PROXY=$HTTPS_PROXY"
+         $OCICL_BIN list cl-ppcre
+
+     - name: Check Dev Proxy log for ocicl traffic
+       run: |
+         grep -q "raw.githubusercontent.com" "$DEVPROXY_LOG" \
+           && echo "✅ ocicl used the proxy" \
+           || (echo "❌ ocicl never hit the proxy" && exit 1)
+
+     - uses: actions/upload-artifact@v4
+       with:
+         name: devproxy-log-${{ runner.os }}
+         path: ${{ env.DEVPROXY_LOG }}
