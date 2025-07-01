@@ -36,20 +36,14 @@ jobs:
           echo "(setf ocicl-runtime:*verbose* nil)" >> ~/.sblrc
         shell: bash
 
-#      - name: Test
-#        run: |
-#          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-#          rm -rf systems systems.csv ocicl
-#          mkdir test
-#          cd test
-#          touch ocicl.csv
-#          ocicl install sento
-#          ls -l ocicl
-#          ls -l ocicl.csv
-#          cat ocicl.csv
-#          sbcl --non-interactive --eval "(asdf:load-system :sento)" --eval "(quit)"
-#          sbcl --non-interactive --eval "(asdf:load-system :cl-etcd)" --eval "(quit)"
-#          rm -rf ocicl
-#          ocicl install
-#          ocicl latest
-#        shell: bash
+       - name: Test
+         run: |
+           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+           rm -rf systems systems.csv ocicl
+           mkdir test
+           cd test
+           ocicl new cli-test cli
+           cd cli-test
+           make
+           ./cli-test --help
+         shell: bash
