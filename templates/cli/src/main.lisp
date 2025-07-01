@@ -6,7 +6,7 @@
 
 (in-package #:<%= @ :app-name %>)
 
-(version-string:define-version-parameter +version+ :ctfg)
+(version-string:define-version-parameter +version+ <%= @ :app-name %>)
 
 ;;── CLI ────────────────────────────────────────────────────────────────────────
 
