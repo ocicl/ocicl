@@ -46,27 +46,18 @@ jobs:
         echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
         echo "$(brew --prefix)/sbin" >> "$GITHUB_PATH"
 
+    - name: Install winget
+      if: runner.os == 'Linux'
+      uses: Cyberboss/install-winget@v1
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        wget_release_id: latest
+
     - name: Install deps (Windows)
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        $version = "0.18.0" # Replace with the desired version
-        $base_url = "https://github.com/microsoft/dev-proxy/releases/download/$version/devproxy"
-        $arch = (Get-ComputerInfo).OsArchitecture
-        if ($arch -like "*64*") {
-          $url = "$base_url-win-x64-$version.zip"
-        } elseif ($arch -like "*32*") {
-          $url = "$base_url-win-x86-$version.zip"
-        } else {
-          Write-Host "Unsupported architecture $arch. Aborting"
-          exit 1
-        }
-        Write-Host "Downloading Dev Proxy version $version..."
-        Invoke-WebRequest -Uri $url -OutFile "devproxy.zip"
-        Expand-Archive -Path "devproxy.zip" -DestinationPath "devproxy"
-        echo "::set-output name=devproxy_path::$env:GITHUB_WORKSPACE/devproxy"
-        echo "::add-path::$env:GITHUB_WORKSPACE/devproxy"
-
+        winget install Microsoft.DevProxy --silent
         choco install -y sbcl openssl.light make wget
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
         # Git Bash already on PATH.  Add ocicl install dir later.
