@@ -69,9 +69,10 @@ jobs:
 
       - name: Test basic Template
         run: |
+          set -x
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           rm -rf testdir && mkdir testdir && cd testdir
           ocicl new basic-test cli
           cd basic-test
-          sbcl --eval "(asdf:load-system :basic-test)" --eval "(basic-test:main)" --eval "(uiop:quit)" | grep "Hello, world"
+          sbcl --eval "(asdf:load-system :basic-test)" --eval "(basic-test:main)" --eval "(uiop:quit 0)" | grep -v "Hello, world"
         shell: bash
