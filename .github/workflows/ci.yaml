@@ -157,7 +157,7 @@ jobs:
         curl --proxy http://localhost:9091 --head --silent --show-error \
              --fail --retry 30 --retry-delay 2 --retry-max-time 120 \
              --retry-all-errors --retry-connrefused --connect-timeout 5 \
-             --output /dev/null
+             --output /dev/null http://www.example.com
         HTTPS_PROXY=http://localhost:9091 $OCICL_BIN list cl-ppcre
         cat devproxy.log
 
