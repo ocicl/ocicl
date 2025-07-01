@@ -11,16 +11,17 @@ LOG_FILE=devproxy.log
 #   - On Windows it imports into the LocalMachine\Root store automatically
 ###############################################################################
 if [[ "$RUNNER_OS" == "Linux" ]]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  sudo devproxy cert ensure --trust
+  DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
+  sudo $DEVPROXY_BIN cert ensure --trust
 else
-  devproxy cert ensure --trust
+  DEVPROXY_BIN=devproxy
+  $DEVPROXY_BIN cert ensure --trust
 fi
 
 ###############################################################################
 # 2.  Start Dev Proxy in the background and capture its output
 ###############################################################################
-devproxy -p "$PROXY_PORT" --record --log-level Information \
+$DEVPROXY_BIN -p "$PROXY_PORT" --record --log-level Information \
   > "$LOG_FILE" 2>&1 &
 PROXY_PID=$!
 
