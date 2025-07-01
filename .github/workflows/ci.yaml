@@ -143,7 +143,7 @@ jobs:
           echo "cl-completions* not found"; exit 1; }
 
     - name: Test ocicl through proxy
-      if: runner.os != 'Windows'
+      # if: runner.os != 'Windows'
       run: |
         if [[ "$RUNNER_OS" == "Linux" ]]; then
           DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
@@ -164,14 +164,14 @@ jobs:
         cat devproxy.log
 
     - name: Check devproxy log for ocicl traffic
-      if: runner.os != 'Windows'
+      # if: runner.os != 'Windows'
       run: |
         grep -q "ghcr.io" devproxy.log \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
 
     - uses: actions/upload-artifact@v4
-      if: runner.os != 'Windows'
+      # if: runner.os != 'Windows'
       with:
         name: devproxy-log-${{ runner.os }}
         path: devproxy.log
