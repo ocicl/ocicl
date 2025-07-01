@@ -167,7 +167,7 @@ jobs:
 
     - name: Check Dev Proxy log for ocicl traffic
       run: |
-        grep -q "raw.githubusercontent.com" "$DEVPROXY_LOG" \
+        grep -q "ghcr.io" "$DEVPROXY_LOG" \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
 

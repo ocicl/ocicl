@@ -21,7 +21,7 @@ fi
 ###############################################################################
 # 2.  Start Dev Proxy in the background and capture its output
 ###############################################################################
-$DEVPROXY_BIN -p "$PROXY_PORT" --record --log-level Information \
+$DEVPROXY_BIN -p "$PROXY_PORT" --discovery --record --log-level Information \
   > "$LOG_FILE" 2>&1 &
 PROXY_PID=$!
 
