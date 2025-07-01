@@ -161,10 +161,10 @@ jobs:
         HTTPS_PROXY=http://localhost:9091 $OCICL_BIN list cl-ppcre
         cat devproxy.log
 
-    - name: Check Dev Proxy log for ocicl traffic
+    - name: Check devproxy log for ocicl traffic
       if: runner.os != 'Windows'
       run: |
-        grep -q "ghcr.io" "$DEVPROXY_LOG" \
+        grep -q "ghcr.io" devproxy.log \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
 
