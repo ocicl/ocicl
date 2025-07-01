@@ -56,7 +56,12 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        winget install Microsoft.DevProxy --silent
+        winget install -e --id Microsoft.DevProxy --source winget `
+              --scope machine --silent `
+              --accept-package-agreements --accept-source-agreements
+        $dp = (where.exe devproxy)[0]
+        "DEVPROXY_BIN=$dp"          | Out-File $env:GITHUB_ENV  -Append
+        Split-Path $dp              | Out-File $env:GITHUB_PATH -Append
         choco install -y sbcl openssl.light make wget
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
         # Git Bash already on PATH.  Add ocicl install dir later.
