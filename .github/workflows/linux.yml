@@ -45,8 +45,7 @@ jobs:
           rm -rf testdir && mkdir testdir && cd testdir
           ocicl new basic-test cli
           cd basic-test
-          make
-          ./basic-test | grep "Hello, world"
+          sbcl --eval "(asdf:load-system :basic-test)" --eval "(basic-test:main)" --eval "(uiop:quit)" | grep "Hello, world"
         shell: bash
 
       - name: Test cli Template
