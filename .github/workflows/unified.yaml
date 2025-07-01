@@ -11,7 +11,7 @@ jobs:
   tests:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
 
     defaults:      # use bash everywhere (Git Bash on Windows)
@@ -23,6 +23,15 @@ jobs:
     - uses: actions/checkout@v4
 
     # ── OS-specific toolchain  ───────────────────────────────────────────
+    - name: Install deps (MacOS via Homebrew)
+      if: runner.os == 'macos'
+      run: |
+        brew install sbcl
+        # expose brew env to later steps
+        brew shellenv | sed 's/^export //' >> "$GITHUB_ENV"
+        echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+        echo "$(brew --prefix)/sbin" >> "$GITHUB_PATH"
+
     - name: Install deps (Linux via Homebrew)
       if: runner.os == 'Linux'
       run: |
@@ -32,7 +41,6 @@ jobs:
         brew shellenv | sed 's/^export //' >> "$GITHUB_ENV"
         echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
         echo "$(brew --prefix)/sbin" >> "$GITHUB_PATH"
-
 
     - name: Install deps (Windows via Chocolatey)
       if: runner.os == 'Windows'
