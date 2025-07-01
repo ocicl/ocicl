@@ -154,6 +154,7 @@ jobs:
         fi
         $DEVPROXY_BIN -p 9091 --discovery --record --log-level Information \
             > devproxy.log 2>&1 &
+        sleep 1
         HTTPS_PROXY=http://localhost:9091 $OCICL_BIN list cl-ppcre
         cat devproxy.log
 
