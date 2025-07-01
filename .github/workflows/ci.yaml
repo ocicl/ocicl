@@ -83,7 +83,7 @@ jobs:
 
     - name: Test “cli” template
       run: |
-        rm -rf testdir && mkdir testdir && cd testdir
+        mkdir testdir1 && cd testdir1
         $OCICL_BIN new cli-test cli
         cd cli-test
         make
@@ -91,7 +91,7 @@ jobs:
 
     - name: Test “web1” template
       run: |
-        rm -rf testdir && mkdir testdir && cd testdir
+        mkdir testdir2 && cd testdir2
         $OCICL_BIN new web1-test web1
         cd web1-test
         make
@@ -107,7 +107,7 @@ jobs:
 
     - name: Test “basic” template
       run: |
-        rm -rf testdir && mkdir testdir && cd testdir
+        mkdir testdir3 && cd testdir3
         $OCICL_BIN new basic-test cli
         cd basic-test
         sbcl --eval "(asdf:load-system :basic-test)" \
@@ -117,8 +117,8 @@ jobs:
     - name: Test parent-dir install logic
       run: |
         set -euo pipefail
-        mkdir -p testdir/basic-test/child-test
-        cd testdir/basic-test/child-test
+        mkdir -p testdir3/basic-test/child-test
+        cd testdir3/basic-test/child-test
 
         $OCICL_BIN install completions
 
