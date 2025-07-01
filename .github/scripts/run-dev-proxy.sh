@@ -12,10 +12,10 @@ LOG_FILE=devproxy.log
 ###############################################################################
 if [[ "$RUNNER_OS" == "Linux" ]]; then
   DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
-  sudo $DEVPROXY_BIN cert ensure --trust
+  sudo $DEVPROXY_BIN cert ensure
 else
   DEVPROXY_BIN=devproxy
-  $DEVPROXY_BIN cert ensure --trust
+  $DEVPROXY_BIN cert ensure
 fi
 
 ###############################################################################
