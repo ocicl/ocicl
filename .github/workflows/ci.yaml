@@ -157,7 +157,7 @@ jobs:
     - name: ocicl installs must go through Dev Proxy
       if: runner.os != 'Windows'
       run: |
-        HTTPS_PROXY=http://localhost:8001 $OCICL_BIN list cl-ppcre
+        HTTPS_PROXY=http://localhost:9091 $OCICL_BIN list cl-ppcre
         cat devproxy.log
 
     - name: Check Dev Proxy log for ocicl traffic
