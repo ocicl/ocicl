@@ -39,15 +39,6 @@ jobs:
       - name: Prepare test environment
         run: rm -rf systems systems.csv
 
-      - name: Test basic Template
-        run: |
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          rm -rf testdir && mkdir testdir && cd testdir
-          ocicl new basic-test cli
-          cd basic-test
-          sbcl --eval "(asdf:load-system :basic-test)" --eval "(basic-test:main)" --eval "(uiop:quit)" | grep "Hello, world"
-        shell: bash
-
       - name: Test cli Template
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -74,4 +65,13 @@ jobs:
           done
           curl -v http://localhost:8765/ | grep "Welcome"
           kill $APP_PID
+        shell: bash
+
+      - name: Test basic Template
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          rm -rf testdir && mkdir testdir && cd testdir
+          ocicl new basic-test cli
+          cd basic-test
+          sbcl --eval "(asdf:load-system :basic-test)" --eval "(basic-test:main)" --eval "(uiop:quit)" | grep "Hello, world"
         shell: bash
