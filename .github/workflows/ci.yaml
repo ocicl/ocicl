@@ -50,7 +50,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        $version = "0.29.2"
+        $version = "0.18.0" # Replace with the desired version
         $base_url = "https://github.com/microsoft/dev-proxy/releases/download/$version/devproxy"
         $arch = (Get-ComputerInfo).OsArchitecture
         if ($arch -like "*64*") {
