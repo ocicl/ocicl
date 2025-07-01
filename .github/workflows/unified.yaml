@@ -1,0 +1,114 @@
+name: ocicl CI
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: [ main, windows ]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    defaults:      # use bash everywhere (Git Bash on Windows)
+      run:
+        shell: bash
+
+    steps:
+    # ── common ───────────────────────────────────────────────────────────
+    - uses: actions/checkout@v4
+
+    # ── OS-specific toolchain  ───────────────────────────────────────────
+    - name: Install deps (Linux via Homebrew)
+      if: runner.os == 'Linux'
+      run: |
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        brew install sbcl
+        # expose brew env to later steps
+        echo "eval \"\$(brew shellenv)\"" >> "$GITHUB_ENV"
+
+    - name: Install deps (Windows via Chocolatey)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        choco install -y sbcl openssl.light make wget
+        echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
+        # Git Bash already on PATH.  Add ocicl install dir later.
+
+    # Export a helper that abstracts ocicl(.exe) name
+    - name: Define OCICL_BIN env var
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          echo "OCICL_BIN=ocicl.exe" >> "$GITHUB_ENV"
+        else
+          echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
+        fi
+
+    # ── build ocicl itself ───────────────────────────────────────────────
+    - name: Build & install ocicl
+      run: |
+        ${SBCL:-sbcl} --load setup.lisp
+        $OCICL_BIN version               # sanity
+        $OCICL_BIN setup > ~/.sbclrc
+        echo "(setf ocicl-runtime:*verbose* nil)" >> ~/.sbclrc
+
+        # On Windows the executable drops in %LOCALAPPDATA%\ocicl\bin
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          echo "$LOCALAPPDATA/ocicl/bin" >> "$GITHUB_PATH"
+        fi
+
+    # ── identical test-suite for every OS ────────────────────────────────
+    - name: Prepare test env
+      run: rm -rf systems systems.csv
+
+    - name: Test “cli” template
+      run: |
+        rm -rf testdir && mkdir testdir && cd testdir
+        $OCICL_BIN new cli-test cli
+        cd cli-test
+        make
+        ./cli-test --help
+
+    - name: Test “web1” template
+      run: |
+        rm -rf testdir && mkdir testdir && cd testdir
+        $OCICL_BIN new web1-test web1
+        cd web1-test
+        make
+        ./web1-test --help
+        ./web1-test -p 8765 &
+        APP_PID=$!
+        for i in {1..30}; do
+          curl --silent --fail http://localhost:8765/ && break
+          echo "Waiting for web1…" && sleep 1
+        done
+        curl -s http://localhost:8765/ | grep "Welcome"
+        kill $APP_PID
+
+    - name: Test “basic” template
+      run: |
+        rm -rf testdir && mkdir testdir && cd testdir
+        $OCICL_BIN new basic-test cli
+        cd basic-test
+        sbcl --eval "(asdf:load-system :basic-test)" \
+             --eval "(basic-test:main)" \
+             --eval "(uiop:quit 0)" | grep -v "Hello, world"
+
+    - name: Test parent-dir install logic
+      run: |
+        set -euo pipefail
+        mkdir -p testdir/basic-test/child-test
+        cd testdir/basic-test/child-test
+
+        $OCICL_BIN install completions
+
+        # dir must stay empty
+        [ "$(ls -A | wc -l)" -eq 0 ] || { echo "child-test not empty"; exit 1; }
+
+        # completions must land beside parent
+        ls -d ../*/cl-completions* >/dev/null 2>&1 || {
+          echo "cl-completions* not found"; exit 1; }
