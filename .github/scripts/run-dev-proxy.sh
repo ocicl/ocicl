@@ -3,22 +3,35 @@ set -euo pipefail
 
 PROXY_PORT=8001
 LOG_FILE=devproxy.log
-CERT_FILE=devproxy-cert.pem
 
-# ── 1. export the self-signed root CA ────────────────────────────────
-devproxy cert export --output "$CERT_FILE"
+###############################################################################
+# 1.  Generate *and trust* the self-signed root certificate
+###############################################################################
+#   - On Linux the command needs sudo to write into /usr/local/share/ca-certificates
+#   - On Windows it imports into the LocalMachine\Root store automatically
+###############################################################################
+if [[ "$RUNNER_OS" == "Linux" ]]; then
+  sudo devproxy cert ensure --trust
+else
+  devproxy cert ensure --trust
+fi
 
-# ── 2. start the proxy in the background, capture its console log ───
+###############################################################################
+# 2.  Start Dev Proxy in the background and capture its output
+###############################################################################
 devproxy -p "$PROXY_PORT" --record --log-level Information \
-  >  "$LOG_FILE" 2>&1 &
+  > "$LOG_FILE" 2>&1 &
 PROXY_PID=$!
 
-# ── 3. expose settings to later steps in the same job ───────────────
+###############################################################################
+# 3.  Expose variables to the rest of this job
+###############################################################################
 {
   echo "HTTPS_PROXY=http://127.0.0.1:$PROXY_PORT"
-  echo "DEVPROXY_CERT=$CERT_FILE"
   echo "DEVPROXY_LOG=$LOG_FILE"
 } >> "$GITHUB_ENV"
 
-# keep the script alive so that the job kills Dev Proxy automatically
+###############################################################################
+# 4.  Keep this script alive so that the proxy dies when the job ends
+###############################################################################
 wait "$PROXY_PID"
