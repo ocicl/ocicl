@@ -13,13 +13,14 @@
 (defun get-git-hash (&optional (length 7))
   "Get the current git commit hash (short form by default)"
   (handler-case
-      (string-trim '(#\Newline #\Return #\Space)
-                   (uiop:run-program (list "git" "rev-parse"
-                                          (format nil "--short=~d" length)
-                                          "HEAD")
-                                    :output :string
-                                    :error-output nil
-                                    :ignore-error-status t))
+      (let ((gh (string-trim '(#\Newline #\Return #\Space)
+                             (uiop:run-program (list "git" "rev-parse"
+                                                     (format nil "--short=~d" length)
+                                                     "HEAD")
+                                               :output :string
+                                               :error-output nil
+                                               :ignore-error-status t))))
+        (if (zerop (length gh)) nil gh))
     (error () nil)))
 
 (defun get-git-tag ()

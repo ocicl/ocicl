@@ -102,7 +102,7 @@ unix-opts, ghcr.io/ocicl/unix-opts@sha256:af3d240e3ee9cd6f63c2d3187307159ab980a9
 usocket, ghcr.io/ocicl/usocket@sha256:015b8cdb91cdc25aefd08054e8ede6a5d054d10bc87916904cf0d0670b3f4a68, usocket-0.8.8/usocket.asd
 usocket-server, ghcr.io/ocicl/usocket@sha256:015b8cdb91cdc25aefd08054e8ede6a5d054d10bc87916904cf0d0670b3f4a68, usocket-0.8.8/usocket-server.asd
 usocket-test, ghcr.io/ocicl/usocket@sha256:015b8cdb91cdc25aefd08054e8ede6a5d054d10bc87916904cf0d0670b3f4a68, usocket-0.8.8/usocket-test.asd
-version-string, ghcr.io/ocicl/version-string@sha256:b1ccda976c7ca0a9dae407d53ab1d4005920f66d74ae1d24905c2f92ed11b78e, cl-version-string-20250615-2cff3c1/version-string.asd
+version-string, ghcr.io/ocicl/version-string@sha256:0d6103de97750f7a85d84b38b2495399817d550ce1e2369ba31a652e39e2b2e7, cl-version-string-20250701-2a9f9ba/version-string.asd
 which, ghcr.io/ocicl/which@sha256:9379b03483ad339c81a3a897b87e13d763bd612c79ee39566e26935d6516cf24, which-20240503-b2333e4/which.asd
 which-test, ghcr.io/ocicl/which@sha256:9379b03483ad339c81a3a897b87e13d763bd612c79ee39566e26935d6516cf24, which-20240503-b2333e4/which-test.asd
 with-user-abort, ghcr.io/ocicl/with-user-abort@sha256:c19560034f9909a7afb4110b5efd939a9f1e829d9ef9887797b98679f290c480, with-user-abort-20240503-a3db02e/with-user-abort.asd
