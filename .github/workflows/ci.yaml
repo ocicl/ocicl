@@ -48,7 +48,9 @@ jobs:
 
     - name: Install winget
       if: runner.os == 'Windows'
-      uses: Cyberboss/install-winget@v1
+      uses: Cyberboss/install-winget@master
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install deps (Windows)
       if: runner.os == 'Windows'
