@@ -143,22 +143,16 @@ jobs:
           echo "cl-completions* not found"; exit 1; }
 
     - name: Run dev-proxy
-      run: .github/scripts/run-dev-proxy.sh &
-
-    # Linux
-#    - name: Trust Dev Proxy certificate (Linux)
-#      if: runner.os == 'Linux'
-#      run: |
-#        sudo cp "$DEVPROXY_CERT" /usr/local/share/ca-certificates/devproxy-ca.crt
-#        sudo update-ca-certificates
-
-    # Windows
-#    - name: Trust Dev Proxy certificate (Windows)
-#      if: runner.os == 'Windows'
-#      shell: pwsh
-#      run: |
-#        Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root `
-#            -FilePath "$Env:DEVPROXY_CERT"
+      run: |
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
+          sudo $DEVPROXY_BIN cert ensure
+        else
+          DEVPROXY_BIN=devproxy
+          $DEVPROXY_BIN cert ensure
+        fi
+        $DEVPROXY_BIN -p 9091 --discovery --record --log-level Information \
+            > devproxy.log 2>&1 &
 
     - name: ocicl installs must go through Dev Proxy
       if: runner.os != 'Windows'
