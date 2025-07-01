@@ -57,7 +57,7 @@ jobs:
       shell: powershell
       run: |
         winget install -e --id Microsoft.DevProxy --source winget `
-              --scope machine --silent `
+              --silent `
               --accept-package-agreements --accept-source-agreements
         $dp = (where.exe devproxy)[0]
         "DEVPROXY_BIN=$dp"          | Out-File $env:GITHUB_ENV  -Append
