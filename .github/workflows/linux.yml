@@ -82,15 +82,15 @@ jobs:
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
           # layout:  testdir/basic-test   (parent) ,  child-test (cwd)
-          mkdir -p testdir/basic-test
-          mkdir -p child-test
-          cd child-test
+          mkdir -p testdir/basic-test/child-test
+          cd testdir/basic-test/child-test
 
           ocicl install completions
 
           # ── Assert 1 ── current dir must still be empty
           if [ "$(ls -A . | wc -l)" -ne 0 ]; then
             echo "❌  child-test is not empty – ocicl should not write here." >&2
+            ls -l
             exit 1
           fi
 
