@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -xeuo pipefail
 
 PROXY_PORT=8001
 LOG_FILE=devproxy.log
@@ -11,6 +11,7 @@ LOG_FILE=devproxy.log
 #   - On Windows it imports into the LocalMachine\Root store automatically
 ###############################################################################
 if [[ "$RUNNER_OS" == "Linux" ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
   sudo devproxy cert ensure --trust
 else
   devproxy cert ensure --trust
