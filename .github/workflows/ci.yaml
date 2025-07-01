@@ -142,7 +142,8 @@ jobs:
         ls -d ../*/cl-completions* >/dev/null 2>&1 || {
           echo "cl-completions* not found"; exit 1; }
 
-    - name: Run dev-proxy
+    - name: Test ocicl through proxy
+      if: runner.os != 'Windows'
       run: |
         if [[ "$RUNNER_OS" == "Linux" ]]; then
           DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
@@ -153,10 +154,6 @@ jobs:
         fi
         $DEVPROXY_BIN -p 9091 --discovery --record --log-level Information \
             > devproxy.log 2>&1 &
-
-    - name: ocicl installs must go through Dev Proxy
-      if: runner.os != 'Windows'
-      run: |
         HTTPS_PROXY=http://localhost:9091 $OCICL_BIN list cl-ppcre
         cat devproxy.log
 
