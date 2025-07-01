@@ -161,17 +161,20 @@ jobs:
 #            -FilePath "$Env:DEVPROXY_CERT"
 
     - name: ocicl installs must go through Dev Proxy
+      if: runner.os != 'Windows'
       run: |
         HTTPS_PROXY=http://localhost:8001 $OCICL_BIN list cl-ppcre
         cat devproxy.log
 
     - name: Check Dev Proxy log for ocicl traffic
+      if: runner.os != 'Windows'
       run: |
         grep -q "ghcr.io" "$DEVPROXY_LOG" \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
 
     - uses: actions/upload-artifact@v4
+      if: runner.os != 'Windows'
       with:
         name: devproxy-log-${{ runner.os }}
         path: ${{ env.DEVPROXY_LOG }}
