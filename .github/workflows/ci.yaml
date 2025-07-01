@@ -152,7 +152,7 @@ jobs:
           DEVPROXY_BIN=devproxy
           $DEVPROXY_BIN cert ensure
         fi
-        $DEVPROXY_BIN -p 9091 --discovery --record --log-level Information \
+        $DEVPROXY_BIN -p 9091 --discover --record --log-level Information \
             > devproxy.log 2>&1 &
         curl --proxy http://localhost:9091 --head --silent --show-error \
              --fail --retry 30 --retry-delay 2 --retry-max-time 120 \
