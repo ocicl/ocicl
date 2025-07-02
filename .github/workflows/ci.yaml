@@ -74,13 +74,18 @@ jobs:
           echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
         fi
 
-    - name: Write local squid.conf
+    ###############################################################################
+    # 1. Unix-like runners ­­­­­­­­­­­­­­­­­­­­­­ (Ubuntu + macOS)                #
+    ###############################################################################
+    - name: Write squid.conf (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
-        cat > squid.conf <<EOF
+        cat > squid.conf <<'EOF'
         http_port 3128
         dns_v4_first on
         access_log stdio:./access.log
-        cache_log ./cache.log
+        cache_log  ./cache.log
         cache_store_log ./store.log
         pid_filename ./squid.pid
         logfile_rotate 0
@@ -88,6 +93,32 @@ jobs:
         http_access allow all
         shutdown_lifetime 1 second
         EOF
+
+
+    ###############################################################################
+    # 2. Windows runner ­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­  #
+    #    The Diladele build resolves *relative* paths under D:\Squid,             #
+    #    so we embed an *absolute* workspace path instead.                        #
+    ###############################################################################
+    - name: Write squid.conf (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        # Use the current working dir, convert back-slashes to forward-slashes
+        $root = (Get-Location).Path -replace '\\','/'
+
+        @"
+        http_port 3128
+        dns_v4_first on
+        access_log stdio:$root/access.log
+        cache_log  $root/cache.log
+        cache_store_log $root/store.log
+        pid_filename $root/squid.pid
+        logfile_rotate 0
+        acl all src all
+        http_access allow all
+        shutdown_lifetime 1 second
+        "@ | Out-File squid.conf -Encoding ascii
 
     - name: Launch Squid (background)
       if: runner.os == 'Windows'
