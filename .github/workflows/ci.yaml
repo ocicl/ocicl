@@ -196,22 +196,17 @@ jobs:
         for _ in {1..30}; do
           curl --proxy "http://127.0.0.1:${PORT}" --head --fail --silent \
             https://example.com --output /dev/null
-          grep -qi "CONNECT example.com" "$SQUID_LOGS" && break
+            sudo grep -qi "CONNECT example.com" "$SQUID_LOGS" && break
           sleep 1
-        done || { echo "❌ squid proxy never started"; cat "$SQUID_LOGS"; exit 1; }
+        done || { echo "❌ squid proxy never started"; sudo cat "$SQUID_LOGS"; exit 1; }
         echo "✅ squid proxy is listening"
 
         HTTPS_PROXY="http://127.0.0.1:${PORT}" "$OCICL_BIN" list cl-ppcre
 
-        cat "$SQUID_LOGS"
+        sudo cat "$SQUID_LOGS"
 
     - name: Check squid log for ocicl traffic
       run: |
-        grep -q "ghcr.io" "$SQUID_LOGS" \
+        sudo grep -q "ghcr.io" "$SQUID_LOGS" \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: access-log-${{ runner.os }}
-        path: "$SQUID_LOGS"
