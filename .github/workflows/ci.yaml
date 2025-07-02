@@ -73,7 +73,7 @@ jobs:
           echo "SUDO=" >> "$GITHUB_ENV"
         else
           echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
-          echo "SQUID_LOGS=/var/log/squid/access.log" >> "$GITHUB_ENV"
+          echo "SQUID_LOGS=$(brew --prefix)/var/logs/access.log" >> "$GITHUB_ENV"
           echo "SUDO=sudo" >> "$GITHUB_ENV"
         fi
 
