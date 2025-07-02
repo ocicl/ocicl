@@ -46,8 +46,9 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        choco install -y sbcl openssl.light make wget squid
+        choco install -y sbcl openssl.light make wget
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
+        choco install squid -y --debug --verbose --trace squid
 
     # Export a helper that abstracts ocicl(.exe) name
     - name: Define OCICL_BIN env var
@@ -78,6 +79,12 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
+        # 1) Where did the service point?
+        sc qc Squid | Select-String "BINARY_PATH_NAME"
+        # 2) Show the files Chocolatey laid down
+        Get-ChildItem "$env:ChocolateyInstall\lib\squid" -Recurse
+        # 3) Find any squid.exe on the system
+        Get-Command squid.exe -All
         $exe  = 'C:\Squid\sbin\squid.exe'   # path from the MSI
         $conf = "$PWD\squid.conf"           # your local config in the workspace
         Start-Process -FilePath $exe -ArgumentList '-N','-f',$conf -WindowStyle Hidden
