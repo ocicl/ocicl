@@ -74,13 +74,14 @@ jobs:
         shutdown_lifetime 1 second
         EOF
 
-    - name: Launch Squid (foreground)
+    - name: Launch Squid (background)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
+        dir c:\Squid
         & "$Env:ProgramFiles\Squid\sbin\squid.exe" -N -f "$PWD\squid.conf"
 
-    - name: Launch Squid (foreground)
+    - name: Launch Squid (background)
       if: runner.os != 'Windows'
       run: squid -N -f "./squid.conf" &
 
