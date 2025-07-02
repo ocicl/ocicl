@@ -78,8 +78,8 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Get-ChildItem -Path C:\ -Recurse -File -Force -ErrorAction SilentlyContinue | Select-Object -Expand FullName
-        & "$Env:ProgramFiles\Squid\sbin\squid.exe" -N -f "$PWD\squid.conf"
+        Get-ChildItem C:\Squid -Recurse -Filter squid.exe
+        & "C:\Squid\sbin\squid.exe" -N -f "$PWD\squid.conf"
 
     - name: Launch Squid (background)
       if: runner.os != 'Windows'
