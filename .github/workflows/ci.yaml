@@ -93,13 +93,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # 1) Where did the service point?
-        sc qc Squid | Select-String "BINARY_PATH_NAME"
-        # 2) Show the files Chocolatey laid down
-        Get-ChildItem "$env:ChocolateyInstall\lib\squid" -Recurse
-        # 3) Find any squid.exe on the system
-        Get-Command squid.exe -All
-        $exe  = 'C:\Squid\sbin\squid.exe'   # path from the MSI
+        $exe  = 'D:\Squid\bin\squid.exe'   # path from the MSI
         $conf = "$PWD\squid.conf"           # your local config in the workspace
         Start-Process -FilePath $exe -ArgumentList '-N','-f',$conf -WindowStyle Hidden
         Start-Sleep -Seconds 5              # give Squid time to start
