@@ -157,6 +157,8 @@ jobs:
 
         LOG=devproxy.log
 
+        "$DEVPROXY_BIN" cert ensure --log-level trace
+
         # -------- 2. launch devproxy in the background ------------------------------------
         "$DEVPROXY_BIN" -p 9091  --no-first-run --discover --record --log-level Trace \
           >"$LOG" 2>&1 &
