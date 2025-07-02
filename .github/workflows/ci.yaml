@@ -202,12 +202,12 @@ jobs:
             https://example.com --output /dev/null
           grep -qi "CONNECT example.com" "$SQUID_LOGS" && break
           sleep 1
-        done || { echo "❌ squid proxy never started"; cat "$LOG"; exit 1; }
+        done || { echo "❌ squid proxy never started"; cat "$SQUID_LOGS"; exit 1; }
         echo "✅ squid proxy is listening"
 
         HTTPS_PROXY="http://127.0.0.1:${PORT}" "$OCICL_BIN" list cl-ppcre
 
-        cat "$LOG"
+        cat "$SQUID_LOGS"
 
     - name: Check squid log for ocicl traffic
       run: |
