@@ -147,6 +147,7 @@ jobs:
       run: |
         set -euo pipefail
         set -x
+        export CI=1
 
         # -------- 1. pick the right binary ------------------------------------------------
         if [[ "$RUNNER_OS" == "Linux" ]]; then
