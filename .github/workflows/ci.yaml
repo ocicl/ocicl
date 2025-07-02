@@ -78,7 +78,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        dir c:\Squid
+        Get-ChildItem -Path C:\ -Recurse -File -Force -ErrorAction SilentlyContinue | Select-Object -Expand FullName
         & "$Env:ProgramFiles\Squid\sbin\squid.exe" -N -f "$PWD\squid.conf"
 
     - name: Launch Squid (background)
