@@ -76,6 +76,7 @@ jobs:
         EOF
 
     - name: Locate squid.exe
+      if: runner.os == 'Windows'
       id: find_squid
       shell: pwsh
       run: |
