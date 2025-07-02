@@ -26,7 +26,7 @@ jobs:
     - name: Install deps (MacOS via Homebrew)
       if: runner.os == 'macos'
       run: |
-        brew install sbcl
+        brew install sbcl squid
         # expose brew env to later steps
         brew shellenv | sed 's/^export //' >> "$GITHUB_ENV"
         echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
@@ -36,7 +36,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-        brew install sbcl
+        brew install sbcl squid
         # expose brew env to later steps
         brew shellenv | sed 's/^export //' >> "$GITHUB_ENV"
         echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
