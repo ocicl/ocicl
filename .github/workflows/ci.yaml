@@ -145,55 +145,43 @@ jobs:
     - name: Test ocicl through proxy
       # if: runner.os != 'Windows'
       run: |
+
+    - name: Test ocicl through Dev Proxy (Windows)
+      shell: bash
+      run: |
         set -euo pipefail
         set -x
-        export CI=1
 
-        # -------- 1. pick the right binary ------------------------------------------------
-        if [[ "$RUNNER_OS" == "Linux" ]]; then
-          DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
-        else
-          DEVPROXY_BIN=devproxy        # assumes it’s on PATH for macOS/Windows runners
-        fi
-
+        PORT=9091
         LOG=devproxy.log
+        DEVPROXY_BIN=devproxy.exe           # already in PATH on GHA images
 
-        "$DEVPROXY_BIN" cert ensure --log-level trace
-
-        # -------- 2. launch devproxy in the background ------------------------------------
-        "$DEVPROXY_BIN" -p 9091  --no-first-run --discover --record --log-level Trace \
-          >"$LOG" 2>&1 &
+        ### 1. Start proxy in the background (non-interactive because CI=1) ###
+        "$DEVPROXY_BIN" -p "$PORT" --discover --record --log-level trace >"$LOG" 2>&1 &
         PID=$!
-        echo "devproxy PID = $PID"
+        echo "Dev Proxy PID=$PID"
 
-        # -------- 3. did it die straight away? -------------------------------------------
-        sleep 0.2            # let the shell schedule the child
-        if ! kill -0 "$PID" 2>/dev/null; then
-          echo "❌ devproxy exited immediately"
-          cat "$LOG"
-          exit 1
-        fi
-
-        # -------- 4. wait until the proxy is actually listening ---------------------------
-        timeout=30            # seconds
-        echo "⏳ waiting for devproxy to listen on :9091 …"
-        while : ; do
-          grep -q "Listening on .*:9091" "$LOG" && break
-          (echo > /dev/tcp/127.0.0.1/9091) 2>/dev/null && break
-          ((timeout--)) || { echo "❌ proxy never became ready"; cat "$LOG"; exit 1; }
+        ### 2. Wait until it really binds the port ############################
+        for _ in {1..30}; do
+          grep -qi "listening on .*:${PORT}" "$LOG" && break
           sleep 1
-        done
-        echo "✅ devproxy is ready"
+        done || { echo "❌ Dev Proxy never started"; cat "$LOG"; exit 1; }
+        echo "✅ Dev Proxy is listening"
 
-        # -------- 5. optional final HTTP round-trip check ---------------------------------
-        curl --proxy http://localhost:9091 --head --fail --silent \
-             --output /dev/null http://www.example.com
+        ### 3. Trust the generated root CA silently ###########################
+        CERT_PFX="$USERPROFILE\\.config\\dev-proxy\\rootCert\\rootCert.pfx"
+        certutil -user -p "" -f -importpfx "ROOT" "$CERT_PFX"
 
-        # -------- 6. run your real test ---------------------------------------------------
-        HTTPS_PROXY=http://localhost:9091 "$OCICL_BIN" list cl-ppcre
+        ### 4. Smoke-test through the proxy ###################################
+        curl --proxy "http://127.0.0.1:${PORT}" --head --fail --silent \
+             https://example.com --output /dev/null
 
-        # -------- 7. clean up -------------------------------------------------------------
-        kill "$PID"
+        ### 5. Your real test #################################################
+        HTTPS_PROXY="http://127.0.0.1:${PORT}" "$OCICL_BIN" list cl-ppcre
+
+        ### 6. Graceful shutdown (lets plugins finish) ########################
+        kill -INT "$PID"
+        wait "$PID"
         cat "$LOG"
 
     - name: Check devproxy log for ocicl traffic
