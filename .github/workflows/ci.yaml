@@ -145,25 +145,53 @@ jobs:
     - name: Test ocicl through proxy
       # if: runner.os != 'Windows'
       run: |
+        set -euo pipefail
         set -x
+
+        # -------- 1. pick the right binary ------------------------------------------------
         if [[ "$RUNNER_OS" == "Linux" ]]; then
           DEVPROXY_BIN=/home/linuxbrew/.linuxbrew/bin/devproxy
-          # sudo $DEVPROXY_BIN cert ensure
         else
-          DEVPROXY_BIN=devproxy
-          # $DEVPROXY_BIN cert ensure
+          DEVPROXY_BIN=devproxy        # assumes it’s on PATH for macOS/Windows runners
         fi
-        $DEVPROXY_BIN -p 9091 --discover --record --log-level Trace \
-            > devproxy.log 2>&1 &
+
+        LOG=devproxy.log
+
+        # -------- 2. launch devproxy in the background ------------------------------------
+        "$DEVPROXY_BIN" -p 9091 --discover --record --log-level Trace \
+          >"$LOG" 2>&1 &
         PID=$!
-        curl --proxy http://localhost:9091 --head --silent --show-error \
-             --fail --retry 30 --retry-delay 2 --retry-max-time 120 \
-             --retry-all-errors --retry-connrefused --connect-timeout 5 \
+        echo "devproxy PID = $PID"
+
+        # -------- 3. did it die straight away? -------------------------------------------
+        sleep 0.2            # let the shell schedule the child
+        if ! kill -0 "$PID" 2>/dev/null; then
+          echo "❌ devproxy exited immediately"
+          cat "$LOG"
+          exit 1
+        fi
+
+        # -------- 4. wait until the proxy is actually listening ---------------------------
+        timeout=30            # seconds
+        echo "⏳ waiting for devproxy to listen on :9091 …"
+        while : ; do
+          grep -q "Listening on .*:9091" "$LOG" && break
+          (echo > /dev/tcp/127.0.0.1/9091) 2>/dev/null && break
+          ((timeout--)) || { echo "❌ proxy never became ready"; cat "$LOG"; exit 1; }
+          sleep 1
+        done
+        echo "✅ devproxy is ready"
+
+        # -------- 5. optional final HTTP round-trip check ---------------------------------
+        curl --proxy http://localhost:9091 --head --fail --silent \
              --output /dev/null http://www.example.com
-        cat devproxy.log
-        HTTPS_PROXY=http://localhost:9091 $OCICL_BIN list cl-ppcre
-        kill $PID
-        cat devproxy.log
+
+        # -------- 6. run your real test ---------------------------------------------------
+        HTTPS_PROXY=http://localhost:9091 "$OCICL_BIN" list cl-ppcre
+
+        # -------- 7. clean up -------------------------------------------------------------
+        kill "$PID"
+        cat "$LOG"
 
     - name: Check devproxy log for ocicl traffic
       # if: runner.os != 'Windows'
