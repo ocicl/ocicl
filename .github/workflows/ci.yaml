@@ -73,7 +73,7 @@ jobs:
           echo "SQUID_LOGS=D:\\Squid\\var\\log\\squid\\access.log" >> "$GITHUB_ENV"
         else
           echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
-          echo "SQUID_LOGS=access.log >> "$GITHUB_ENV"
+          echo "SQUID_LOGS=access.log" >> "$GITHUB_ENV"
         fi
 
     ###############################################################################
