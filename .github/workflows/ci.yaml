@@ -19,10 +19,8 @@ jobs:
         shell: bash
 
     steps:
-    # ── common ───────────────────────────────────────────────────────────
     - uses: actions/checkout@v4
 
-    # ── OS-specific toolchain  ───────────────────────────────────────────
     - name: Install deps (MacOS via Homebrew)
       if: runner.os == 'macos'
       run: |
@@ -46,7 +44,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        choco install -y sbcl openssl.light make wget
+        choco install -y sbcl openssl.light make
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
 
     - name: Download squid.msi (Windows)
@@ -77,12 +75,7 @@ jobs:
           echo "SUDO=sudo" >> "$GITHUB_ENV"
         fi
 
-    ###############################################################################
-    # 1. Unix-like runners ­­­­­­­­­­­­­­­­­­­­­­ (Ubuntu + macOS)                #
-    ###############################################################################
-    - name: Write squid.conf (Unix)
-      if: runner.os != 'Windows'
-      shell: bash
+    - name: Write squid.conf
       run: |
         cat > squid.conf <<'EOF'
         http_port 3128
@@ -93,38 +86,15 @@ jobs:
         shutdown_lifetime 1 second
         EOF
 
-
-    ###############################################################################
-    # 2. Windows runner ­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­  #
-    #    The Diladele build resolves *relative* paths under D:\Squid,             #
-    #    so we embed an *absolute* workspace path instead.                        #
-    ###############################################################################
-    - name: Write squid.conf (Windows)
+    - name: Launch Squid (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # Use the current working dir, convert back-slashes to forward-slashes
-        $root = (Get-Location).Path -replace '\\','/'
-
-        @"
-        http_port 3128
-        dns_v4_first on
-        logfile_rotate 0
-        acl all src all
-        http_access allow all
-        shutdown_lifetime 1 second
-        "@ | Out-File squid.conf -Encoding ascii
-
-    - name: Launch Squid (background)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $exe  = 'D:\Squid\bin\squid.exe'   # path from the MSI
-        $conf = "$PWD\squid.conf"           # your local config in the workspace
+        $exe  = 'D:\Squid\bin\squid.exe'
+        $conf = "$PWD\squid.conf"
         Start-Process -FilePath $exe -ArgumentList '-N','-f',$conf -WindowStyle Hidden
-        Start-Sleep -Seconds 5              # give Squid time to start
 
-    - name: Launch Squid (background)
+    - name: Launch Squid (Linux / MacOS)
       if: runner.os != 'Windows'
       run: squid -N -f "./squid.conf" &
 
@@ -177,23 +147,20 @@ jobs:
         mkdir -p testdir3/basic-test/child-test
         cd testdir3/basic-test/child-test
 
-        $OCICL_BIN install completions
+        $OCICL_BIN install cl-ppcre
 
         # dir must stay empty
         [ "$(ls -A | wc -l)" -eq 0 ] || { echo "child-test not empty"; exit 1; }
 
         # completions must land beside parent
-        ls -d ../*/cl-completions* >/dev/null 2>&1 || {
-          echo "cl-completions* not found"; exit 1; }
+        ls -d ../*/cl-ppcre* >/dev/null 2>&1 || {
+          echo "cl-ppcre* not found"; exit 1; }
 
-    - name: Test ocicl through squid proxy
+    - name: Run ocicl through squid proxy
       shell: bash
       run: |
         set -euo pipefail
-        set -x
-
         PORT=3128
-
         for _ in {1..30}; do
           curl --proxy "http://127.0.0.1:${PORT}" --head --fail --silent \
             https://example.com --output /dev/null
@@ -201,9 +168,7 @@ jobs:
           sleep 1
         done || { echo "❌ squid proxy never started"; $SUDO cat "$SQUID_LOGS"; exit 1; }
         echo "✅ squid proxy is listening"
-
         HTTPS_PROXY="http://127.0.0.1:${PORT}" "$OCICL_BIN" list cl-ppcre
-
         $SUDO cat "$SQUID_LOGS"
 
     - name: Check squid log for ocicl traffic
