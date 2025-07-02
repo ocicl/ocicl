@@ -82,7 +82,7 @@ jobs:
 
     - name: Launch Squid (foreground)
       if: runner.os != 'Windows'
-      run: squid -N -f "$PWD\squid.conf"
+      run: squid -N -f "./squid.conf"
 
     - name: Build & install ocicl
       run: |
