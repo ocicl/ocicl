@@ -70,8 +70,10 @@ jobs:
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           echo "OCICL_BIN=ocicl.exe" >> "$GITHUB_ENV"
           echo "$LOCALAPPDATA/ocicl/bin" >> "$GITHUB_PATH"
+          echo "SQUID_LOGS=D:\\Squid\\var\\log\\squid\\access.log" >> "$GITHUB_ENV"
         else
           echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
+          echo "SQUID_LOGS=access.log >> "$GITHUB_ENV"
         fi
 
     ###############################################################################
@@ -110,10 +112,6 @@ jobs:
         @"
         http_port 3128
         dns_v4_first on
-        access_log stdio:$root/access.log
-        cache_log  $root/cache.log
-        cache_store_log $root/store.log
-        pid_filename $root/squid.pid
         logfile_rotate 0
         acl all src all
         http_access allow all
@@ -197,13 +195,12 @@ jobs:
         set -euo pipefail
         set -x
 
-        LOG=access.log
         PORT=3128
 
         for _ in {1..30}; do
           curl --proxy "http://127.0.0.1:${PORT}" --head --fail --silent \
             https://example.com --output /dev/null
-          grep -qi "CONNECT example.com" "$LOG" && break
+          grep -qi "CONNECT example.com" "$SQUID_LOGS" && break
           sleep 1
         done || { echo "❌ squid proxy never started"; cat "$LOG"; exit 1; }
         echo "✅ squid proxy is listening"
@@ -214,11 +211,11 @@ jobs:
 
     - name: Check squid log for ocicl traffic
       run: |
-        grep -q "ghcr.io" access.log \
+        grep -q "ghcr.io" "$SQUID_LOGS" \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
 
     - uses: actions/upload-artifact@v4
       with:
         name: access-log-${{ runner.os }}
-        path: access.log
+        path: "$SQUID_LOGS"
