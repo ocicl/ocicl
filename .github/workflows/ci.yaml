@@ -27,8 +27,6 @@ jobs:
       if: runner.os == 'macos'
       run: |
         brew install sbcl
-        brew tap dotnet/dev-proxy
-        brew install dev-proxy
         # expose brew env to later steps
         brew shellenv | sed 's/^export //' >> "$GITHUB_ENV"
         echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
@@ -39,37 +37,16 @@ jobs:
       run: |
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         brew install sbcl
-        brew tap dotnet/dev-proxy
-        brew install dev-proxy
         # expose brew env to later steps
         brew shellenv | sed 's/^export //' >> "$GITHUB_ENV"
         echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
         echo "$(brew --prefix)/sbin" >> "$GITHUB_PATH"
 
-    - name: Install winget
-      if: runner.os == 'Windows'
-      uses: Cyberboss/install-winget@v1
-      with:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Install deps (Windows)
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        winget install -e --id Microsoft.DevProxy --source winget `
-              --silent `
-              --accept-package-agreements --accept-source-agreements
-        $dp = (Get-Command devproxy -ErrorAction SilentlyContinue | Select-Object -First 1).Source
-        if (-not $dp) {
-          $dp = "$Env:LOCALAPPDATA\Programs\Dev Proxy\devproxy.exe"
-        }
-        if (-not (Test-Path $dp)) {
-          Write-Error "Dev Proxy executable not found after winget install."
-          exit 1
-        }
-        "DEVPROXY_BIN=$dp"           | Out-File $Env:GITHUB_ENV  -Append
-        Split-Path $dp               | Out-File $Env:GITHUB_PATH -Append
-        choco install -y sbcl openssl.light make wget
+        choco install -y sbcl openssl.light make wget squid
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
 
     # Export a helper that abstracts ocicl(.exe) name
@@ -82,7 +59,31 @@ jobs:
           echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
         fi
 
-    # ── build ocicl itself ───────────────────────────────────────────────
+    - name: Write local squid.conf
+      run: |
+        cat > squid.conf <<EOF
+        http_port 3128
+        dns_v4_first on
+        access_log stdio:./access.log
+        cache_log ./cache.log
+        cache_store_log ./store.log
+        pid_filename ./squid.pid
+        logfile_rotate 0
+        acl all src all
+        http_access allow all
+        shutdown_lifetime 1 second
+        EOF
+
+    - name: Launch Squid (foreground)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        & "$Env:ProgramFiles\Squid\sbin\squid.exe" -N -f "$PWD\squid.conf"
+
+    - name: Launch Squid (foreground)
+      if: runner.os != 'Windows'
+      run: squid -N -f "$PWD\squid.conf"
+
     - name: Build & install ocicl
       run: |
         ${SBCL:-sbcl} --load setup.lisp
@@ -90,7 +91,6 @@ jobs:
         $OCICL_BIN setup > ~/.sbclrc
         echo "(setf ocicl-runtime:*verbose* nil)" >> ~/.sbclrc
 
-    # ── identical test-suite for every OS ────────────────────────────────
     - name: Prepare test env
       run: rm -rf systems systems.csv
 
@@ -142,35 +142,20 @@ jobs:
         ls -d ../*/cl-completions* >/dev/null 2>&1 || {
           echo "cl-completions* not found"; exit 1; }
 
-    - name: Test ocicl through proxy
-      # if: runner.os != 'Windows'
-      run: |
-
     - name: Test ocicl through Dev Proxy (Windows)
       shell: bash
       run: |
         set -euo pipefail
         set -x
 
-        PORT=9091
-        LOG=devproxy.log
-        DEVPROXY_BIN=devproxy.exe           # already in PATH on GHA images
+        LOG=access.log
+        PORT=3128
 
-        ### 1. Start proxy in the background (non-interactive because CI=1) ###
-        "$DEVPROXY_BIN" -p "$PORT" --discover --record --log-level trace >"$LOG" 2>&1 &
-        PID=$!
-        echo "Dev Proxy PID=$PID"
-
-        ### 2. Wait until it really binds the port ############################
         for _ in {1..30}; do
           grep -qi "listening on .*:${PORT}" "$LOG" && break
           sleep 1
-        done || { echo "❌ Dev Proxy never started"; cat "$LOG"; exit 1; }
-        echo "✅ Dev Proxy is listening"
-
-        ### 3. Trust the generated root CA silently ###########################
-        CERT_PFX="$USERPROFILE\\.config\\dev-proxy\\rootCert\\rootCert.pfx"
-        certutil -user -p "" -f -importpfx "ROOT" "$CERT_PFX"
+        done || { echo "❌ squid proxy never started"; cat "$LOG"; exit 1; }
+        echo "✅ squid proxy is listening"
 
         ### 4. Smoke-test through the proxy ###################################
         curl --proxy "http://127.0.0.1:${PORT}" --head --fail --silent \
@@ -179,20 +164,16 @@ jobs:
         ### 5. Your real test #################################################
         HTTPS_PROXY="http://127.0.0.1:${PORT}" "$OCICL_BIN" list cl-ppcre
 
-        ### 6. Graceful shutdown (lets plugins finish) ########################
-        kill -INT "$PID"
-        wait "$PID"
         cat "$LOG"
 
     - name: Check devproxy log for ocicl traffic
       # if: runner.os != 'Windows'
       run: |
-        grep -q "ghcr.io" devproxy.log \
+        grep -q "ghcr.io" access.log \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
 
     - uses: actions/upload-artifact@v4
-      # if: runner.os != 'Windows'
       with:
-        name: devproxy-log-${{ runner.os }}
-        path: devproxy.log
+        name: access-log-${{ runner.os }}
+        path: access.log
