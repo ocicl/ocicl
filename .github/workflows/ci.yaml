@@ -73,7 +73,7 @@ jobs:
           echo "SQUID_LOGS=D:\\Squid\\var\\log\\squid\\access.log" >> "$GITHUB_ENV"
         else
           echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
-          echo "SQUID_LOGS=access.log" >> "$GITHUB_ENV"
+          echo "SQUID_LOGS=/var/log/squid/access.log" >> "$GITHUB_ENV"
         fi
 
     ###############################################################################
@@ -86,10 +86,6 @@ jobs:
         cat > squid.conf <<'EOF'
         http_port 3128
         dns_v4_first on
-        access_log stdio:./access.log
-        cache_log  ./cache.log
-        cache_store_log ./store.log
-        pid_filename ./squid.pid
         logfile_rotate 0
         acl all src all
         http_access allow all
