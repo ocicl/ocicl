@@ -160,7 +160,7 @@ jobs:
         ls -d ../*/cl-completions* >/dev/null 2>&1 || {
           echo "cl-completions* not found"; exit 1; }
 
-    - name: Test ocicl through Dev Proxy (Windows)
+    - name: Test ocicl through squid proxy
       shell: bash
       run: |
         set -euo pipefail
@@ -170,22 +170,18 @@ jobs:
         PORT=3128
 
         for _ in {1..30}; do
-          grep -qi "listening on .*:${PORT}" "$LOG" && break
+          curl --proxy "http://127.0.0.1:${PORT}" --head --fail --silent \
+            https://example.com --output /dev/null
+          grep -qi "CONNECT example.com" "$LOG" && break
           sleep 1
         done || { echo "❌ squid proxy never started"; cat "$LOG"; exit 1; }
         echo "✅ squid proxy is listening"
 
-        ### 4. Smoke-test through the proxy ###################################
-        curl --proxy "http://127.0.0.1:${PORT}" --head --fail --silent \
-             https://example.com --output /dev/null
-
-        ### 5. Your real test #################################################
         HTTPS_PROXY="http://127.0.0.1:${PORT}" "$OCICL_BIN" list cl-ppcre
 
         cat "$LOG"
 
-    - name: Check devproxy log for ocicl traffic
-      # if: runner.os != 'Windows'
+    - name: Check squid log for ocicl traffic
       run: |
         grep -q "ghcr.io" access.log \
           && echo "✅ ocicl used the proxy" \
