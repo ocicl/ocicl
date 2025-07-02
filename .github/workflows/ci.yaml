@@ -158,7 +158,7 @@ jobs:
         LOG=devproxy.log
 
         # -------- 2. launch devproxy in the background ------------------------------------
-        "$DEVPROXY_BIN" -p 9091 --discover --record --log-level Trace \
+        "$DEVPROXY_BIN" -p 9091  --no-first-run --discover --record --log-level Trace \
           >"$LOG" 2>&1 &
         PID=$!
         echo "devproxy PID = $PID"
