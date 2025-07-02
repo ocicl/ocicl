@@ -22,6 +22,20 @@
      :handler (lambda (cmd)
                 (let ((port (clingon:getopt cmd :port))
                       (slynk-port (clingon:getopt cmd :slynk-port)))
+
+                  ;; Load environment variables if .env exists.
+                  (let ((.env-pathname (merge-pathnames ".env")))
+                    (handler-case
+                        (.env:load-env .env-pathname)
+                      (file-error (_)
+                        (declare (ignore _)))
+                      (.env:malformed-entry (_)
+                        (declare (ignore _))
+                        (fatal-error "Malformed entry in ~S" .env-pathname))
+                      (.env:duplicated-entry (_)
+                        (declare (ignore _))
+                        (fatal-error "Duplicated entry in ~S" .env-pathname))))
+
                   (bt:with-lock-held (*server-lock*)
                     ;; Create the slynk server.  Allow connections from anywhere.
                     (when slynk-port
@@ -31,6 +45,7 @@
                     (log:info "Waiting for connections...")
                     ;; Wait forever.
                     (bt:condition-wait *shutdown-cv* *server-lock*))))
+
      :examples '(("Run web service on port 9090:"
                   . "<%= @ app-name %> -p 9090")))))
 

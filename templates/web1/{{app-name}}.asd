@@ -10,7 +10,7 @@
   :license     "<%= (or (@ license) "MIT") %>"
   :version     "0.1.0"
   :depends-on  (:version-string :clingon :hunchentoot :easy-routes :log4cl
-                                :slynk)
+                                :cl-dotenv :slynk)
   :serial      t
   :components  ((:file "src/package")
                 (:file "src/server")

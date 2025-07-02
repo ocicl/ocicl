@@ -9,6 +9,14 @@ make
 <%= @ app-name %> --help
 ```
 
+This web application listens to port 8080 by default.  Change the
+port with the `-p` option.
+
+To run a slynk server, specify the slynk port with `-s`.
+
+This web application will read environment variables from a `.env`
+file at startup if it exists.
+
 ## Author and License
 
 `<%= @ app-name %>` was written by <%= (or (@ author) "Your Name") %> and is distributed
