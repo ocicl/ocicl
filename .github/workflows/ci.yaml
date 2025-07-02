@@ -64,16 +64,17 @@ jobs:
         $procMain.WaitForExit()
         $procLog.Kill()
 
-    # Export a helper that abstracts ocicl(.exe) name
-    - name: Define OCICL_BIN env var
+    - name: Define environment variables
       run: |
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           echo "OCICL_BIN=ocicl.exe" >> "$GITHUB_ENV"
           echo "$LOCALAPPDATA/ocicl/bin" >> "$GITHUB_PATH"
           echo "SQUID_LOGS=D:\\Squid\\var\\log\\squid\\access.log" >> "$GITHUB_ENV"
+          echo "SUDO=" >> "$GITHUB_ENV"
         else
           echo "OCICL_BIN=ocicl" >> "$GITHUB_ENV"
           echo "SQUID_LOGS=/var/log/squid/access.log" >> "$GITHUB_ENV"
+          echo "SUDO=sudo" >> "$GITHUB_ENV"
         fi
 
     ###############################################################################
@@ -196,17 +197,17 @@ jobs:
         for _ in {1..30}; do
           curl --proxy "http://127.0.0.1:${PORT}" --head --fail --silent \
             https://example.com --output /dev/null
-            sudo grep -qi "CONNECT example.com" "$SQUID_LOGS" && break
+            $SUDO grep -qi "CONNECT example.com" "$SQUID_LOGS" && break
           sleep 1
-        done || { echo "❌ squid proxy never started"; sudo cat "$SQUID_LOGS"; exit 1; }
+        done || { echo "❌ squid proxy never started"; $SUDO cat "$SQUID_LOGS"; exit 1; }
         echo "✅ squid proxy is listening"
 
         HTTPS_PROXY="http://127.0.0.1:${PORT}" "$OCICL_BIN" list cl-ppcre
 
-        sudo cat "$SQUID_LOGS"
+        $SUDO cat "$SQUID_LOGS"
 
     - name: Check squid log for ocicl traffic
       run: |
-        sudo grep -q "ghcr.io" "$SQUID_LOGS" \
+        $SUDO grep -q "ghcr.io" "$SQUID_LOGS" \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
