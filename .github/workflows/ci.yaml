@@ -48,7 +48,21 @@ jobs:
       run: |
         choco install -y sbcl openssl.light make wget
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
-        choco install squid -y --debug --verbose --trace squid
+
+    - name: Download squid.msi (Windows)
+      if: runner.os == 'Windows'
+      run: curl --output squid.msi https://packages.diladele.com/squid/4.14/squid.msi
+
+    - name: Install squid.msi (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        $file = "squid.msi"
+        $log = "install.log"
+        $procMain = Start-Process "msiexec" "/i `"$file`" /qn /l*! `"$log`"" -NoNewWindow -PassThru
+        $procLog = Start-Process "powershell" "Get-Content -Path `"$log`" -Wait" -NoNewWindow -PassThru
+        $procMain.WaitForExit()
+        $procLog.Kill()
 
     # Export a helper that abstracts ocicl(.exe) name
     - name: Define OCICL_BIN env var
@@ -74,53 +88,6 @@ jobs:
         http_access allow all
         shutdown_lifetime 1 second
         EOF
-
-    - name: Locate squid.exe
-      if: runner.os == 'Windows'
-      id: find_squid
-      shell: pwsh
-      run: |
-        $found = $null
-
-        ## ── method 1 – read the Windows service definition ─────────────
-        try {
-          $svcLine = (sc.exe qc Squid 2>$null | Select-String 'BINARY_PATH_NAME').Line
-          if ($svcLine) {
-            $svcExe = ($svcLine -split ':',2)[1].Trim().Split()[0].Trim('"')
-            if (Test-Path $svcExe) { $found = $svcExe; Write-Host "✓ via service: $found" }
-          }
-        } catch {}
-
-        ## ── method 2 – look for an InstallLocation in MSI uninstall keys ─
-        if (-not $found) {
-          try {
-            $key = Get-ItemProperty `
-              'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' |
-              Where-Object { $_.DisplayName -match 'Squid' } |
-              Select-Object -First 1
-            if ($key -and $key.InstallLocation) {
-              $candidate = Join-Path $key.InstallLocation 'sbin\squid.exe'
-              if (Test-Path $candidate) { $found = $candidate; Write-Host "✓ via registry: $found" }
-            }
-          } catch {}
-        }
-
-        ## ── method 3 – brute-force search (silent on access-denied) ──────
-        if (-not $found) {
-          try {
-            $hit = Get-ChildItem C:\ -Filter squid.exe -Recurse -File `
-                   -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($hit) { $found = $hit.FullName; Write-Host "✓ via search:  $found" }
-          } catch {}
-        }
-
-        if (-not $found) {
-          Write-Error 'squid.exe not found on this runner'
-          exit 1
-        }
-
-        ## expose it to subsequent steps
-        "squid_path=$found" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
     - name: Launch Squid (background)
       if: runner.os == 'Windows'
