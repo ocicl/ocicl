@@ -266,8 +266,9 @@
 
 (defun system-list ()
   (initialize-globals)
-  (append (loop for key being the hash-keys of *local-ocicl-systems*
-                collect key)
+  (append (when *local-ocicl-systems*
+            (loop for key being the hash-keys of *local-ocicl-systems*
+                  collect key))
           (when *global-ocicl-systems*
             (loop for key being the hash-keys of *global-ocicl-systems*
                   collect key))))
