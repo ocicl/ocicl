@@ -176,3 +176,10 @@ jobs:
         $SUDO grep -q "ghcr.io" "$SQUID_LOGS" \
           && echo "✅ ocicl used the proxy" \
           || (echo "❌ ocicl never hit the proxy" && exit 1)
+
+    - name: Test system-list
+      shell: bash
+      run: |
+        set -euo pipefail
+        rm -rf systems systems.csv
+        sbcl --eval "(handler-case (progn (ocicl-runtime:system-list) (uiop:quit 0)) (error (e) (declare (ignore e)) (uiop:quit 1)))"
