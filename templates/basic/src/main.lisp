@@ -1,4 +1,4 @@
-;;; <%= @ app-name %>.asd
+;;; main.lisp
 ;;;
 ;;; SPDX-License-Identifier: <%= or (@ license) "MIT" %>
 ;;;

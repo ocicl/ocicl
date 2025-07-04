@@ -1,4 +1,4 @@
-;;; server.asd
+;;; server.lisp
 ;;;
 ;;; SPDX-License-Identifier: <%= (or (@ license) "MIT") %>
 ;;;
