@@ -738,14 +738,22 @@ If FORCE is NIL, skip files that already exist."
                (system-group (system-group system)))
           (when (and modify-ocicl-systems system-info)
             (dolist (system system-group)
-              (remhash system *ocicl-systems*)))
+              (remhash (mangle system) *ocicl-systems*)))
           (when (uiop:directory-exists-p system-directory)
             (uiop:delete-directory-tree
              system-directory
              :validate (lambda (path)
                          ;; ensure directory being deleted is a subdirectory of *systems-dir*
                          (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
-            (format t "; removed ~A~%" (file-namestring fullname)))))))
+            (let* ((full-namestring (file-namestring fullname))
+                   (at (position #\@ full-namestring))
+                   (name (subseq full-namestring 0 at))
+                   (version-sha (subseq full-namestring at)))
+              (if *color*
+                  (format t #?"${*color-dim*};${*color-reset*} removed ~
+                               ${*color-bold*}${*color-bright-green*}${(unmangle name)}${*color-reset*}~
+                               ${*color-dim*}${version-sha}${*color-reset*}~%")
+                  (format t "; removed ~A@~A~%" (unmangle name) version-sha))))))))
 
 (defun resolve-dependency-name (dependency)
   "Resolve ASDF dependency name."
