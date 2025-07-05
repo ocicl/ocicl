@@ -49,30 +49,35 @@
 (version-string:define-version-parameter +version+ :ocicl)
 
 (defparameter +runtime+
-  #.(let* ((runtime (uiop:read-file-string "runtime/ocicl-runtime.lisp"))
-         (start (search "UNKNOWN" runtime)))
-    (if start
-        (concatenate 'string
-                     (subseq runtime 0 start)
-                     (version-string:make-version-string :ocicl :include-git-p t)
-                     (subseq runtime (+ start 7)))
-        runtime)))
+  #.(let* ((here         (or *compile-file-pathname* *load-pathname*))
+           (runtime-path (uiop:subpathname here "runtime/ocicl-runtime.lisp"))
+           (runtime      (uiop:read-file-string runtime-path))
+           (start        (search "UNKNOWN" runtime)))
+      (if start
+          (concatenate 'string
+                       (subseq runtime 0 start)
+                       (version-string:make-version-string :ocicl :include-git-p t)
+                       (subseq runtime (+ start 7)))
+          runtime)))
 
 (defparameter +builtin-templates+
-  #.(let* ((root  (merge-pathnames "templates/"
-                     (uiop:pathname-directory-pathname
-                      (or *compile-file-truename* *load-truename*))))
-           (wild  (make-pathname :directory '(:relative :wild-inferiors)
-                                 :name :wild :type :wild))
-           (files (directory (merge-pathnames wild root)))
-           (alist (loop for file in files
-                        unless (uiop:directory-pathname-p file)
-                          collect (cons (enough-namestring file root)
-                                        (alexandria:read-file-into-byte-vector file)))))
-      ;; return a *quoted* alist so that the value is data, not a form
+  #.(let* ((here          (or *compile-file-pathname* *load-pathname*))
+           (here-dir      (uiop:pathname-directory-pathname here))
+           (templates-dir (uiop:subpathname here-dir "templates/"))
+           (wild          (make-pathname :directory '(:relative :wild-inferiors)
+                                          :name :wild :type :wild))
+           (files         (directory (merge-pathnames wild templates-dir)))
+           (alist         (loop for file in files
+                                unless (uiop:directory-pathname-p file)
+                                  collect (cons (enough-namestring file templates-dir)
+                                                (alexandria:read-file-into-byte-vector
+                                                 file)))))
       `(quote ,alist)))
 
-(defparameter +asdf+ #.(uiop:read-file-string "runtime/asdf.lisp"))
+(defparameter +asdf+
+  #.(let* ((here       (or *compile-file-pathname* *load-pathname*))
+           (asdf-path  (uiop:subpathname here "runtime/asdf.lisp")))
+      (uiop:read-file-string asdf-path)))
 
 (defvar *template-params* nil)
 
