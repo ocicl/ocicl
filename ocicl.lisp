@@ -672,19 +672,26 @@ If FORCE is NIL, skip files that already exist."
 
 (declaim (inline find-asd-files))
 (defun find-asd-files (dir)
-  "Recursively return every .asd file below DIR, **except** those that
-   live inside a directory called \"ocicl\" or \"systems\"."
-  (let* ((root (uiop:ensure-directory-pathname dir))
-         (wild (make-pathname :name :wild :type "asd"
-                              :directory '(:relative :wild-inferiors)))
-         (all  (directory (merge-pathnames wild root))))
-    ;; remove any .asd whose directory list contains "ocicl" or "systems"
+  "Return every .asd file found under DIR, except those that reside in a
+   descendant directory (second level or deeper) named \"ocicl\" or \"systems\"."
+
+  (let* ((root  (uiop:ensure-directory-pathname dir))
+         (wild  (make-pathname :name :wild :type "asd"
+                               :directory '(:relative :wild-inferiors)))
+         (all   (directory (merge-pathnames wild root))))
     (remove-if
      (lambda (p)
-       (let* ((dirs (cdr (pathname-directory p)))      ; skip :absolute/:relative
-              (dirs (mapcar #'string-downcase dirs)))  ; case-insensitive match
-         (or (member "ocicl"   dirs :test #'string=)
-             (member "systems" dirs :test #'string=))))
+       ;; Translate P into a pathname *relative* to ROOT so we can
+       ;; examine just the sub-directory components.
+       (let* ((rel    (uiop:enough-pathname p root))
+              ;; `pathname-directory` gives (:relative <lvl-1> <lvl-2> …)
+              (dirs   (cdr (pathname-directory rel))) ; drop :relative
+              (rest   (cdr dirs)))                    ; drop level-1 (allowed)
+         ;; If any deeper component equals "ocicl" or "systems", reject P.
+         (some (lambda (d)
+                 (member (string-downcase d) '("ocicl" "systems")
+                         :test #'string=))
+               rest)))
      all)))
 
 (defun system-group (system)
