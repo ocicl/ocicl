@@ -670,18 +670,22 @@ If FORCE is NIL, skip files that already exist."
     (or (not enough-directory)
         (eql :relative (first enough-directory)))))
 
-
-;; this function needs to be defined above its first use if it is inline
 (declaim (inline find-asd-files))
 (defun find-asd-files (dir)
-  "Recursively find all files with the .asd extension in a directory."
-  ;; Force a trailing slash to support uiop change in behavior:
-  ;; https://github.com/fare/asdf/commit/6138d709eb25bf75c1d1f7dc45a63d174f982321
-  (directory (merge-pathnames
-              (make-pathname :name :wild
-                             :type "asd"
-                             :directory '(:relative :wild-inferiors))
-              (uiop:ensure-directory-pathname dir))))
+  "Recursively return every .asd file below DIR, **except** those that
+   live inside a directory called \"ocicl\" or \"systems\"."
+  (let* ((root (uiop:ensure-directory-pathname dir))
+         (wild (make-pathname :name :wild :type "asd"
+                              :directory '(:relative :wild-inferiors)))
+         (all  (directory (merge-pathnames wild root))))
+    ;; remove any .asd whose directory list contains "ocicl" or "systems"
+    (remove-if
+     (lambda (p)
+       (let* ((dirs (cdr (pathname-directory p)))      ; skip :absolute/:relative
+              (dirs (mapcar #'string-downcase dirs)))  ; case-insensitive match
+         (or (member "ocicl"   dirs :test #'string=)
+             (member "systems" dirs :test #'string=))))
+     all)))
 
 (defun system-group (system)
   "Return systems that are known to ocicl and in the same directory tree as SYSTEM"
