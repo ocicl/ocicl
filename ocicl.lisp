@@ -220,7 +220,7 @@ Distributed under the terms of the MIT License"
   (when (and (stringp name)
              (> (length name) 0)
              (<= (length name) 200)
-             (every (lambda (c) (or (alphanumericp c) (find c "-_.+/"))) name)
+             (every (lambda (c) (or (alphanumericp c) (find c "-_.+/:"))) name)
              (not (search ".." name)))
     name))
 
