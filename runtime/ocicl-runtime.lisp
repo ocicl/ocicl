@@ -75,7 +75,7 @@
 (defvar *global-systems-csv* nil)
 (defvar *global-systems-csv-timestamp* 0)
 
-(defun split-on-delimeter (line delim)
+(defun split-on-delimiter (line delim)
   (let ((start 0)
         (end 0)
         (result '()))
@@ -100,10 +100,10 @@
       mangled)))
 
 (defun mangle (str)
-  (replace-plus-with-string (car (split-on-delimeter str #\/))))
+  (replace-plus-with-string (car (split-on-delimiter str #\/))))
 
 (defun split-csv-line (line)
-  (split-on-delimeter line #\,))
+  (split-on-delimiter line #\,))
 
 (defun should-log ()
   "Whether or not OCICL should output useful log info to *VERBOSE*."
@@ -120,10 +120,14 @@
 
 (defun check-if-program-exists (program-name)
   "Check if PROGRAM-NAME exists and is executable."
-  (multiple-value-bind (_ err code)
-      (uiop:run-program (list program-name) :ignore-error-status t)
-    (declare (ignore _ err))
-    (not (member code '(126 127)))))
+  (handler-case
+      (multiple-value-bind (_ err code)
+          (uiop:run-program (list program-name) :ignore-error-status t)
+        (declare (ignore _ err))
+        (not (member code '(126 127))))
+    (error ()
+      ;; If we can't run the program at all, it doesn't exist
+      nil)))
 
 (defun warn-if-program-doesnt-exist (program-name)
   "If VERBOSE, print a warning if PROGRAM-NAME doesn't exist or isn't executable."
@@ -140,29 +144,47 @@
 
 (defun check-ocicl-version ()
   (warn-if-missing-required-programs)
-  (let ((ocicl-version-output (uiop:run-program '("ocicl" "version")
-                                                :output '(:string)
-                                                :error-output *error-output*))
-        (ocicl-version-string (format nil "ocicl version:   ~A~%"  ocicl-runtime:+version+)))
-    (unless (string= ocicl-version-string (subseq ocicl-version-output 0 (length ocicl-version-string)))
-      (format t "~&; ***************************************************************~%")
-      (format t "; WARNING: Your ocicl binary and ocicl-runtime are out of sync.~%")
-      (format t ";          Run `ocicl setup` and restart.~%")
-      (format t "; ***************************************************************~%")
-      (terpri))))
+  (handler-case
+      (let ((ocicl-version-output (uiop:run-program '("ocicl" "version")
+                                                    :output '(:string)
+                                                    :error-output *error-output*))
+            (ocicl-version-string (format nil "ocicl version:   ~A~%"  ocicl-runtime:+version+)))
+        (unless (string= ocicl-version-string (subseq ocicl-version-output 0 (length ocicl-version-string)))
+          (format t "~&; ***************************************************************~%")
+          (format t "; WARNING: Your ocicl binary and ocicl-runtime are out of sync.~%")
+          (format t ";          Run `ocicl setup` and restart.~%")
+          (format t "; ***************************************************************~%")
+          (terpri)))
+    (error (e)
+      (when (should-log)
+        (format *verbose* "; Error checking ocicl version: ~A~%" e)))))
+
+(defun sanitize-system-name (name)
+  "Sanitize system name to prevent command injection."
+  (let ((name-str (princ-to-string name)))
+    ;; Only allow alphanumeric, dash, underscore, dot, plus, and slash
+    (if (every (lambda (c) (or (alphanumericp c) (find c "-_.+/"))) name-str)
+        name-str
+        (error "Invalid system name: ~A" name-str))))
 
 (defun ocicl-install (name)
   (check-ocicl-version)
-  (let ((cmd `("ocicl" ,@(when *verbose* '("-v"))
-                       ,@(when *force-global* '("--global"))
-                       "install"
-                       ,(princ-to-string name))))
+  (let* ((safe-name (sanitize-system-name name))
+         (cmd `("ocicl" ,@(when *verbose* '("-v"))
+                        ,@(when *force-global* '("--global"))
+                        "install"
+                        ,safe-name)))
     (warn-if-missing-required-programs)
     (when (should-log)
       (format *verbose* "; running: ~A~%" cmd))
-    (uiop:run-program cmd
-                      :output (or *verbose* '(:string))
-                      :error-output *error-output*))
+    (handler-case
+        (uiop:run-program cmd
+                          :output (or *verbose* '(:string))
+                          :error-output *error-output*)
+      (error (e)
+        (when (should-log)
+          (format *verbose* "; Error installing ~A: ~A~%" safe-name e))
+        (error e))))
   (setq *local-systems-csv-timestamp* 0))
 
 (defun get-ocicl-dir ()
@@ -209,7 +231,12 @@
   (unless *global-systems-dir*
     (let* ((config-file (merge-pathnames "ocicl-globaldir.cfg" (get-ocicl-dir)))
            (globaldir (if (probe-file config-file)
-                          (uiop:ensure-absolute-pathname (uiop:read-file-line config-file))
+                          (handler-case
+                              (uiop:ensure-absolute-pathname (uiop:read-file-line config-file))
+                            (error (e)
+                              (when (should-log)
+                                (format *verbose* "; Error reading config file ~A: ~A~%" config-file e))
+                              (get-ocicl-dir)))
                           (get-ocicl-dir))))
 
       (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir))
@@ -218,21 +245,31 @@
   (when (probe-file *local-systems-csv*)
     (let ((timestamp (file-write-date *local-systems-csv*)))
       (when (> timestamp *local-systems-csv-timestamp*)
-        (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
-        (setq *local-systems-csv-timestamp* timestamp))))
+        (handler-case
+            (progn
+              (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
+              (setq *local-systems-csv-timestamp* timestamp))
+          (error (e)
+            (when (should-log)
+              (format *verbose* "; Error reading local systems CSV ~A: ~A~%" *local-systems-csv* e)))))))
 
   (when (probe-file *global-systems-csv*)
     (let ((timestamp (file-write-date *global-systems-csv*)))
       (when (> timestamp *global-systems-csv-timestamp*)
-        (setq *global-ocicl-systems* (read-systems-csv *global-systems-csv*))
-        (setq *global-systems-csv-timestamp* timestamp)))))
+        (handler-case
+            (progn
+              (setq *global-ocicl-systems* (read-systems-csv *global-systems-csv*))
+              (setq *global-systems-csv-timestamp* timestamp))
+          (error (e)
+            (when (should-log)
+              (format *verbose* "; Error reading global systems CSV ~A: ~A~%" *global-systems-csv* e))))))))
 
 (defun find-asdf-system-file (name download-p)
   (initialize-globals)
   (labels ((try-load (systems systems-dir)
              (let ((match (and systems (gethash (mangle name) systems))))
                (if match
-                   (let ((pn (pathname (concatenate 'string (namestring systems-dir) (cdr match)))))
+                   (let ((pn (merge-pathnames (cdr match) systems-dir)))
                      (when (should-log)
                        (format *verbose* "; checking for ~A: " pn))
                      (let ((found (probe-file pn)))

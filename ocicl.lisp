@@ -159,11 +159,15 @@
   (let ((systems-file (merge-pathnames (uiop:getcwd) *systems-csv*))
         (ht (make-hash-table :test #'equal)))
     (when (probe-file systems-file)
-      (progn
-        (dolist (line (uiop:read-file-lines systems-file))
-          (let ((vlist (split-csv-line line)))
-            (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))
-            ))))
+      (handler-case
+          (dolist (line (uiop:read-file-lines systems-file))
+            (when (and line (not (string= line "")))
+              (let ((vlist (split-csv-line line)))
+                (when (>= (length vlist) 3)
+                  (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))))
+        (error (e)
+          (when *verbose*
+            (format *error-output* "; Error reading systems CSV ~A: ~A~%" systems-file e)))))
     ht))
 
 (defun usage ()
@@ -211,17 +215,30 @@ Distributed under the terms of the MIT License"
          (pos (position #\/ url :start start-pos)))
     (subseq url start-pos (when pos pos))))
 
+(defun validate-system-name (name)
+  "Validate system name to prevent injection attacks."
+  (when (and (stringp name)
+             (> (length name) 0)
+             (<= (length name) 200)
+             (every (lambda (c) (or (alphanumericp c) (find c "-_.+/"))) name)
+             (not (search ".." name)))
+    name))
+
 (defun get-bearer-token (registry system)
   (handler-case
-      (let* ((server (get-up-to-first-slash registry))
+      (let* ((safe-system (validate-system-name system))
+             (server (get-up-to-first-slash registry))
              (repository (get-repository-name registry)))
+        (unless safe-system
+          (error "Invalid system name: ~A" system))
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
-                     (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${system}:pull"
+                     (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${safe-system}:pull"
                                           :force-string t
                                           :verbose *verbose*)))))
     (error (e)
-      (declare (ignore e))
+      (when *verbose*
+        (format *error-output* "; Error getting bearer token for ~A: ~A~%" system e))
       nil)))
 
 (defun system-latest-version (system)
@@ -231,19 +248,25 @@ Distributed under the terms of the MIT License"
 
 (defun system-version-list (system registry)
   (handler-case
-      (let ((server (get-up-to-first-slash registry))
-            (repository (get-repository-name registry)))
-        (let* ((token (get-bearer-token registry system)))
+      (let* ((safe-system (validate-system-name system))
+             (server (get-up-to-first-slash registry))
+             (repository (get-repository-name registry)))
+        (unless safe-system
+          (error "Invalid system name: ~A" system))
+        (let* ((token (get-bearer-token registry safe-system))
+               (headers (when token
+                         `(("Authorization" . ,#?"Bearer ${token}")))))
           (sort
            (cdr (assoc :tags
                        (cl-json:decode-json-from-string
-                        (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
+                        (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/tags/list?n=1024"
                                              :force-string t
                                              :verbose *verbose*
-                                             :headers `(("Authorization" . ,#?"Bearer ${token}"))))))
+                                             :headers headers))))
            #'string>)))
     (error (e)
-      (declare (ignore e))
+      (when *verbose*
+        (format *error-output* "; Error getting version list for ~A from ~A: ~A~%" system registry e))
       (format t "; ~A(~A) not found~%" system registry))))
 
 (defun do-list (args)
@@ -306,14 +329,15 @@ Distributed under the terms of the MIT License"
                        (get-manifest registry #?"${system}-changes.txt" version)
                      (declare (ignore manifest-digest))
                      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
+                            (headers (when token
+                                      `(("Authorization" . ,#?"Bearer ${token}"))))
                             (changes (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
                                               :force-string t
                                               :verbose *verbose*
-                                              :headers `(("Authorization" . ,#?"Bearer ${token}")))))
+                                              :headers headers)))
                        (return-from get-changes changes)))))
              (error (e)
-               (declare (ignore e))
-               )))
+               (declare (ignore e)))))
   (format nil "No documented changes for ~A:~A" system version))
 
 (declaim (inline quiet-find-system))
@@ -450,6 +474,8 @@ If FORCE is NIL, skip files that already exist."
                  (let ((server (get-up-to-first-slash registry))
                        (repository (get-repository-name registry)))
                    (let* ((token (get-bearer-token registry system))
+                          (headers (when token
+                                    `(("Authorization" . ,#?"Bearer ${token}"))))
                           (all-versions
                             (filter-strings
                              (cdr (assoc :tags
@@ -457,7 +483,7 @@ If FORCE is NIL, skip files that already exist."
                                           (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
                                                                :force-string t
                                                                :verbose *verbose*
-                                                               :headers `(("Authorization" . ,#?"Bearer ${token}"))))))))
+                                                               :headers headers))))))
                           (p (position version all-versions :test #'string=)))
                      (when p (cdr (nthcdr p all-versions))))))
              (drakma:drakma-error (e)
@@ -674,7 +700,7 @@ If FORCE is NIL, skip files that already exist."
 (defun find-asd-files (dir)
   "Return every .asd file found under DIR, except those that reside in a
    descendant directory (second level or deeper) named \"ocicl\" or \"systems\"."
-
+  (when *verbose* (format t "; searching for .asd files in ~A~%" dir))
   (let* ((root  (uiop:ensure-directory-pathname dir))
          (wild  (make-pathname :name :wild :type "asd"
                                :directory '(:relative :wild-inferiors)))
@@ -688,6 +714,7 @@ If FORCE is NIL, skip files that already exist."
               (dirs   (cdr (pathname-directory rel))) ; drop :relative
               (rest   (cdr dirs)))                    ; drop level-1 (allowed)
          ;; If any deeper component equals "ocicl" or "systems", reject P.
+         (when *verbose* (format t "; testing directory components ~A~%" rest))
          (some (lambda (d)
                  (member (string-downcase d) '("ocicl" "systems")
                          :test #'string=))
@@ -1337,18 +1364,27 @@ If FORCE is NIL, skip files that already exist."
 
        (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
          (when (probe-file config-file)
-           (setf *ocicl-registries*
-                 (or (with-open-file (in config-file)
-                                     (loop for line = (read-line in nil nil)
-                                           while line
-                                           ;; skip comments
-                                           unless (char= #\# (aref line 0))
-                                           collect (string-trim '(#\Space #\Tab #\Newline #\Return) line)))
-                     *ocicl-registries*))))
+           (handler-case
+               (setf *ocicl-registries*
+                     (or (with-open-file (in config-file)
+                                         (loop for line = (read-line in nil nil)
+                                               while line
+                                               ;; skip comments and empty lines
+                                               unless (or (zerop (length line))
+                                                         (char= #\# (aref line 0)))
+                                               collect (string-trim '(#\Space #\Tab #\Newline #\Return) line)))
+                         *ocicl-registries*))
+             (error (e)
+               (when *verbose*
+                 (format *error-output* "; Error reading registry config: ~A~%" e))))))
 
        (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
          (when (probe-file config-file)
-           (setf *ocicl-globaldir* (uiop:ensure-absolute-pathname (uiop:read-file-line config-file)))))
+           (handler-case
+               (setf *ocicl-globaldir* (uiop:ensure-absolute-pathname (uiop:read-file-line config-file)))
+             (error (e)
+               (when *verbose*
+                 (format *error-output* "; Error reading global directory config: ~A~%" e))))))
 
        (let ((workdir (uiop:getcwd)))
 
@@ -1379,8 +1415,12 @@ If FORCE is NIL, skip files that already exist."
            ;; 2.  config-file
            (let ((cfg (merge-pathnames (get-ocicl-dir) "ocicl-templates.cfg")))
              (when (probe-file cfg)
-               (alexandria:appendf *template-dirs*
-                        (uiop:read-file-lines cfg))))
+               (handler-case
+                   (alexandria:appendf *template-dirs*
+                            (uiop:read-file-lines cfg))
+                 (error (e)
+                   (when *verbose*
+                     (format *error-output* "; Error reading template config ~A: ~A~%" cfg e))))))
 
            ;; 3.  environment variable
            (when (uiop:getenvp "OCICL_TEMPLATE_PATH")
@@ -1522,30 +1562,42 @@ If FORCE is NIL, skip files that already exist."
   (debug-log (format nil "wrote new ~a" *systems-csv*)))
 
 (defun get-manifest (registry system tag)
-  (let ((token (get-bearer-token registry system))
-        (server (get-up-to-first-slash registry))
-        (repository (get-repository-name registry)))
-    (multiple-value-bind (body status response-headers)
-        (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/manifests/${tag}"
-                 :force-string t
-                 :verbose *verbose*
-                 :headers `(("Authorization" . ,#?"Bearer ${token}")
-                            ("Accept" . "application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json")))
-      (declare (ignore status))
-      (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers)))))
-
-(defun get-blob (registry system tag dl-dir)
-  (let* ((token (get-bearer-token registry system))
+  (let* ((safe-system (validate-system-name system))
+         (safe-tag (validate-system-name tag))
+         (token (get-bearer-token registry safe-system))
          (server (get-up-to-first-slash registry))
          (repository (get-repository-name registry)))
+    (unless (and safe-system safe-tag)
+      (error "Invalid system name or tag: ~A:~A" system tag))
+    (let ((headers (append (when token
+                             `(("Authorization" . ,#?"Bearer ${token}")))
+                           `(("Accept" . "application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json")))))
+      (multiple-value-bind (body status response-headers)
+          (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/manifests/${safe-tag}"
+                   :force-string t
+                   :verbose *verbose*
+                   :headers headers)
+        (declare (ignore status))
+        (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers))))))
+
+(defun get-blob (registry system tag dl-dir)
+  (let* ((safe-system (validate-system-name system))
+         (safe-tag (validate-system-name tag))
+         (token (get-bearer-token registry safe-system))
+         (server (get-up-to-first-slash registry))
+         (repository (get-repository-name registry)))
+    (unless (and safe-system safe-tag)
+      (error "Invalid system name or tag: ~A:~A" system tag))
     (multiple-value-bind (manifest manifest-digest)
-        (get-manifest registry system tag)
+        (get-manifest registry safe-system safe-tag)
       (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-             (input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/blobs/${digest}"
+             (headers (when token
+                       `(("Authorization" . ,#?"Bearer ${token}"))))
+             (input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/blobs/${digest}"
                              :force-binary t
                              :want-stream t
                              :verbose *verbose*
-                             :headers `(("Authorization" . ,#?"Bearer ${token}")))))
+                             :headers headers)))
         (handler-bind
             ((tar-simple-extract:broken-or-circular-links-error
               (lambda (condition)
