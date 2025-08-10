@@ -224,6 +224,13 @@ Distributed under the terms of the MIT License"
              (not (search ".." name)))
     name))
 
+(defun looks-like-dated-version-p (version)
+  "Check if VERSION looks like a dated version format (YYYYMMDD-githash)."
+  (and (stringp version)
+       (> (length version) 9)
+       (char= (char version 8) #\-)
+       (every #'digit-char-p (subseq version 0 8))))
+
 (defun get-bearer-token (registry system)
   (handler-case
       (let* ((safe-system (validate-system-name system))
@@ -1671,12 +1678,16 @@ download the system unless a version is specified."
                                            (progn
                                              (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
                                              (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
-                                               (if *color*
-                                                   (format t #?"${*color-dim*};~
-                                                                ${*color-reset*} downloaded~
-                                                                ${*color-bold*}${*color-bright-green*} ${name}~
-                                                                ${*color-reset*}${*color-dim*}@${manifest-digest}~%")
-                                                   (format t "; downloaded ~A@~A~%" name manifest-digest))
+                                               (let ((version-display (if (and (stringp version) (looks-like-dated-version-p version)) version "latest")))
+                                                 (if *color*
+                                                     (format t #?"${*color-dim*};~
+                                                                  ${*color-reset*} downloaded~
+                                                                  ${*color-bold*}${*color-bright-green*} ${name}:${version-display}~
+                                                                  ${*color-reset*}${*color-dim*}${(if *verbose* (format nil " @~A" manifest-digest) "")}~%")
+                                                     (format t "; downloaded ~A:~A~A~%" 
+                                                             name 
+                                                             version-display
+                                                             (if *verbose* (format nil " @~A" manifest-digest) ""))))
                                                (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
                                                       (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
                                                                                          (uiop:split-string (namestring abs-dirname)
@@ -1734,19 +1745,26 @@ download the system unless a version is specified."
          :sb-concurrency
          :sb-cover
          :sb-executable
-         :sb-gmp
          :sb-grovel
          :sb-introspect
          :sb-md5
-         #-windows
-         :sb-mpfr
          :sb-posix
          :sb-queue
          :sb-rotate-byte
          :sb-rt
          :sb-simple-streams
          :sb-sprof))
-    (ignore-errors (require system))))
+    (ignore-errors (require system)))
+  
+  ;; Handle GMP and MPFR systems separately since they depend on native libraries
+  ;; that may not be available or findable on all systems (especially macOS)
+  (dolist (system '(:sb-gmp #-windows :sb-mpfr))
+    (handler-case 
+        (require system)
+      ;; Catch all errors including native library loading failures
+      (error (c)
+        (when *verbose*
+          (format *error-output* "~&Note: Could not load ~A: ~A~%" system c))))))
 
 ;; Register known internal systems as "immutable" so that find-system inside
 ;; the ocicl executable does not try to load them
