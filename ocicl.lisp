@@ -1578,7 +1578,7 @@ If FORCE is NIL, skip files that already exist."
           (destructuring-bind (system fullname . asd) entry
             (format stream "~A, ~A, ~A~%" system fullname asd)))
         (finish-output stream))
-      (asdf:rename-file-overwriting-target tmp target))
+      (uiop:rename-file-overwriting-target tmp target))
     (debug-log (format nil "wrote new ~a" *systems-csv*))))
 
 (defun get-manifest (registry system tag)
@@ -1600,33 +1600,19 @@ If FORCE is NIL, skip files that already exist."
         (declare (ignore status))
         (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers))))))
 
-;; Helper to pick a digest for a layer from a manifest or from a referenced child manifest
+;; Helper: pick first layer digest from a manifest, or from first child if given an index
 (defun %select-layer-digest (manifest registry system)
-  (let* ((layers (cdr (assoc :layers manifest)))
-         (candidate (or (find-if (lambda (layer)
-                                   (let ((mt (or (cdr (assoc :media-type layer))
-                                                 (cdr (assoc :mediaType layer)))))
-                                     (member mt '("application/vnd.oci.image.layer.v1.tar+gzip"
-                                                  "application/vnd.oci.image.layer.v1.tar"
-                                                  "application/vnd.docker.image.rootfs.diff.tar.gzip")
-                                             :test #'string=)))
-                                 layers)
-                             (first layers)))
-         (digest (cdr (assoc :digest candidate))))
-    (or digest
-        (let* ((children (cdr (assoc :manifests manifest)))
-               (child (or (find-if (lambda (m)
-                                     (member (or (cdr (assoc :media-type m))
-                                                 (cdr (assoc :mediaType m)))
-                                             '("application/vnd.oci.image.manifest.v1+json"
-                                               "application/vnd.docker.distribution.manifest.v2+json")
-                                             :test #'string=))
-                                   children)
-                             (first children)))
-               (child-digest (cdr (assoc :digest child))))
-          (when child-digest
-            (let ((child-manifest (car (multiple-value-list (get-manifest registry system child-digest)))))
-              (%select-layer-digest child-manifest registry system)))))))
+  (let ((layers (cdr (assoc :layers manifest))))
+    (cond
+      ((and layers (listp layers))
+       (cdr (assoc :digest (first layers))))
+      (t
+       (let* ((children (cdr (assoc :manifests manifest)))
+              (child (first children))
+              (child-digest (and child (cdr (assoc :digest child)))))
+         (when child-digest
+           (let ((child-manifest (car (multiple-value-list (get-manifest registry system child-digest)))))
+             (%select-layer-digest child-manifest registry system))))))))
 
 (defun get-blob (registry system tag dl-dir)
   (let* ((safe-system (validate-system-name system))
