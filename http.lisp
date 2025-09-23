@@ -73,20 +73,56 @@
            (when verbose
              (setf drakma:*header-stream* verbose))
            (multiple-value-bind (body status-code response-headers _uri _stream)
-               ;; Drakma uses :additional-headers, not :headers.
-               (let* ((verify (if *verify-tls* :required nil))
-                      (ca-file (uiop:getenv "OCICL_CA_FILE"))
-                      (ca-dir  (uiop:getenv "OCICL_CA_DIR")))
-                 (drakma:http-request url
-                                      :method :get
-                                      :additional-headers headers
-                                      :want-stream want-stream
-                                      :force-binary force-binary
-                                      :verify verify
-                                      :ca-file (and ca-file (string/= ca-file "") ca-file)
-                                      :ca-directory (and ca-dir (string/= ca-dir "") ca-dir)
-                                      :proxy-basic-authorization *proxy-basic-auth*))
-              ;; Convert Drakma’s header alist to the hash-table expected elsewhere.
+               (labels ((friendly-tls-message (cond)
+                          (let* ((txt (princ-to-string cond))
+                                 (host (ignore-errors (puri:uri-host (puri:parse-uri url)))))
+                            (cond
+                              ((and *verify-tls*
+                                    (or (search "certificate verify failed" txt :test #'char-equal)
+                                        (search "unable to get local issuer certificate" txt :test #'char-equal)
+                                        (search "unknown ca" txt :test #'char-equal)))
+                               (format nil "TLS verification failed: CA not trusted for ~A. Try setting OCICL_CA_FILE/OCICL_CA_DIR or use -k/--insecure for testing." (or host url)))
+                              ((and *verify-tls*
+                                    (or (search "host" txt :test #'char-equal)
+                                        (search "hostname" txt :test #'char-equal))
+                                    (search "mismatch" txt :test #'char-equal))
+                               (format nil "TLS verification failed: certificate name mismatch for ~A." (or host url)))
+                              ((and *verify-tls* (search "self" txt :test #'char-equal)
+                                    (search "signed" txt :test #'char-equal))
+                               (format nil "TLS verification failed: self-signed certificate for ~A. Provide CA via OCICL_CA_FILE/OCICL_CA_DIR or use -k/--insecure for testing." (or host url)))
+                              ((or (search "expired" txt :test #'char-equal)
+                                   (search "not yet valid" txt :test #'char-equal))
+                               (format nil "TLS verification failed: server certificate time validity issue for ~A. Check system clock or server certificate." (or host url)))
+                              ((or (search "timeout" txt :test #'char-equal)
+                                   (search "timed out" txt :test #'char-equal))
+                               (format nil "TLS connection timed out to ~A. Check network/proxy; consider setting OCICL_HTTP_TIMEOUT." (or host url)))
+                              (t nil)))))
+                 ;; Drakma uses :additional-headers, not :headers.
+                 (let* ((verify (if *verify-tls* :required nil))
+                        (ca-file (uiop:getenv "OCICL_CA_FILE"))
+                        (ca-dir  (uiop:getenv "OCICL_CA_DIR"))
+                        (timeout-env (uiop:getenv "OCICL_HTTP_TIMEOUT"))
+                        (conn-timeout (ignore-errors (and timeout-env (parse-integer timeout-env)))))
+                   (handler-case
+                       (drakma:http-request url
+                                            :method :get
+                                            :additional-headers headers
+                                            :want-stream want-stream
+                                            :force-binary force-binary
+                                            :verify verify
+                                            :ca-file (and ca-file (string/= ca-file "") ca-file)
+                                            :ca-directory (and ca-dir (string/= ca-dir "") ca-dir)
+                                            #+(or abcl clisp lispworks mcl openmcl sbcl)
+                                            :connection-timeout
+                                            #+(or abcl clisp lispworks mcl openmcl sbcl)
+                                            conn-timeout
+                                            :proxy-basic-authorization *proxy-basic-auth*)
+                     (error (e)
+                       (let ((msg (friendly-tls-message e)))
+                         (when verbose
+                           (format verbose "; underlying error: ~A~%" e))
+                         (error (or msg (princ-to-string e))))))))
+             ;; Convert Drakma’s header alist to the hash-table expected elsewhere.
              (let ((body (if (and force-string (not want-stream))
                              ;; ensure body is a Lisp string; leave it untouched otherwise
                              (babel:octets-to-string body :encoding :utf-8)
