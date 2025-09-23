@@ -1566,18 +1566,20 @@ If FORCE is NIL, skip files that already exist."
 (defvar *ocicl-systems* nil)
 
 (defun write-systems-csv ()
-  (with-open-file (stream (merge-pathnames (uiop:getcwd) *systems-csv*)
-                          :direction :output
-                          :if-exists :supersede)
-    (let ((systems-list (sort (alexandria:hash-table-alist *ocicl-systems*)
-                              #'string<
-                              :key #'car)))
-      (mapc
-       (lambda (system)
-         (destructuring-bind (system fullname . asd) system
-           (format stream "~A, ~A, ~A~%" system fullname asd)))
-       systems-list)))
-  (debug-log (format nil "wrote new ~a" *systems-csv*)))
+  (let* ((target (merge-pathnames (uiop:getcwd) *systems-csv*))
+         (dir (uiop:pathname-directory-pathname target)))
+    (uiop:ensure-all-directories-exist (list dir))
+    (uiop:with-temporary-file (:stream stream :pathname tmp :keep t
+                                      :directory dir :prefix ".ocicl-tmp-" :type "csv")
+      (let ((systems-list (sort (alexandria:hash-table-alist *ocicl-systems*)
+                                #'string<
+                                :key #'car)))
+        (dolist (entry systems-list)
+          (destructuring-bind (system fullname . asd) entry
+            (format stream "~A, ~A, ~A~%" system fullname asd)))
+        (finish-output stream))
+      (asdf:rename-file-overwriting-target tmp target))
+    (debug-log (format nil "wrote new ~a" *systems-csv*))))
 
 (defun get-manifest (registry system tag)
   (let* ((safe-system (validate-system-name system))
