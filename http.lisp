@@ -10,6 +10,8 @@
 
 (in-package #:ocicl.http)
 
+(defvar *proxy-basic-auth* nil)
+
 (defun %split-userinfo (authority)
   "Return two values USER and PASS (either may be NIL)."
   (when authority
@@ -41,8 +43,7 @@
         (setf drakma:*default-http-proxy*
               (if port (list host port) host))
         (multiple-value-bind (user pass) (%split-userinfo authority)
-          (setf *proxy-user* user
-                *proxy-pass* pass)))))
+          (setf *proxy-basic-auth* (when user (list user (or pass ""))))))))
   ;; ---- NO_PROXY ---------------------------------------------------------
   (let* ((raw (loop for v in no-proxy-vars
                     for val = (uiop:getenv v)
@@ -75,7 +76,8 @@
                                     :method :get
                                     :additional-headers headers
                                     :want-stream want-stream
-                                    :force-binary force-binary)
+                                    :force-binary force-binary
+                                    :proxy-basic-authorization *proxy-basic-auth*)
               ;; Convert Drakma’s header alist to the hash-table expected elsewhere.
              (let ((body (if (and force-string (not want-stream))
                              ;; ensure body is a Lisp string; leave it untouched otherwise

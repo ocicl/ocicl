@@ -110,6 +110,25 @@ be used for an authenticating proxy:
 $ export https_proxy=https://username:password@myproxyhost:8080
 ```
 
+Proxy Configuration
+-------------------
+
+`ocicl` and its HTTP client respect common proxy environment variables.
+
+- Supported: `HTTPS_PROXY`, `https_proxy`, `HTTP_PROXY`, `http_proxy`
+- Format options:
+  - `http[s]://user:pass@host[:port]`
+  - `host[:port]` (scheme assumed http)
+  - `user:pass@host[:port]`
+- Bypass list: `NO_PROXY`/`no_proxy` as a comma-separated list of hosts/domains
+  - Example: `export NO_PROXY=localhost,127.0.0.1,.example.com`
+- Authentication: sends HTTP Basic credentials via `Proxy-Authorization`.
+- Precedence: first non-empty variable in the order above is used.
+
+Security note: Environment variables can be visible to other processes/users on the
+system. Prefer short-lived shells and avoid committing credentials into scripts.
+```
+
 Now try running this:
 ```
 $ sbcl --eval "(asdf:load-system :str)"
@@ -147,7 +166,7 @@ using the library versions locked in your ``ocicl.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.6.5 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.6.6 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
              [-c|--color WHEN] [-d|--depth NUM] command
