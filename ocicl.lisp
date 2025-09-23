@@ -125,6 +125,10 @@
                        ((ignore-errors (parse-integer arg)))
                        (t (usage)
                           (uiop:quit 1)))))
+  (:name :insecure
+   :description "allow insecure TLS (skip certificate verification)"
+   :short #\k
+   :long "insecure")
   )
 #|
   (:name :template-dir
@@ -1446,7 +1450,7 @@ If FORCE is NIL, skip files that already exist."
                     (if (typep *standard-output* 'synonym-stream)
                         (symbol-value (synonym-stream-symbol *standard-output*))
                         *standard-output*)))
-             (let* ((color (getf options :color))
+           (let* ((color (getf options :color))
                     (color-allowed?
                       (or (string= color "auto")
                           (and (not color)
@@ -1462,6 +1466,11 @@ If FORCE is NIL, skip files that already exist."
                         (error () nil))))
                (setf *color* (or (string= color "always")
                                  (and tty? color-allowed?)))))
+
+           ;; TLS verification (default on); allow --insecure or OCICL_INSECURE
+           (let ((insecure (or (getf options :insecure)
+                               (uiop:getenvp "OCICL_INSECURE"))))
+             (setf ocicl.http:*verify-tls* (not insecure)))
 
            (let ((depth (getf options :depth)))
              (setf *tree-depth* (if (eql depth :max)

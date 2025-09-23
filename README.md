@@ -127,6 +127,18 @@ Proxy Configuration
 
 Security note: Environment variables can be visible to other processes/users on the
 system. Prefer short-lived shells and avoid committing credentials into scripts.
+
+TLS Verification
+----------------
+
+- Verification: Enabled by default (server certificates are verified).
+- Insecure mode: Use `-k` or `--insecure` to skip certificate verification (similar to `curl -k`).
+  - Alternatively, set `OCICL_INSECURE=1` in the environment.
+- Custom CA paths:
+  - `OCICL_CA_FILE`: path to a PEM bundle file
+  - `OCICL_CA_DIR`: path to a directory containing CA files
+
+Disabling verification reduces security and should be used only for testing on trusted networks.
 ```
 
 Now try running this:

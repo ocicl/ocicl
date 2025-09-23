@@ -6,11 +6,13 @@
 
 (uiop:define-package #:ocicl.http
   (:use #:cl #:drakma)
-  (:export #:http-get #:configure-drakma-proxy-from-env))
+  (:export #:http-get #:configure-drakma-proxy-from-env
+           #:*verify-tls*))
 
 (in-package #:ocicl.http)
 
 (defvar *proxy-basic-auth* nil)
+(defvar *verify-tls* t)
 
 (defun %split-userinfo (authority)
   "Return two values USER and PASS (either may be NIL)."
@@ -72,12 +74,18 @@
              (setf drakma:*header-stream* verbose))
            (multiple-value-bind (body status-code response-headers _uri _stream)
                ;; Drakma uses :additional-headers, not :headers.
-               (drakma:http-request url
-                                    :method :get
-                                    :additional-headers headers
-                                    :want-stream want-stream
-                                    :force-binary force-binary
-                                    :proxy-basic-authorization *proxy-basic-auth*)
+               (let* ((verify (if *verify-tls* :required nil))
+                      (ca-file (uiop:getenv "OCICL_CA_FILE"))
+                      (ca-dir  (uiop:getenv "OCICL_CA_DIR")))
+                 (drakma:http-request url
+                                      :method :get
+                                      :additional-headers headers
+                                      :want-stream want-stream
+                                      :force-binary force-binary
+                                      :verify verify
+                                      :ca-file (and ca-file (string/= ca-file "") ca-file)
+                                      :ca-directory (and ca-dir (string/= ca-dir "") ca-dir)
+                                      :proxy-basic-authorization *proxy-basic-auth*))
               ;; Convert Drakma’s header alist to the hash-table expected elsewhere.
              (let ((body (if (and force-string (not want-stream))
                              ;; ensure body is a Lisp string; leave it untouched otherwise
