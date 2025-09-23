@@ -130,13 +130,7 @@
    :short #\k
    :long "insecure")
   )
-#|
-  (:name :template-dir
-   :description "prepend DIR to template search path (may be repeated)"
-   :long "template-dir"
-   :meta-var "DIR"
-   :repeat t))
-|#
+;; Template-dir option intentionally disabled for now; reserved for future use.
 
 (defun unknown-option (condition)
   (format t "warning: ~s option is unknown!~%" (opts:option condition))
@@ -288,8 +282,8 @@ Distributed under the terms of the MIT License"
                 do (let ((tags (system-version-list system registry)))
                      (when tags
                        (if *color*
-                           (format t #?"${*color-bold*}${*color-bright-green*}${system} ~
-                                        ${*color-reset*}${*color-dim*}(${registry})${*color-reset*}:~%")
+                           (format t "~a~%"
+                                   #?"${*color-bold*}${*color-bright-green*}${system} ${*color-reset*}${*color-dim*}(${registry})${*color-reset*}:")
                            (format t "~A (~A):~%" system registry))
                        (dolist (tag tags)
                          (format t "~T~A~%" tag))
@@ -893,8 +887,12 @@ If FORCE is NIL, skip files that already exist."
                                         :test (lambda (a b)
                                                 (member (car a) b :test #'equal)))))
             (if *color*
-                (format t #?"~{${*color-dim*};${*color-reset*} no system to remove: ~
-                               ${*color-bold*}${*color-bright-red*}~A${*color-reset*}~^~%~}~&" nonexistent-systems)
+                (format t
+                        "~{~a;~a no system to remove: ~a~a~A~a~%~}~&"
+                        (mapcar (lambda (n)
+                                  (list *color-dim* *color-reset*
+                                        *color-bold* *color-bright-red* n *color-reset*))
+                                nonexistent-systems))
                 (format t "~{; no system to remove: ~A~^~%~}~&" nonexistent-systems))
             (remove-trees dependency-trees graph)
             ;; modify ocicl-systems
@@ -904,9 +902,13 @@ If FORCE is NIL, skip files that already exist."
                  (if (eql value :removed)
                      (mapc (lambda (system) (remhash (mangle system) *ocicl-systems*)) system-group)
                      (if *color*
-                         (format t #?"${*color-dim*};${*color-reset*} not removing systems ~
-                                      (~{${*color-bold*}${*color-bright-green*}~A${*color-reset*}~^ ~}), ~
-                                      depended on by: ${*color-bold*}${*color-bright-green*}~a${*color-reset*}~%" system-group value)
+                         (format t
+                                 "~a;~a not removing systems (~{~a~a~A~a~^ ~}), depended on by: ~a~a~a~a~%"
+                                 *color-dim* *color-reset*
+                                 (mapcar (lambda (n)
+                                           (list *color-bold* *color-bright-green* n *color-reset*))
+                                         system-group)
+                                 *color-bold* *color-bright-green* value *color-reset*)
                          (format t "~&; not removing systems ~a, depended on by: ~a~%" system-group value)))))
              seen-system-groups)))
       (write-systems-csv))))
@@ -1596,6 +1598,34 @@ If FORCE is NIL, skip files that already exist."
         (declare (ignore status))
         (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers))))))
 
+;; Helper to pick a digest for a layer from a manifest or from a referenced child manifest
+(defun %select-layer-digest (manifest registry system)
+  (let* ((layers (cdr (assoc :layers manifest)))
+         (candidate (or (find-if (lambda (layer)
+                                   (let ((mt (or (cdr (assoc :media-type layer))
+                                                 (cdr (assoc :mediaType layer)))))
+                                     (member mt '("application/vnd.oci.image.layer.v1.tar+gzip"
+                                                  "application/vnd.oci.image.layer.v1.tar"
+                                                  "application/vnd.docker.image.rootfs.diff.tar.gzip")
+                                             :test #'string=)))
+                                 layers)
+                             (first layers)))
+         (digest (cdr (assoc :digest candidate))))
+    (or digest
+        (let* ((children (cdr (assoc :manifests manifest)))
+               (child (or (find-if (lambda (m)
+                                     (member (or (cdr (assoc :media-type m))
+                                                 (cdr (assoc :mediaType m)))
+                                             '("application/vnd.oci.image.manifest.v1+json"
+                                               "application/vnd.docker.distribution.manifest.v2+json")
+                                             :test #'string=))
+                                   children)
+                             (first children)))
+               (child-digest (cdr (assoc :digest child))))
+          (when child-digest
+            (let ((child-manifest (car (multiple-value-list (get-manifest registry system child-digest)))))
+              (%select-layer-digest child-manifest registry system)))))))
+
 (defun get-blob (registry system tag dl-dir)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
@@ -1606,22 +1636,25 @@ If FORCE is NIL, skip files that already exist."
       (error "Invalid system name or tag: ~A:~A" system tag))
     (multiple-value-bind (manifest manifest-digest)
         (get-manifest registry safe-system safe-tag)
-      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
+      (let* ((layer-digest (%select-layer-digest manifest registry safe-system))
              (headers (when token
-                       `(("Authorization" . ,#?"Bearer ${token}"))))
-             (input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/blobs/${digest}"
-                             :force-binary t
-                             :want-stream t
-                             :verbose *verbose*
-                             :headers headers)))
-        (handler-bind
-            ((tar-simple-extract:broken-or-circular-links-error
-              (lambda (condition)
-                (declare (ignore condition))
-                (invoke-restart 'continue))))
-          (tar:with-open-archive (a input)
-                                 (tar-simple-extract:simple-extract-archive a :directory dl-dir)))
-        manifest-digest))))
+			`(("Authorization" . ,#?"Bearer ${token}")))))
+        ;; If no layer digest could be determined, signal an error with context.
+        (unless layer-digest
+          (error "Unable to determine layer digest for ~A:~A from registry ~A" system tag registry))
+        (let* ((input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/blobs/${layer-digest}"
+					   :force-binary t
+					   :want-stream t
+					   :verbose *verbose*
+					   :headers headers)))
+          (handler-bind
+              ((tar-simple-extract:broken-or-circular-links-error
+		(lambda (condition)
+                  (declare (ignore condition))
+                  (invoke-restart 'continue))))
+            (tar:with-open-archive (a input)
+              (tar-simple-extract:simple-extract-archive a :directory dl-dir)))
+          manifest-digest)))))
 
 (defun download-and-install (fullname)
   (let ((dl-dir (get-temp-ocicl-dl-pathname)))
