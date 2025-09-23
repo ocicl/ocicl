@@ -137,6 +137,15 @@ TLS Verification
 - Custom CA paths:
   - `OCICL_CA_FILE`: path to a PEM bundle file
   - `OCICL_CA_DIR`: path to a directory containing CA files
+- Connection timeout:
+  - `OCICL_HTTP_TIMEOUT`: connection timeout in seconds for HTTP requests
+
+Troubleshooting
+- CA not trusted: set `OCICL_CA_FILE`/`OCICL_CA_DIR` to include your organization’s CA bundle (common on corporate proxies), or temporarily use `-k` for testing.
+- Hostname mismatch: verify the registry host (`--registry`) and proxy settings (`HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`).
+- Self-signed certificate: provide the signing CA via `OCICL_CA_FILE`/`OCICL_CA_DIR`, or use `-k` for testing only.
+- Expired/not yet valid: check your system clock and the server’s certificate validity.
+- Timeouts: check network/proxy reachability and consider increasing `OCICL_HTTP_TIMEOUT`.
 
 Disabling verification reduces security and should be used only for testing on trusted networks.
 ```
@@ -178,10 +187,10 @@ using the library versions locked in your ``ocicl.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.6.6 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.6.7 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
-             [-c|--color WHEN] [-d|--depth NUM] command
+             [-c|--color WHEN] [-d|--depth NUM] [-k|--insecure] command
 
 Available options:
   -v, --verbose           produce verbose output
@@ -190,6 +199,7 @@ Available options:
   -r, --registry REGISTRY use alternate oci registry [Default: ghcr.io/ocicl]
   -c, --color WHEN        color the output WHEN (auto, always, or never)
   -d, --depth NUM         maximum depth for the tree command (integer or "max", default 1)
+  -k, --insecure          allow insecure TLS (skip certificate verification)
 
 Choose from the following ocicl commands:
 
