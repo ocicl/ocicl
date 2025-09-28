@@ -1578,7 +1578,20 @@ If FORCE is NIL, skip files that already exist."
           (destructuring-bind (system fullname . asd) entry
             (format stream "~A, ~A, ~A~%" system fullname asd)))
         (finish-output stream))
-      (uiop:rename-file-overwriting-target tmp target))
+      :close-stream
+      (labels ((rename-with-retry (src dst &key (attempts 6) (initial-delay 0.05))
+                 (loop :for i :from 1 :to attempts
+                       :for delay := (* initial-delay (expt 2 (1- i)))
+                       :do
+                         (handler-case
+                             (progn
+                               (uiop:rename-file-overwriting-target src dst)
+                               (return))
+                           (error (e)
+                             (if (< i attempts)
+                                 (sleep delay)
+                                 (error e)))))))
+        (rename-with-retry tmp target)))
     (debug-log (format nil "wrote new ~a" *systems-csv*))))
 
 (defun get-manifest (registry system tag)
