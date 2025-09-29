@@ -56,8 +56,7 @@
 (defun run-single-pass-visitors-ctx (path ctx)
   "Traverse the parse tree once and evaluate a set of fast, local pattern rules using context.
 Returns a list of issues."
-  (let ((issues nil)
-        (head nil))  ; Define head as a local variable to prevent unbound errors
+  (let ((issues nil))
     (when *verbose*
       (logf "; single-pass: running on ~A~%" path))
     (flet ((push-iss (ln col rule msg)
@@ -414,8 +413,8 @@ Returns a list of issues."
                         (>= (length form) 3))
                (push-iss ln col "destructive-sort" "SORT is destructive - consider STABLE-SORT or copy first"))
 
-            ;; OPEN/CLOSE in LET -> use WITH-OPEN-FILE
-            (when (and (member head '(let let*))
+             ;; OPEN/CLOSE in LET -> use WITH-OPEN-FILE
+             (when (and (member head '(let let*))
                        (consp (second form))
                        (some (lambda (binding)
                                (and (consp binding)
@@ -423,9 +422,9 @@ Returns a list of issues."
                                     (consp (second binding))
                                     (eq (first (second binding)) 'open)))
                              (second form)))
-              (when *verbose*
-                (logf "; single-pass: matched LET OPEN at ~D:~D: ~S~%" ln col form))
-              (push-iss ln col "use-with-open-file" "Use WITH-OPEN-FILE instead of manual OPEN/CLOSE"))
+               (when *verbose*
+                 (logf "; single-pass: matched LET OPEN at ~D:~D: ~S~%" ln col form))
+               (push-iss ln col "use-with-open-file" "Use WITH-OPEN-FILE instead of manual OPEN/CLOSE"))
 
              ;; MAPCAR used only for side-effects - simplified heuristic
              ;; Only flag in obvious cases where result is clearly unused
@@ -632,7 +631,7 @@ Returns a list of issues."
                                       (format nil "Duplicate CASE key: ~S" keys)))
                           (setf (gethash keys seen) t))
                          ;; Ignore other key types
-                         (t nil))))))))
+                         (t nil)))))))
 
              ;; Destructive operations on constants
              (when (member head '(nreverse nconc sort stable-sort delete))
@@ -660,15 +659,15 @@ Returns a list of issues."
                          "Avoid EVAL; consider alternatives like FUNCALL or macros"))
 
              ;; Missing docstrings in defun/defmacro
-             (when (member head '(defun defmacro))
+             (when (and (member head '(defun defmacro))
+                        (not quoted-p)
+                        (>= (length form) 3))
                (let* ((name (second form))
                       (lambda-list (third form))
                       (body (cdddr form)))
                  (when (and (symbolp name)
-                            (not (member name '(defun defmacro)))
                             (or (null body)
-                                (not (stringp (first body)))
-                                (and (= (length body) 1) (stringp (first body)))))
+                                (not (stringp (first body)))))
                    (push-iss ln col "missing-docstring"
                              (format nil "~(~A~) ~A missing docstring" head name)))))
 
@@ -1094,5 +1093,5 @@ Returns a list of issues."
 
              ;; INSERT MORE RULES HERE
 
-             ))))
+             )))))
     (nreverse issues)))
