@@ -1,6 +1,8 @@
 (require 'asdf)
 (require 'uiop)
 
+(in-package :cl-user)
+
 (eval-when
     (:load-toplevel :execute)
   (progn
@@ -68,7 +70,7 @@
 
 (defun get-temp-ocicl-dl-pathname ()
   (let ((rdir (format nil "ocicl-~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*))))
-    (merge-pathnames (eval `(make-pathname :directory '(:relative ,rdir)))
+    (merge-pathnames (make-pathname :directory (list :relative rdir))
                      (uiop:default-temporary-directory))))
 
 (defun install-ocicl ()
