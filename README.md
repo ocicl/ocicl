@@ -148,7 +148,6 @@ Troubleshooting
 - Timeouts: check network/proxy reachability and consider increasing `OCICL_HTTP_TIMEOUT`.
 
 Disabling verification reduces security and should be used only for testing on trusted networks.
-```
 
 Now try running this:
 ```
