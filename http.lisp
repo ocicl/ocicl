@@ -1,3 +1,9 @@
+;;; http.lisp
+;;;
+;;; SPDX-License-Identifier: MIT
+;;;
+;;; Copyright (C) 2025  Anthony Green <green@moxielogic.com>
+
 ;;;; ---------------------------------------------------------------------------
 ;;;;  Very small shim so we can continue writing (http-get …) just as we wrote
 ;;;;  (dex:get …) before.  Only the subset of keyword arguments actually used
@@ -83,7 +89,7 @@
                                     (or (search "certificate verify failed" txt :test #'char-equal)
                                         (search "unable to get local issuer certificate" txt :test #'char-equal)
                                         (search "unknown ca" txt :test #'char-equal)))
-                               (format nil "TLS verification failed: CA not trusted for ~A. Try setting OCICL_CA_FILE/OCICL_CA_DIR or use -k/--insecure for testing." (or host url)))
+                               (format nil "TLS verification failed: CA not trusted for ~A. Try setting OCICL_CA_FILE/OCICL_CA_DIR or use -k/--insecure for testing." (or host url))) ; lint:suppress max-line-length
                               ((and *verify-tls*
                                     (or (search "host" txt :test #'char-equal)
                                         (search "hostname" txt :test #'char-equal))
@@ -91,7 +97,7 @@
                                (format nil "TLS verification failed: certificate name mismatch for ~A." (or host url)))
                               ((and *verify-tls* (search "self" txt :test #'char-equal)
                                     (search "signed" txt :test #'char-equal))
-                               (format nil "TLS verification failed: self-signed certificate for ~A. Provide CA via OCICL_CA_FILE/OCICL_CA_DIR or use -k/--insecure for testing." (or host url)))
+                               (format nil "TLS verification failed: self-signed certificate for ~A. Provide CA via OCICL_CA_FILE/OCICL_CA_DIR or use -k/--insecure for testing." (or host url))) ; lint:suppress max-line-length
                               ((or (search "expired" txt :test #'char-equal)
                                    (search "not yet valid" txt :test #'char-equal))
                                (format nil "TLS verification failed: server certificate time validity issue for ~A. Check system clock or server certificate." (or host url)))
