@@ -12,7 +12,9 @@
 (in-package #:ocicl.http)
 
 (defvar *proxy-basic-auth* nil)
-(defvar *verify-tls* t)
+(defvar *verify-tls*
+  #+windows nil  ; Disable TLS verification on Windows by default due to certificate issues
+  #-windows t)
 
 (defun %split-userinfo (authority)
   "Return two values USER and PASS (either may be NIL)."
