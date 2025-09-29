@@ -1,0 +1,38 @@
+This project is meant to provide tools for internationalizing Common
+Lisp programs.
+
+One important aspect of internationalization is of course the language
+used in error messages, documentation strings etc.  But with this
+project we will provide tools for all other aspects of
+internationalization as well.  To get an idea of what we are aiming
+for, here is a partial list of other tools we are thinking of
+providing:
+
+  * Showing dates.  This is a complex issue because it not only
+    involves the format of a date, but also the precision.  For
+    example, it is probably not useful to provide more precision for
+    the time an email was sent than down to the minute.
+
+  * Measuring weight.  There are three important aspects here, namely
+    the type of object that is being measured, the unit to be used,
+    and the precision.  For instance, in the UK, for measuring the
+    weight of people, some people like to use the units "stones" and
+    "pounds" for this purpose, and it is not useful to give more than
+    one or two digits of precision for the pounds.
+
+  * Measuring temperature.  The same three aspects are involved as
+    with weight units.  Some people might want to use degrees
+    Fahrenheit for measuring oven temperature, and it is not useful to
+    have more precision than 10 degrees.  The same person might want
+    to show the temperature of liquid nitrogen in Kelvin.
+
+  * Names of physical quantities.  Even if English is used, some
+    people (including myself) do not like names of physical quantities
+    that tie them to a particular unit of measure, such as voltage,
+    mileage, amperage, wattage, etc.  In addition, such quantities can
+    become ambiguous, because there might be several quantities that
+    use the same unit, such as length, height, width, or distance.  We
+    intend to provide tools that allow programmers to configure what
+    names of quantities are used.
+
+  * Etc.

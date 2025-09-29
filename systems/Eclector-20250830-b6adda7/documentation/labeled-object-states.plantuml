@@ -1,0 +1,38 @@
+@startuml
+!theme vibrant
+
+hide members
+hide attributes
+hide methods
+
+state undefined
+state defined
+state circular
+state final
+final: object
+state referenced
+referenced: object
+
+state "final (circular)" as final2
+final2: object
+state "referenced (circular)" as referenced2
+referenced2: object
+
+[*]         ->  undefined
+undefined   ->  defined    : "#N="
+defined     ->  final      : "#N=(…)"
+final       ->  referenced : "(…#N=(…)…#N#"
+referenced  ->  referenced : "(…#N=(…)…#N#…#N#"
+final       --> [*]
+referenced  --> [*]
+
+defined     ->  circular    : "#N=(…#N#"
+circular    ->  circular    : "#N=(…#N#…#N#"
+circular    --> final2      : "#N=(…#N#…)"
+final2      ->  referenced2 : "(…#N=(…#N#…)…#N#"
+referenced2 ->  referenced2 : "(…#N=(…#N#…)…#N#…#N#"
+final2      --> [*]
+referenced2 --> [*]
+
+defined     ->  undefined : "#N=#N#", recover
+@enduml

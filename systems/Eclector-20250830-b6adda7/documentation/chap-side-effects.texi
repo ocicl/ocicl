@@ -1,0 +1,178 @@
+@node Side effects
+@chapter Side effects
+
+@cindex side effects
+
+This chapter describes potential side effects of calling
+@funref{read,@readerpackage{}},
+@funref{read-preserving-whitespace,@readerpackage{}} or
+@funref{read-from-string,@readerpackage{}} for different kinds of
+clients.
+
+@menu
+* Potential side effects for the default client::
+* Potential side effects for non-default clients::
+@end menu
+
+@node Potential side effects for the default client
+@section Potential side effects for the default client
+
+The following destructive modifications are considered uninteresting
+and ignored in the remainder of this section:
+
+@itemize
+@item
+Changes to the state of streams passed to the functions mentioned above.
+
+@item
+Changes to objects within expressions currently being read.
+
+@end itemize
+
+Furthermore, the remainder of this section is written under the
+following assumptions:
+
+@itemize
+
+@item
+The stream object passed to @funref{read,@readerpackage{}} does not
+cause additional side effects on its own.
+
+@item
+The variable @varref{*client*,@basepackage{}} is bound to an object
+for which there are no custom applicable methods on generic functions
+belonging to protocols provided by @sysname{} that introduce additional
+side effects.
+
+@item
+The aspect @link{aspect-readtable,@t{cl:*readtable*}} is bound to an
+object for which
+
+@itemize
+@item
+there are no custom applicable methods on generic functions belonging to
+protocols provided by @sysname{} that introduce additional side effects
+
+@item
+no non-default macro functions have been installed
+
+@end itemize
+
+@end itemize
+
+If any of the above assumptions does not hold, ``all bets are off'' in
+the sense that arbitrary side effects other than the ones described
+below are possible.  For notes regarding non-default clients,
+@xref{Potential side effects for non-default clients}.
+
+@menu
+* Symbols and packages (default client)::
+* Read-time evaluation (default client)::
+* Standard reader macros (default client)::
+@end menu
+
+@node Symbols and packages (default client)
+@subsection Symbols and packages (default client)
+
+The default method on the generic function
+@genref{interpret-symbol,@readerpackage{}} may create and intern
+symbols, thereby modifying the package system.
+
+@node Read-time evaluation (default client)
+@subsection Read-time evaluation (default client)
+
+The default method on the generic function
+@genref{evaluate-expression,@readerpackage{}} uses @speclink{f,eval} to
+evaluate arbitrary expressions, potentially causing side effects.  With
+the default readtable, the generic function is only called by the macro
+function of the @t{#.} reader macro.
+
+@node Standard reader macros (default client)
+@subsection Standard reader macros (default client)
+
+The default method on the generic function
+@genref{call-reader-macro,@readerpackage{}} can cause side effects by
+calling macro functions that cause side effects.  The following standard
+reader macros potentially cause side-effects:
+
+@itemize
+@item
+@t{#.} as described in @ref{Read-time evaluation (default client)}.
+@end itemize
+
+@node Potential side effects for non-default clients
+@section Potential side effects for non-default clients
+
+@menu
+* Symbols and packages::
+* Read-time evaluation::
+* Structure instance creation::
+* Circular structure::
+* Standard reader macros::
+@end menu
+
+@node Symbols and packages
+@subsection Symbols and packages
+
+In addition to the potential side effects described in @ref{Symbols and
+packages (default client)}, strings passed as the third argument of
+@genref{interpret-token,@readerpackage{}} are potentially destructively
+modified during conversion to the current readtable case.
+
+@node Read-time evaluation
+@subsection Read-time evaluation
+
+The same considerations as in @ref{Read-time evaluation (default
+client)} apply.
+
+@node Structure instance creation
+@subsection Structure instance creation
+
+Clients defining methods on
+@genref{make-structure-instance,@readerpackage{}} which implement the
+standard behavior of calling the default constructor (if any) of the
+named structure should consider side effects caused by slot initforms of
+the structure.  The following example illustrates this problem:
+@lisp
+  (defvar *counter* 0)
+  (defstruct foo (bar (incf *counter*)))
+  #S(foo)
+  *counter* @result{} 1
+  #S(foo)
+  *counter* @result{} 2
+@end lisp
+
+@node Circular structure
+@subsection Circular structure
+
+The @genref{fixup,@readerpackage{}} generic function potentially
+modifies its second argument destructively.  Clients that define methods
+on @genref{make-structure-instance,@readerpackage{}} should be aware of
+this potential modification in cases like @t{#1=#S(foo :bar #1#)}.
+Similar considerations apply for other ways of constructing compound
+objects such as @t{#1=(t . #1#)}.
+
+@node Standard reader macros
+@subsection Standard reader macros
+
+The following standard reader macros could cause or be affected by
+side effects when combined with a non-standard client:
+
+@itemize
+@item
+@t{#.} as described in @ref{Read-time evaluation (default client)}.
+
+@item
+@t{#S} as described in @ref{Structure instance creation}.
+
+@item
+@t{(}, @t{#(} and @t{#S} as described in @ref{Circular structure}.
+
+@item
+The @t{,.} (i.e. destructively splicing) variant of the @t{,} reader
+macro does not currently destructively modify the surrounding object,
+but clients should not rely on this fact.  This consideration applies to
+clients that install non-standard macro functions for the @t{(} and
+@t{#(} reader macros.
+
+@end itemize

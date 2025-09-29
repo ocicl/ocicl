@@ -1,0 +1,8 @@
+To install Acclimation, use ASDF like this:
+
+   (asdf:load-system :acclimation)
+
+The file containing Vietnamese text has Unicode characters in it,
+encoded as UTF-8, so you need a Common Lisp system that can handle
+UTF-8 in source code, and you may have to set your locale
+appropriately.

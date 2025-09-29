@@ -1,0 +1,156 @@
+/* Syntax highlighting code, by David Thompson, borrowed
+   from:
+     https://git.dthompson.us/blog.git/blob_plain/refs/heads/haunt-migration:/css/dthompson.css
+   David Thompson gives permission for this to be GPLv3+ and CC BY-SA 4.0
+
+   Modified significantly since.
+*/
+
+span.message {
+    visibility: hidden;
+
+    background-color: beige;
+    padding: 12px 12px;
+    border-radius: 20px;
+
+    position: absolute;
+    z-index: 1;
+}
+
+.error {
+    text-decoration: underline red;
+}
+.error > span.message {
+    color: red;
+}
+.error:hover > span.message {
+    visibility: visible;
+}
+
+.syntax-bad-whitespace {
+    text-decoration: underline orange;
+    -webkit-text-decoration-style: wavy;
+    -moz-text-decoration-style: wavy;
+    text-decoration-style: wavy;
+}
+.syntax-bad-whitespace > span.message {
+    color: orange;
+}
+.syntax-bad-whitespace:hover > span {
+    visibility: visible;
+}
+
+/* Feature expressions */
+
+.syntax-feature-expression:hover {
+    spacing: 1px;
+    border: solid; border-width: 1px; border-color: #EE9977;
+}
+
+.syntax-comment {
+    color: #888;
+}
+
+.syntax-special, .syntax-element {
+    color: #856;
+    font-weight: bold;
+}
+
+.syntax-uninterned-symbol {
+    color: #866;
+}
+
+.syntax-keyword-symbol {
+    color: #921;
+}
+
+.syntax-lambda-list-keyword-symbol {
+    color: #991;
+}
+
+.syntax-interned-symbol {
+    color: #423;
+}
+
+.syntax-interned-symbol.syntax-two-package-markers {
+    text-decoration: underline orange;
+    -webkit-text-decoration-style: wavy;
+    -moz-text-decoration-style: wavy;
+    text-decoration-style: wavy;
+}
+.syntax-interned-symbol.syntax-two-package-markers > span.message {
+    color: orange;
+}
+
+.syntax-interned-symbol.syntax-two-package-markers:hover > span {
+    visibility: visible;
+}
+
+.syntax-number {
+    color: #448;
+}
+
+.syntax-string, .syntax-character {
+    color: #484;
+}
+
+.syntax-pathname {
+    text-decoration: underline gray;
+}
+
+.syntax-function {
+    font-style: italic;
+}
+
+/* Links */
+
+pre.src-lisp a[href].syntax-uninterned-symbol {
+    color: #866;
+}
+
+pre.src-lisp a[href].syntax-keyword-symbol {
+    color: #921;
+}
+
+pre.src-lisp a[href].syntax-lambda-list-keyword-symbol {
+    color: #991;
+}
+
+pre.src-lisp a[href].syntax-interned-symbol {
+    color: #423;
+}
+
+pre.src-lisp a[href]:hover {
+    text-decoration: underline dashed;
+}
+
+/* Quote */
+
+.syntax-quote {
+    background: #eee;
+}
+
+/* Quasiquote depth */
+
+.syntax-quasiquote0 { background: white; }
+.syntax-quasiquote1 { background: #FCEBE4; }
+.syntax-quasiquote2 { background: #E4F8DE; }
+.syntax-quasiquote3 { background: #DDF8FF; }
+.syntax-quasiquote4 { background: #F8F8DE; }
+
+/* Matching */
+
+.syntax-open, .syntax-close {
+    color: #688;
+}
+
+.syntax-nesting0:hover > * > .syntax-open, .syntax-nesting0:hover > * > .syntax-close { background-color:#EE9977; }
+.syntax-nesting1:hover > * > .syntax-open, .syntax-nesting1:hover > * > .syntax-close { background-color:#78DB59; }
+.syntax-nesting2:hover > * > .syntax-open, .syntax-nesting2:hover > * > .syntax-close { background-color:#55DDFF; }
+.syntax-nesting3:hover > * > .syntax-open, .syntax-nesting3:hover > * > .syntax-close { background-color:#DBDB59; }
+.syntax-nesting4:hover > * > .syntax-open, .syntax-nesting4:hover > * > .syntax-close { background-color:#FF8811; }
+.syntax-nesting5:hover > * > .syntax-open, .syntax-nesting5:hover > * > .syntax-close { background-color:#88CC44; }
+.syntax-nesting6:hover > * > .syntax-open, .syntax-nesting6:hover > * > .syntax-close { background-color:#AA22FF; }
+.syntax-nesting7:hover > * > .syntax-open, .syntax-nesting7:hover > * > .syntax-close { background-color:#DB7859; }
+.syntax-nesting8:hover > * > .syntax-open, .syntax-nesting8:hover > * > .syntax-close { background-color:#78DB59; }
+.syntax-nesting9:hover > * > .syntax-open, .syntax-nesting9:hover > * > .syntax-close { background-color:#5978DB; }

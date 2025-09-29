@@ -1,0 +1,74 @@
+\input texinfo
+
+@include macros.texi
+@include generated-version.texi
+
+@documentencoding UTF-8
+@documentlanguage en
+
+@syncodeindex vr fn
+@syncodeindex tp fn
+
+@paragraphindent 0
+
+@setfilename eclector
+@settitle @sysname{} User's Manual
+
+@copying
+This manual is for @sysname{} version @sysversion{}.
+
+Copyright @copyright{} 2010 - 2018 Robert Strandh
+
+Copyright @copyright{} 2018 - 2025 Jan Moringen
+@end copying
+
+@dircategory Common Lisp
+@direntry
+* Eclector User's Manual: (eclector). A portable Common Lisp reader.
+@end direntry
+
+@titlepage
+@title @sysname{} User's Manual
+
+@insertcopying
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top @sysname{} User's Manual
+
+@insertcopying
+@end ifnottex
+
+@menu
+* Introduction::
+* External protocols::
+* Recovering from errors::
+* Side effects::
+* Interpretation of unclear parts of the specification::
+* Concept index::
+* Function and macro and variable and type index::
+* Changelog::
+@end menu
+
+@include chap-intro.texi
+@include chap-external-protocols.texi
+@include chap-recovering-from-errors.texi
+@include chap-side-effects.texi
+@include chap-specification-interpretation.texi
+
+@node Concept index
+@unnumbered Concept index
+
+@printindex cp
+
+@node Function and macro and variable and type index
+@unnumbered Function and macro and variable and type index
+
+@printindex fn
+
+@include generated-chapter-changelog.texi
+
+@bye

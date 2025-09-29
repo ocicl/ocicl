@@ -1,0 +1,108 @@
+@c Abbreviations
+
+@macro sysname
+Eclector
+@end macro
+@macro commonlisp
+Common Lisp
+@end macro
+
+@macro clpackage
+common-lisp
+@end macro
+@macro toppackage
+eclector
+@end macro
+@macro basepackage
+@toppackage{}.base
+@end macro
+@macro rtpackage
+@toppackage{}.readtable
+@end macro
+@macro readerpackage
+@toppackage{}.reader
+@end macro
+@macro prpackage
+@toppackage{}.parse-result
+@end macro
+@macro cstpackage
+@toppackage{}.concrete-syntax-tree
+@end macro
+
+@c Lambda list keywords
+
+@macro optional
+@t{&optional}
+@end macro
+@macro pkey
+@t{&key}
+@end macro
+@macro pbody
+@t{&body}
+@end macro
+
+@c Semantic markup and references
+
+@macro setf{NAME}
+(setf \NAME\)
+@end macro
+
+@iftex
+@macro symbol{NAME,PACKAGE}
+\NAME\ @smallertt [\PACKAGE\]
+@end macro
+@end iftex
+@ifnottex
+@macro symbol{NAME,PACKAGE}
+\NAME\ [\PACKAGE\]
+@end macro
+@end ifnottex
+
+@macro defvara{NAME,PACKAGE}
+@anchor{Variable \PACKAGE\|\NAME\}
+@defvar {@symbol{\NAME\,\PACKAGE\}}
+@end macro
+@macro varref{NAME,PACKAGE}
+@link{Variable \PACKAGE\|\NAME\,@t{\PACKAGE\:\NAME\}}
+@end macro
+
+@macro deffuna{NAME,PACKAGE}
+@anchor{Function \PACKAGE\|\NAME\}
+@deffn {Function} {@symbol{\NAME\,\PACKAGE\}}
+@end macro
+@macro funref{NAME,PACKAGE}
+@link{Function \PACKAGE\|\NAME\,@t{\PACKAGE\:\NAME\}}
+@end macro
+
+@macro defgena{NAME,PACKAGE}
+@anchor{Generic-Function \PACKAGE\|\NAME\}
+@deffn {Generic Function} {@symbol{\NAME\,\PACKAGE\}}
+@end macro
+@macro genref{NAME,PACKAGE}
+@link{Generic-Function \PACKAGE\|\NAME\,@t{\PACKAGE\:\NAME\}}
+@end macro
+
+@macro defmaca{NAME,PACKAGE}
+@anchor{Macro \PACKAGE\|\NAME\}
+@deffn {Macro} {@symbol{\NAME\,\PACKAGE\}}
+@end macro
+@macro macref{NAME,PACKAGE}
+@link{Macro \PACKAGE\|\NAME\,@t{\PACKAGE\:\NAME\}}
+@end macro
+
+@macro defclassa{NAME,PACKAGE}
+@anchor{Class \PACKAGE\|\NAME\}
+@deftp {Class} {@symbol{\NAME\,\PACKAGE\}}
+@end macro
+@macro classref{NAME,PACKAGE}
+@link{Class \PACKAGE\|\NAME\,@t{\PACKAGE\:\NAME\}}
+@end macro
+
+@c Link to Common Lisp specification
+
+@macro speclink{CATEGORY,NAME}
+@url{https://novaspec.org/cl/\CATEGORY\_\NAME\,@t{cl:\NAME\}}
+@end macro
+@macro speclinkl{CATEGORY,NAME,LABEL}
+@url{https://novaspec.org/cl/\CATEGORY\_\NAME\,@t{\LABEL\}}
+@end macro

@@ -1,0 +1,119 @@
+@node Recovering from errors
+@chapter Recovering from errors
+
+@cindex error
+@cindex recovery
+
+@menu
+* Error recovery features::
+* Recoverable errors::
+* Potential problems::
+@end menu
+
+@node Error recovery features
+@section Error recovery features
+
+@sysname{} offers extensive support for recovering from many syntax
+errors, continuing to read from the input stream and return a result
+that somewhat resembles what would have been returned in case the syntax
+had been valid.  To this end, a restart named
+@t{@readerpackage{}:recover} is established when recoverable errors are
+signaled:
+
+@anchor{Restart @readerpackage{}|recover}
+@deffn Restart {@symbol{recover,@readerpackage{}}}
+
+Try to recover from a signaled syntax error by moving the input stream
+to a position from which the reader can resume reading and returning a
+replacement value (@pxref{Recoverable errors}) from the innermost
+@t{read} call.
+@end deffn
+
+Like the standard @commonlisp{} restart @speclink{r,continue}, this
+restart can be invoked by a function of the same name:
+
+@deffuna {recover,@readerpackage{}} @optional condition
+
+This function recovers from an error by invoking the most recently
+established applicable
+@link{Restart @readerpackage{}|recover,@t{@readerpackage{}:recover}}
+restart.  If no such restart is currently established, it returns
+@t{nil}.  If @var{condition} is non-@t{nil}, only restarts that are
+either explicitly associated with @var{condition}, or not associated
+with any condition are considered.
+@end deffn
+
+When a @t{read} call during which error recovery has been
+performed returns, @sysname{} tries to return an object that is
+similar in terms of type, numeric value, sequence length, etc. to what
+would have been returned in case the input had been well-formed.  For
+example, recovering after encountering the invalid digit in
+@t{#b11311} returns either the number @t{#b11011} or the
+number @t{#b11111}.
+
+@node Recoverable errors
+@section Recoverable errors
+
+A syntax error and a corresponding recovery strategy are characterized
+by the type of the signaled condition and the report of the established
+@link{Restart @readerpackage{}|recover,@t{@readerpackage{}:recover}}
+restart respectively.  Attempting to list and describe all examples of
+both would provide little insight.  Instead, this section describes
+different classes of errors and corresponding recovery strategies in
+broad terms:
+
+@macro RecoverExample {input, result}
+@t{\input\} ⟶ @t{\result\}
+@end macro
+
+@itemize
+@item
+Replace a missing numeric macro parameter or ignore an invalid numeric
+macro parameter.  Examples: @RecoverExample{#=1,1},
+@RecoverExample{#5P".",#P"."}
+
+@item
+Add a missing closing delimiter.  Examples:
+@RecoverExample{"foo,"foo"}, @RecoverExample{(1 2,(1 2)},
+@RecoverExample{#(1 2,#(1 2)}, @RecoverExample{#C(1 2,#C(1 2)}
+
+@item
+Replace an invalid digit or an invalid number with a valid one.  This
+includes digits which are invalid for a given base but also things like
+@math{0} denominator.  Examples: @RecoverExample{#12rc,1},
+@RecoverExample{1/0,1}, @RecoverExample{#C(1 :foo),#C(1 1)}
+
+@item
+Replace an invalid character with a valid one.  Example:
+@RecoverExample{#\foo,#\?}
+
+@item
+Invalid constructs can sometimes be ignored.  Examples:
+@RecoverExample{(@comma{}1),(1)}, @RecoverExample{#S(foo :bar 1 2 3),#S(foo
+:bar 1)}
+
+@item
+Excess parts can often be ignored.  Examples: @RecoverExample{#C(1 2
+  3),#C(1 2)}, @RecoverExample{#2(1 2 3),#2(1 2)}
+
+@item
+Replace an entire construct by some fallback value.  Example:
+@RecoverExample{#S(5),nil}, @RecoverExample{(#1=),(nil)}
+@end itemize
+
+@node Potential problems
+@section Potential problems
+
+Note that attempting to recover from syntax errors may lead to apparent
+success in the sense that the @t{read} call returns an object, but this
+object may not be what the caller wanted.  For example, recovering from
+the missing closing @t{"} in the following example
+
+@lisp
+(defun foo (x y)
+  "My documentation string
+  (+ x y))
+@end lisp
+
+results in @code{(DEFUN FOO (X Y) "My documentation string<newline>  (+ x y))")},
+not @code{(DEFUN FOO (X Y) "My documentation string" (+ x y))}.
