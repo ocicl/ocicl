@@ -212,6 +212,7 @@ Choose from the following ocicl commands:
    install [SYSTEM[:VERSION]]...          Install systems
    latest [SYSTEM]...                     Install latest version of systems
    libyear                                Calculate the libyear dependency freshness metric
+   lint PATH...                           Lint Common Lisp files, directories, or .asd systems
    list SYSTEM...                         List available system versions
    new APP-NAME [TEMPLATE] [KEY=VALUE]... Create a new app
    remove [SYSTEM]...                     Remove systems
@@ -361,6 +362,60 @@ OCI registry.
 
 In some cases the description may be missing as they only started
 being generated as of May 2024.
+
+Code Linting
+------------
+
+`ocicl` includes an integrated Common Lisp linter that checks your code for style issues, common errors, and best practices. The linter supports linting individual files, entire directories, or ASDF system definitions.
+
+### Usage
+
+```bash
+ocicl lint PATH...
+```
+
+Where `PATH` can be:
+- **Individual files**: `ocicl lint myfile.lisp`
+- **Directories**: `ocicl lint src/` (recursively lints all `.lisp` files)
+- **ASDF systems**: `ocicl lint myproject.asd` (lints all components in the system definition)
+
+### Features
+
+- Comprehensive style checking based on Common Lisp best practices
+- Detects common errors and anti-patterns
+- Configurable rules via `.ocicl-lint.conf` file
+- Colorized output (respects `--color` flag)
+- Zero configuration required for basic usage
+
+### Configuration
+
+Create a `.ocicl-lint.conf` file in your project root to customize linting behavior:
+
+```ini
+# .ocicl-lint.conf
+# Maximum line length (default: 120)
+max-line-length = 100
+
+# Rules to suppress globally (comma-separated)
+suppress-rules = eval-usage, trailing-whitespace
+
+# You can also use line-specific suppression with comments:
+# ; lint:suppress rule-name
+# ; lint:suppress  (suppress all rules on this line)
+```
+
+### Example Output
+
+```bash
+$ ocicl lint src/main.lisp
+src/main.lisp:42:10: unused-parameter: Parameter FOO is unused
+src/main.lisp:55:121: max-line-length: Line exceeds 120 characters
+src/main.lisp:67:1: naming-underscore: Use hyphens instead of underscores in symbol names
+
+Scanned 1 file(s), found 3 issue(s).
+```
+
+The linter returns exit code 0 if no issues are found, or 1 if issues are detected.
 
 Dependency Freshness
 --------------------
@@ -607,4 +662,6 @@ and is distributed under the terms of the MIT license.
 
 This software includes Lisp source code files written by Zachary
 Beane, Mark Karpov, Ava Fox, and PMSF IT Consulting Pierre R. Mai.
-See the ``ocicl`` source files for details.
+Portions of the linter were borrowed from and inspired by Chris
+Riesbeck's MIT licensed lisp-critic project.  See the ``ocicl`` source
+files for details.

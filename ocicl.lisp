@@ -182,6 +182,7 @@
    install [SYSTEM[:VERSION]]...          Install systems
    latest [SYSTEM]...                     Install latest version of systems
    libyear                                Calculate the libyear dependency freshness metric
+   lint PATH...                           Lint Common Lisp files, directories, or .asd systems
    list SYSTEM...                         List available system versions
    new APP-NAME [TEMPLATE] [KEY=VALUE]... Create a new app
    remove [SYSTEM]...                     Remove systems
@@ -1199,6 +1200,16 @@ If FORCE is NIL, skip files that already exist."
   (when *color*
     (write-string *color-reset*)))
 
+(defun do-lint (args)
+  "Lint the specified files, directories, or .asd systems."
+  (if args
+      (let ((*inhibit-download-during-search* t)
+            (issue-count (ocicl.lint:lint-files args :color *color*)))
+        (uiop:quit (if (plusp issue-count) 1 0)))
+      (progn
+        (format *error-output* "Error: no paths specified for linting~%")
+        (uiop:quit 1))))
+
 (defun render-template-file (in-path out-path env)
   "Read template text from IN-PATH, render with ENV, write to OUT-PATH."
   (uiop:ensure-all-directories-exist
@@ -1510,6 +1521,8 @@ If FORCE is NIL, skip files that already exist."
                           (do-new (cdr free-args)))
                          ((string= cmd "tree")
                           (do-tree (cdr free-args)))
+                         ((string= cmd "lint")
+                          (do-lint (cdr free-args)))
                          ((string= cmd "templates")
                           (do-templates (cdr free-args)))
                          ((string= cmd "diff")
