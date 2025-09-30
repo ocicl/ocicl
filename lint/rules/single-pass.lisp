@@ -408,11 +408,6 @@ Returns a list of issues."
                         (= (length form) 2))
                (push-iss ln col "defvar-without-value" "DEFVAR without initial value"))
 
-             ;; Destructive SORT
-             (when (and (eq head 'sort)
-                        (>= (length form) 3))
-               (push-iss ln col "destructive-sort" "SORT is destructive - consider STABLE-SORT or copy first"))
-
              ;; OPEN/CLOSE in LET -> use WITH-OPEN-FILE
              (when (and (member head '(let let*))
                        (consp (second form))
