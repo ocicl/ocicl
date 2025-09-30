@@ -28,6 +28,28 @@
   ()
   (:documentation "Lenient Eclector client that auto-creates missing packages for linting."))
 
+;; Handle unknown dispatch characters that are configured as supported
+(defmethod eclector.reader:call-reader-macro ((client lenient-parse-client)
+                                               input-stream
+                                               char
+                                               sub-char)
+  ;; If we get an unknown dispatch character that's in our supported list,
+  ;; just read and ignore the content instead of erroring
+  (handler-case
+      (call-next-method)
+    (eclector.reader:unknown-macro-sub-character (condition)
+      (let ((supported-chars (config-supported-dispatch-chars)))
+        (if (and (char= char #\#)
+                 sub-char
+                 (member (string sub-char) supported-chars :test #'string-equal))
+            ;; For supported dispatch chars, read the next form and return a placeholder
+            (handler-case
+                (read input-stream nil :reader-macro-placeholder)
+              (error ()
+                :reader-macro-placeholder))
+            ;; If not in supported list, re-signal the error
+            (error condition))))))
+
 (defmethod eclector.reader:interpret-symbol ((client lenient-parse-client)
                                               input-stream
                                               package-indicator

@@ -11,7 +11,8 @@
 (defstruct cl-lint-config
   "Configuration structure for cl-lint settings."
   (max-line-length 120)
-  (suppressed-rules nil))
+  (suppressed-rules nil)
+  (supported-dispatch-chars nil))
 
 (defparameter *default-config* (make-cl-lint-config)
   "Default configuration when no config file is found.")
@@ -83,6 +84,9 @@
                        ((string-equal key "suppress-rules")
                         (setf (cl-lint-config-suppressed-rules config)
                               (parse-rule-list value)))
+                       ((string-equal key "supported-dispatch-chars")
+                        (setf (cl-lint-config-supported-dispatch-chars config)
+                              (parse-rule-list value)))
                        (t
                         (when *verbose*
                           (logf "; config: unknown setting ~A~%" key))))))))
@@ -115,6 +119,10 @@
   "Get the list of globally suppressed rules."
   (cl-lint-config-suppressed-rules (get-config)))
 
+
+(defun config-supported-dispatch-chars ()
+  "Get the list of supported dispatch sub-characters."
+  (cl-lint-config-supported-dispatch-chars (get-config)))
 
 (defun rule-suppressed-p (rule-name)
   "Check if a rule is globally suppressed in the current configuration."
