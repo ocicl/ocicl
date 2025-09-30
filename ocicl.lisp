@@ -39,12 +39,12 @@
 (defvar *systems-csv* "ocicl.csv")
 (defvar *relative-systems-dir* (make-pathname :directory '(:relative "ocicl")))
 
-(defvar *color-reset* #.(format nil "~c[0m" #\escape))
-(defvar *color-bold* #.(format nil "~c[1m" #\escape))
-(defvar *color-dim* #.(format nil "~c[2m" #\escape))
-(defvar *color-bright-red* #.(format nil "~c[91m" #\escape))
-(defvar *color-bright-green* #.(format nil "~c[92m" #\escape))
-(defvar *color-bright-cyan* #.(format nil "~c[96m" #\escape))
+(defvar *color-reset* #.(format nil "~c[0m" (code-char 27)))
+(defvar *color-bold* #.(format nil "~c[1m" (code-char 27)))
+(defvar *color-dim* #.(format nil "~c[2m" (code-char 27)))
+(defvar *color-bright-red* #.(format nil "~c[91m" (code-char 27)))
+(defvar *color-bright-green* #.(format nil "~c[92m" (code-char 27)))
+(defvar *color-bright-cyan* #.(format nil "~c[96m" (code-char 27)))
 
 (version-string:define-version-parameter +version+ :ocicl)
 
@@ -467,7 +467,7 @@ If FORCE is NIL, skip files that already exist."
                             :direction :output
                             :if-exists :supersede)
       (write-string +runtime+ stream)
-      (format t ";; Present the following code to your LISP system at startup, either~%;; by adding it to your implementation's startup file~%;;~T(~~/.sbclrc, ~~/.eclrc, ~~/.abclrc, ~~/.clinit.cl, or ~~/.roswell/init.lisp)~%;; or overriding it completely on the command line~%;;~T(eg. sbcl --userinit init.lisp)~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%(asdf:initialize-source-registry~%  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))~%" runtime-source runtime-source))))
+      (format t ";; Present the following code to your LISP system at startup, either~%;; by adding it to your implementation's startup file~%;;~T(~~/.sbclrc, ~~/.eclrc, ~~/.abclrc, ~~/.clinit.cl, or ~~/.roswell/init.lisp)~%;; or overriding it completely on the command line~%;;~T(eg. sbcl --userinit init.lisp)~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%(asdf:initialize-source-registry~%  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))~%" runtime-source runtime-source)))) ; lint:suppress max-line-length
 
 (defun filter-strings (strings)
   (remove-if (lambda (s) (string= s "latest"))
@@ -914,8 +914,6 @@ If FORCE is NIL, skip files that already exist."
              seen-system-groups)))
       (write-systems-csv))))
 
-
-
 (defclass colorful-unified-diff-window (diff::unified-diff-window) ())
 
 (defclass colorful-unified-diff (diff::unified-diff)
@@ -956,7 +954,7 @@ If FORCE is NIL, skip files that already exist."
                         ((:delete :replace) (concatenate 'string *color-bright-red* "-"))
                         ((:insert :create) (concatenate 'string *color-bright-green* "+")))))
           (dolist (line (diff:chunk-lines chunk))
-            (write-char #\escape stream)
+            (write-char (code-char 27) stream)
             (write-string prefix stream)
             (write-string line stream)
             (write-string *color-reset* stream)
@@ -1652,18 +1650,18 @@ If FORCE is NIL, skip files that already exist."
         (get-manifest registry safe-system safe-tag)
       (let* ((layer-digest (%select-layer-digest manifest registry safe-system))
              (headers (when token
-			`(("Authorization" . ,#?"Bearer ${token}")))))
+                        `(("Authorization" . ,#?"Bearer ${token}")))))
         ;; If no layer digest could be determined, signal an error with context.
         (unless layer-digest
           (error "Unable to determine layer digest for ~A:~A from registry ~A" system tag registry))
         (let* ((input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/blobs/${layer-digest}"
-					   :force-binary t
-					   :want-stream t
-					   :verbose *verbose*
-					   :headers headers)))
+                                           :force-binary t
+                                           :want-stream t
+                                           :verbose *verbose*
+                                           :headers headers)))
           (handler-bind
               ((tar-simple-extract:broken-or-circular-links-error
-		(lambda (condition)
+                (lambda (condition)
                   (declare (ignore condition))
                   (invoke-restart 'continue))))
             (tar:with-open-archive (a input)
@@ -1740,8 +1738,8 @@ download the system unless a version is specified."
                                                                   ${*color-reset*} downloaded~
                                                                   ${*color-bold*}${*color-bright-green*} ${name}:${version-display}~
                                                                   ${*color-reset*}${*color-dim*}${(if *verbose* (format nil " @~A" manifest-digest) "")}~%")
-                                                     (format t "; downloaded ~A:~A~A~%" 
-                                                             name 
+                                                     (format t "; downloaded ~A:~A~A~%"
+                                                             name
                                                              version-display
                                                              (if *verbose* (format nil " @~A" manifest-digest) ""))))
                                                (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
@@ -1811,11 +1809,11 @@ download the system unless a version is specified."
          :sb-simple-streams
          :sb-sprof))
     (ignore-errors (require system)))
-  
+
   ;; Handle GMP and MPFR systems separately since they depend on native libraries
   ;; that may not be available or findable on all systems (especially macOS)
   (dolist (system '(:sb-gmp #-windows :sb-mpfr))
-    (handler-case 
+    (handler-case
         (require system)
       ;; Catch all errors including native library loading failures
       (error (c)
