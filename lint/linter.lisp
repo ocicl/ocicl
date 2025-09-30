@@ -61,7 +61,11 @@
                              (safe 'spdx-license-identifier
                                    (lambda () (rule-spdx-license-identifier path lines)))
                              (safe 'reader-syntax
-                                   (lambda () (rule-reader-syntax path))))))
+                                   (lambda () (rule-reader-syntax path)))
+                             (safe 'whitespace-around-parens
+                                   (lambda () (rule-whitespace-around-parens path lines)))
+                             (safe 'consecutive-closing-parens
+                                   (lambda () (rule-consecutive-closing-parens path lines))))))
                 (setf chunks (nconc chunks
                                     (list
                                      (safe 'naming-and-packages

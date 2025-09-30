@@ -71,19 +71,19 @@ Returns a list of issues."
                         (= (length form) 3)
                         (eq (third form) nil))
                (push-iss ln col "boolean-context"
-                         "Use the condition directly instead of (IF test T NIL)"))
+                         "Simplify: condition is already boolean, no need for (IF test T NIL)"))
              (when (and (eq head 'if)
                         (= (length form) 3)
                         (eq (third form) t)
                         (eq (second form) nil))
                (push-iss ln col "boolean-context"
-                         "Use (NOT test) instead of (IF test NIL T)"))
+                         "Replace (IF test NIL T) with (NOT test)"))
 
              ;; IF with single branch -> WHEN/UNLESS
              (when (and (eq head 'if)
                         (= (length form) 3))
                (push-iss ln col "if-single-branch"
-                         "Prefer WHEN/UNLESS for single-branch conditionals"))
+                         "Use WHEN or UNLESS instead of IF for single-branch conditionals"))
              ;; (+ x 1) -> (1+ x)
              (when (and (eq head '+)
                         (= (length form) 3)
@@ -192,9 +192,9 @@ Returns a list of issues."
 
              ;; Preference hints: FIRST/REST instead of CAR/CDR
              (when (eq head 'car)
-               (push-iss ln col "use-first-rest" "Consider using FIRST instead of CAR for clarity"))
+               (push-iss ln col "use-first-rest" "Use FIRST instead of CAR for better readability"))
              (when (eq head 'cdr)
-               (push-iss ln col "use-first-rest" "Consider using REST instead of CDR for clarity"))
+               (push-iss ln col "use-first-rest" "Use REST instead of CDR for better readability"))
 
              ;; (lambda (x) x) -> identity
              (when (and (eq head 'lambda)
@@ -202,7 +202,7 @@ Returns a list of issues."
                         (listp (second form))
                         (= (length (second form)) 1)
                         (eq (third form) (first (second form))))
-               (push-iss ln col "use-identity" "Use IDENTITY instead of (LAMBDA (X) X)"))
+               (push-iss ln col "use-identity" "Use #'IDENTITY instead of (LAMBDA (X) X)"))
 
              ;; (lambda () const) -> constantly
              (when (and (eq head 'lambda)
@@ -220,7 +220,7 @@ Returns a list of issues."
 
              ;; EVAL usage is a red flag
              (when (eq head 'eval)
-               (push-iss ln col "eval-usage" "Use of EVAL is a red flag"))
+               (push-iss ln col "eval-usage" "Avoid EVAL (consider alternatives like FUNCALL or macros)"))
 
              ;; (= (length X) 0) -> null X
              (when (and (eq head '=)
@@ -648,10 +648,7 @@ Returns a list of issues."
              ;; Reader evaluation #. - this is hard to detect in parsed form
              ;; The original rule checked the raw content, so we'll skip this one for now
 
-             ;; EVAL usage
-             (when (eq head 'eval)
-               (push-iss ln col "eval-usage"
-                         "Avoid EVAL; consider alternatives like FUNCALL or macros"))
+             ;; EVAL usage (duplicate rule removed - already handled above)
 
              ;; Missing docstrings in defun/defmacro
              (when (and (member head '(defun defmacro))
@@ -729,7 +726,7 @@ Returns a list of issues."
              (when (and (eq head 'if)
                         (= (length form) 3))
                (push-iss ln col "if-no-else"
-                         "IF with no else branch - use WHEN/UNLESS if return value doesn't matter"))
+                         "IF without else branch: use WHEN or UNLESS instead"))
 
              ;; Nested AND inside AND or OR inside OR
              (when (and (eq head 'and)
@@ -737,13 +734,13 @@ Returns a list of issues."
                (dolist (arg (rest form))
                  (when (and (consp arg) (eq (first arg) 'and))
                    (push-iss ln col "nested-and-or"
-                             "Why nest AND inside AND? Flatten it"))))
+                             "Nested AND inside AND can be flattened"))))
              (when (and (eq head 'or)
                         (> (length form) 1))
                (dolist (arg (rest form))
                  (when (and (consp arg) (eq (first arg) 'or))
                    (push-iss ln col "nested-and-or"
-                             "Why nest OR inside OR? Flatten it"))))
+                             "Nested OR inside OR can be flattened"))))
 
              ;; Needless COND patterns
              (when (and (eq head 'cond)
@@ -800,24 +797,24 @@ Returns a list of issues."
                         (> (length form) 2)
                         (eq (first (last form)) t))
                (push-iss ln col "needless-and-t"
-                         "Why do you need that T at the end of AND?"))
+                         "Trailing T in AND expression is redundant"))
 
              ;; OR ending with NIL
              (when (and (eq head 'or)
                         (> (length form) 2)
                         (eq (first (last form)) nil))
                (push-iss ln col "needless-or-nil"
-                         "Why do you need that NIL at the end of OR?"))
+                         "Trailing NIL in OR expression is redundant"))
 
              ;; Single argument AND/OR
              (when (and (eq head 'and)
                         (= (length form) 2))
                (push-iss ln col "needless-and"
-                         "Why do you need AND with one argument?"))
+                         "AND with single argument is redundant"))
              (when (and (eq head 'or)
                         (= (length form) 2))
                (push-iss ln col "needless-or"
-                         "Why do you need OR with one argument?"))
+                         "OR with single argument is redundant"))
 
              ;; (IF test NIL T) -> (NOT test)
              (when (and (eq head 'if)
@@ -861,7 +858,7 @@ Returns a list of issues."
                         (consp (third form))
                         (eq (first (third form)) 'list))
                (push-iss ln col "cons-list"
-                         "Why CONS when you can extend the LIST?"))
+                         "Use LIST with all arguments instead of (CONS x (LIST ...))"))
 
              ;; (APPEND (LIST x) y) -> (CONS x y)
              (when (and (eq head 'append)
@@ -921,14 +918,14 @@ Returns a list of issues."
                         (= (length form) 3)
                         (or (eql (second form) 0) (eql (third form) 0)))
                (push-iss ln col "add-zero"
-                         "Adding zero? Think about it..."))
+                         "Adding zero has no effect"))
 
              ;; INCF/DECF with 1
              (when (and (member head '(incf decf))
                         (= (length form) 3)
                         (eql (third form) 1))
                (push-iss ln col "incf-1"
-                         "Default for INCF/DECF is 1 - it's redundant"))
+                         "INCF/DECF default increment is 1 (explicit 1 is redundant)"))
 
              ;; FLOOR/CEILING/ROUND with /
              (when (and (member head '(floor ceiling round))
@@ -942,7 +939,7 @@ Returns a list of issues."
              (when (and (eq head 'quote)
                         (eq (second form) 'false))
                (push-iss ln col "quote-false"
-                         "Don't use 'FALSE - it's true in Lisp! Use NIL"))
+                         "Quoted FALSE evaluates to true in Lisp (use NIL for false)"))
              (when (and (eq head 'quote)
                         (eq (second form) 'true))
                (push-iss ln col "quote-true"
@@ -967,7 +964,7 @@ Returns a list of issues."
              ;; LIST-LENGTH instead of LENGTH
              (when (eq head 'list-length)
                (push-iss ln col "list-length"
-                         "LIST-LENGTH is slower than LENGTH - use LENGTH unless circular lists expected"))
+                         "LIST-LENGTH is for circular lists (use LENGTH for known-proper lists)"))
 
 
              ;; (NOT (CONSP ...)) -> ATOM
@@ -1012,12 +1009,12 @@ Returns a list of issues."
              ;; SUBSTITUTE warning
              (when (eq head 'substitute)
                (push-iss ln col "substitute-use"
-                         "SUBSTITUTE creates new lists and is expensive - used rarely"))
+                         "SUBSTITUTE copies entire sequence (use only when necessary)"))
 
              ;; PROG warning
              (when (eq head 'prog)
                (push-iss ln col "uses-prog"
-                         "PROG is obsolete - use other constructs"))
+                         "PROG is obsolete (use LET, BLOCK, TAGBODY, or LOOP instead)"))
 
              ;; LET* with single binding
              (when (and (eq head 'let*)
@@ -1074,7 +1071,7 @@ Returns a list of issues."
                           (and (>= (length name) 5)
                                (string= (subseq name 0 5) "check"))))
                (push-iss ln col "check-prefix"
-                         "CHECK prefix isn't helpful - what happens after checking?"))
+                         "CHECK prefix is vague (describe what the function does or returns)"))
 
              ;; Function names ending with "helper"
              (when (and (eq head 'defun)
@@ -1084,7 +1081,7 @@ Returns a list of issues."
                           (and (>= (length name) 6)
                                (string= (subseq name (- (length name) 6)) "helper"))))
                (push-iss ln col "helper-suffix"
-                         "HELPER suffix isn't helpful - describe what the function returns"))
+                         "HELPER suffix is vague (use name that describes what function does)"))
 
              ;; INSERT MORE RULES HERE
 

@@ -16,7 +16,7 @@
                   (let ((last (char line (1- (length line)))))
                     (or (char= last #\Space) (char= last #\Tab))))
           collect (%make-issue path ln (length line) "trailing-whitespace"
-                               "Trailing whitespace")))
+                               "Line has trailing whitespace")))
 
 (defun rule-no-tabs (path lines)
   "Check for tab characters, recommending spaces instead."
@@ -25,7 +25,7 @@
         for pos = (position #\Tab line)
         when pos
           collect (%make-issue path ln (1+ pos) "no-tabs"
-                               "Tab character found; use spaces")))
+                               "Tab character found (use spaces instead)")))
 
 (defun rule-max-line-length (path lines &key (limit 120))
   "Check for lines exceeding the specified character limit."
@@ -55,7 +55,7 @@
          (ok (and (> (length content) 0)
                   (char= (char content (1- (length content))) #\Newline))))
     (unless ok
-      (list (%make-issue path 0 0 "final-newline" "File does not end with a newline")))))
+      (list (%make-issue path 0 0 "final-newline" "File must end with a newline")))))
 
 
 ;; Rule: Require SPDX license identifier
@@ -65,7 +65,7 @@
     (unless (loop for line in (subseq lines 0 limit)
                   thereis (search "SPDX-License-Identifier:" line :test #'char-equal))
       (list (%make-issue path 1 1 "spdx-license-identifier"
-                         "Missing SPDX-License-Identifier comment (e.g., ;; SPDX-License-Identifier: MIT)")))))
+                         "Missing SPDX-License-Identifier in file header (add comment like: SPDX-License-Identifier: MIT)")))))
 
 (defun line-has-in-package-p (line)
   "Check if LINE contains an (in-package ...) form."
@@ -88,7 +88,7 @@
               (has-defpackage (some #'line-has-defpackage-p lines)))
           (unless (or has-in-package has-defpackage)
             (list (%make-issue path 1 1 "in-package"
-                               "Missing (in-package ...) or (defpackage ...) form")))))))
+                               "No package declaration found (file should contain in-package or defpackage)")))))))
 
 (defun rule-reader-syntax (path)
   "Check for reader syntax errors including unbalanced parentheses and other malformed syntax using Eclector."
@@ -109,13 +109,22 @@
                                              '(1 1)))
                                (line (or (first line-col) 1))
                                (col (or (second line-col) 1))
-                               (position-key (cons line col)))
-                          ;; Only report if we haven't seen this position before
-                          (unless (gethash position-key seen-positions)
-                            (setf (gethash position-key seen-positions) t)
-                            (push (%make-issue path line col "reader-error"
-                                              (format nil "~A" e))
-                                  issues))
+                               (position-key (cons line col))
+                               (error-string (format nil "~A" e))
+                               (supported-chars (config-supported-dispatch-chars)))
+                          (let ((should-suppress
+                                 (and supported-chars
+                                      (search "dispatch" error-string :test #'char-equal)
+                                      (some (lambda (char)
+                                              (or (search (format nil "character ~A " (string-upcase char)) error-string :test #'char-equal)
+                                                  (search (format nil "character ~A" (string-upcase char)) error-string :test #'char-equal)))
+                                            supported-chars))))
+                            ;; Only report if we haven't seen this position before AND it's not suppressed
+                            (unless (or (gethash position-key seen-positions)
+                                        should-suppress)
+                              (setf (gethash position-key seen-positions) t)
+                              (push (%make-issue path line col "reader-error" error-string)
+                                    issues)))
                           ;; Try to recover and continue
                           (let ((restart (find-restart 'eclector.base:recover)))
                             (when restart
@@ -125,3 +134,50 @@
             (when (eql result :eof)
               (return))))))
     (nreverse issues)))
+
+(defun rule-whitespace-around-parens (path lines)
+  "Check for whitespace immediately inside parentheses (Google style)."
+  (loop for line in lines
+        for ln from 1
+        for issues = nil
+        do (loop for i from 0 below (length line)
+                 for ch = (char line i)
+                 do (cond
+                      ;; Opening paren followed by space: "( foo"
+                      ((and (char= ch #\()
+                            (< (1+ i) (length line))
+                            (char= (char line (1+ i)) #\Space)
+                            ;; Allow space if it's the only thing before comment
+                            (not (and (< (+ i 2) (length line))
+                                      (char= (char line (+ i 2)) #\;))))
+                       (push (%make-issue path ln (+ i 2) "whitespace-after-open-paren"
+                                          "Remove whitespace after opening parenthesis")
+                             issues))
+                      ;; Space followed by closing paren: "foo )"
+                      ((and (char= ch #\))
+                            (> i 0)
+                            (char= (char line (1- i)) #\Space))
+                       (push (%make-issue path ln (1+ i) "whitespace-before-close-paren"
+                                          "Remove whitespace before closing parenthesis")
+                             issues))))
+        when issues
+          append (nreverse issues)))
+
+(defun rule-consecutive-closing-parens (path lines)
+  "Check that consecutive closing parentheses are on the same line (Google style)."
+  (loop for line in lines
+        for ln from 1
+        for next-line in (append (cdr lines) (list nil))
+        ;; Check if line ends with ) and next line starts with )
+        when (and next-line
+                  (> (length line) 0)
+                  (char= (char line (1- (length line))) #\))
+                  (> (length next-line) 0)
+                  ;; Find first non-whitespace char in next line
+                  (let ((first-char-pos (position-if-not
+                                          (lambda (c) (or (char= c #\Space) (char= c #\Tab)))
+                                          next-line)))
+                    (and first-char-pos
+                         (char= (char next-line first-char-pos) #\)))))
+          collect (%make-issue path (1+ ln) 1 "closing-parens-same-line"
+                               "Consecutive closing parentheses should be on same line")))
