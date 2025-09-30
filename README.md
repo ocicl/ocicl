@@ -6,8 +6,13 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
 
 What is it?
 ------------
-``ocicl`` is a modern alternative to quicklisp.  It is modern in the sense that:
-* All software is [packaged as OCI-compliant artifacts](https://github.com/opencontainers/) and distributed from mirrored OCI-compliant registries (the GitHub and Docker Hub Container Registries).
+``ocicl`` is a modern tool for Common Lisp development that provides:
+* **Package management**: A modern alternative to quicklisp for ASDF system distribution and management
+* **Code linting**: An integrated linter that checks your code for style issues, common errors, and best practices
+* **Project scaffolding**: Template-based project creation to quickly start new applications
+
+As a package manager, ``ocicl`` is modern in the sense that:
+* All software is [packaged as OCI-compliant artifacts](https://github.com/opencontainers/) and distributed from mirrored OCI-compliant registries (the GitHub and Docker Hub Contain Registries).
 * All software packages are securely distributed over TLS connections.
 * All connections respect ``HTTPS_PROXY`` environment settings for authenticated proxy support.
 * [sigstore](https://www.sigstore.dev/) is used to ensure the integrity and authenticity of all software packages.
