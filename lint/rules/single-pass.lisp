@@ -142,22 +142,22 @@ Returns a list of issues."
                          (format nil "Use (WHEN ~A ...) instead of (UNLESS (NOT ~A) ...)"
                                  (second (second form)) (second (second form)))))
 
-             ;; (setf v (+ v n)) -> (incf v n)
-             (when (and (eq head 'setf)
+             ;; (setf place (+ place n)) or (setq var (+ var n)) -> (incf place n)
+             (when (and (member head '(setf setq))
                         (= (length form) 3)
-                        (symbolp (second form))
                         (consp (third form))
                         (eq (first (third form)) '+)
                         (= (length (third form)) 3)
-                        (or (eq (second (third form)) (second form))
-                            (eq (third (third form)) (second form))))
-               (let ((var (second form))
-                     (amount (if (eq (second (third form)) (second form))
+                        (or (equal (second (third form)) (second form))
+                            (equal (third (third form)) (second form))))
+               (let ((place (second form))
+                     (amount (if (equal (second (third form)) (second form))
                                  (third (third form))
                                  (second (third form)))))
-                 (push-iss ln col "setf-incf"
-                           (format nil "Use (INCF ~A~@[ ~A~]) instead of (SETF ~A (+ ~A ~A))"
-                                   var (unless (eql amount 1) amount) var var amount))))
+                 (push-iss ln col (if (eq head 'setf) "setf-incf" "setq-incf")
+                           (format nil "Use (INCF ~A~@[ ~A~]) instead of (~A ~A (+ ~A ~A))"
+                                   place (unless (eql amount 1) amount)
+                                   (string-upcase (symbol-name head)) place place amount))))
 
              ;; (setf var (cons item var)) -> (push item var)
              (when (and (eq head 'setf)
@@ -385,17 +385,18 @@ Returns a list of issues."
                             (null (third form))))
                (push-iss ln col "typep-primitive" "Avoid TYPEP with T or NIL; result is trivial"))
 
-             ;; (SETF v (- v n)) -> DECF
-             (when (and (eq head 'setf)
+             ;; (setf place (- place n)) or (setq var (- var n)) -> (decf place n)
+             (when (and (member head '(setf setq))
                         (= (length form) 3)
                         (consp (third form))
                         (eq (first (third form)) '-)
                         (= (length (third form)) 3)
                         (equal (second form) (second (third form))))
-               (let ((var (second form)) (amount (third (third form))))
-                 (push-iss ln col "setf-decf"
-                          (format nil "Use (DECF ~A ~A) instead of (SETF ~A (- ~A ~A))"
-                                  var amount var var amount))))
+               (let ((place (second form)) (amount (third (third form))))
+                 (push-iss ln col (if (eq head 'setf) "setf-decf" "setq-decf")
+                          (format nil "Use (DECF ~A~@[ ~A~]) instead of (~A ~A (- ~A ~A))"
+                                  place (unless (eql amount 1) amount)
+                                  (string-upcase (symbol-name head)) place place amount))))
 
              ;; Unnecessary (lambda (x) (f x)) wrappers on map fns
              (when (and (member head '(mapcar mapc mapcan maplist mapcon))
@@ -520,18 +521,6 @@ Returns a list of issues."
              (when (and (eq head 'quote)
                         (eq (second form) t))
                (push-iss ln col "quote-true" "Use T instead of 'T"))
-
-             ;; (SETQ v (+ v n)) -> INCF
-             (when (and (eq head 'setq)
-                        (= (length form) 3)
-                        (consp (third form))
-                        (eq (first (third form)) '+)
-                        (= (length (third form)) 3)
-                        (equal (second form) (second (third form))))
-               (let ((var (second form)) (amount (third (third form))))
-                 (push-iss ln col "setq-incf"
-                          (format nil "Use (INCF ~A ~A) instead of (SETQ ~A (+ ~A ~A))"
-                                  var amount var var amount))))
 
              ;; Smart find/position membership suggestion - simplified approach
              ;; This rule is too complex to implement safely in the current architecture
