@@ -1156,6 +1156,54 @@ Returns a list of issues."
                (push-iss ln col "helper-suffix"
                          "HELPER suffix is vague (use name that describes what function does)"))
 
+             ;; Suggest ALEXANDRIA:MAPPEND for (apply #'append (mapcar ...))
+             (when (and (eq head 'apply)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (or (and (consp (second form))
+                                 (eq (first (second form)) 'function)
+                                 (eq (second (second form)) 'append))
+                            (eq (second form) '#'append))
+                        (consp (third form))
+                        (eq (first (third form)) 'mapcar))
+               (push-iss ln col "use-alexandria-mappend"
+                         "Consider using ALEXANDRIA:MAPPEND for (APPLY #'APPEND (MAPCAR ...))"))
+
+             ;; Suggest ALEXANDRIA:EMPTYP for (zerop (length ...))
+             (when (and (eq head 'zerop)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 2)
+                        (consp (second form))
+                        (eq (first (second form)) 'length))
+               (push-iss ln col "use-alexandria-emptyp"
+                         "Consider using ALEXANDRIA:EMPTYP for (ZEROP (LENGTH ...))"))
+
+             ;; Suggest ALEXANDRIA:EMPTYP for (= (length ...) 0)
+             (when (and (eq head '=)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (consp (second form))
+                        (eq (first (second form)) 'length)
+                        (eql (third form) 0))
+               (push-iss ln col "use-alexandria-emptyp"
+                         "Consider using ALEXANDRIA:EMPTYP for (= (LENGTH ...) 0)"))
+
+             ;; Suggest ALEXANDRIA:ENSURE-CAR for (if (consp x) (car x) x)
+             (when (and (eq head 'if)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 4)
+                        (consp (second form))
+                        (eq (first (second form)) 'consp)
+                        (= (length (second form)) 2)
+                        (symbolp (second (second form)))
+                        (consp (third form))
+                        (eq (first (third form)) 'car)
+                        (= (length (third form)) 2)
+                        (eq (second (third form)) (second (second form)))
+                        (eq (fourth form) (second (second form))))
+               (push-iss ln col "use-alexandria-ensure-car"
+                         "Consider using ALEXANDRIA:ENSURE-CAR for (IF (CONSP x) (CAR x) x)"))
+
              ;; INSERT MORE RULES HERE
 
              )))))
