@@ -565,15 +565,6 @@ Returns a list of issues."
                (push-iss ln col "use-remove-if-not"
                          "Use REMOVE-IF-NOT instead of REMOVE-IF with negated predicate"))
 
-             ;; Lambda list checks for defun/defmacro: &optional with &key
-             (when (member head '(defun defmacro))
-               (let ((lambda-list (third form)))
-                 (when (and (listp lambda-list)
-                            (member '&optional lambda-list)
-                            (member '&key lambda-list))
-                   (push-iss ln col "lambda-list-optional-and-key"
-                             "Avoid using both &optional and &key in the same lambda-list"))))
-
              ;; Ecclesia-based validations
              (when (eq head 'destructuring-bind)
                (let* ((pattern (second form))
@@ -982,7 +973,9 @@ Returns a list of issues."
                                  (and (> (length args) key-pos)
                                       (member (nth key-pos args) '('car #'car car)))))))
                (push-iss ln col "find-member-for-assoc"
-                         (format nil "Use ASSOC instead of ~S with :KEY CAR" head)))
+                         (if (eq head 'find)
+                             "Consider ASSOC for association lists (FIND works on sequences including vectors)"
+                             "Consider ASSOC instead of MEMBER with :KEY CAR for association lists")))
 
              ;; READ with bad EOF markers
              (when (and (eq head 'read)

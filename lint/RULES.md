@@ -112,9 +112,8 @@
 87. use-constantly - Use (CONSTANTLY value) for constant-returning lambda
 88. unnecessary-lambda - Remove unnecessary lambda wrapper around function call
 89. lambda-list-invalid - Invalid lambda list syntax
-90. lambda-list-optional-and-key - Don't mix &OPTIONAL and &KEY in lambda lists
-91. destructuring-bind-invalid - Invalid destructuring pattern
-92. avoid-optional-and-key - Avoid mixing &OPTIONAL and &KEY in defun
+90. destructuring-bind-invalid - Invalid destructuring pattern
+91. avoid-optional-and-key - Avoid mixing &OPTIONAL and &KEY in lambda lists (defun/defmacro/lambda)
 
 ## Control Flow (6 rules)
 93. redundant-progn - PROGN with single form is redundant
