@@ -260,10 +260,10 @@ Returns a list of issues."
                                    item var var item var))))
 
              ;; (car (cdr x)) or (first (rest x)) -> (second x)
-             (when (and (member head '(car first))
+             (when (and (member head '(car first)) ; lint:suppress use-first-rest
                         (= (length form) 2)
                         (consp (second form))
-                        (member (first (second form)) '(cdr rest)))
+                        (member (first (second form)) '(cdr rest))) ; lint:suppress use-first-rest
                (let ((expr (second (second form))))
                  (push-iss ln col "car-cdr"
                            (format nil "Use (CADR ~A) or (SECOND ~A) instead of (~A (~A ~A))"
@@ -271,20 +271,20 @@ Returns a list of issues."
                                    (string-upcase (symbol-name (first (second form)))) expr))))
 
              ;; (cdr (cdr x)) or (rest (rest x)) -> (cddr x)
-             (when (and (member head '(cdr rest))
+             (when (and (member head '(cdr rest)) ; lint:suppress use-first-rest
                         (= (length form) 2)
                         (consp (second form))
-                        (member (first (second form)) '(cdr rest)))
+                        (member (first (second form)) '(cdr rest))) ; lint:suppress use-first-rest
                (let ((expr (second (second form))))
                  (push-iss ln col "cdr-cdr"
                            (format nil "Use (CDDR ~A) instead of (~A (~A ~A))"
                                    expr (string-upcase (symbol-name head))
                                    (string-upcase (symbol-name (first (second form)))) expr))))
 
-             ;; Preference hints: FIRST/REST instead of CAR/CDR
-             (when (eq head 'car)
+             ;; Preference hints: FIRST/REST instead of CAR/CDR (skip quoted forms)
+             (when (and (not quoted-p) (eq head 'car))
                (push-iss ln col "use-first-rest" "Use FIRST instead of CAR for better readability"))
-             (when (eq head 'cdr)
+             (when (and (not quoted-p) (eq head 'cdr))
                (push-iss ln col "use-first-rest" "Use REST instead of CDR for better readability"))
 
              ;; (lambda (x) x) -> identity
@@ -446,7 +446,7 @@ Returns a list of issues."
                     (push-iss ln col "and-or-simplification" "AND with leading T is redundant"))
                    ;; (and expr1 expr2 ... t) where t is not the last element - redundant t
                    ((and (member t args)
-                         (not (eq (car (last args)) t))
+                         (not (eq (first (last args)) t))
                          (> (length args) 2))
                     (push-iss ln col "and-or-simplification" "Redundant T in AND expression"))
                    (t nil))))
@@ -463,7 +463,7 @@ Returns a list of issues."
                     (push-iss ln col "and-or-simplification" "OR with leading NIL is redundant"))
                    ;; (or expr1 expr2 ... nil) where nil is not the last element - redundant nil
                    ((and (member nil args)
-                         (not (eq (car (last args)) nil))
+                         (not (eq (first (last args)) nil))
                          (> (length args) 2))
                     (push-iss ln col "and-or-simplification" "Redundant NIL in OR expression"))
                    (t nil))))

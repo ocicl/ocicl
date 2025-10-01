@@ -169,7 +169,7 @@
   "Check that consecutive closing parentheses are on the same line (Google style)."
   (loop for line in lines
         for ln from 1
-        for next-line in (append (cdr lines) (list nil))
+        for next-line in (append (rest lines) (list nil))
         ;; Check if line ends with ) and next line starts with )
         when (and next-line
                   (> (length line) 0)

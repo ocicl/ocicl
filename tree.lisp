@@ -30,13 +30,13 @@
                                    (depth 0)
                                    prefix)
   "Internal helper for printing tree structures."
-  (let ((node (car nodes)))
+  (let ((node (first nodes)))
     (when prefix
       (write-string prefix stream)
       (when (> depth 1)
         (write-string " "))
       (write-string
-       (if (cdr nodes)
+       (if (rest nodes)
            node-prefix
            last-node-prefix)
        stream))
@@ -55,7 +55,7 @@
                                   (concatenate 'string prefix
                                                (when (> depth 1)
                                                   " ")
-                                               (if (cdr nodes)
+                                               (if (rest nodes)
                                                    continue-prefix
                                                    "  "))
                                   ;; handle the top case
