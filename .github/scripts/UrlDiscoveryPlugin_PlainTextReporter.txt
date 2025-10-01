@@ -1,0 +1,21 @@
+Wildcards
+
+You can use wildcards to catch multiple URLs with the same pattern.
+For example, you can use the following URL pattern to catch all API requests to
+JSON Placeholder API:
+
+https://jsonplaceholder.typicode.com/*
+
+Excluding URLs
+
+You can exclude URLs with ! to prevent them from being intercepted.
+For example, you can exclude the URL https://jsonplaceholder.typicode.com/authors
+by using the following URL pattern:
+
+!https://jsonplaceholder.typicode.com/authors
+https://jsonplaceholder.typicode.com/*
+
+Intercepted URLs:
+
+https://ghcr.io/token?scope=repository%3Aocicl%2Fcl-ppcre%3Apull
+https://ghcr.io/v2/ocicl/cl-ppcre/tags/list?n=1024

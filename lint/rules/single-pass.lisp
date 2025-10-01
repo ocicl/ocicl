@@ -1304,18 +1304,17 @@ Returns a list of issues."
                            (arg1 (second (first branch)))
                            (arg2 (third (first branch))))
                        ;; Determine which arg is the variable and which is the value
-                       (let ((var (if (and (symbolp arg1) (not (keywordp arg1)) (not (constantp arg1)))
-                                      arg1
-                                      (if (and (symbolp arg2) (not (keywordp arg2)) (not (constantp arg2)))
-                                          arg2
-                                          nil))))
-                         (when var
-                           (if (null test-fn)
-                               (progn
-                                 (setf test-fn fn)
-                                 (setf test-var var))
-                               (unless (and (eq fn test-fn) (eq var test-var))
-                                 (setf all-same-pattern nil))))))))
+                       (when-let ((var (if (and (symbolp arg1) (not (keywordp arg1)) (not (constantp arg1)))
+                                           arg1
+                                           (if (and (symbolp arg2) (not (keywordp arg2)) (not (constantp arg2)))
+                                               arg2
+                                               nil))))
+                         (if (null test-fn)
+                             (progn
+                               (setf test-fn fn)
+                               (setf test-var var))
+                             (unless (and (eq fn test-fn) (eq var test-var))
+                               (setf all-same-pattern nil))))))))
                  ;; If we found at least 3 branches with the same pattern, suggest switch
                  (when (and all-same-pattern test-fn test-var
                             (>= (count-if (lambda (branch)

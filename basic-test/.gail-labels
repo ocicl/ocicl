@@ -1,0 +1,8 @@
+# This is a list of labels to be used for automatic tagging of github
+# issues using gail: https://github.com/atgreen/gail
+
+# Main categories
+BUILD-ERROR
+RUNTIME-ERROR
+FEATURE-REQUEST
+QUESTION

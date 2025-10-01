@@ -26,4 +26,7 @@
 (defpackage #:ocicl
   (:documentation "OCI-based Common Lisp package manager and linter.")
   (:use #:cl)
+  (:import-from #:alexandria
+                #:when-let
+                #:if-let)
   (:export main))

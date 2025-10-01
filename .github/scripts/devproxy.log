@@ -1,0 +1,17 @@
+ warn    AddPlugins: Dev Proxy is running in URL discovery mode. Configured plugins and URLs to watch will be ignored.
+ info    Dev Proxy API listening on http://127.0.0.1:8897...
+ info    Dev Proxy listening on 127.0.0.1:9090...
+
+Hotkeys: issue (w)eb request, (r)ecord, (s)top recording, (c)lear screen
+Press CTRL+C to stop Dev Proxy
+
+ warn    Configure your operating system to use this proxy's port and address 127.0.0.1:9090
+◉ Recording... 
+
+ req   ╭ GET https://ghcr.io/token?scope=repository%3Aocicl%2Fcl-ppcre%3Apull
+ time  │ 2025-07-01 3:20:46 p.m. +00:00
+ pass  ╰ Passed through
+
+ req   ╭ GET https://ghcr.io/v2/ocicl/cl-ppcre/tags/list?n=1024
+ time  │ 2025-07-01 3:20:46 p.m. +00:00
+ pass  ╰ Passed through

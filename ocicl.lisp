@@ -138,9 +138,8 @@
 
 (defmacro when-option ((options opt) &body body)
   "Execute BODY when OPT is present in OPTIONS."
-  `(let ((it (getf ,options ,opt)))
-     (when it
-       ,@body)))
+  `(when-let ((it (getf ,options ,opt)))
+     ,@body))
 
 (declaim (inline split-on-delimiter))
 (defun split-on-delimiter (line delim)
@@ -161,7 +160,7 @@
   "Read the systems CSV file and return a hash table of system names to (registry . path) pairs."
   (let ((systems-file (merge-pathnames (uiop:getcwd) *systems-csv*))
         (ht (make-hash-table :test #'equal)))
-    (when (probe-file systems-file)
+    (when (uiop:file-exists-p systems-file)
       (handler-case
           (dolist (line (uiop:read-file-lines systems-file))
             (when (and line (not (string= line "")))
@@ -211,10 +210,9 @@ Distributed under the terms of the MIT License"
 
 (defun get-up-to-first-slash (str)
   "Extract the substring up to the first slash in STR, returning the substring and position."
-  (let ((pos (position #\/ str)))
-    (if pos
-        (values (subseq str 0 pos) pos)
-        (values str -1))))
+  (if-let ((pos (position #\/ str)))
+    (values (subseq str 0 pos) pos)
+    (values str -1))))
 
 (defun get-repository-name (url)
   "Extract the repository name from a registry URL."

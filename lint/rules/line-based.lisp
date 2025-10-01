@@ -127,9 +127,8 @@
                                   (push (%make-issue path line col "reader-error" error-string)
                                         issues)))
                               ;; Try to recover and continue
-                              (let ((restart (find-restart 'eclector.base:recover)))
-                                (when restart
-                                  (invoke-restart restart))))))))))
+                              (when-let ((restart (find-restart 'eclector.base:recover)))
+                                (invoke-restart restart)))))))))
         (loop
           (let ((result (eclector.parse-result:read client stream nil :eof)))
             (when (eql result :eof)
@@ -149,8 +148,8 @@
                             (< (1+ i) (length line))
                             (char= (char line (1+ i)) #\Space)
                             ;; Allow space if it's the only thing before comment
-                            (not (and (< (+ i 2) (length line))
-                                      (char= (char line (+ i 2)) #\;))))
+                            (nand (< (+ i 2) (length line))
+                                  (char= (char line (+ i 2)) #\;)))
                        (push (%make-issue path ln (+ i 2) "whitespace-after-open-paren"
                                           "Remove whitespace after opening parenthesis")
                              issues))
@@ -169,7 +168,7 @@
   "Check that consecutive closing parentheses are on the same line (Google style)."
   (loop for line in lines
         for ln from 1
-        for next-line in (append (rest lines) (list nil))
+        for next-line in (append1 (rest lines) nil)
         ;; Check if line ends with ) and next line starts with ) ; lint:suppress whitespace-before-close-paren
         when (and next-line
                   (> (length line) 0)

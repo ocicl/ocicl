@@ -75,11 +75,10 @@
                                      (%collect-components (%as-list subcomps)
                                                           base-dir next-sub))))))
             (t
-             (let ((subcomps (%plist-value plist :components)))
-               (when subcomps
-                 (setf result (nconc result
-                                     (%collect-components (%as-list subcomps)
-                                                          base-dir current-subdir))))))))))
+             (when-let ((subcomps (%plist-value plist :components)))
+               (setf result (nconc result
+                                   (%collect-components (%as-list subcomps)
+                                                        base-dir current-subdir)))))))))
     result))
 
 (defun collect-asd-component-files (asd-path)

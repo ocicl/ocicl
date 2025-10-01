@@ -93,24 +93,23 @@
   "Parse a line for suppress comments and return list of suppressed rule names.
    Supports syntax: ; lint:suppress rule1 rule2 rule3
    Or: ; lint:suppress (alone) to suppress all rules"
-  (let ((comment-pos (position #\; line)))
-    (when comment-pos
-      (let ((comment-part (subseq line comment-pos)))
-        (when (search "lint:suppress" comment-part :test #'char-equal)
+  (when-let ((comment-pos (position #\; line)))
+    (let ((comment-part (subseq line comment-pos)))
+      (when (search "lint:suppress" comment-part :test #'char-equal)
           (let* ((suppress-pos (search "lint:suppress" comment-part :test #'char-equal))
                  (after-suppress (subseq comment-part (+ suppress-pos 13))) ; lint:suppress max-line-length
                  (rules-text (string-trim " \t" after-suppress))
-                 (result (if (zerop (length rules-text))
+                 (result (if (emptyp rules-text)
                              ;; Empty rules text means suppress all rules
                              :all
                              ;; Split on whitespace and remove empty strings
-                             (remove-if (lambda (s) (zerop (length s)))
+                             (remove-if #'emptyp
                                         (loop for start = 0 then (1+ pos)
                                               for pos = (position-if (lambda (c) (or (char= c #\Space) (char= c #\Tab))) ; lint:suppress max-line-length
                                                                      rules-text :start start)
                                               collect (string-trim " \t" (subseq rules-text start pos))
                                               while pos)))))
-            result))))))
+            result)))))
 
 (defun filter-suppressed-issues (issues lines)
   "Filter out issues that have been suppressed via lint:suppress comments or config."

@@ -16,6 +16,14 @@
                 #:canonicalize-declaration-specifiers
                 #:extract-lambda-list-variables
                 #:parse-destructuring-bind)
+  (:import-from #:alexandria
+                #:when-let
+                #:if-let
+                #:emptyp
+                #:switch)
+  (:import-from #:serapeum
+                #:nand
+                #:append1)
   (:export #:lint-files))
 
 (in-package #:ocicl.lint)

@@ -48,16 +48,15 @@
     (when (and (> (length line) 0)
                (not (char= (char line 0) #\#))  ; Skip comments
                (not (char= (char line 0) #\;))) ; Skip comments
-      (let ((eq-pos (position #\= line)))
-        (when eq-pos
-          (let ((key (string-trim '(#\Space #\Tab) (subseq line 0 eq-pos)))
-                (value (string-trim '(#\Space #\Tab) (subseq line (1+ eq-pos)))))
-            (cons key value)))))))
+      (when-let ((eq-pos (position #\= line)))
+        (let ((key (string-trim '(#\Space #\Tab) (subseq line 0 eq-pos)))
+              (value (string-trim '(#\Space #\Tab) (subseq line (1+ eq-pos)))))
+          (cons key value)))))))
 
 (defun parse-rule-list (value-string)
   "Parse a comma-separated list of rule names."
   (let ((trimmed (string-trim '(#\Space #\Tab) value-string)))
-    (if (zerop (length trimmed))
+    (if (emptyp trimmed)
         nil
         (mapcar (lambda (s) (string-trim '(#\Space #\Tab) s))
                 (uiop:split-string trimmed :separator '(#\,))))))
@@ -69,10 +68,9 @@
       (with-open-file (in config-path :direction :input :external-format :utf-8)
         (loop for line = (read-line in nil nil)
               while line
-              do (let ((parsed (parse-config-line line)))
-                   (when parsed
-                     (let ((key (first parsed))
-                           (value (rest parsed)))
+              do (when-let ((parsed (parse-config-line line)))
+                   (let ((key (first parsed))
+                         (value (rest parsed)))
                      (cond
                        ((string-equal key "max-line-length")
                         (let ((num (ignore-errors (parse-integer value))))
@@ -89,21 +87,21 @@
                               (parse-rule-list value)))
                        (t
                         (when *verbose*
-                          (logf "; config: unknown setting ~A~%" key))))))))))
+                          (logf "; config: unknown setting ~A~%" key)))))))))
     config))
 
 (defun load-project-config (path)
   "Load project configuration for the given PATH."
   (let* ((config-file (find-config-file path))
-         (config (if config-file
-                     (let ((cfg (load-config-file config-file)))
+         (config (if-let ((cfg-file config-file))
+                     (let ((cfg (load-config-file cfg-file)))
                        (when *verbose*
-                         (logf "; config: loading from ~A~%" config-file)
+                         (logf "; config: loading from ~A~%" cfg-file)
                          (logf "; config: suppressed ~D rules~%" (length (cl-lint-config-suppressed-rules cfg)))
                          (dolist (rule (cl-lint-config-suppressed-rules cfg))
                            (logf ";   - ~A~%" rule)))
                        cfg)
-                     (let ()
+                     (progn
                        (when *verbose*
                          (logf "; config: using defaults (no .ocicl-lint.conf found)~%"))
                        *default-config*))))

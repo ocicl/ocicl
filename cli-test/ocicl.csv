@@ -1,0 +1,11 @@
+alexandria, ghcr.io/ocicl/alexandria@sha256:e433c2e076ed3bcf8641b97b00192680db2201d305efac9293539dee88c7fbf7, alexandria-20240503-8514d8e/alexandria.asd
+bobbin, ghcr.io/ocicl/bobbin@sha256:7368d88e9f1d8a94b9bddf5e1887e384ef738235570142dd1cfe98c90077cc13, bobbin-20240503-b454e82/bobbin.asd
+cl-reexport, ghcr.io/ocicl/cl-reexport@sha256:c795feb3e3727a19e61797187eb31bac1e855b1332335d26752200a28e9b9da8, cl-reexport-20240503-03ad7a0/cl-reexport.asd
+cl-reexport-test, ghcr.io/ocicl/cl-reexport@sha256:c795feb3e3727a19e61797187eb31bac1e855b1332335d26752200a28e9b9da8, cl-reexport-20240503-03ad7a0/cl-reexport-test.asd
+clingon, ghcr.io/ocicl/clingon@sha256:8d9021c0f530b1bbb019c672f64a703112544f489654c89cbe4ce93c60888664, clingon-20240603-f2a730f/clingon.asd
+clingon.demo, ghcr.io/ocicl/clingon@sha256:8d9021c0f530b1bbb019c672f64a703112544f489654c89cbe4ce93c60888664, clingon-20240603-f2a730f/clingon.demo.asd
+clingon.intro, ghcr.io/ocicl/clingon@sha256:8d9021c0f530b1bbb019c672f64a703112544f489654c89cbe4ce93c60888664, clingon-20240603-f2a730f/clingon.intro.asd
+clingon.test, ghcr.io/ocicl/clingon@sha256:8d9021c0f530b1bbb019c672f64a703112544f489654c89cbe4ce93c60888664, clingon-20240603-f2a730f/clingon.test.asd
+split-sequence, ghcr.io/ocicl/split-sequence@sha256:3a37662eedd99c42995587b9d443c4631f25c4c523091bcca31a27b880585b8e, split-sequence-2.0.1/split-sequence.asd
+version-string, ghcr.io/ocicl/version-string@sha256:0d6103de97750f7a85d84b38b2495399817d550ce1e2369ba31a652e39e2b2e7, cl-version-string-20250701-2a9f9ba/version-string.asd
+with-user-abort, ghcr.io/ocicl/with-user-abort@sha256:c19560034f9909a7afb4110b5efd939a9f1e829d9ef9887797b98679f290c480, with-user-abort-20240503-a3db02e/with-user-abort.asd

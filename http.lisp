@@ -12,6 +12,9 @@
 
 (uiop:define-package #:ocicl.http
   (:use #:cl #:drakma)
+  (:import-from #:alexandria
+                #:when-let
+                #:if-let)
   (:export #:http-get #:configure-drakma-proxy-from-env
            #:*verify-tls*))
 
@@ -28,11 +31,10 @@
     (let* ((at (position #\@ authority))
            (creds (when at (subseq authority 0 at))))
       (when creds
-        (let ((colon (position #\: creds)))
-          (if colon
-              (values (subseq creds 0 colon)
-                      (subseq creds (1+ colon)))
-              (values creds nil)))))))
+        (if-let ((colon (position #\: creds)))
+          (values (subseq creds 0 colon)
+                  (subseq creds (1+ colon)))
+          (values creds nil))))))
 
 (defun configure-drakma-proxy-from-env
     (&key (proxy-vars '("HTTPS_PROXY" "https_proxy"
@@ -40,10 +42,9 @@
           (no-proxy-vars '("NO_PROXY" "no_proxy")))
   "Populate Drakma’s proxy settings from traditional env vars."
   ;; ---- pick first non-empty proxy var -----------------------------------
-  (let ((raw (loop for v in proxy-vars
-                   for val = (uiop:getenv v)
-                   when (and val (string/= val "")) return val)))
-    (when raw
+  (when-let ((raw (loop for v in proxy-vars
+                        for val = (uiop:getenv v)
+                        when (and val (string/= val "")) return val)))
       ;; allow host[:port] | user:pass@host[:port] | full URL
       (let* ((uri (puri:parse-uri
                    (if (search "://" raw) raw (format nil "http://~A" raw))))
@@ -53,14 +54,13 @@
         (setf drakma:*default-http-proxy*
               (if port (list host port) host))
         (multiple-value-bind (user pass) (%split-userinfo authority)
-          (setf *proxy-basic-auth* (when user (list user (or pass ""))))))))
+          (setf *proxy-basic-auth* (when user (list user (or pass "")))))))
   ;; ---- NO_PROXY ---------------------------------------------------------
-  (let ((raw (loop for v in no-proxy-vars
-                   for val = (uiop:getenv v)
-                   when (and val (string/= val "")) return val)))
-    (when raw
-      (setf drakma:*no-proxy-domains*
-            (uiop:split-string raw :separator ",")))))
+  (when-let ((raw (loop for v in no-proxy-vars
+                        for val = (uiop:getenv v)
+                        when (and val (string/= val "")) return val)))
+    (setf drakma:*no-proxy-domains*
+          (uiop:split-string raw :separator ","))))
 
 (defun header-alist->hash-table (alist)
   "Convert an association list of HTTP headers to a hash table."
