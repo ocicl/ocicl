@@ -1,6 +1,6 @@
-# Contributing to OCICL
+# Contributing to ocicl
 
-This guide covers how to set up your development environment and contribute to OCICL.
+This guide covers how to set up your development environment and contribute to ocicl.
 
 ## Development Setup
 
@@ -24,7 +24,7 @@ This guide covers how to set up your development environment and contribute to O
    ```
    This enables the pre-commit hook that runs the linter on staged files.
 
-3. **Build OCICL**
+3. **Build ocicl**
    ```bash
    sbcl --load setup.lisp
    ```
@@ -46,7 +46,7 @@ This guide covers how to set up your development environment and contribute to O
 
 ### Code Quality
 
-OCICL uses a built-in linter to maintain code quality. All code must pass linting before being committed.
+ocicl uses a built-in linter to maintain code quality. All code must pass linting before being committed.
 
 #### Running the Linter
 
@@ -145,4 +145,4 @@ After making changes:
 
 ## License
 
-OCICL is distributed under the MIT License. All contributions must be compatible with this license.
+ocicl is distributed under the MIT License. All contributions must be compatible with this license.
