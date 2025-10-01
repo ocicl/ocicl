@@ -63,6 +63,7 @@
             (uiop:split-string raw :separator ",")))))
 
 (defun header-alist->hash-table (alist)
+  "Convert an association list of HTTP headers to a hash table."
   (let ((ht (make-hash-table :test #'equalp)))
     (dolist (h alist ht)
       (destructuring-bind (name . value) h

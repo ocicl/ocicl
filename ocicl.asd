@@ -49,7 +49,7 @@
                              (:file "main")))
                (:file "ocicl" :depends-on ("runtime" "http" "package" "tree" "lint")))
 
-  :depends-on ( :with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
+  :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
                 :version-string :alexandria
                 :ecclesia :eclector

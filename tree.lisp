@@ -1,4 +1,9 @@
+;;; tree.lisp
+;;;
+;;; SPDX-License-Identifier: MIT
+
 (defpackage tree
+  (:documentation "Simple tree printing utilities for displaying hierarchical data.")
   (:use :cl)
   (:export
    #:node-equal
@@ -24,6 +29,7 @@
                                    (max-depth nil)
                                    (depth 0)
                                    prefix)
+  "Internal helper for printing tree structures."
   (let ((node (car nodes)))
     (when prefix
       (write-string prefix stream)
@@ -60,6 +66,7 @@
 (defun print-tree (node &key (stream *standard-output*)
                           unicode
                           (max-depth nil))
+  "Print a tree structure starting from NODE to STREAM."
   (if unicode
       (%print-tree (list node) stream :node-prefix "├─ "
                                       :last-node-prefix "└─ "

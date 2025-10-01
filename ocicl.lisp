@@ -132,27 +132,33 @@
 ;; Template-dir option intentionally disabled for now; reserved for future use.
 
 (defun unknown-option (condition)
+  "Handler for unknown command-line options."
   (format t "warning: ~s option is unknown!~%" (opts:option condition))
   (invoke-restart 'opts:skip-option))
 
 (defmacro when-option ((options opt) &body body)
+  "Execute BODY when OPT is present in OPTIONS."
   `(let ((it (getf ,options ,opt)))
      (when it
        ,@body)))
 
 (declaim (inline split-on-delimiter))
 (defun split-on-delimiter (line delim)
+  "Split LINE on DELIM character, trimming whitespace from each part."
   (mapcar
    (lambda (string) (string-trim " " string))
    (uiop:split-string line :separator (string delim))))
 
 (defun split-csv-line (line)
+  "Split LINE on commas."
   (split-on-delimiter line #\,))
 
 (defun split-lines (line)
+  "Split LINE on newline characters."
   (split-on-delimiter line #\Newline))
 
 (defun read-systems-csv ()
+  "Read the systems CSV file and return a hash table of system names to (registry . path) pairs."
   (let ((systems-file (merge-pathnames (uiop:getcwd) *systems-csv*))
         (ht (make-hash-table :test #'equal)))
     (when (probe-file systems-file)
@@ -168,6 +174,7 @@
     ht))
 
 (defun usage ()
+  "Display usage information and available commands."
   (opts:describe
    :prefix (format nil "ocicl ~A - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>" +version+)
    :suffix "Choose from the following ocicl commands:
@@ -198,16 +205,19 @@ Distributed under the terms of the MIT License"
 (defvar *systems-dir* "")
 
 (defun debug-log (s)
+  "Log message S to stdout when verbose mode is enabled."
   (when *verbose*
     (format t "; ~A~%" s)))
 
 (defun get-up-to-first-slash (str)
+  "Extract the substring up to the first slash in STR, returning the substring and position."
   (let ((pos (position #\/ str)))
     (if pos
         (values (subseq str 0 pos) pos)
         (values str -1))))
 
 (defun get-repository-name (url)
+  "Extract the repository name from a registry URL."
   (let* ((first-slash-pos (nth-value 1 (get-up-to-first-slash url)))
          (start-pos (1+ first-slash-pos))
          (pos (position #\/ url :start start-pos)))

@@ -24,5 +24,6 @@
 ;;;
 
 (defpackage #:ocicl
+  (:documentation "OCI-based Common Lisp package manager and linter.")
   (:use #:cl)
   (:export main))
