@@ -1264,6 +1264,12 @@ Returns a list of issues."
                (push-iss ln col "use-serapeum-append1"
                          "Consider using SERAPEUM:APPEND1 for (APPEND list (LIST item))"))
 
+             ;; Suggest SERAPEUM:FILTER for remove-if-not
+             (when (and (eq head 'remove-if-not)
+                        (library-suggestions-enabled-p "serapeum"))
+               (push-iss ln col "use-serapeum-filter"
+                         "Consider using SERAPEUM:FILTER instead of REMOVE-IF-NOT for better readability"))
+
              ;; Suggest ALEXANDRIA:FIRST-ELT for (elt sequence 0)
              (when (and (eq head 'elt)
                         (library-suggestions-enabled-p "alexandria")
@@ -1324,7 +1330,7 @@ Returns a list of issues."
                                           branches)
                                 3))
                    (push-iss ln col "use-alexandria-switch"
-                             (format nil "Consider using ALEXANDRIA:SWITCH for COND with multiple ~A tests" test-fn))))))))))
+                             (format nil "Consider using ALEXANDRIA:SWITCH for COND with multiple ~A tests" test-fn)))))))))
 
       (nreverse issues)))
 

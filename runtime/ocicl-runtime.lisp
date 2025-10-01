@@ -286,7 +286,7 @@
                          (progn
                            (when (should-log) (format *verbose* "found~%"))
                            pn)
-                         (when (should-log) (format *verbose* "missing~%")))))))))
+                         (when (should-log) (format *verbose* "missing~%"))))))))
     (or (try-load *local-ocicl-systems* *local-systems-dir*)
         (try-load *global-ocicl-systems* *global-systems-dir*)
         (when download-p

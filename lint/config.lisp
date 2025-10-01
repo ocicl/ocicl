@@ -51,7 +51,7 @@
       (when-let ((eq-pos (position #\= line)))
         (let ((key (string-trim '(#\Space #\Tab) (subseq line 0 eq-pos)))
               (value (string-trim '(#\Space #\Tab) (subseq line (1+ eq-pos)))))
-          (cons key value)))))))
+          (cons key value))))))
 
 (defun parse-rule-list (value-string)
   "Parse a comma-separated list of rule names."

@@ -211,8 +211,8 @@ Distributed under the terms of the MIT License"
 (defun get-up-to-first-slash (str)
   "Extract the substring up to the first slash in STR, returning the substring and position."
   (if-let ((pos (position #\/ str)))
-    (values (subseq str 0 pos) pos)
-    (values str -1))))
+      (values (subseq str 0 pos) pos)
+    (values str -1)))
 
 (defun get-repository-name (url)
   "Extract the repository name from a registry URL."
