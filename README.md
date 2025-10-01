@@ -403,9 +403,38 @@ max-line-length = 100
 # Rules to suppress globally (comma-separated)
 suppress-rules = eval-usage, trailing-whitespace
 
+# Library suggestions (opt-in, comma-separated)
+# Suggests utility functions from popular Common Lisp libraries
+# Available: alexandria, uiop, serapeum
+suggest-libraries = alexandria, uiop, serapeum
+
 # You can also use line-specific suppression with comments:
 # ; lint:suppress rule-name
 # ; lint:suppress  (suppress all rules on this line)
+```
+
+#### Library Suggestions
+
+The linter can suggest utility functions from popular Common Lisp libraries when it detects common patterns. This feature is **opt-in** and disabled by default. To enable it, add the libraries to your `.ocicl-lint.conf`:
+
+```ini
+suggest-libraries = alexandria, uiop, serapeum
+```
+
+Supported libraries:
+- **Alexandria**: Comprehensive utility library with functions like `when-let`, `if-let`, `ensure-list`, `mappend`, `emptyp`, etc.
+- **UIOP**: Part of ASDF, always available. Suggests functions like `file-exists-p` and `read-file-string`.
+- **Serapeum**: Extended utilities including `nor`, `nand`, `filter-map`, `car-safe`, `append1`, etc.
+
+Examples of suggestions:
+- `(let ((x ...)) (when x ...))` → Suggests `ALEXANDRIA:WHEN-LET`
+- `(apply #'append (mapcar ...))` → Suggests `ALEXANDRIA:MAPPEND` or `SERAPEUM:FILTER-MAP`
+- `(not (or a b c))` → Suggests `SERAPEUM:NOR`
+- `(probe-file path)` → Suggests `UIOP:FILE-EXISTS-P`
+
+To disable all library suggestions, use:
+```ini
+suggest-libraries =
 ```
 
 ### Example Output
