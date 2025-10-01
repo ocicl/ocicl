@@ -160,7 +160,8 @@
                             (char= (char line (1- i)) #\Space))
                        (push (%make-issue path ln (1+ i) "whitespace-before-close-paren"
                                           "Remove whitespace before closing parenthesis")
-                             issues))))
+                             issues))
+                      (t nil)))
         when issues
           append (nreverse issues)))
 

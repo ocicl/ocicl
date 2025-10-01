@@ -448,7 +448,8 @@ Returns a list of issues."
                    ((and (member t args)
                          (not (eq (car (last args)) t))
                          (> (length args) 2))
-                    (push-iss ln col "and-or-simplification" "Redundant T in AND expression")))))
+                    (push-iss ln col "and-or-simplification" "Redundant T in AND expression"))
+                   (t nil)))))
              (when (and (eq head 'or)
                         (> (length form) 2))
                (let ((args (rest form)))
@@ -463,7 +464,8 @@ Returns a list of issues."
                    ((and (member nil args)
                          (not (eq (car (last args)) nil))
                          (> (length args) 2))
-                    (push-iss ln col "and-or-simplification" "Redundant NIL in OR expression")))))
+                    (push-iss ln col "and-or-simplification" "Redundant NIL in OR expression"))
+                   (t nil)))))
 
              ;; TYPEP with primitive types T or NIL
              (when (and (eq head 'typep)
@@ -910,7 +912,8 @@ Returns a list of issues."
                             "Use CAR or FIRST instead of (NTH 0 ...)"))
                  ((eql (second form) 1)
                   (push-iss ln col "nth-for-cdr"
-                            "Use CADR or SECOND instead of (NTH 1 ...)"))))
+                            "Use CADR or SECOND instead of (NTH 1 ...)"))
+                 (t nil)))
 
              ;; CONS with NIL -> LIST
              (when (and (eq head 'cons)
