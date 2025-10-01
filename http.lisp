@@ -40,9 +40,9 @@
           (no-proxy-vars '("NO_PROXY" "no_proxy")))
   "Populate Drakma’s proxy settings from traditional env vars."
   ;; ---- pick first non-empty proxy var -----------------------------------
-  (let* ((raw (loop for v in proxy-vars
-                    for val = (uiop:getenv v)
-                    when (and val (string/= val "")) return val)))
+  (let ((raw (loop for v in proxy-vars
+                   for val = (uiop:getenv v)
+                   when (and val (string/= val "")) return val)))
     (when raw
       ;; allow host[:port] | user:pass@host[:port] | full URL
       (let* ((uri (puri:parse-uri
@@ -55,9 +55,9 @@
         (multiple-value-bind (user pass) (%split-userinfo authority)
           (setf *proxy-basic-auth* (when user (list user (or pass ""))))))))
   ;; ---- NO_PROXY ---------------------------------------------------------
-  (let* ((raw (loop for v in no-proxy-vars
-                    for val = (uiop:getenv v)
-                    when (and val (string/= val "")) return val)))
+  (let ((raw (loop for v in no-proxy-vars
+                   for val = (uiop:getenv v)
+                   when (and val (string/= val "")) return val)))
     (when raw
       (setf drakma:*no-proxy-domains*
             (uiop:split-string raw :separator ",")))))
