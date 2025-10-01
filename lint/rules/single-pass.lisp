@@ -141,6 +141,86 @@ Returns a list of issues."
               (push-iss ln col "use-alexandria-when-let"
                         "Consider using ALEXANDRIA:WHEN-LET for conditional binding"))
 
+             ;; Suggest ALEXANDRIA:IF-LET for (let ((var expr)) (if var ... ...)) patterns
+             (when (and (eq head 'let)
+                        (library-suggestions-enabled-p "alexandria")
+                        (consp (second form))
+                        (= (length (second form)) 1)
+                        (consp (first (second form)))
+                        (= (length (first (second form))) 2)
+                        (>= (length form) 3)
+                        (consp (third form))
+                        (eq (first (third form)) 'if)
+                        (>= (length (third form)) 3)
+                        (symbolp (second (third form)))
+                        (eq (second (third form)) (first (first (second form)))))
+               (push-iss ln col "use-alexandria-if-let"
+                         "Consider using ALEXANDRIA:IF-LET for conditional binding"))
+
+             ;; Suggest ALEXANDRIA:ENSURE-LIST for (if (listp x) x (list x))
+             (when (and (eq head 'if)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 4)
+                        (consp (second form))
+                        (eq (first (second form)) 'listp)
+                        (symbolp (second (second form)))
+                        (eq (third form) (second (second form)))
+                        (consp (fourth form))
+                        (eq (first (fourth form)) 'list)
+                        (= (length (fourth form)) 2)
+                        (eq (second (fourth form)) (second (second form))))
+               (push-iss ln col "use-alexandria-ensure-list"
+                         "Use ALEXANDRIA:ENSURE-LIST instead of (if (listp x) x (list x))"))
+
+             ;; Suggest ALEXANDRIA:ENSURE-CONS for (if (consp x) x (cons x nil))
+             (when (and (eq head 'if)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 4)
+                        (consp (second form))
+                        (eq (first (second form)) 'consp)
+                        (symbolp (second (second form)))
+                        (eq (third form) (second (second form)))
+                        (consp (fourth form))
+                        (eq (first (fourth form)) 'cons)
+                        (= (length (fourth form)) 3)
+                        (eq (second (fourth form)) (second (second form)))
+                        (null (third (fourth form))))
+               (push-iss ln col "use-alexandria-ensure-cons"
+                         "Use ALEXANDRIA:ENSURE-CONS instead of (if (consp x) x (cons x nil))"))
+
+             ;; Suggest ALEXANDRIA:LASTCAR for (car (last x))
+             (when (and (eq head 'car)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 2)
+                        (consp (second form))
+                        (eq (first (second form)) 'last)
+                        (= (length (second form)) 2))
+               (push-iss ln col "use-alexandria-lastcar"
+                         "Use ALEXANDRIA:LASTCAR instead of (car (last ...))"))
+
+             ;; Suggest UIOP:READ-FILE-STRING for manual file reading
+             (when (and (eq head 'with-open-file)
+                        (library-suggestions-enabled-p "uiop")
+                        (>= (length form) 3)
+                        (consp (second form))
+                        (>= (length (second form)) 2)
+                        (member :direction (cddr (second form)))
+                        (let ((dir-pos (position :direction (cddr (second form)))))
+                          (and dir-pos
+                               (< dir-pos (1- (length (cddr (second form)))))
+                               (eq (nth (1+ dir-pos) (cddr (second form))) :input)))
+                        (= (length (cddr form)) 1)  ; single body form
+                        (consp (third form))
+                        (eq (first (third form)) 'read-line))
+               (push-iss ln col "use-uiop-read-file"
+                         "Consider using UIOP:READ-FILE-STRING or UIOP:READ-FILE-LINES"))
+
+             ;; Suggest UIOP:FILE-EXISTS-P for (probe-file ...)
+             (when (and (eq head 'probe-file)
+                        (library-suggestions-enabled-p "uiop"))
+               (push-iss ln col "use-uiop-file-exists-p"
+                         "Consider using UIOP:FILE-EXISTS-P (returns T/NIL instead of pathname/NIL)"))
+
              ;; (unless (not ...)) -> when
              (when (and (eq head 'unless)
                         (consp (second form))

@@ -137,6 +137,12 @@
 107. multiple-value-list - Multiple values avoid consing - MULTIPLE-VALUE-LIST defeats this
 108. constant-bad-eof - Don't use constants for EOF markers (use local variable)
 109. use-alexandria-when-let - Suggest ALEXANDRIA:WHEN-LET for (let ((x ...)) (when x ...))
-110. malformed-let - Malformed LET/LET* binding structures
-111. unused-parameter - Parameter is unused (add (declare (ignore ...)) if intentional)
+110. use-alexandria-if-let - Suggest ALEXANDRIA:IF-LET for (let ((x ...)) (if x ...))
+111. use-alexandria-ensure-list - Suggest ALEXANDRIA:ENSURE-LIST for (if (listp x) x (list x))
+112. use-alexandria-ensure-cons - Suggest ALEXANDRIA:ENSURE-CONS for (if (consp x) x (cons x nil))
+113. use-alexandria-lastcar - Suggest ALEXANDRIA:LASTCAR for (car (last x))
+114. use-uiop-file-exists-p - Suggest UIOP:FILE-EXISTS-P instead of PROBE-FILE
+115. use-uiop-read-file - Suggest UIOP:READ-FILE-STRING/LINES for file reading
+116. malformed-let - Malformed LET/LET* binding structures
+117. unused-parameter - Parameter is unused (add (declare (ignore ...)) if intentional)
 
