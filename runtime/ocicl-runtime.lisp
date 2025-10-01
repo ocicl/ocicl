@@ -41,7 +41,8 @@
         ((probe-file asdf-fasl)
          (load asdf-fasl :verbose nil))
         ((probe-file asdf-file)
-         (load (compile-file asdf-file :verbose nil :output-file asdf-fasl) :verbose nil))))
+         (load (compile-file asdf-file :verbose nil :output-file asdf-fasl) :verbose nil))
+        (t nil)))
     (unless (asdf:version-satisfies (asdf:asdf-version) "3.3.5")
       (warn "OCICL: ASDF version not satisfied. Found v~A but v3.3.5 is required." (asdf:asdf-version)))))
 
@@ -52,6 +53,7 @@
 
 (defpackage #:ocicl-runtime
   (:use #:cl)
+  (:documentation "Runtime support for ocicl system discovery and installation")
   (:export #:*download* #:*verbose* #:*force-global* #:+version+ #:system-list))
 
 (in-package #:ocicl-runtime)
@@ -59,7 +61,7 @@
 (defvar *download* t)
 (defvar *verbose* nil)
 (defvar *force-global* nil)
-(defconstant +version+ "UNKNOWN")
+(defconstant +version+ "2.7.3-g971b69e+dirty")
 (defconstant +required-programs+ (list "ocicl"))
 
 (defvar *systems-csv* "ocicl.csv")
@@ -76,33 +78,36 @@
 (defvar *global-systems-csv-timestamp* 0)
 
 (defun split-on-delimiter (line delim)
+  "Split LINE on DELIM character, returning list of trimmed substrings."
   (let ((start 0)
         (end 0)
-        (result '()))
+        (result nil))
     (loop for c across line
           for i from 0
-          do (if (char= c delim)
-                 (progn
-                   (setq end i)
-                   (push (string-trim " " (subseq line start end)) result)
-                   (setq start (+ i 1))))
+          do (when (char= c delim)
+               (setf end i)
+               (push (string-trim " " (subseq line start end)) result)
+               (setf start (1+ i)))
           finally (push (string-trim " " (subseq line start)) result))
     (nreverse result)))
 
 (defun replace-plus-with-string (str)
+  "Replace + characters with _plus_ and strip trailing underscore if present."
   (let ((mangled (with-output-to-string (s)
                     (loop for c across str do
                           (if (char= c #\+)
                               (write-string "_plus_" s)
                               (write-char c s))))))
-    (if (char= (char mangled (- (length mangled) 1)) #\_)
-        (subseq mangled 0 (- (length mangled) 1))
+    (if (char= (char mangled (1- (length mangled))) #\_)
+        (subseq mangled 0 (1- (length mangled)))
       mangled)))
 
 (defun mangle (str)
-  (replace-plus-with-string (car (split-on-delimiter str #\/))))
+  "Mangle system name STR for filesystem use (handle + and / characters)."
+  (replace-plus-with-string (first (split-on-delimiter str #\/))))
 
 (defun split-csv-line (line)
+  "Split a CSV line on commas."
   (split-on-delimiter line #\,))
 
 (defun should-log ()
@@ -110,15 +115,16 @@
   (and *verbose* (or (eq t *verbose*) (output-stream-p *verbose*))))
 
 (defun read-systems-csv (systems-csv)
+  "Read SYSTEMS-CSV file and return hash table mapping system names to (version . path)."
   (when (should-log)
     (format *verbose* "; loading ~A~%" systems-csv))
   (let ((ht (make-hash-table :test #'equal)))
     (dolist (line (uiop:read-file-lines systems-csv))
       (let ((vlist (split-csv-line line)))
-        (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))
+        (setf (gethash (first vlist) ht) (cons (cadr vlist) (caddr vlist)))))
     ht))
 
-(defun check-if-program-exists (program-name)
+(defun program-exists-p (program-name)
   "Check if PROGRAM-NAME exists and is executable."
   (handler-case
       (multiple-value-bind (_ err code)
@@ -131,7 +137,7 @@
 
 (defun warn-if-program-doesnt-exist (program-name)
   "If VERBOSE, print a warning if PROGRAM-NAME doesn't exist or isn't executable."
-  (when (and (should-log) (not (check-if-program-exists program-name)))
+  (when (and (should-log) (not (program-exists-p program-name)))
     (format *verbose* "~&; ***************************************************************~%")
     (format *verbose* "; WARNING: `~A` could not be found!~%" program-name)
     (format *verbose* "; ***************************************************************~%")
@@ -139,10 +145,10 @@
 
 (defun warn-if-missing-required-programs ()
   "Invoke WARN-IF-PROGRAM-DOESNT-EXIST on +REQUIRED-PROGRAMS+."
-  (dolist (program +required-programs+)
-    (warn-if-program-doesnt-exist program)))
+  (mapc #'warn-if-program-doesnt-exist +required-programs+))
 
-(defun check-ocicl-version ()
+(defun verify-ocicl-version ()
+  "Verify ocicl binary version matches runtime version and warn if out of sync."
   (warn-if-missing-required-programs)
   (handler-case
       (let ((ocicl-version-output (uiop:run-program '("ocicl" "version")
@@ -168,7 +174,8 @@
         (error "Invalid system name: ~A" name-str))))
 
 (defun ocicl-install (name)
-  (check-ocicl-version)
+  "Install system NAME using the ocicl command."
+  (verify-ocicl-version)
   (let* ((safe-name (sanitize-system-name name))
          (cmd `("ocicl" ,@(when *verbose* '("-v"))
                         ,@(when *force-global* '("--global"))
@@ -185,7 +192,7 @@
         (when (should-log)
           (format *verbose* "; Error installing ~A: ~A~%" safe-name e))
         (error e))))
-  (setq *local-systems-csv-timestamp* 0))
+  (setf *local-systems-csv-timestamp* 0))
 
 (defun get-ocicl-dir ()
   "Find the ocicl directory."
@@ -223,10 +230,11 @@
                          (t workdir))))))
 
 (defun initialize-globals ()
+  "Initialize global variables for local and global system directories and CSV files."
   (unless *local-systems-dir*
     (let ((workdir (find-workdir (uiop:getcwd))))
-      (setq *local-systems-dir* (merge-pathnames *relative-systems-dir* workdir))
-      (setq *local-systems-csv* (merge-pathnames *systems-csv* workdir))))
+      (setf *local-systems-dir* (merge-pathnames *relative-systems-dir* workdir))
+      (setf *local-systems-csv* (merge-pathnames *systems-csv* workdir))))
 
   (unless *global-systems-dir*
     (let* ((config-file (merge-pathnames "ocicl-globaldir.cfg" (get-ocicl-dir)))
@@ -239,16 +247,16 @@
                               (get-ocicl-dir)))
                           (get-ocicl-dir))))
 
-      (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir))
-      (setq *global-systems-csv* (merge-pathnames *systems-csv* globaldir))))
+      (setf *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir))
+      (setf *global-systems-csv* (merge-pathnames *systems-csv* globaldir))))
 
   (when (probe-file *local-systems-csv*)
     (let ((timestamp (file-write-date *local-systems-csv*)))
       (when (> timestamp *local-systems-csv-timestamp*)
         (handler-case
             (progn
-              (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
-              (setq *local-systems-csv-timestamp* timestamp))
+              (setf *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
+              (setf *local-systems-csv-timestamp* timestamp))
           (error (e)
             (when (should-log)
               (format *verbose* "; Error reading local systems CSV ~A: ~A~%" *local-systems-csv* e)))))))
@@ -258,18 +266,19 @@
       (when (> timestamp *global-systems-csv-timestamp*)
         (handler-case
             (progn
-              (setq *global-ocicl-systems* (read-systems-csv *global-systems-csv*))
-              (setq *global-systems-csv-timestamp* timestamp))
+              (setf *global-ocicl-systems* (read-systems-csv *global-systems-csv*))
+              (setf *global-systems-csv-timestamp* timestamp))
           (error (e)
             (when (should-log)
               (format *verbose* "; Error reading global systems CSV ~A: ~A~%" *global-systems-csv* e))))))))
 
 (defun find-asdf-system-file (name download-p)
+  "Find ASDF system file for NAME, optionally downloading if DOWNLOAD-P is true."
   (initialize-globals)
   (labels ((try-load (systems systems-dir)
              (let ((match (and systems (gethash (mangle name) systems))))
-               (if match
-                   (let ((pn (merge-pathnames (cdr match) systems-dir)))
+               (when match
+                   (let ((pn (merge-pathnames (rest match) systems-dir)))
                      (when (should-log)
                        (format *verbose* "; checking for ~A: " pn))
                      (let ((found (probe-file pn)))
@@ -282,15 +291,17 @@
         (try-load *global-ocicl-systems* *global-systems-dir*)
         (when download-p
           (ocicl-install name)
-          (setq *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
+          (setf *local-ocicl-systems* (read-systems-csv *local-systems-csv*))
           (find-asdf-system-file name nil)))))
 
-(defun starts-with? (prefix string)
+(defun starts-with-p (prefix string)
+  "Return true if STRING starts with PREFIX."
   (and (<= (length prefix) (length string))
        (string= prefix (subseq string 0 (length prefix)))))
 
 (defun system-definition-searcher (name)
-  (unless (or (starts-with? "asdf/" name) (string= "asdf" name) (string= "uiop" name))
+  "Search for ASDF system definition file for NAME, using ocicl if needed."
+  (unless (or (starts-with-p "asdf/" name) (string= "asdf" name) (string= "uiop" name))
     (let* ((*verbose* (or *verbose* asdf:*verbose-out*))
            (system-file (find-asdf-system-file name *download*)))
       (when (and system-file
@@ -302,6 +313,7 @@
               (list 'system-definition-searcher)))
 
 (defun system-list ()
+  "Return list of all known system names from local and global registries."
   (initialize-globals)
   (append (when *local-ocicl-systems*
             (loop for key being the hash-keys of *local-ocicl-systems*
