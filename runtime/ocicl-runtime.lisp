@@ -277,7 +277,7 @@
   "Find ASDF system file for NAME, optionally downloading if DOWNLOAD-P is true."
   (initialize-globals)
   (labels ((try-load (systems systems-dir)
-             (let ((match (and systems (gethash (mangle name) systems))))
+             (let ((match (and systems (gethash (mangle name) systems)))) ; lint:suppress
                (when match
                    (let ((pn (merge-pathnames (rest match) systems-dir)))
                      (when (should-log)

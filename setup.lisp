@@ -22,17 +22,17 @@
 (defmacro safe-delete-file (filename)
   "Delete FILENAME if it exists, otherwise do nothing."
   (let ((filename (pathname filename)))
-    (and (probe-file filename) (delete-file filename))))
+    (and (probe-file filename) (delete-file filename)))) ; lint:suppress use-uiop-file-exists-p
 
 (defmacro safe-delete-directory (dirname)
   "Delete directory DIRNAME if it exists, otherwise do nothing."
   (let ((dirname (pathname dirname)))
-    (and (probe-file dirname) (uiop:delete-directory-tree dirname :validate t))))
+    (and (probe-file dirname) (uiop:delete-directory-tree dirname :validate t)))) ; lint:suppress use-uiop-file-exists-p
 
 (defun safe-timestamp (filename)
   "Return timestamp of FILENAME if it exists, otherwise return NIL."
   (let ((filename (pathname filename)))
-    (and (probe-file filename) (file-write-date filename))))
+    (and (probe-file filename) (file-write-date filename)))) ; lint:suppress use-uiop-file-exists-p
 
 (defun newest-file-timestamp (patterns)
   "Returns the timestamp of the newest file matching any of the given glob patterns."
@@ -61,13 +61,13 @@
                          (list :source-registry :inherit-configuration ~
                          (list :tree (uiop:getcwd)))) ~
                          (asdf:make :ocicl) (sb-ext:quit))\""
-              (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl"))
+              (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl")) ; lint:suppress
               (if (boundp 'common-lisp-user::+dynamic-space-size+)
                   (symbol-value 'common-lisp-user::+dynamic-space-size+)
                   3072))
       (terpri)
       (uiop:run-program
-       (list (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl"))
+       (list (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl")) ; lint:suppress
              "--dynamic-space-size"
              (format nil "~A" (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
              "--no-userinit"
