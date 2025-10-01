@@ -125,13 +125,20 @@ Returns a list of issues."
                          (format nil "Use (UNLESS ~A ...) instead of (WHEN (NOT ~A) ...)"
                                  (second (second form)) (second (second form)))))
 
-            ;; Suggest ALEXANDRIA:WHEN-LET for conditional binding patterns
-            (when (and (eq head 'when)
-                       (consp (second form))
-                       (eq (first (second form)) 'not)
-                       (consp (second (second form)))
-                       (eq (first (second (second form))) 'null))
-              (push-iss ln col "use-alexandria"
+            ;; Suggest ALEXANDRIA:WHEN-LET for (let ((var expr)) (when var ...)) patterns
+            (when (and (eq head 'let)
+                       (library-suggestions-enabled-p "alexandria")
+                       (consp (second form))  ; has bindings
+                       (= (length (second form)) 1)  ; single binding
+                       (consp (first (second form)))  ; binding is a list
+                       (= (length (first (second form))) 2)  ; (var expr) form
+                       (>= (length form) 3)  ; has body
+                       (consp (third form))  ; body starts with a form
+                       (eq (first (third form)) 'when)  ; body is (when ...)
+                       (>= (length (third form)) 3)  ; when has test and body
+                       (symbolp (second (third form)))  ; when test is a symbol
+                       (eq (second (third form)) (first (first (second form)))))  ; same var
+              (push-iss ln col "use-alexandria-when-let"
                         "Consider using ALEXANDRIA:WHEN-LET for conditional binding"))
 
              ;; (unless (not ...)) -> when

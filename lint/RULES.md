@@ -136,7 +136,7 @@
 106. multiple-optionals - Multiple optional arguments get confusing (use &KEY)
 107. multiple-value-list - Multiple values avoid consing - MULTIPLE-VALUE-LIST defeats this
 108. constant-bad-eof - Don't use constants for EOF markers (use local variable)
-109. use-alexandria - Consider using Alexandria library function
+109. use-alexandria-when-let - Suggest ALEXANDRIA:WHEN-LET for (let ((x ...)) (when x ...))
 110. malformed-let - Malformed LET/LET* binding structures
 111. unused-parameter - Parameter is unused (add (declare (ignore ...)) if intentional)
 

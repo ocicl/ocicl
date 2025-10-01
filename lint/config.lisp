@@ -12,7 +12,8 @@
   "Configuration structure for cl-lint settings."
   (max-line-length 120)
   (suppressed-rules nil)
-  (supported-dispatch-chars nil))
+  (supported-dispatch-chars nil)
+  (suggest-libraries nil))  ; List of libraries to suggest (e.g., "alexandria" "uiop")
 
 (defparameter *default-config* (make-cl-lint-config)
   "Default configuration when no config file is found.")
@@ -83,6 +84,9 @@
                        ((string-equal key "supported-dispatch-chars")
                         (setf (cl-lint-config-supported-dispatch-chars config)
                               (parse-rule-list value)))
+                       ((string-equal key "suggest-libraries")
+                        (setf (cl-lint-config-suggest-libraries config)
+                              (parse-rule-list value)))
                        (t
                         (when *verbose*
                           (logf "; config: unknown setting ~A~%" key))))))))))
@@ -122,6 +126,14 @@
 (defun config-supported-dispatch-chars ()
   "Get the list of supported dispatch sub-characters."
   (cl-lint-config-supported-dispatch-chars (get-config)))
+
+(defun config-suggest-libraries ()
+  "Get the list of libraries to suggest."
+  (cl-lint-config-suggest-libraries (get-config)))
+
+(defun library-suggestions-enabled-p (library-name)
+  "Check if suggestions for LIBRARY-NAME are enabled in the configuration."
+  (member library-name (config-suggest-libraries) :test #'string-equal))
 
 (defun rule-suppressed-p (rule-name)
   "Check if a rule is globally suppressed in the current configuration."
