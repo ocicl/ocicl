@@ -191,7 +191,7 @@ using the library versions locked in your ``ocicl.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.7.2 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.7.3 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
              [-c|--color WHEN] [-d|--depth NUM] [-k|--insecure] command
