@@ -10,13 +10,13 @@
 
 **#153 (cdr/rest)** - ✓ FIXED: All rules now treat CAR/CDR and FIRST/REST equivalently.
 
-**#154 (setf-incf generalization)** - Good idea to generalize to all places, not just simple variables.
+**#154 (setf-incf generalization)** - ✓ FIXED: setf-incf now works with all place forms, not just simple variables.
 
 **#155 (use-identity message)** - ✓ ALREADY DONE: Already uses `#'IDENTITY` with the function quote.
 
 **#158 (quoted atoms)** - ✓ ALREADY DONE: Comprehensive rules already exist for nil, t, keywords, and numbers.
 
-**#161 (setq-incf/setf-incf)** - Good question about combining these. Also why no `setq-decf`?
+**#161 (setq-incf/setf-incf)** - ✓ FIXED: Combined logic, added setq-decf, removed duplicate rule.
 
 **#162 (redundant lambda-list rules)** - ✓ FIXED: Removed redundant lambda-list-optional-and-key rule.
 
@@ -37,15 +37,16 @@
 These issues reveal a pattern: **the linter is too opinionated**. Many rules enforce style preferences that are valid in certain contexts. I recommend:
 
 1. Add configuration system for rule severity/enabling
-2. Fix remaining technical issues (#154, #161)
-3. Consider "beginner" vs "advanced" rule sets (#171)
-4. Make some rules (like docstring requirements) context-aware (#163)
+2. Consider "beginner" vs "advanced" rule sets (#171)
+3. Make some rules (like docstring requirements) context-aware (#163)
 
 ## Completed
 
 - ✓ #153: CAR/CDR and FIRST/REST now treated equivalently in all rules
+- ✓ #154: setf-incf generalized to work with all place forms
 - ✓ #155: use-identity already uses #'IDENTITY (was already done)
 - ✓ #158: Quoted atoms already comprehensively handled (was already done)
+- ✓ #161: Combined setq-incf/setf-incf, added setq-decf
 - ✓ #162: Removed redundant lambda-list-optional-and-key rule
 - ✓ #167: All messages consistently phrased as statements (was already done)
 - ✓ #169: cons-list message now shows actual values
