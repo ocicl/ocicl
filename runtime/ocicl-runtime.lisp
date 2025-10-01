@@ -38,9 +38,9 @@
                                                  (machine-type)))))
     (handler-bind ((warning #'muffle-warning))
       (cond
-        ((probe-file asdf-fasl)
+        ((uiop:file-exists-p asdf-fasl)
          (load asdf-fasl :verbose nil))
-        ((probe-file asdf-file)
+        ((uiop:file-exists-p asdf-file)
          (load (compile-file asdf-file :verbose nil :output-file asdf-fasl) :verbose nil))
         (t nil)))
     (unless (asdf:version-satisfies (asdf:asdf-version) "3.3.5")
@@ -215,7 +215,8 @@
         for parent-dir = (parent dir)
         for systems-csv = (merge-pathnames (make-pathname :name "systems" :type "csv") dir)
         for ocicl-csv = (merge-pathnames (make-pathname :name "ocicl" :type "csv") dir)
-        for existing-csv = (or (probe-file ocicl-csv) (probe-file systems-csv))
+        ;; Need pathname return value, not just boolean
+        for existing-csv = (or (probe-file ocicl-csv) (probe-file systems-csv)) ; lint:suppress use-uiop-file-exists-p
         until (or existing-csv
                   (null parent-dir)
                   (equal parent-dir dir))
@@ -238,7 +239,7 @@
 
   (unless *global-systems-dir*
     (let* ((config-file (merge-pathnames "ocicl-globaldir.cfg" (get-ocicl-dir)))
-           (globaldir (if (probe-file config-file)
+           (globaldir (if (uiop:file-exists-p config-file)
                           (handler-case
                               (uiop:ensure-absolute-pathname (uiop:read-file-line config-file))
                             (error (e)
@@ -250,7 +251,7 @@
       (setf *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir))
       (setf *global-systems-csv* (merge-pathnames *systems-csv* globaldir))))
 
-  (when (probe-file *local-systems-csv*)
+  (when (uiop:file-exists-p *local-systems-csv*)
     (let ((timestamp (file-write-date *local-systems-csv*)))
       (when (> timestamp *local-systems-csv-timestamp*)
         (handler-case
@@ -261,7 +262,7 @@
             (when (should-log)
               (format *verbose* "; Error reading local systems CSV ~A: ~A~%" *local-systems-csv* e)))))))
 
-  (when (probe-file *global-systems-csv*)
+  (when (uiop:file-exists-p *global-systems-csv*)
     (let ((timestamp (file-write-date *global-systems-csv*)))
       (when (> timestamp *global-systems-csv-timestamp*)
         (handler-case
@@ -281,12 +282,11 @@
                    (let ((pn (merge-pathnames (rest match) systems-dir)))
                      (when (should-log)
                        (format *verbose* "; checking for ~A: " pn))
-                     (let ((found (probe-file pn)))
-                       (if found
-                           (progn
-                             (when (should-log) (format *verbose* "found~%"))
-                             pn)
-                           (when (should-log) (format *verbose* "missing~%")))))))))
+                     (if (uiop:file-exists-p pn)
+                         (progn
+                           (when (should-log) (format *verbose* "found~%"))
+                           pn)
+                         (when (should-log) (format *verbose* "missing~%")))))))))
     (or (try-load *local-ocicl-systems* *local-systems-dir*)
         (try-load *global-ocicl-systems* *global-systems-dir*)
         (when download-p
