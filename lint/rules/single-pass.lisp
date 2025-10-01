@@ -15,36 +15,36 @@
     (when (null flat-nodes)
       (let ((acc nil))
         (let ((stack (mapcar (lambda (tree) (list tree nil))
-                            (copy-list (parse-context-parse-trees ctx)))))
+                             (copy-list (parse-context-parse-trees ctx)))))
           (loop while stack do
-               (let* ((item (pop stack))
-                      (tree (first item))
-                      (quoted-p (second item)))
-                 (when (and (listp tree) (getf tree :form))
-                   (let* ((form (getf tree :form))
-                          (source (getf tree :source))
-                          (children (getf tree :children))
-                          (file-pos (if (consp source) (first source) source))
-                          (new-quoted-p (or quoted-p
-                                            (and (consp form) (eq (first form) 'quote)))))
-                     (when (and file-pos (numberp file-pos))
-                       (let ((computed-line
-                              (nth-value 0 (index->line/col
-                                            file-pos (parse-context-line-index ctx))))
-                             (computed-column
-                              (nth-value 1 (index->line/col
-                                            file-pos (parse-context-line-index ctx)))))
-                         (when (or (not (numberp computed-line))
-                                   (not (numberp computed-column)))
-                           (format *error-output*
-                                   "; BUG: non-numeric position for form ~S: line=~S col=~S ~
+                (let* ((item (pop stack))
+                       (tree (first item))
+                       (quoted-p (second item)))
+                  (when (and (listp tree) (getf tree :form))
+                    (let* ((form (getf tree :form))
+                           (source (getf tree :source))
+                           (children (getf tree :children))
+                           (file-pos (if (consp source) (first source) source))
+                           (new-quoted-p (or quoted-p
+                                             (and (consp form) (eq (first form) 'quote)))))
+                      (when (and file-pos (numberp file-pos))
+                        (let ((computed-line
+                               (nth-value 0 (index->line/col
+                                             file-pos (parse-context-line-index ctx))))
+                              (computed-column
+                               (nth-value 1 (index->line/col
+                                             file-pos (parse-context-line-index ctx)))))
+                          (when (or (not (numberp computed-line))
+                                    (not (numberp computed-column)))
+                            (format *error-output*
+                                    "; BUG: non-numeric position for form ~S: line=~S col=~S ~
                                     file-pos=~S~%"
-                                   form computed-line computed-column file-pos))
-                         (push (list form computed-line computed-column quoted-p) acc)))
-                     (when children
-                       ;; push children onto stack with inherited quote context
-                       (setf stack (nconc (mapcar (lambda (child) (list child new-quoted-p))
-                                                  (copy-list children)) stack))))))))
+                                    form computed-line computed-column file-pos))
+                          (push (list form computed-line computed-column quoted-p) acc)))
+                      (when children
+                        ;; push children onto stack with inherited quote context
+                        (setf stack (nconc (mapcar (lambda (child) (list child new-quoted-p))
+                                                   (copy-list children)) stack))))))))
         (setf flat-nodes (nreverse acc))
         (setf (parse-context-flat-nodes ctx) flat-nodes)))
     (dolist (quad flat-nodes)
@@ -99,7 +99,7 @@ Returns a list of issues."
                         (numberp (third form))
                         (eql (third form) 1))
                (push-iss ln col "minus-one"
-                        (format nil "Use (1- ~A) instead of (- ~A 1)" (second form) (second form))))
+                         (format nil "Use (1- ~A) instead of (- ~A 1)" (second form) (second form))))
 
              ;; (= x 0) -> (zerop x)
              (when (and (eq head '=)
@@ -125,21 +125,21 @@ Returns a list of issues."
                          (format nil "Use (UNLESS ~A ...) instead of (WHEN (NOT ~A) ...)"
                                  (second (second form)) (second (second form)))))
 
-            ;; Suggest ALEXANDRIA:WHEN-LET for (let ((var expr)) (when var ...)) patterns
-            (when (and (eq head 'let)
-                       (library-suggestions-enabled-p "alexandria")
-                       (consp (second form))  ; has bindings
-                       (= (length (second form)) 1)  ; single binding
-                       (consp (first (second form)))  ; binding is a list
-                       (= (length (first (second form))) 2)  ; (var expr) form
-                       (>= (length form) 3)  ; has body
-                       (consp (third form))  ; body starts with a form
-                       (eq (first (third form)) 'when)  ; body is (when ...)
-                       (>= (length (third form)) 3)  ; when has test and body
-                       (symbolp (second (third form)))  ; when test is a symbol
-                       (eq (second (third form)) (first (first (second form)))))  ; same var
-              (push-iss ln col "use-alexandria-when-let"
-                        "Consider using ALEXANDRIA:WHEN-LET for conditional binding"))
+             ;; Suggest ALEXANDRIA:WHEN-LET for (let ((var expr)) (when var ...)) patterns
+             (when (and (eq head 'let)
+                        (library-suggestions-enabled-p "alexandria")
+                        (consp (second form))  ; has bindings
+                        (= (length (second form)) 1)  ; single binding
+                        (consp (first (second form)))  ; binding is a list
+                        (= (length (first (second form))) 2)  ; (var expr) form
+                        (>= (length form) 3)  ; has body
+                        (consp (third form))  ; body starts with a form
+                        (eq (first (third form)) 'when)  ; body is (when ...)
+                        (>= (length (third form)) 3)  ; when has test and body
+                        (symbolp (second (third form)))  ; when test is a symbol
+                        (eq (second (third form)) (first (first (second form)))))  ; same var
+               (push-iss ln col "use-alexandria-when-let"
+                         "Consider using ALEXANDRIA:WHEN-LET for conditional binding"))
 
              ;; Suggest ALEXANDRIA:IF-LET for (let ((var expr)) (if var ... ...)) patterns
              (when (and (eq head 'let)
@@ -342,8 +342,8 @@ Returns a list of issues."
                         (= (length form) 3)
                         (or (and (consp (second form)) (eq (first (second form)) 'char-downcase))
                             (and (consp (third form)) (eq (first (second form)) 'char-downcase))))
-              (push-iss ln col "use-char-equal"
-                        "Use CHAR-EQUAL for case-insensitive character comparison"))
+               (push-iss ln col "use-char-equal"
+                         "Use CHAR-EQUAL for case-insensitive character comparison"))
 
              ;; OR of many (EQL X v) -> MEMBER
              (when (and (eq head 'or)
@@ -371,30 +371,30 @@ Returns a list of issues."
              ;;   (push-iss ln col "apply-for-funcall"
              ;;            "Use FUNCALL instead of APPLY with non-list arguments"))
 
-            ;; COND with single clause -> IF
-            (when (and (eq head 'cond)
-                       (= (length form) 2))
-              (push-iss ln col "cond-vs-if" "Use IF instead of COND with single clause"))
+             ;; COND with single clause -> IF
+             (when (and (eq head 'cond)
+                        (= (length form) 2))
+               (push-iss ln col "cond-vs-if" "Use IF instead of COND with single clause"))
 
-            ;; COND without default -> warn
-            (when (and (eq head 'cond)
-                       (> (length form) 1))
-              (let ((last-clause (first (last (rest form)))))
-                (unless (and last-clause (member (first last-clause) '(t otherwise)))
-                  (push-iss ln col "cond-without-default" "COND without T or OTHERWISE clause"))))
+             ;; COND without default -> warn
+             (when (and (eq head 'cond)
+                        (> (length form) 1))
+               (let ((last-clause (first (last (rest form)))))
+                 (unless (and last-clause (member (first last-clause) '(t otherwise)))
+                   (push-iss ln col "cond-without-default" "COND without T or OTHERWISE clause"))))
 
-            ;; COND of multiple TYPEP tests -> TYPECASE
-            (when (and (eq head 'cond)
-                       (>= (length (rest form)) 2)
-                       (every (lambda (clause)
-                                (and (consp clause)
-                                     (consp (first clause))
-                                     (eq (first (first clause)) 'typep)))
-                              (rest form)))
-              (when *verbose*
-                (logf "; single-pass: matched COND->TYPECASE at ~D:~D: ~S~%" ln col form))
-              (push-iss ln col "use-typecase"
-                        "Use TYPECASE instead of COND with multiple TYPEP tests"))
+             ;; COND of multiple TYPEP tests -> TYPECASE
+             (when (and (eq head 'cond)
+                        (>= (length (rest form)) 2)
+                        (every (lambda (clause)
+                                 (and (consp clause)
+                                      (consp (first clause))
+                                      (eq (first (first clause)) 'typep)))
+                               (rest form)))
+               (when *verbose*
+                 (logf "; single-pass: matched COND->TYPECASE at ~D:~D: ~S~%" ln col form))
+               (push-iss ln col "use-typecase"
+                         "Use TYPECASE instead of COND with multiple TYPEP tests"))
 
              ;; EQUAL with NIL -> NULL/NOT
              (when (and (eq head 'equal)
@@ -449,7 +449,8 @@ Returns a list of issues."
                          (not (eq (car (last args)) t))
                          (> (length args) 2))
                     (push-iss ln col "and-or-simplification" "Redundant T in AND expression"))
-                   (t nil)))))
+                   (t nil))))
+             
              (when (and (eq head 'or)
                         (> (length form) 2))
                (let ((args (rest form)))
@@ -465,7 +466,7 @@ Returns a list of issues."
                          (not (eq (car (last args)) nil))
                          (> (length args) 2))
                     (push-iss ln col "and-or-simplification" "Redundant NIL in OR expression"))
-                   (t nil)))))
+                   (t nil))))
 
              ;; TYPEP with primitive types T or NIL
              (when (and (eq head 'typep)
@@ -483,9 +484,9 @@ Returns a list of issues."
                         (equal (second form) (second (third form))))
                (let ((place (second form)) (amount (third (third form))))
                  (push-iss ln col (if (eq head 'setf) "setf-decf" "setq-decf")
-                          (format nil "Use (DECF ~A~@[ ~A~]) instead of (~A ~A (- ~A ~A))"
-                                  place (unless (eql amount 1) amount)
-                                  (string-upcase (symbol-name head)) place place amount))))
+                           (format nil "Use (DECF ~A~@[ ~A~]) instead of (~A ~A (- ~A ~A))"
+                                   place (unless (eql amount 1) amount)
+                                   (string-upcase (symbol-name head)) place place amount))))
 
              ;; Unnecessary (lambda (x) (f x)) wrappers on map fns
              (when (and (member head '(mapcar mapc mapcan maplist mapcon))
@@ -504,13 +505,13 @@ Returns a list of issues."
 
              ;; OPEN/CLOSE in LET -> use WITH-OPEN-FILE
              (when (and (member head '(let let*))
-                       (consp (second form))
-                       (some (lambda (binding)
-                               (and (consp binding)
-                                    (consp (rest binding))
-                                    (consp (second binding))
-                                    (eq (first (second binding)) 'open)))
-                             (second form)))
+                        (consp (second form))
+                        (some (lambda (binding)
+                                (and (consp binding)
+                                     (consp (rest binding))
+                                     (consp (second binding))
+                                     (eq (first (second binding)) 'open)))
+                              (second form)))
                (when *verbose*
                  (logf "; single-pass: matched LET OPEN at ~D:~D: ~S~%" ln col form))
                (push-iss ln col "use-with-open-file" "Use WITH-OPEN-FILE instead of manual OPEN/CLOSE"))
@@ -555,7 +556,7 @@ Returns a list of issues."
                                ;; Allow leading (declare ...) forms in the body
                                (body* (let ((b body))
                                         (loop while (and b (consp (first b)) (eq (caar b) 'declare)) do
-                                             (setf b (rest b)))
+                                              (setf b (rest b)))
                                         b)))
                           (and (= (length body*) 1)
                                (let* ((call (first body*)))
@@ -577,7 +578,7 @@ Returns a list of issues."
                       (body (cddr form))
                       (body* (let ((b body))
                                (loop while (and b (consp (first b)) (eq (caar b) 'declare)) do
-                                    (setf b (rest b)))
+                                     (setf b (rest b)))
                                b))
                       (call (first body*))
                       (fn (cond
@@ -656,6 +657,7 @@ Returns a list of issues."
                      (progn (parse-destructuring-bind pattern source body) nil)
                    (condition (c1)
                      (push-iss ln col "destructuring-bind-invalid" (princ-to-string c1))))))
+             
              (when (member head '(defun defmacro))
                (let ((lambda-list (third form)))
                  (handler-case
@@ -757,23 +759,6 @@ Returns a list of issues."
                  (unless doc-p
                    (push-iss ln col "missing-docstring"
                              (format nil "defpackage ~A missing :documentation option" name)))))
-
-             ;; ===== ADDITIONAL LISP-CRITIC RULES =====
-
-             ;; Sets global variables - DISABLED (too many false positives without lexical scope analysis)
-             ;; (when (and (member head '(setq setf))
-             ;;            (>= (length form) 3)
-             ;;            (symbolp (second form))
-             ;;            (not (boundp (second form))))
-             ;;   (push-iss ln col "sets-globals"
-             ;;             (format nil "Don't use global variables: ~S" (second form))))
-
-             ;; Sets parameters - DISABLED (too many false positives without lexical scope analysis)
-             ;; (when (and (member head '(setq setf incf decf))
-             ;;            (>= (length form) 3)
-             ;;            (symbolp (second form)))
-             ;;   (push-iss ln col "sets-parameters"
-             ;;             (format nil "Bad style to reassign variables like ~S" (second form))))
 
              ;; TYPEP with primitive types
              (when (and (eq head 'typep)
@@ -1340,12 +1325,8 @@ Returns a list of issues."
                                           branches)
                                 3))
                    (push-iss ln col "use-alexandria-switch"
-                             (format nil "Consider using ALEXANDRIA:SWITCH for COND with multiple ~A tests" test-fn)))))
+                             (format nil "Consider using ALEXANDRIA:SWITCH for COND with multiple ~A tests" test-fn))))))))))
 
-             ;; Suggest ALEXANDRIA:MAPHASH-KEYS for (maphash (lambda (k v) (declare (ignore v)) ...) table)
-             ;; This is complex to detect reliably, skipping for now
+      (nreverse issues)))
 
-             ;; INSERT MORE RULES HERE
 
-             )))))
-    (nreverse issues)))
