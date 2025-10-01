@@ -1204,6 +1204,26 @@ Returns a list of issues."
                (push-iss ln col "use-alexandria-ensure-car"
                          "Consider using ALEXANDRIA:ENSURE-CAR for (IF (CONSP x) (CAR x) x)"))
 
+             ;; Suggest SERAPEUM:NOR for (not (or ...))
+             (when (and (eq head 'not)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 2)
+                        (consp (second form))
+                        (eq (first (second form)) 'or)
+                        (>= (length (second form)) 3))
+               (push-iss ln col "use-serapeum-nor"
+                         "Consider using SERAPEUM:NOR for (NOT (OR ...))"))
+
+             ;; Suggest SERAPEUM:NAND for (not (and ...))
+             (when (and (eq head 'not)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 2)
+                        (consp (second form))
+                        (eq (first (second form)) 'and)
+                        (>= (length (second form)) 3))
+               (push-iss ln col "use-serapeum-nand"
+                         "Consider using SERAPEUM:NAND for (NOT (AND ...))"))
+
              ;; INSERT MORE RULES HERE
 
              )))))
