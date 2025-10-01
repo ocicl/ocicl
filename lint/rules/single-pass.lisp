@@ -1224,6 +1224,58 @@ Returns a list of issues."
                (push-iss ln col "use-serapeum-nand"
                          "Consider using SERAPEUM:NAND for (NOT (AND ...))"))
 
+             ;; Suggest SERAPEUM:FILTER-MAP for (remove nil (mapcar ...))
+             (when (and (eq head 'remove)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 3)
+                        (null (second form))
+                        (consp (third form))
+                        (eq (first (third form)) 'mapcar))
+               (push-iss ln col "use-serapeum-filter-map"
+                         "Consider using SERAPEUM:FILTER-MAP for (REMOVE NIL (MAPCAR ...))"))
+
+             ;; Suggest SERAPEUM:CAR-SAFE for (if (consp x) (car x) nil)
+             (when (and (eq head 'if)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 4)
+                        (consp (second form))
+                        (eq (first (second form)) 'consp)
+                        (= (length (second form)) 2)
+                        (symbolp (second (second form)))
+                        (consp (third form))
+                        (eq (first (third form)) 'car)
+                        (= (length (third form)) 2)
+                        (eq (second (third form)) (second (second form)))
+                        (null (fourth form)))
+               (push-iss ln col "use-serapeum-car-safe"
+                         "Consider using SERAPEUM:CAR-SAFE for (IF (CONSP x) (CAR x) NIL)"))
+
+             ;; Suggest SERAPEUM:CDR-SAFE for (if (consp x) (cdr x) nil)
+             (when (and (eq head 'if)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 4)
+                        (consp (second form))
+                        (eq (first (second form)) 'consp)
+                        (= (length (second form)) 2)
+                        (symbolp (second (second form)))
+                        (consp (third form))
+                        (eq (first (third form)) 'cdr)
+                        (= (length (third form)) 2)
+                        (eq (second (third form)) (second (second form)))
+                        (null (fourth form)))
+               (push-iss ln col "use-serapeum-cdr-safe"
+                         "Consider using SERAPEUM:CDR-SAFE for (IF (CONSP x) (CDR x) NIL)"))
+
+             ;; Suggest SERAPEUM:APPEND1 for (append list (list item))
+             (when (and (eq head 'append)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 3)
+                        (consp (third form))
+                        (eq (first (third form)) 'list)
+                        (= (length (third form)) 2))
+               (push-iss ln col "use-serapeum-append1"
+                         "Consider using SERAPEUM:APPEND1 for (APPEND list (LIST item))"))
+
              ;; INSERT MORE RULES HERE
 
              )))))

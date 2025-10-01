@@ -129,7 +129,7 @@
 101. quote-true - Use T instead of 'TRUE
 102. quote-keyword - Keywords are self-evaluating (no need to quote)
 
-## Advanced & Safety (19 rules)
+## Advanced & Safety (23 rules)
 103. case-duplicate-key - Duplicate CASE key detected
 104. destructive-on-constant - Destructive operation on constant data
 105. substitute-use - SUBSTITUTE copies entire sequence (use only when necessary)
@@ -146,8 +146,12 @@
 116. use-alexandria-ensure-car - Suggest ALEXANDRIA:ENSURE-CAR for (if (consp x) (car x) x)
 117. use-serapeum-nor - Suggest SERAPEUM:NOR for (not (or ...))
 118. use-serapeum-nand - Suggest SERAPEUM:NAND for (not (and ...))
-119. use-uiop-file-exists-p - Suggest UIOP:FILE-EXISTS-P instead of PROBE-FILE
-120. use-uiop-read-file - Suggest UIOP:READ-FILE-STRING/LINES for file reading
-121. malformed-let - Malformed LET/LET* binding structures
-122. unused-parameter - Parameter is unused (add (declare (ignore ...)) if intentional)
+119. use-serapeum-filter-map - Suggest SERAPEUM:FILTER-MAP for (remove nil (mapcar ...))
+120. use-serapeum-car-safe - Suggest SERAPEUM:CAR-SAFE for (if (consp x) (car x) nil)
+121. use-serapeum-cdr-safe - Suggest SERAPEUM:CDR-SAFE for (if (consp x) (cdr x) nil)
+122. use-serapeum-append1 - Suggest SERAPEUM:APPEND1 for (append list (list item))
+123. use-uiop-file-exists-p - Suggest UIOP:FILE-EXISTS-P instead of PROBE-FILE
+124. use-uiop-read-file - Suggest UIOP:READ-FILE-STRING/LINES for file reading
+125. malformed-let - Malformed LET/LET* binding structures
+126. unused-parameter - Parameter is unused (add (declare (ignore ...)) if intentional)
 
