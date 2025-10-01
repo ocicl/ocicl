@@ -68,22 +68,22 @@
                                    (lambda () (rule-whitespace-around-parens path lines)))
                              (safe 'consecutive-closing-parens
                                    (lambda () (rule-consecutive-closing-parens path lines))))))
-                (setf chunks (nconc chunks
-                                    (list
-                                     (safe 'naming-and-packages
-                                           (lambda ()
-                                             (rule-naming-and-packages path forms-with-pos)))
-                                     (safe 'lambda-list-ecclesia
-                                           (lambda ()
-                                             (rule-lambda-list-ecclesia path forms-with-pos)))
-                                     (safe 'unused-parameters
-                                           (lambda () (rule-unused-parameters path forms-with-pos)))
-                                     (safe 'let-validation
-                                           (lambda () (rule-let-validation path forms-with-pos)))
-                                     (safe 'single-pass-core
-                                           (lambda ()
-                                             (run-single-pass-visitors-ctx
-                                              path %%parse-context))))))
+                (nconcf chunks
+                        (list
+                         (safe 'naming-and-packages
+                               (lambda ()
+                                 (rule-naming-and-packages path forms-with-pos)))
+                         (safe 'lambda-list-ecclesia
+                               (lambda ()
+                                 (rule-lambda-list-ecclesia path forms-with-pos)))
+                         (safe 'unused-parameters
+                               (lambda () (rule-unused-parameters path forms-with-pos)))
+                         (safe 'let-validation
+                               (lambda () (rule-let-validation path forms-with-pos)))
+                         (safe 'single-pass-core
+                               (lambda ()
+                                 (run-single-pass-visitors-ctx
+                                  path %%parse-context)))))
                 (let ((issues (apply #'append chunks)))
                   (sort-issues-by-position (filter-suppressed-issues issues lines))))))))
     (error (e5)
@@ -94,10 +94,10 @@
    Supports syntax: ; lint:suppress rule1 rule2 rule3
    Or: ; lint:suppress (alone) to suppress all rules"
   (when-let ((comment-pos (position #\; line)))
-    (let ((comment-part (subseq line comment-pos)))
+    (let ((comment-part (drop comment-pos line)))
       (when (search "lint:suppress" comment-part :test #'char-equal)
           (let* ((suppress-pos (search "lint:suppress" comment-part :test #'char-equal))
-                 (after-suppress (subseq comment-part (+ suppress-pos 13))) ; lint:suppress max-line-length
+                 (after-suppress (drop (+ suppress-pos 13) comment-part)) ; lint:suppress max-line-length
                  (rules-text (string-trim " \t" after-suppress))
                  (result (if (emptyp rules-text)
                              ;; Empty rules text means suppress all rules

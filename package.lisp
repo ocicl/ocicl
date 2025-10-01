@@ -29,4 +29,7 @@
   (:import-from #:alexandria
                 #:when-let
                 #:if-let)
+  (:import-from #:serapeum
+                #:take
+                #:drop)
   (:export main))

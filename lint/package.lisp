@@ -20,10 +20,12 @@
                 #:when-let
                 #:if-let
                 #:emptyp
-                #:switch)
+                #:switch
+                #:nconcf)
   (:import-from #:serapeum
                 #:nand
-                #:append1)
+                #:append1
+                #:drop)
   (:export #:lint-files))
 
 (in-package #:ocicl.lint)

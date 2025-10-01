@@ -55,9 +55,9 @@
            (start        (search "UNKNOWN" runtime)))
       (if start
           (concatenate 'string
-                       (subseq runtime 0 start)
+                       (serapeum:take start runtime)
                        (version-string:make-version-string :ocicl :include-git-p t)
-                       (subseq runtime (+ start 7)))
+                       (serapeum:drop (+ start 7) runtime))
           runtime)))
 
 (defparameter *builtin-templates*
@@ -211,7 +211,7 @@ Distributed under the terms of the MIT License"
 (defun get-up-to-first-slash (str)
   "Extract the substring up to the first slash in STR, returning the substring and position."
   (if-let ((pos (position #\/ str)))
-      (values (subseq str 0 pos) pos)
+      (values (take pos str) pos)
     (values str -1)))
 
 (defun get-repository-name (url)
@@ -235,7 +235,7 @@ Distributed under the terms of the MIT License"
   (and (stringp version)
        (> (length version) 9)
        (char= (char version 8) #\-)
-       (every #'digit-char-p (subseq version 0 8))))
+       (every #'digit-char-p (take 8 version))))
 
 (defun get-bearer-token (registry system)
   (handler-case

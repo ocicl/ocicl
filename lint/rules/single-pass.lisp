@@ -259,6 +259,75 @@ Returns a list of issues."
                            (format nil "Use (PUSH ~A ~A) instead of (SETF ~A (CONS ~A ~A))"
                                    item var var item var))))
 
+             ;; (setf place (remove item place)) -> (alexandria:removef place item)
+             (when (and (eq head 'setf)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (consp (third form))
+                        (eq (first (third form)) 'remove)
+                        (>= (length (third form)) 3)
+                        (equal (second form) (third (third form))))
+               (let ((place (second form))
+                     (item (second (third form))))
+                 (push-iss ln col "use-alexandria-removef"
+                           (format nil "Consider using (ALEXANDRIA:REMOVEF ~A ~A) instead of (SETF ~A (REMOVE ~A ~A))"
+                                   place item place item place))))
+
+             ;; (setf place (delete item place)) -> (alexandria:deletef place item)
+             (when (and (eq head 'setf)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (consp (third form))
+                        (eq (first (third form)) 'delete)
+                        (>= (length (third form)) 3)
+                        (equal (second form) (third (third form))))
+               (let ((place (second form))
+                     (item (second (third form))))
+                 (push-iss ln col "use-alexandria-deletef"
+                           (format nil "Consider using (ALEXANDRIA:DELETEF ~A ~A) instead of (SETF ~A (DELETE ~A ~A))"
+                                   place item place item place))))
+
+             ;; (setf place (reverse place)) -> (alexandria:reversef place)
+             (when (and (eq head 'setf)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (consp (third form))
+                        (eq (first (third form)) 'reverse)
+                        (= (length (third form)) 2)
+                        (equal (second form) (second (third form))))
+               (let ((place (second form)))
+                 (push-iss ln col "use-alexandria-reversef"
+                           (format nil "Consider using (ALEXANDRIA:REVERSEF ~A) instead of (SETF ~A (REVERSE ~A))"
+                                   place place place))))
+
+             ;; (setf place (append place more)) -> (alexandria:appendf place more)
+             (when (and (eq head 'setf)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (consp (third form))
+                        (eq (first (third form)) 'append)
+                        (>= (length (third form)) 3)
+                        (equal (second form) (second (third form))))
+               (let ((place (second form))
+                     (rest-args (cddr (third form))))
+                 (push-iss ln col "use-alexandria-appendf"
+                           (format nil "Consider using (ALEXANDRIA:APPENDF ~A~{ ~A~}) instead of (SETF ~A (APPEND ~A~{ ~A~}))"
+                                   place rest-args place place rest-args))))
+
+             ;; (setf place (nconc place more)) -> (alexandria:nconcf place more)
+             (when (and (eq head 'setf)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (consp (third form))
+                        (eq (first (third form)) 'nconc)
+                        (>= (length (third form)) 3)
+                        (equal (second form) (second (third form))))
+               (let ((place (second form))
+                     (rest-args (cddr (third form))))
+                 (push-iss ln col "use-alexandria-nconcf"
+                           (format nil "Consider using (ALEXANDRIA:NCONCF ~A~{ ~A~}) instead of (SETF ~A (NCONC ~A~{ ~A~}))"
+                                   place rest-args place place rest-args))))
+
              ;; (car (cdr x)) or (first (rest x)) -> (second x)
              (when (and (member head '(car first)) ; lint:suppress use-first-rest
                         (= (length form) 2)
