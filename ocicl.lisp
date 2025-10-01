@@ -121,10 +121,10 @@
    :long "depth"
    :meta-var "NUM"
    :arg-parser (lambda (arg)
-                 (cond ((equal arg "max") :max)
-                       ((ignore-errors (parse-integer arg)))
-                       (t (usage)
-                          (uiop:quit 1)))))
+                 (or (and (equal arg "max") :max)
+                     (ignore-errors (parse-integer arg))
+                     (progn (usage)
+                            (uiop:quit 1)))))
   (:name :insecure
    :description "allow insecure TLS (skip certificate verification)"
    :short #\k
