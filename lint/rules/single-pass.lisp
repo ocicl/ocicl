@@ -850,8 +850,11 @@ Returns a list of issues."
                         (= (length form) 3)
                         (consp (third form))
                         (eq (first (third form)) 'list))
-               (push-iss ln col "cons-list"
-                         "Use LIST with all arguments instead of (CONS x (LIST ...))"))
+               (let* ((first-elem (second form))
+                      (rest-elems (rest (third form))))
+                 (push-iss ln col "cons-list"
+                           (format nil "Use (LIST ~S~{ ~S~}) instead of (CONS ~S (LIST~{ ~S~}))"
+                                   first-elem rest-elems first-elem rest-elems))))
 
              ;; (APPEND (LIST x) y) -> (CONS x y)
              (when (and (eq head 'append)
@@ -871,7 +874,7 @@ Returns a list of issues."
                         (eq (first (second form)) 'quote)
                         (eq (second (second form)) 'list))
                (push-iss ln col "concatenate-list"
-                         "Use CONS/APPEND for list construction instead of CONCATENATE"))
+                         "Use APPEND for list construction instead of CONCATENATE"))
 
              ;; (CONS (CONS x y) z) -> (ACONS x y z)
              (when (and (eq head 'cons)

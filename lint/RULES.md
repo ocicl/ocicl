@@ -75,7 +75,7 @@
 58. nth-for-cdr - Use NTH instead of nested CDRs
 59. nth-on-list - NTH is expensive on lists (use FIRST/REST or pointer access)
 60. cons-with-nil - Use (LIST x) instead of (CONS x NIL)
-61. cons-list - Use LIST with all arguments instead of (CONS x (LIST ...))
+61. cons-list - Use (LIST ...) instead of (CONS x (LIST ...))
 62. cons-cons-acons - Use ACONS instead of (CONS (CONS ...))
 63. append-single - Use COPY-LIST instead of (APPEND x NIL)
 64. append-list-list - Use (CONS x y) instead of (APPEND (LIST x) y)
