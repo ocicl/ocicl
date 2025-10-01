@@ -450,7 +450,7 @@ Returns a list of issues."
                          (> (length args) 2))
                     (push-iss ln col "and-or-simplification" "Redundant T in AND expression"))
                    (t nil))))
-             
+
              (when (and (eq head 'or)
                         (> (length form) 2))
                (let ((args (rest form)))
@@ -657,7 +657,7 @@ Returns a list of issues."
                      (progn (parse-destructuring-bind pattern source body) nil)
                    (condition (c1)
                      (push-iss ln col "destructuring-bind-invalid" (princ-to-string c1))))))
-             
+
              (when (member head '(defun defmacro))
                (let ((lambda-list (third form)))
                  (handler-case
