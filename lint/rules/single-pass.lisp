@@ -172,23 +172,27 @@ Returns a list of issues."
                            (format nil "Use (PUSH ~A ~A) instead of (SETF ~A (CONS ~A ~A))"
                                    item var var item var))))
 
-             ;; (first (rest x)) -> (second x)
-             (when (and (eq head 'car)
+             ;; (car (cdr x)) or (first (rest x)) -> (second x)
+             (when (and (member head '(car first))
                         (= (length form) 2)
                         (consp (second form))
-                        (eq (first (second form)) 'cdr))
+                        (member (first (second form)) '(cdr rest)))
                (let ((expr (second (second form))))
                  (push-iss ln col "car-cdr"
-                           (format nil "Use (CADR ~A) instead of (CAR (CDR ~A))" expr expr))))
+                           (format nil "Use (CADR ~A) or (SECOND ~A) instead of (~A (~A ~A))"
+                                   expr expr (string-upcase (symbol-name head))
+                                   (string-upcase (symbol-name (first (second form)))) expr))))
 
-             ;; (rest (rest x)) -> (cddr x)
-             (when (and (eq head 'cdr)
+             ;; (cdr (cdr x)) or (rest (rest x)) -> (cddr x)
+             (when (and (member head '(cdr rest))
                         (= (length form) 2)
                         (consp (second form))
-                        (eq (first (second form)) 'cdr))
+                        (member (first (second form)) '(cdr rest)))
                (let ((expr (second (second form))))
                  (push-iss ln col "cdr-cdr"
-                           (format nil "Use (CDDR ~A) instead of (CDR (CDR ~A))" expr expr))))
+                           (format nil "Use (CDDR ~A) instead of (~A (~A ~A))"
+                                   expr (string-upcase (symbol-name head))
+                                   (string-upcase (symbol-name (first (second form)))) expr))))
 
              ;; Preference hints: FIRST/REST instead of CAR/CDR
              (when (eq head 'car)
@@ -821,12 +825,16 @@ Returns a list of issues."
                (push-iss ln col "quote-number"
                          (format nil "Don't quote numbers like ~S" (second form))))
 
-             ;; NTH with 1 -> CDR/REST
+             ;; NTH with 0 -> CAR/FIRST or 1 -> CADR/SECOND
              (when (and (eq head 'nth)
-                        (= (length form) 3)
-                        (eql (second form) 1))
-               (push-iss ln col "nth-for-cdr"
-                         "Use REST or CDR instead of (NTH 1 ...)"))
+                        (= (length form) 3))
+               (cond
+                 ((eql (second form) 0)
+                  (push-iss ln col "nth-for-car"
+                            "Use CAR or FIRST instead of (NTH 0 ...)"))
+                 ((eql (second form) 1)
+                  (push-iss ln col "nth-for-cdr"
+                            "Use CADR or SECOND instead of (NTH 1 ...)"))))
 
              ;; CONS with NIL -> LIST
              (when (and (eq head 'cons)
@@ -962,7 +970,7 @@ Returns a list of issues."
                (push-iss ln col "not-consp"
                          "Use ATOM instead of (NOT (CONSP ...))"))
 
-             ;; FIND/MEMBER with :KEY CAR -> ASSOC
+             ;; FIND/MEMBER with :KEY CAR/FIRST -> ASSOC
              (when (and (member head '(find member))
                         (>= (length form) 4)
                         (member :key (cddr form))
@@ -970,12 +978,12 @@ Returns a list of issues."
                           (and key-pos
                                (< (1+ key-pos) (length (cddr form)))
                                (let ((args (cddr form)))
-                                 (and (> (length args) key-pos)
-                                      (member (nth key-pos args) '('car #'car car)))))))
+                                 (and (> (length args) (1+ key-pos))
+                                      (member (nth (1+ key-pos) args) '('car #'car car 'first #'first first)))))))
                (push-iss ln col "find-member-for-assoc"
                          (if (eq head 'find)
                              "Consider ASSOC for association lists (FIND works on sequences including vectors)"
-                             "Consider ASSOC instead of MEMBER with :KEY CAR for association lists")))
+                             "Consider ASSOC instead of MEMBER with :KEY CAR/FIRST for association lists")))
 
              ;; READ with bad EOF markers
              (when (and (eq head 'read)
