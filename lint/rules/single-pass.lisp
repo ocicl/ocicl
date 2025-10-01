@@ -1270,6 +1270,47 @@ Returns a list of issues."
                (push-iss ln col "use-serapeum-filter"
                          "Consider using SERAPEUM:FILTER instead of REMOVE-IF-NOT for better readability"))
 
+             ;; Suggest SERAPEUM:LASTCAR for (car (last list))
+             (when (and (eq head 'car)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 2)
+                        (consp (second form))
+                        (eq (first (second form)) 'last)
+                        (= (length (second form)) 2))
+               (push-iss ln col "use-serapeum-lastcar"
+                         "Consider using SERAPEUM:LASTCAR for (CAR (LAST list))"))
+
+             ;; Suggest SERAPEUM:TAKE for (subseq seq 0 n)
+             (when (and (eq head 'subseq)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 4)
+                        (eql (third form) 0))
+               (push-iss ln col "use-serapeum-take"
+                         "Consider using SERAPEUM:TAKE for (SUBSEQ seq 0 n)"))
+
+             ;; Suggest SERAPEUM:DROP for (subseq seq n) without end
+             (when (and (eq head 'subseq)
+                        (library-suggestions-enabled-p "serapeum")
+                        (= (length form) 3))
+               (push-iss ln col "use-serapeum-drop"
+                         "Consider using SERAPEUM:DROP for (SUBSEQ seq n)"))
+
+             ;; Suggest SERAPEUM:KEEP for (remove nil seq) or (remove-if #'null seq)
+             (when (and (library-suggestions-enabled-p "serapeum")
+                        (or (and (eq head 'remove)
+                                 (= (length form) 3)
+                                 (null (second form)))
+                            (and (eq head 'remove-if)
+                                 (= (length form) 3)
+                                 (or (and (consp (second form))
+                                          (eq (first (second form)) 'function)
+                                          (eq (second (second form)) 'null))
+                                     (and (consp (second form))
+                                          (eq (first (second form)) 'quote)
+                                          (eq (second (second form)) 'null))))))
+               (push-iss ln col "use-serapeum-keep"
+                         "Consider using SERAPEUM:KEEP for removing nil values"))
+
              ;; Suggest ALEXANDRIA:FIRST-ELT for (elt sequence 0)
              (when (and (eq head 'elt)
                         (library-suggestions-enabled-p "alexandria")
