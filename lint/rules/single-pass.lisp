@@ -1276,6 +1276,31 @@ Returns a list of issues."
                (push-iss ln col "use-serapeum-append1"
                          "Consider using SERAPEUM:APPEND1 for (APPEND list (LIST item))"))
 
+             ;; Suggest ALEXANDRIA:FIRST-ELT for (elt sequence 0)
+             (when (and (eq head 'elt)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (eql (third form) 0))
+               (push-iss ln col "use-alexandria-first-elt"
+                         "Consider using ALEXANDRIA:FIRST-ELT for (ELT sequence 0)"))
+
+             ;; Suggest ALEXANDRIA:LAST-ELT for (elt sequence (1- (length sequence)))
+             (when (and (eq head 'elt)
+                        (library-suggestions-enabled-p "alexandria")
+                        (= (length form) 3)
+                        (consp (third form))
+                        (eq (first (third form)) '1-)
+                        (= (length (third form)) 2)
+                        (consp (second (third form)))
+                        (eq (first (second (third form))) 'length)
+                        (= (length (second (third form))) 2)
+                        (equal (second (second (third form))) (second form)))
+               (push-iss ln col "use-alexandria-last-elt"
+                         "Consider using ALEXANDRIA:LAST-ELT for (ELT seq (1- (LENGTH seq)))"))
+
+             ;; Suggest ALEXANDRIA:MAPHASH-KEYS for (maphash (lambda (k v) (declare (ignore v)) ...) table)
+             ;; This is complex to detect reliably, skipping for now
+
              ;; INSERT MORE RULES HERE
 
              )))))
