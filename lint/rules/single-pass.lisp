@@ -837,13 +837,6 @@ Returns a list of issues."
                (push-iss ln col "nth-for-cdr"
                          "Use REST or CDR instead of (NTH 1 ...)"))
 
-             ;; NTH with non-constant on lists
-             (when (and (eq head 'nth)
-                        (= (length form) 3)
-                        (not (numberp (second form))))
-               (push-iss ln col "nth-on-list"
-                         "NTH is expensive on lists - use FIRST/REST or pointer access"))
-
              ;; CONS with NIL -> LIST
              (when (and (eq head 'cons)
                         (= (length form) 3)
