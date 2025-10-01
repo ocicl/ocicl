@@ -129,7 +129,7 @@
 101. quote-true - Use T instead of 'TRUE
 102. quote-keyword - Keywords are self-evaluating (no need to quote)
 
-## Advanced & Safety (25 rules)
+## Advanced & Safety (26 rules)
 103. case-duplicate-key - Duplicate CASE key detected
 104. destructive-on-constant - Destructive operation on constant data
 105. substitute-use - SUBSTITUTE copies entire sequence (use only when necessary)
@@ -146,14 +146,15 @@
 116. use-alexandria-ensure-car - Suggest ALEXANDRIA:ENSURE-CAR for (if (consp x) (car x) x)
 117. use-alexandria-first-elt - Suggest ALEXANDRIA:FIRST-ELT for (elt sequence 0)
 118. use-alexandria-last-elt - Suggest ALEXANDRIA:LAST-ELT for (elt seq (1- (length seq)))
-119. use-serapeum-nor - Suggest SERAPEUM:NOR for (not (or ...))
-120. use-serapeum-nand - Suggest SERAPEUM:NAND for (not (and ...))
-121. use-serapeum-filter-map - Suggest SERAPEUM:FILTER-MAP for (remove nil (mapcar ...))
-122. use-serapeum-car-safe - Suggest SERAPEUM:CAR-SAFE for (if (consp x) (car x) nil)
-123. use-serapeum-cdr-safe - Suggest SERAPEUM:CDR-SAFE for (if (consp x) (cdr x) nil)
-124. use-serapeum-append1 - Suggest SERAPEUM:APPEND1 for (append list (list item))
-125. use-uiop-file-exists-p - Suggest UIOP:FILE-EXISTS-P instead of PROBE-FILE
-126. use-uiop-read-file - Suggest UIOP:READ-FILE-STRING/LINES for file reading
-127. malformed-let - Malformed LET/LET* binding structures
-128. unused-parameter - Parameter is unused (add (declare (ignore ...)) if intentional)
+119. use-alexandria-switch - Suggest ALEXANDRIA:SWITCH for COND with multiple equality tests
+120. use-serapeum-nor - Suggest SERAPEUM:NOR for (not (or ...))
+121. use-serapeum-nand - Suggest SERAPEUM:NAND for (not (and ...))
+122. use-serapeum-filter-map - Suggest SERAPEUM:FILTER-MAP for (remove nil (mapcar ...))
+123. use-serapeum-car-safe - Suggest SERAPEUM:CAR-SAFE for (if (consp x) (car x) nil)
+124. use-serapeum-cdr-safe - Suggest SERAPEUM:CDR-SAFE for (if (consp x) (cdr x) nil)
+125. use-serapeum-append1 - Suggest SERAPEUM:APPEND1 for (append list (list item))
+126. use-uiop-file-exists-p - Suggest UIOP:FILE-EXISTS-P instead of PROBE-FILE
+127. use-uiop-read-file - Suggest UIOP:READ-FILE-STRING/LINES for file reading
+128. malformed-let - Malformed LET/LET* binding structures
+129. unused-parameter - Parameter is unused (add (declare (ignore ...)) if intentional)
 
