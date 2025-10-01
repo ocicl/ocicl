@@ -4,11 +4,13 @@
 # Get list of staged .lisp files
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.lisp$')
 
-# Always check runtime/ocicl-runtime.lisp since it's embedded in the binary
-RUNTIME_FILE="runtime/ocicl-runtime.lisp"
-if [ -f "$RUNTIME_FILE" ]; then
-    STAGED_FILES="$STAGED_FILES $RUNTIME_FILE"
-fi
+# Always check critical files that affect all users
+CRITICAL_FILES="runtime/ocicl-runtime.lisp setup.lisp"
+for file in $CRITICAL_FILES; do
+    if [ -f "$file" ]; then
+        STAGED_FILES="$STAGED_FILES $file"
+    fi
+done
 
 if [ -z "$STAGED_FILES" ]; then
     # No Lisp files staged, allow commit

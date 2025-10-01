@@ -1,3 +1,7 @@
+;;; setup.lisp
+;;;
+;;; SPDX-License-Identifier: MIT
+
 (require 'asdf)
 (require 'uiop)
 
@@ -16,14 +20,17 @@
     (defconstant +ocicl-bin-name+ (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))))
 
 (defmacro safe-delete-file (filename)
+  "Delete FILENAME if it exists, otherwise do nothing."
   (let ((filename (pathname filename)))
     (and (probe-file filename) (delete-file filename))))
 
 (defmacro safe-delete-directory (dirname)
+  "Delete directory DIRNAME if it exists, otherwise do nothing."
   (let ((dirname (pathname dirname)))
     (and (probe-file dirname) (uiop:delete-directory-tree dirname :validate t))))
 
 (defun safe-timestamp (filename)
+  "Return timestamp of FILENAME if it exists, otherwise return NIL."
   (let ((filename (pathname filename)))
     (and (probe-file filename) (file-write-date filename))))
 
@@ -40,6 +47,7 @@
                     newest-file file))))))))
 
 (defun make-ocicl ()
+  "Build the ocicl binary if source files are newer than the existing binary."
   (let ((ocicl-timestamp (safe-timestamp "ocicl"))
         (source-timestamp (newest-file-timestamp '("*.lisp" "*.asd" "runtime/*.lisp"))))
     (when (or (not ocicl-timestamp)
@@ -47,9 +55,16 @@
       (safe-delete-file "ocicl")
       ;; (safe-delete-file "systems.csv")
       ;; (safe-delete-directory "systems/")
-      (format t "~A --dynamic-space-size ~A --no-userinit --eval \"(load \\\"runtime/asdf.lisp\\\")\" --eval \"(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))\""
+      (format t "~A --dynamic-space-size ~A --no-userinit ~
+                 --eval \"(load \\\"runtime/asdf.lisp\\\")\" ~
+                 --eval \"(progn (asdf:initialize-source-registry ~
+                         (list :source-registry :inherit-configuration ~
+                         (list :tree (uiop:getcwd)))) ~
+                         (asdf:make :ocicl) (sb-ext:quit))\""
               (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl"))
-              (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
+              (if (boundp 'common-lisp-user::+dynamic-space-size+)
+                  (symbol-value 'common-lisp-user::+dynamic-space-size+)
+                  3072))
       (terpri)
       (uiop:run-program
        (list (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl"))
@@ -69,11 +84,13 @@
   (format nil "~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*)))
 
 (defun get-temp-ocicl-dl-pathname ()
+  "Generate a temporary pathname for downloading ocicl."
   (let ((rdir (format nil "ocicl-~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*))))
     (merge-pathnames (make-pathname :directory (list :relative rdir))
                      (uiop:default-temporary-directory))))
 
 (defun install-ocicl ()
+  "Install ocicl binary and runtime files to the user's system."
   (let ((bindir (merge-pathnames (make-pathname :directory '(:relative "bin")) +destdir+)))
     (uiop:ensure-all-directories-exist (list bindir))
     (uiop:copy-file +ocicl-bin-name+ (merge-pathnames +ocicl-bin-name+ bindir))

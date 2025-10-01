@@ -15,5 +15,5 @@ jobs:
           dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Lint ocicl codebase
-        run: ./ocicl lint ocicl.asd runtime/ocicl-runtime.lisp
+        run: ./ocicl lint ocicl.asd runtime/ocicl-runtime.lisp setup.lisp
         shell: bash
