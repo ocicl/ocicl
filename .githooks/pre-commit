@@ -1,0 +1,25 @@
+#!/bin/bash
+# Pre-commit hook to run linter on staged files
+
+# Get list of staged .lisp files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.lisp$')
+
+if [ -z "$STAGED_FILES" ]; then
+    # No Lisp files staged, allow commit
+    exit 0
+fi
+
+echo "Running linter on staged files..."
+
+# Run linter on staged files
+./ocicl lint $STAGED_FILES
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Lint failed! Please fix the issues before committing."
+    echo "   To bypass this check, use: git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ Lint passed!"
+exit 0
