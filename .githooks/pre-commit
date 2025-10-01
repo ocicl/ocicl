@@ -4,6 +4,12 @@
 # Get list of staged .lisp files
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.lisp$')
 
+# Always check runtime/ocicl-runtime.lisp since it's embedded in the binary
+RUNTIME_FILE="runtime/ocicl-runtime.lisp"
+if [ -f "$RUNTIME_FILE" ]; then
+    STAGED_FILES="$STAGED_FILES $RUNTIME_FILE"
+fi
+
 if [ -z "$STAGED_FILES" ]; then
     # No Lisp files staged, allow commit
     exit 0
@@ -11,8 +17,8 @@ fi
 
 echo "Running linter on staged files..."
 
-# Run linter on staged files
-./ocicl lint $STAGED_FILES
+# Run linter on staged files (deduplicate with sort -u)
+./ocicl lint $(echo $STAGED_FILES | tr ' ' '\n' | sort -u)
 
 if [ $? -ne 0 ]; then
     echo ""
