@@ -104,36 +104,37 @@
                         (let* ((stream-pos (eclector.base:stream-position e))
                                (offset (eclector.base:position-offset e))
                                (effective-pos (+ stream-pos offset))
-                               (line-col (if effective-pos
-                                             (multiple-value-list (index->line/col effective-pos line-index))
-                                             '(1 1)))
-                               (line (or (first line-col) 1))
-                               (col (or (second line-col) 1))
-                               (position-key (cons line col))
                                (error-string (format nil "~A" e))
                                (supported-chars (config-supported-dispatch-chars)))
-                          (let ((should-suppress
-                                 (and supported-chars
-                                      (search "dispatch" error-string :test #'char-equal)
-                                      (some (lambda (char)
-                                              (or (search (format nil "character ~A " (string-upcase char)) error-string :test #'char-equal)
-                                                  (search (format nil "character ~A" (string-upcase char)) error-string :test #'char-equal)))
-                                            supported-chars))))
-                            ;; Only report if we haven't seen this position before AND it's not suppressed
-                            (unless (or (gethash position-key seen-positions)
-                                        should-suppress)
-                              (setf (gethash position-key seen-positions) t)
-                              (push (%make-issue path line col "reader-error" error-string)
-                                    issues)))
-                          ;; Try to recover and continue
-                          (let ((restart (find-restart 'eclector.base:recover)))
-                            (when restart
-                              (invoke-restart restart)))))))
+                          (multiple-value-bind (line col)
+                              (if effective-pos
+                                  (index->line/col effective-pos line-index)
+                                  (values 1 1))
+                            (let ((line (or line 1))
+                                  (col (or col 1))
+                                  (position-key (cons line col)))
+                              (let ((should-suppress
+                                     (and supported-chars
+                                          (search "dispatch" error-string :test #'char-equal)
+                                          (some (lambda (char)
+                                                  (or (search (format nil "character ~A " (string-upcase char)) error-string :test #'char-equal)
+                                                      (search (format nil "character ~A" (string-upcase char)) error-string :test #'char-equal)))
+                                                supported-chars))))
+                                ;; Only report if we haven't seen this position before AND it's not suppressed
+                                (unless (or (gethash position-key seen-positions)
+                                            should-suppress)
+                                  (setf (gethash position-key seen-positions) t)
+                                  (push (%make-issue path line col "reader-error" error-string)
+                                        issues)))
+                              ;; Try to recover and continue
+                              (let ((restart (find-restart 'eclector.base:recover)))
+                                (when restart
+                                  (invoke-restart restart))))))))))
         (loop
           (let ((result (eclector.parse-result:read client stream nil :eof)))
             (when (eql result :eof)
               (return))))))
-    (nreverse issues)))
+    (nreverse issues))
 
 (defun rule-whitespace-around-parens (path lines)
   "Check for whitespace immediately inside parentheses (Google style)."
