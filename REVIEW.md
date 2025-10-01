@@ -2,9 +2,26 @@
 
 ## Opinions on Issues
 
-### Issues suggesting disabling rules by default (#150-152, 156-157, 159-160, 164-166, 171)
-- **Valid concern**: Many of these highlight that the linter is being overly prescriptive about style preferences vs actual bugs
-- **Recommendation**: Consider implementing suppression configs or severity levels (warning vs error). The suggestion in #171 for "beginner" vs "advanced" rule sets is worth considering.
+### Policy/Design Issues - Rules That Should Be Optional (#150-152, 156-157, 159-160, 164-166, 171)
+
+These 12 issues all raise valid concerns that the linter is too opinionistic about style preferences that are valid in certain contexts:
+
+- **#150** - `plus-one`/`minus-one`: `1+`/`1-` are valid, some prefer explicit `(+ 1 x)`
+- **#151** - `when-for-unless`: Some find `unless` confusing (personal preference)
+- **#152** - `use-alexandria`: Shouldn't suggest external libraries by default
+- **#156** - `use-constantly`: Lambda can be clearer than `constantly`
+- **#157** - `not-null`: `(not (null x))` is valid way to get boolean
+- **#159** - `defvar-without-value`: `(defvar *foo*)` is perfectly valid
+- **#160** - `use-with-open-file`: Sometimes need indefinite file extent
+- **#164** - `if-or`: `(if test t else)` validly converts test to T
+- **#165** - `cond-or`: Sometimes you want T not generalized boolean
+- **#166** - `needless-and-t`: Sometimes you want T not generalized boolean
+- **#171** - `quote-true`/`quote-false`: Valid in some situations
+
+**Recommendation**: Implement rule severity levels or "beginner" vs "advanced" mode (#171). These rules should be:
+- Suppressible via config (already possible)
+- Possibly disabled by default or marked as "style suggestions" rather than warnings
+- Grouped into categories so users can enable/disable by category
 
 ### Specific technical issues:
 
@@ -20,7 +37,7 @@
 
 **#162 (redundant lambda-list rules)** - ✓ FIXED: Removed redundant lambda-list-optional-and-key rule.
 
-**#163 (missing-docstring for exports only)** - Excellent suggestion. Only requiring docstrings on exported symbols is much more reasonable.
+**#163 (missing-docstring for exports only)** - ⏸ DEFERRED: Excellent suggestion but requires runtime linting with access to package system. Would need multi-pass analysis or runtime checking to determine which symbols are exported.
 
 **#167 (consistency in phrasing)** - ✓ ALREADY DONE: All messages are consistently phrased as statements.
 
@@ -34,11 +51,19 @@
 
 ## Overall Assessment
 
-These issues reveal a pattern: **the linter is too opinionated**. Many rules enforce style preferences that are valid in certain contexts. I recommend:
+**All feasible technical fixes completed!** Out of 23 issues reviewed (#150-172):
 
-1. Add configuration system for rule severity/enabling
-2. Consider "beginner" vs "advanced" rule sets (#171)
-3. Make some rules (like docstring requirements) context-aware (#163)
+- **10 fixed**: #153, #154, #155, #158, #161, #162, #167, #169, #170, #172
+- **1 deferred**: #163 (needs runtime linting support)
+- **12 policy/design questions**: #150-152, 156-157, 159-160, 164-166, 171
+
+The remaining issues are not bugs but design decisions about whether the linter should be more lenient with style preferences.
+
+**Next Steps:**
+1. Consider implementing rule severity levels or categories
+2. Allow "beginner" vs "advanced" mode (#171)
+3. Mark style-preference rules as optional or suggestions
+4. Consider runtime linting support for #163 in the future
 
 ## Completed
 
