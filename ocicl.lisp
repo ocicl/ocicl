@@ -128,8 +128,7 @@
   (:name :insecure
    :description "allow insecure TLS (skip certificate verification)"
    :short #\k
-   :long "insecure")
-  )
+   :long "insecure"))
 ;; Template-dir option intentionally disabled for now; reserved for future use.
 
 (defun unknown-option (condition)
@@ -1201,9 +1200,10 @@ If FORCE is NIL, skip files that already exist."
 (defun do-lint (args)
   "Lint the specified files, directories, or .asd systems."
   (if args
-      (let ((*inhibit-download-during-search* t)
-            (issue-count (ocicl.lint:lint-files args :color *color*)))
-        (uiop:quit (if (plusp issue-count) 1 0)))
+      (let ((*inhibit-download-during-search* t))
+        (setf ocicl.lint::*verbose* *verbose*)
+        (let ((issue-count (ocicl.lint:lint-files args :color *color*)))
+          (uiop:quit (if (plusp issue-count) 1 0))))
       (progn
         (format *error-output* "Error: no paths specified for linting~%")
         (uiop:quit 1))))

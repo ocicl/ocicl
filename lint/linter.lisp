@@ -27,6 +27,8 @@
 
 (defun lint-file-internal (path &key (max-line-length 120))
   "Internal function to lint a file with all available rules."
+  (when *verbose*
+    (logf "; linting file: ~A (verbose=~A)~%" path *verbose*))
   (handler-case
       (let* ((lines (read-file-lines path))
              (content (uiop:read-file-string path)))

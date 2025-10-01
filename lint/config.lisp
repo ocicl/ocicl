@@ -43,27 +43,23 @@
 
 (defun parse-config-line (line)
   "Parse a single configuration line. Returns (key . value) or nil."
-  (let ((line (string-trim " \t" line)))
+  (let ((line (string-trim '(#\Space #\Tab) line)))
     (when (and (> (length line) 0)
                (not (char= (char line 0) #\#))  ; Skip comments
                (not (char= (char line 0) #\;))) ; Skip comments
       (let ((eq-pos (position #\= line)))
         (when eq-pos
-          (let ((key (string-trim " \t" (subseq line 0 eq-pos)))
-                (value (string-trim " \t" (subseq line (1+ eq-pos)))))
+          (let ((key (string-trim '(#\Space #\Tab) (subseq line 0 eq-pos)))
+                (value (string-trim '(#\Space #\Tab) (subseq line (1+ eq-pos)))))
             (cons key value)))))))
 
 (defun parse-rule-list (value-string)
   "Parse a comma-separated list of rule names."
-  (mapcar (lambda (s) (string-trim " \t" s))
-          (loop with result = nil
-                with start = 0
-                for pos = (position #\, value-string :start start)
-                do (push (subseq value-string start pos) result)
-                   (if pos
-                       (setf start (1+ pos))
-                       (return (nreverse result)))
-                finally (return (nreverse result)))))
+  (let ((trimmed (string-trim '(#\Space #\Tab) value-string)))
+    (if (zerop (length trimmed))
+        nil
+        (mapcar (lambda (s) (string-trim '(#\Space #\Tab) s))
+                (uiop:split-string trimmed :separator '(#\,))))))
 
 (defun load-config-file (config-path)
   "Load configuration from CONFIG-PATH and return a cl-lint-config structure."
@@ -72,10 +68,10 @@
       (with-open-file (in config-path :direction :input :external-format :utf-8)
         (loop for line = (read-line in nil nil)
               while line
-              for parsed = (parse-config-line line)
-              when parsed
-                do (let ((key (first parsed))
-                         (value (rest parsed)))
+              do (let ((parsed (parse-config-line line)))
+                   (when parsed
+                     (let ((key (first parsed))
+                           (value (rest parsed)))
                      (cond
                        ((string-equal key "max-line-length")
                         (let ((num (ignore-errors (parse-integer value))))
@@ -89,17 +85,20 @@
                               (parse-rule-list value)))
                        (t
                         (when *verbose*
-                          (logf "; config: unknown setting ~A~%" key))))))))
+                          (logf "; config: unknown setting ~A~%" key))))))))))
     config))
 
 (defun load-project-config (path)
   "Load project configuration for the given PATH."
   (let* ((config-file (find-config-file path))
          (config (if config-file
-                     (let ()
+                     (let ((cfg (load-config-file config-file)))
                        (when *verbose*
-                         (logf "; config: loading from ~A~%" config-file))
-                       (load-config-file config-file))
+                         (logf "; config: loading from ~A~%" config-file)
+                         (logf "; config: suppressed ~D rules~%" (length (cl-lint-config-suppressed-rules cfg)))
+                         (dolist (rule (cl-lint-config-suppressed-rules cfg))
+                           (logf ";   - ~A~%" rule)))
+                       cfg)
                      (let ()
                        (when *verbose*
                          (logf "; config: using defaults (no .ocicl-lint.conf found)~%"))
