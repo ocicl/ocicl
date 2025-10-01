@@ -99,17 +99,18 @@
         (when (search "lint:suppress" comment-part :test #'char-equal)
           (let* ((suppress-pos (search "lint:suppress" comment-part :test #'char-equal))
                  (after-suppress (subseq comment-part (+ suppress-pos 13))) ; lint:suppress max-line-length
-                 (rules-text (string-trim " \t" after-suppress)))
-            (if (zerop (length rules-text))
-                ;; Empty rules text means suppress all rules
-                :all
-                ;; Split on whitespace and remove empty strings
-                (remove-if (lambda (s) (zerop (length s)))
-                           (loop for start = 0 then (1+ pos)
-                                 for pos = (position-if (lambda (c) (or (char= c #\Space) (char= c #\Tab))) ; lint:suppress max-line-length
-                                                        rules-text :start start)
-                                 collect (string-trim " \t" (subseq rules-text start pos))
-                                 while pos)))))))))
+                 (rules-text (string-trim " \t" after-suppress))
+                 (result (if (zerop (length rules-text))
+                             ;; Empty rules text means suppress all rules
+                             :all
+                             ;; Split on whitespace and remove empty strings
+                             (remove-if (lambda (s) (zerop (length s)))
+                                        (loop for start = 0 then (1+ pos)
+                                              for pos = (position-if (lambda (c) (or (char= c #\Space) (char= c #\Tab))) ; lint:suppress max-line-length
+                                                                     rules-text :start start)
+                                              collect (string-trim " \t" (subseq rules-text start pos))
+                                              while pos)))))
+            result))))))
 
 (defun filter-suppressed-issues (issues lines)
   "Filter out issues that have been suppressed via lint:suppress comments or config."
