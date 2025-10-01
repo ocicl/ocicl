@@ -144,7 +144,7 @@
         do (loop for i from 0 below (length line)
                  for ch = (char line i)
                  do (cond
-                      ;; Opening paren followed by space: "( foo"
+                      ;; Opening paren followed by space: "( foo" ; lint:suppress whitespace-after-open-paren
                       ((and (char= ch #\()
                             (< (1+ i) (length line))
                             (char= (char line (1+ i)) #\Space)
@@ -154,7 +154,7 @@
                        (push (%make-issue path ln (+ i 2) "whitespace-after-open-paren"
                                           "Remove whitespace after opening parenthesis")
                              issues))
-                      ;; Space followed by closing paren: "foo )"
+                      ;; Space followed by closing paren: "foo )" ; lint:suppress whitespace-before-close-paren
                       ((and (char= ch #\))
                             (> i 0)
                             (char= (char line (1- i)) #\Space))
@@ -170,7 +170,7 @@
   (loop for line in lines
         for ln from 1
         for next-line in (append (rest lines) (list nil))
-        ;; Check if line ends with ) and next line starts with )
+        ;; Check if line ends with ) and next line starts with ) ; lint:suppress whitespace-before-close-paren
         when (and next-line
                   (> (length line) 0)
                   (char= (char line (1- (length line))) #\))

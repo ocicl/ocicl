@@ -226,7 +226,7 @@
                  (when *verbose* (logf "; let-validation: found ~A form with bindings ~S~%" (first form) (second form)))
                  (let ((operator (first form))
                        (bindings (second form))
-                       (body (rest (rest form))))
+                       (body (cddr form)))
                    ;; Check for missing binding list
                    (when (null (rest form))
                      (push (%make-issue path ln col "malformed-let"
@@ -239,7 +239,7 @@
                                                 operator (type-of bindings)))
                            issues))
                    ;; Check for missing body
-                   (when (and (rest form) (rest (rest form)) (null body))
+                   (when (and (rest form) (cddr form) (null body))
                      (push (%make-issue path ln col "malformed-let"
                                        (format nil "~A form missing body expressions" operator))
                            issues))

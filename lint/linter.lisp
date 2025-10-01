@@ -123,7 +123,7 @@
                        (when (and (> line-num 0) (<= line-num (length lines)))
                          (let ((line-content (nth (1- line-num) lines))) ; Convert to 0-based index
                            (let ((suppressed-rules (parse-suppress-comment line-content)))
-                             (or (eq suppressed-rules :all)
+                             (or (eql suppressed-rules :all)
                                  (member rule-name suppressed-rules :test #'string-equal)))))))))
              issues))
 

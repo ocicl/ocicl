@@ -208,7 +208,7 @@ Returns a list of issues."
                         (let ((dir-pos (position :direction (cddr (second form)))))
                           (and dir-pos
                                (< dir-pos (1- (length (cddr (second form)))))
-                               (eq (nth (1+ dir-pos) (cddr (second form))) :input)))
+                               (eql (nth (1+ dir-pos) (cddr (second form))) :input)))
                         (= (length (cddr form)) 1)  ; single body form
                         (consp (third form))
                         (eq (first (third form)) 'read-line))

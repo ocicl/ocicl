@@ -48,7 +48,7 @@
 
 (version-string:define-version-parameter +version+ :ocicl)
 
-(defparameter +runtime+
+(defparameter *runtime*
   #.(let* ((here         (or *compile-file-pathname* *load-pathname*))
            (runtime-path (uiop:subpathname here "runtime/ocicl-runtime.lisp"))
            (runtime      (uiop:read-file-string runtime-path))
@@ -60,7 +60,7 @@
                        (subseq runtime (+ start 7)))
           runtime)))
 
-(defparameter +builtin-templates+
+(defparameter *builtin-templates*
   #.(let* ((here          (or *compile-file-pathname* *load-pathname*))
            (here-dir      (uiop:pathname-directory-pathname here))
            (templates-dir (uiop:subpathname here-dir "templates/"))
@@ -74,7 +74,7 @@
                                                  file)))))
       `(quote ,alist)))
 
-(defparameter +asdf+
+(defparameter *asdf*
   #.(let* ((here       (or *compile-file-pathname* *load-pathname*))
            (asdf-path  (uiop:subpathname here "runtime/asdf.lisp")))
       (uiop:read-file-string asdf-path)))
@@ -167,7 +167,7 @@
             (when (and line (not (string= line "")))
               (let ((vlist (split-csv-line line)))
                 (when (>= (length vlist) 3)
-                  (setf (gethash (car vlist) ht) (cons (cadr vlist) (caddr vlist)))))))
+                  (setf (gethash (first vlist) ht) (cons (second vlist) (third vlist)))))))
         (error (e)
           (when *verbose*
             (format *error-output* "; Error reading systems CSV ~A: ~A~%" systems-file e)))))
@@ -428,7 +428,7 @@ Distributed under the terms of the MIT License"
 If FORCE is NIL, skip files that already exist."
   (declare (ignore force))
   (let* ((base (merge-pathnames "templates/" (get-ocicl-dir))))
-    (dolist (tpl +builtin-templates+)
+    (dolist (tpl *builtin-templates*)
       (destructuring-bind (rel . data) tpl
         (let* ((target (merge-pathnames rel base)))
           (uiop:ensure-all-directories-exist
@@ -471,11 +471,11 @@ If FORCE is NIL, skip files that already exist."
     (with-open-file (stream asdf-source
                             :direction :output
                             :if-exists :supersede)
-      (write-string +asdf+ stream))
+      (write-string *asdf* stream))
     (with-open-file (stream runtime-source
                             :direction :output
                             :if-exists :supersede)
-      (write-string +runtime+ stream)
+      (write-string *runtime* stream)
       (format t ";; Present the following code to your LISP system at startup, either~%;; by adding it to your implementation's startup file~%;;~T(~~/.sbclrc, ~~/.eclrc, ~~/.abclrc, ~~/.clinit.cl, or ~~/.roswell/init.lisp)~%;; or overriding it completely on the command line~%;;~T(eg. sbcl --userinit init.lisp)~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%(asdf:initialize-source-registry~%  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))~%" runtime-source runtime-source)))) ; lint:suppress max-line-length
 
 (defun filter-strings (strings)
