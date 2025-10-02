@@ -450,6 +450,39 @@ Scanned 1 file(s), found 3 issue(s).
 
 The linter returns exit code 0 if no issues are found, or 1 if issues are detected.
 
+### Git Pre-Commit Hook
+
+To automatically lint your code before commits, create a `.git/hooks/pre-commit` file in your project:
+
+```bash
+#!/bin/bash
+# Lint staged .lisp and .asd files before commit
+
+# Get list of staged .lisp and .asd files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(lisp|asd)$')
+
+if [ -n "$STAGED_FILES" ]; then
+    echo "Running ocicl lint on staged files..."
+    ocicl lint $STAGED_FILES
+    LINT_EXIT=$?
+
+    if [ $LINT_EXIT -ne 0 ]; then
+        echo "Linting failed. Please fix the issues before committing."
+        echo "To bypass this hook, use: git commit --no-verify"
+        exit 1
+    fi
+fi
+
+exit 0
+```
+
+Make it executable:
+```bash
+chmod +x .git/hooks/pre-commit
+```
+
+This will prevent commits if linting issues are found. You can bypass the hook with `git commit --no-verify` if needed.
+
 Dependency Freshness
 --------------------
 
