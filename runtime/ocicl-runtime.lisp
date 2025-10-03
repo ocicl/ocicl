@@ -61,7 +61,7 @@
 (defvar *download* t)
 (defvar *verbose* nil)
 (defvar *force-global* nil)
-(defconstant +version+ "2.7.3-g971b69e+dirty")
+(defconstant +version+ "UNKNOWN")
 (defconstant +required-programs+ (list "ocicl"))
 
 (defvar *systems-csv* "ocicl.csv")
