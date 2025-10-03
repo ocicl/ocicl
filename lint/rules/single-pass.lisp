@@ -10,23 +10,36 @@
 
 ;; Quote-aware walker that tracks when we're inside quoted contexts
 (defun walk-forms-with-positions-quote-aware-ctx (ctx visitor)
-  "Walk forms while tracking quote contexts using context. VISITOR gets (form ln col quoted-p)."
+  "Walk forms while tracking quote contexts using context. VISITOR gets (form ln col quoted-p lambda-list-p)."
   (let ((flat-nodes (parse-context-flat-nodes ctx)))
     (when (null flat-nodes)
       (let ((acc nil))
-        (let ((stack (mapcar (lambda (tree) (list tree nil))
+        (let ((stack (mapcar (lambda (tree) (list tree nil nil))
                              (copy-list (parse-context-parse-trees ctx)))))
           (loop while stack do
                 (let* ((item (pop stack))
                        (tree (first item))
-                       (quoted-p (second item)))
+                       (quoted-p (second item))
+                       (lambda-list-p (third item)))
                   (when (and (listp tree) (getf tree :form))
                     (let* ((form (getf tree :form))
                            (source (getf tree :source))
                            (children (getf tree :children))
                            (file-pos (if (consp source) (first source) source))
                            (new-quoted-p (or quoted-p
-                                             (and (consp form) (eq (first form) 'quote)))))
+                                             (and (consp form) (eq (first form) 'quote))))
+                           (new-lambda-list-p nil))
+                      ;; Check if any children are lambda lists (position 3 in defun/defmacro/lambda)
+                      (when (and (consp form)
+                                 (member (first form) '(defun defmacro lambda flet labels macrolet))
+                                 children
+                                 (not lambda-list-p))
+                        ;; Mark the appropriate child as a lambda list
+                        (let* ((ll-index (if (eq (first form) 'lambda) 1 2))
+                               (ll-child (and (>= (length children) (1+ ll-index))
+                                              (nth ll-index children))))
+                          (when ll-child
+                            (setf new-lambda-list-p ll-child))))
                       (when (and file-pos (numberp file-pos))
                         (let ((computed-line
                                (nth-value 0 (index->line/col
@@ -40,16 +53,19 @@
                                     "; BUG: non-numeric position for form ~S: line=~S col=~S ~
                                     file-pos=~S~%"
                                     form computed-line computed-column file-pos))
-                          (push (list form computed-line computed-column quoted-p) acc)))
+                          (push (list form computed-line computed-column quoted-p lambda-list-p) acc)))
                       (when children
-                        ;; push children onto stack with inherited quote context
-                        (setf stack (nconc (mapcar (lambda (child) (list child new-quoted-p))
+                        ;; push children onto stack with inherited quote context and lambda-list marking
+                        (setf stack (nconc (mapcar (lambda (child)
+                                                     (let ((is-ll-p (and new-lambda-list-p
+                                                                         (eq child new-lambda-list-p))))
+                                                       (list child new-quoted-p is-ll-p)))
                                                    (copy-list children)) stack))))))))
         (setf flat-nodes (nreverse acc))
         (setf (parse-context-flat-nodes ctx) flat-nodes)))
-    (dolist (quad flat-nodes)
-      (destructuring-bind (form line-num col-num quoted-p) quad
-        (funcall visitor form line-num col-num quoted-p)))))
+    (dolist (quintuple flat-nodes)
+      (destructuring-bind (form line-num col-num quoted-p lambda-list-p) quintuple
+        (funcall visitor form line-num col-num quoted-p lambda-list-p)))))
 
 
 ;; Single-pass dispatcher: run multiple simple pattern checks in one traversal using context
@@ -63,8 +79,8 @@ Returns a list of issues."
              (push (%make-issue path ln col rule msg) issues)))
       (walk-forms-with-positions-quote-aware-ctx
        ctx
-       (lambda (form ln col quoted-p)
-         (when (and form (consp form))
+       (lambda (form ln col quoted-p lambda-list-p)
+         (when (and form (consp form) (not lambda-list-p))
            (let ((head (first form)))
              ;; More explicit boolean context patterns
              (when (and (eq head 'if)

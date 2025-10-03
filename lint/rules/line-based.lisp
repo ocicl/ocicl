@@ -145,6 +145,11 @@
                  do (cond
                       ;; Opening paren followed by space: "( foo" ; lint:suppress whitespace-after-open-paren
                       ((and (char= ch #\()
+                            ;; Skip character literals like #\(
+                            (not (and (> i 0)
+                                      (char= (char line (1- i)) #\\)
+                                      (> i 1)
+                                      (char= (char line (- i 2)) #\#)))
                             (< (1+ i) (length line))
                             (char= (char line (1+ i)) #\Space)
                             ;; Allow space if it's the only thing before comment
@@ -155,6 +160,11 @@
                              issues))
                       ;; Space followed by closing paren: "foo )" ; lint:suppress whitespace-before-close-paren
                       ((and (char= ch #\))
+                            ;; Skip character literals like #\)
+                            (not (and (> i 0)
+                                      (char= (char line (1- i)) #\\)
+                                      (> i 1)
+                                      (char= (char line (- i 2)) #\#)))
                             (> i 0)
                             (char= (char line (1- i)) #\Space))
                        (push (%make-issue path ln (1+ i) "whitespace-before-close-paren"
