@@ -147,21 +147,22 @@
   "Expand a list of files/directories into a list of Lisp source pathnames.
 Currently scans directories non-recursively."
   (loop for input in inputs append
-        (cond
-          ((uiop:directory-exists-p input)
-           (remove-if-not #'pathname-lisp-file-p (uiop:directory-files input)))
-          ((uiop:file-exists-p input)
-           (let ((p (uiop:ensure-pathname input)))
-             (if (pathname-lisp-file-p p)
-                 (let ((type (string-downcase (or (pathname-type p) ""))))
-                   (if (string= type "asd")
-                       (remove-duplicates (cons p (collect-asd-component-files p)) :test #'equal)
-                       (list p)))
-                 nil)))
-          (t
-           (progn
-             (format *error-output* "Warning: path not found: ~A~%" input)
-             nil)))))
+        (let ((abs-input (uiop:ensure-absolute-pathname input *default-pathname-defaults*)))
+          (cond
+            ((uiop:directory-exists-p abs-input)
+             (remove-if-not #'pathname-lisp-file-p (uiop:directory-files abs-input)))
+            ((uiop:file-exists-p abs-input)
+             (let ((p (uiop:ensure-pathname abs-input)))
+               (if (pathname-lisp-file-p p)
+                   (let ((type (string-downcase (or (pathname-type p) ""))))
+                     (if (string= type "asd")
+                         (remove-duplicates (cons p (collect-asd-component-files p)) :test #'equal)
+                         (list p)))
+                   nil)))
+            (t
+             (progn
+               (format *error-output* "Warning: path not found: ~A~%" input)
+               nil))))))
 
 (defun read-file-lines (path)
   "Read all lines from file at PATH and return as a list."

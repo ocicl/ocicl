@@ -44,6 +44,7 @@ Development Commands
 - Build and install: `sbcl --load setup.lisp`
 - Binary location: `~/.local/bin/ocicl` (after installation)
 - Memory configuration: Uses 3072MB dynamic space by default
+- Better error messages: `sbcl --eval "(asdf:load-system :ocicl)"` gives clearer compilation errors than setup.lisp
 
 Testing
 - CI tests run via GitHub Actions (`.github/workflows/ci.yaml`)

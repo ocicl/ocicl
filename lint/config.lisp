@@ -24,7 +24,7 @@
 (defun find-config-file (start-path)
   "Find .ocicl-lint.conf file by walking up the directory tree from START-PATH."
   (let ((current-dir (uiop:pathname-directory-pathname
-                      (uiop:ensure-absolute-pathname start-path (uiop:getcwd)))))
+                      (uiop:ensure-absolute-pathname start-path *default-pathname-defaults*))))
     (loop with visited = nil
           for dir = current-dir then (uiop:pathname-parent-directory-pathname dir)
           for dir-string = (handler-case (namestring dir)
