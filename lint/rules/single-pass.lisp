@@ -824,6 +824,53 @@ Returns a list of issues."
                            (push-iss ln col "asdf-component-strings"
                                      "ASDF dependencies should be strings, not symbols"))))))))
 
+             ;; CASE/TYPECASE missing otherwise clause
+             (when (member head '(case typecase))
+               (let ((clauses (cddr form)))
+                 (when (> (length clauses) 0)
+                   (let ((has-otherwise nil)
+                         (has-t nil))
+                     ;; Check for OTHERWISE or T clause
+                     (dolist (clause clauses)
+                       (when (consp clause)
+                         (let ((key (first clause)))
+                           (cond
+                             ((or (eq key 'otherwise)
+                                  (and (symbolp key)
+                                       (string-equal (symbol-name key) "OTHERWISE")))
+                              (setf has-otherwise t))
+                             ((or (eq key 't)
+                                  (and (symbolp key)
+                                       (string-equal (symbol-name key) "T")))
+                              (setf has-t t))))))
+                     ;; If has T instead of OTHERWISE, suggest OTHERWISE
+                     (when (and has-t (not has-otherwise))
+                       (push-iss ln col "missing-otherwise"
+                                 (format nil "Use OTHERWISE instead of T in ~A"
+                                         (string-upcase (symbol-name head)))))
+                     ;; If has neither, warn about missing otherwise
+                     (unless (or has-otherwise has-t)
+                       (push-iss ln col "missing-otherwise"
+                                 (format nil "~A should have OTHERWISE clause"
+                                         (string-upcase (symbol-name head)))))))))
+
+             ;; IF with bare PROGN in then/else clause
+             (when (and (eq head 'if)
+                        (>= (length form) 3))
+               (let ((then-clause (third form))
+                     (else-clause (when (>= (length form) 4) (fourth form))))
+                 ;; Check then clause
+                 (when (and (consp then-clause)
+                            (eq (first then-clause) 'progn))
+                   (push-iss ln col "bare-progn-in-if"
+                             "Use COND instead of IF with bare PROGN in then clause"))
+                 ;; Check else clause
+                 (when (and else-clause
+                            (consp else-clause)
+                            (eq (first else-clause) 'progn))
+                   (push-iss ln col "bare-progn-in-if"
+                             "Use COND instead of IF with bare PROGN in else clause"))))
+
              ;; Destructive operations on constants
              (when (member head '(nreverse nconc sort stable-sort delete))
                (let ((arg (second form)))
