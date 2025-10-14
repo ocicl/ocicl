@@ -729,5 +729,6 @@ and is distributed under the terms of the MIT license.
 This software includes Lisp source code files written by Zachary
 Beane, Mark Karpov, Ava Fox, and PMSF IT Consulting Pierre R. Mai.
 Portions of the linter were borrowed from and inspired by Chris
-Riesbeck's MIT licensed lisp-critic project.  See the ``ocicl`` source
-files for details.
+Riesbeck's MIT licensed lisp-critic project, and Eitaro Fukamachi's
+MIT licensed mallet project.  See the ``ocicl`` source files for
+details.
