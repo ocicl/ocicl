@@ -305,3 +305,136 @@
             (when *verbose*
               (logf "; let-validation: skipping malformed form pair: ~S (error: ~A)~%" pair e))))))
     (nreverse issues)))
+
+;; Rule: unused local functions in flet/labels
+(defun ignored-function-p (func-name)
+  "Check if function name should be ignored (starts with underscore)."
+  (and (symbolp func-name)
+       (let ((name (symbol-name func-name)))
+         (and (> (length name) 0)
+              (char= (char name 0) #\_)))))
+
+(defun extract-ignored-functions (body)
+  "Extract function names from (declare (ignore ...)) and (declare (ignorable ...)) forms."
+  (let ((ignored '()))
+    (dolist (form body)
+      (when (and (consp form) (eq (first form) 'declare))
+        (dolist (decl-spec (rest form))
+          (when (and (consp decl-spec)
+                     (member (first decl-spec) '(ignore ignorable)))
+            (dolist (var (rest decl-spec))
+              (when (symbolp var)
+                (push var ignored)))))))
+    ignored))
+
+(defun function-referenced-p (func-name body)
+  "Check if FUNC-NAME is referenced as a function in BODY.
+Only matches when the name appears in function position or with #'."
+  (labels ((check-form (form)
+             (cond
+               ((null form) nil)
+               ;; Symbol in function position (CAR of a cons)
+               ((and (consp form)
+                     (symbolp (first form))
+                     (eq (first form) func-name))
+                t)
+               ;; #'func-name or (function func-name)
+               ((and (consp form)
+                     (member (first form) '(function))
+                     (consp (rest form))
+                     (symbolp (second form))
+                     (eq (second form) func-name))
+                t)
+               ;; (funcall #'func-name ...) or (apply #'func-name ...)
+               ((and (consp form)
+                     (member (first form) '(funcall apply))
+                     (consp (rest form))
+                     (consp (second form))
+                     (eq (first (second form)) 'function)
+                     (consp (rest (second form)))
+                     (symbolp (second (second form)))
+                     (eq (second (second form)) func-name))
+                t)
+               ;; Check if shadowed by nested flet/labels
+               ((and (consp form)
+                     (member (first form) '(flet labels))
+                     (consp (rest form))
+                     (listp (second form)))
+                ;; Check if any binding shadows our function name
+                (let ((bindings (second form))
+                      (nested-body (cddr form)))
+                  (if (some (lambda (binding)
+                              (and (consp binding)
+                                   (symbolp (first binding))
+                                   (eq (first binding) func-name)))
+                            bindings)
+                      ;; Shadowed - don't search nested body
+                      nil
+                      ;; Not shadowed - search nested body
+                      (some #'check-form nested-body))))
+               ;; Recursively check nested forms
+               ((consp form)
+                (or (check-form (first form))
+                    (check-form (rest form))))
+               (t nil))))
+    (some #'check-form body)))
+
+(defun rule-unused-local-functions (path forms)
+  "Check for local functions in flet/labels that are never used."
+  (when *verbose* (logf "; unused-local-functions: checking ~D forms in ~A~%" (length forms) path))
+  (let ((issues nil))
+    (labels ((check-form (form ln col)
+               (when (and (consp form)
+                          (member (first form) '(flet labels))
+                          (consp (rest form))
+                          (listp (second form))
+                          (>= (length form) 2))
+                 (let ((bindings (second form))
+                       (body (cddr form))
+                       (ignored-funcs (extract-ignored-functions (cddr form))))
+                   (when *verbose*
+                     (logf "; unused-local-functions: found ~A with ~D bindings~%"
+                           (first form) (length bindings)))
+                   (dolist (binding bindings)
+                     (when (and (consp binding)
+                                (symbolp (first binding))
+                                (>= (length binding) 3))
+                       (let* ((func-name (first binding))
+                              (is-labels (eq (first form) 'labels))
+                              ;; For labels, check other function bodies too
+                              (search-bodies (if is-labels
+                                                 (append
+                                                  ;; Bodies of other local functions
+                                                  (loop for b in bindings
+                                                        when (and (consp b)
+                                                                  (not (eq b binding))
+                                                                  (>= (length b) 3))
+                                                        append (cddr b))
+                                                  ;; Main body
+                                                  body)
+                                                 ;; For flet, only check main body
+                                                 body)))
+                         (unless (or (member func-name ignored-funcs)
+                                     (ignored-function-p func-name)
+                                     (function-referenced-p func-name search-bodies))
+                           (when *verbose*
+                             (logf "; unused-local-functions: ~A ~A is unused~%"
+                                   (first form) func-name))
+                           (push (%make-issue path ln col "unused-local-function"
+                                             (format nil "Local function ~A is unused (declare IGNORE if intentional)"
+                                                     func-name))
+                                 issues)))))))
+               ;; Recursively check nested forms
+               (when (consp form)
+                 (dolist (sub-form (rest form))
+                   (check-form sub-form ln col)))))
+      (dolist (pair forms)
+        (handler-case
+            (destructuring-bind (form . lc) pair
+              (when (and (consp lc) (numberp (first lc)) (numberp (rest lc)))
+                (let ((ln (first lc)) (col (rest lc)))
+                  (check-form form ln col))))
+          (error (e)
+            (when *verbose*
+              (logf "; unused-local-functions: skipping malformed form pair: ~S (error: ~A)~%" pair e))))))
+    (nreverse issues)))

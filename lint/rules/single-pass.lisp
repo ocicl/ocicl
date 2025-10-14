@@ -788,6 +788,42 @@ Returns a list of issues."
                          ;; Ignore other key types
                          (t nil)))))))
 
+             ;; ECASE/ETYPECASE with OTHERWISE or T clause (defeats exhaustiveness checking)
+             (when (member head '(ecase etypecase))
+               (let ((clauses (cddr form)))
+                 (dolist (clause clauses)
+                   (when (and (consp clause)
+                              (or (member (first clause) '(t otherwise))
+                                  (and (symbolp (first clause))
+                                       (or (string-equal (symbol-name (first clause)) "OTHERWISE")
+                                           (string-equal (symbol-name (first clause)) "T")))))
+                     (push-iss ln col "wrong-otherwise"
+                               (format nil "~A should not have OTHERWISE or T clause (defeats exhaustiveness checking)"
+                                       (string-upcase (symbol-name head))))))))
+
+             ;; ASDF component strings (only for .asd files)
+             (when (and (symbolp head)
+                        (string-equal (symbol-name head) "DEFSYSTEM")
+                        (>= (length form) 2)
+                        (let ((type (pathname-type path)))
+                          (and type (string-equal type "asd"))))
+               ;; Check system name (second element)
+               (let ((sys-name (second form)))
+                 (when (and (symbolp sys-name) (not (stringp sys-name)))
+                   (push-iss ln col "asdf-component-strings"
+                             "ASDF system name should be a string, not a symbol")))
+               ;; Check :depends-on list
+               (let* ((rest-args (cddr form))
+                      (depends-pos (position :depends-on rest-args)))
+                 (when (and depends-pos
+                            (< depends-pos (1- (length rest-args))))
+                   (let ((deps (nth (1+ depends-pos) rest-args)))
+                     (when (listp deps)
+                       (dolist (dep deps)
+                         (when (and (symbolp dep) (not (stringp dep)) (not (keywordp dep)))
+                           (push-iss ln col "asdf-component-strings"
+                                     "ASDF dependencies should be strings, not symbols"))))))))
+
              ;; Destructive operations on constants
              (when (member head '(nreverse nconc sort stable-sort delete))
                (let ((arg (second form)))

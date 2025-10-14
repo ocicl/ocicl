@@ -80,6 +80,8 @@
                                (lambda () (rule-unused-parameters path forms-with-pos)))
                          (safe 'let-validation
                                (lambda () (rule-let-validation path forms-with-pos)))
+                         (safe 'unused-local-functions
+                               (lambda () (rule-unused-local-functions path forms-with-pos)))
                          (safe 'single-pass-core
                                (lambda ()
                                  (run-single-pass-visitors-ctx
