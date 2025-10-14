@@ -60,9 +60,9 @@
   (let ((package (case package-indicator
                    (:current *package*)
                    (:keyword (find-package "KEYWORD"))
-                   (t (or (find-package package-indicator)
-                          ;; Create a dummy package if it doesn't exist
-                          (make-package package-indicator :use nil))))))
+                   (otherwise (or (find-package package-indicator)
+                                  ;; Create a dummy package if it doesn't exist
+                                  (make-package package-indicator :use nil))))))
     (if internp
         (intern symbol-name package)
         (or (find-symbol symbol-name package)

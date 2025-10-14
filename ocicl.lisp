@@ -109,12 +109,12 @@
    :long "color"
    :meta-var "WHEN"
    :arg-parser (lambda (arg)
-                 (if (member arg '("auto" "always" "never")
-                             :test #'equal)
-                     arg
-                     (progn
-                       (usage)
-                       (uiop:quit 1)))))
+                 (cond
+                   ((member arg '("auto" "always" "never") :test #'equal)
+                    arg)
+                   (t
+                    (usage)
+                    (uiop:quit 1)))))
   (:name :depth
    :description "maximum depth for the tree command (integer or \"max\", default 1)"
    :short #\d
