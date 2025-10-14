@@ -23,7 +23,7 @@
 ;;; SOFTWARE.
 ;;;
 
-(asdf:defsystem #:ocicl
+(asdf:defsystem "ocicl"
   :description "Common Lisp system management"
   :author "Anthony Green <green@moxielogic.com>"
   :license "MIT"
