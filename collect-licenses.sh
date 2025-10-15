@@ -22,11 +22,26 @@ for system_dir in systems/*/; do
         # Try to extract license from .asd file header
         asd_file=$(find "$system_dir" -maxdepth 1 -type f -name "*.asd" ! -name "*test*.asd" | head -1)
         if [ -n "$asd_file" ]; then
-            # Extract license-related comments from top of file (look for copyright, license, public domain, warranty mentions)
-            awk 'BEGIN { found=0 }
-                 /^;;;.*([Cc]opyright|[Ll]icen[cs]e|[Pp]ublic [Dd]omain|warranty|[Pp]ermission)/ { found=1 }
-                 found && /^;;;/ { print }
-                 found && !/^;;;/ { exit }
+            # Extract license-related comments from top of file
+            # Start capturing when we see copyright/license keywords, continue through all comment lines
+            awk 'BEGIN { found=0; blank_count=0 }
+                 /^;;;.*([Cc]opyright|[Ll]icen[cs]e|[Pp]ublic [Dd]omain|warranty|[Pp]ermission)/ {
+                     found=1
+                 }
+                 found && /^;;;/ {
+                     print
+                     blank_count=0
+                     next
+                 }
+                 found && /^;;;\s*$/ {
+                     print
+                     blank_count++
+                     if (blank_count >= 2) exit
+                     next
+                 }
+                 found && !/^;;;/ {
+                     exit
+                 }
             ' "$asd_file" > "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt"
 
             # Check if we extracted anything meaningful
