@@ -21,7 +21,7 @@ jobs:
 
       - name: Create source tarball
         run: |
-          VERSION=$(grep ':version' ocicl.asd | sed 's/.*"\(.*\)".*/\1/')
+          VERSION=$(grep '^\s*:version' ocicl.asd | head -1 | sed 's/.*"\(.*\)".*/\1/')
           echo "Building version: $VERSION"
           cd ..
           tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz --transform "s,^ocicl,ocicl-${VERSION}," ocicl
