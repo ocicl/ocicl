@@ -87,7 +87,7 @@
                 do (cond
                      ;; Start capturing when we see license-related keywords
                      ((and (not found)
-                           (ppcre:scan "^;;;.*(Copyright|License|Licence|Public Domain|warranty|Permission)" line))
+                           (ppcre:scan "(?i)^;;;.*(Copyright|License|Licence|Public Domain|warranty|Permission)" line))
                       (setf found t blank-count 0)
                       (write-line line out))
                      ;; Continue capturing comment lines
