@@ -1203,7 +1203,7 @@ If FORCE is NIL, skip files that already exist."
     (uiop:quit 1))
 
   (let* ((systems-dir (merge-pathnames "systems/" (uiop:getcwd)))
-         (csv-systems (read-systems-csv))
+         (csv-systems *ocicl-systems*)
          (licenses nil)
          (missing-systems nil))
 
