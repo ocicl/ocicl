@@ -1132,6 +1132,49 @@ If FORCE is NIL, skip files that already exist."
                       append (directory (merge-pathnames pattern directory)))))
     (car files)))
 
+(defun find-readme-file (directory)
+  "Find a README file in DIRECTORY. Returns pathname or NIL."
+  (let* ((readme-patterns '("README" "README.*"))
+         (files (loop for pattern in readme-patterns
+                      append (directory (merge-pathnames pattern directory)))))
+    (car files)))
+
+(defun extract-license-from-readme (readme-file)
+  "Extract license section from README-FILE. Returns string or NIL."
+  (when (probe-file readme-file)
+    (let ((content (alexandria:read-file-into-string readme-file)))
+      ;; Look for License section - match both markdown (#) and underline (---) style headers
+      (multiple-value-bind (start end)
+          (ppcre:scan "(?im)^#+?\\s*Licen[cs]e\\s*$|^Licen[cs]e\\s*$\\n[-=]+" content)
+        (when start
+          ;; Extract from License heading to next heading or end
+          (let* ((after-heading (subseq content end))
+                 ;; Match next markdown or underline-style heading
+                 (next-section (or (ppcre:scan "(?im)^#+?\\s*\\w|^\\w+\\s*$\\n[-=]+" after-heading)
+                                   (length after-heading))))
+            (string-trim '(#\Space #\Tab #\Newline)
+                         (subseq after-heading 0 next-section))))))))
+
+(defun extract-license-from-source-file-end (source-file)
+  "Extract license from end of SOURCE-FILE (last ~50 lines). Returns string or NIL."
+  (when (probe-file source-file)
+    (let ((lines (uiop:read-file-lines source-file)))
+      (when (> (length lines) 10)
+        ;; Check last 50 lines for copyright/license
+        (let* ((start-pos (max 0 (- (length lines) 50)))
+               (end-lines (subseq lines start-pos))
+               (license-start nil))
+          ;; Find where license block starts
+          (loop for i from 0 below (length end-lines)
+                for line = (nth i end-lines)
+                when (ppcre:scan "(?i)^;;;?.*(Copyright|Licen[cs]e|Permission|provided 'as-is')" line)
+                  do (setf license-start i) (return))
+          (when license-start
+            (with-output-to-string (out)
+              (loop for i from license-start below (length end-lines)
+                    for line = (nth i end-lines)
+                    do (write-line line out)))))))))
+
 (defun extract-license-from-asd-comments (asd-file)
   "Extract license text from comment header of ASD-FILE. Returns string or NIL."
   (when (probe-file asd-file)
@@ -1202,18 +1245,17 @@ If FORCE is NIL, skip files that already exist."
     (usage)
     (uiop:quit 1))
 
-  (let* ((systems-dir (merge-pathnames "systems/" (uiop:getcwd)))
-         (csv-systems *ocicl-systems*)
+  (let* ((csv-systems *ocicl-systems*)
          (licenses nil)
          (missing-systems nil))
 
     ;; Check if systems/ directory exists
-    (unless (probe-file systems-dir)
+    (unless (probe-file *systems-dir*)
       (format *error-output* "No systems/ directory found. Nothing to collect.~%")
       (uiop:quit 1))
 
     ;; Iterate through each system directory and collect license content
-    (dolist (system-dir (directory (merge-pathnames "*/" systems-dir)))
+    (dolist (system-dir (directory (merge-pathnames "*/" *systems-dir*)))
       (let* ((system-name (car (last (pathname-directory system-dir))))
              (license-file (find-license-file system-dir))
              (oci-url (find-oci-url-for-directory system-name csv-systems)))
@@ -1231,16 +1273,35 @@ If FORCE is NIL, skip files that already exist."
 
           ;; Try to extract from .asd file
           (t
-           (let* ((asd-file (find-primary-asd-file system-dir))
-                  (comment-text (when asd-file (extract-license-from-asd-comments asd-file)))
-                  (field-text (when (and asd-file
-                                         (or (not comment-text) (= (length comment-text) 0)))
-                                (extract-license-field-from-asd asd-file)))
-                  (license-text (or field-text comment-text)))
+           (let* ((readme-file (find-readme-file system-dir))
+                  (readme-text (when readme-file (extract-license-from-readme readme-file)))
+                  (asd-file (find-primary-asd-file system-dir))
+                  (asd-comment-text (when (and asd-file (not readme-text))
+                                      (extract-license-from-asd-comments asd-file)))
+                  ;; Check if asd-comment-text is empty or nil
+                  (has-asd-comment (and asd-comment-text (> (length asd-comment-text) 0)))
+                  (asd-field-text (when (and asd-file (not readme-text) (not has-asd-comment))
+                                    (extract-license-field-from-asd asd-file)))
+                  ;; Use the .asd filename (without extension) to find the main source file
+                  (base-system-name (when asd-file (pathname-name asd-file)))
+                  (main-source-file (when base-system-name
+                                      (let ((possible (merge-pathnames
+                                                       (make-pathname :name base-system-name :type "lisp")
+                                                       system-dir)))
+                                        (when (probe-file possible) possible))))
+                  (source-end-text (when (and main-source-file (not readme-text) (not has-asd-comment) (not asd-field-text))
+                                     (extract-license-from-source-file-end main-source-file)))
+                  (license-text (or readme-text (and has-asd-comment asd-comment-text) asd-field-text source-end-text))
+                  (source-desc (cond
+                                 (readme-text (file-namestring readme-file))
+                                 (has-asd-comment (format nil "~A (header)" (file-namestring asd-file)))
+                                 (asd-field-text (format nil "~A (:license field)" (file-namestring asd-file)))
+                                 (source-end-text (file-namestring main-source-file))
+                                 (t nil))))
              (cond
                ((and license-text (> (length license-text) 0))
                 (push (list :system system-name
-                           :source (format nil "extracted from ~A" (file-namestring asd-file))
+                           :source source-desc
                            :oci-url oci-url
                            :content license-text)
                       licenses))
