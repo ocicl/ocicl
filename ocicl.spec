@@ -43,18 +43,17 @@ sbcl --load setup.lisp --eval "(sb-ext:quit)" || true
 
 %install
 # Collect licenses from vendored dependencies
-./collect-licenses.sh
+./ocicl collect-licenses >VENDORED-LICENSES.txt
 
 # Install the binary
 install -D -m 0755 ocicl %{buildroot}%{_bindir}/ocicl
 
 # Install licenses
-mkdir -p %{buildroot}%{_datadir}/licenses/%{name}
-cp -r LICENSES/* %{buildroot}%{_datadir}/licenses/%{name}/
+install -D -m 0644 VENDORED-LICENSES.txt %{buildroot}%{_datadir}/licenses/%{name}/VENDORED-LICENSES.txt
 
 %files
 %license LICENSE
-%{_datadir}/licenses/%{name}/
+%{_datadir}/licenses/%{name}/VENDORED-LICENSES.txt
 %doc README.md
 %{_bindir}/ocicl
 
