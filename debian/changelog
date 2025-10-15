@@ -1,3 +1,11 @@
+ocicl (2.8.0-1) unstable; urgency=medium
+
+  * Add native Linux package distribution (RPM and DEB)
+  * Add vendored license collection for all dependencies
+  * Improve CI/CD with automated package building
+
+ -- Anthony Green <green@moxielogic.com>  Wed, 15 Oct 2025 12:00:00 -0400
+
 ocicl (2.7.9-1) unstable; urgency=medium
 
   * Fix Windows TLS verification default (Fixes #147)

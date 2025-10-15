@@ -1,5 +1,5 @@
 Name:           ocicl
-Version:        2.7.9
+Version:        2.8.0
 Release:        1%{?dist}
 Summary:        A modern ASDF system distribution and management tool for Common Lisp
 
@@ -38,19 +38,19 @@ and authenticity of all software packages.
 sbcl --load setup.lisp --eval "(sb-ext:quit)" || true
 
 %install
-rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT%{_bindir}
-mkdir -p $RPM_BUILD_ROOT%{_docdir}/%{name}
-
-# Install the binary
-install -m 0755 ocicl $RPM_BUILD_ROOT%{_bindir}/ocicl
-
 # Collect licenses from vendored dependencies
 ./collect-licenses.sh
 
+# Install the binary
+install -D -m 0755 ocicl %{buildroot}%{_bindir}/ocicl
+
+# Install licenses
+mkdir -p %{buildroot}%{_datadir}/licenses/%{name}
+cp -r LICENSES/* %{buildroot}%{_datadir}/licenses/%{name}/
+
 %files
 %license LICENSE
-%license LICENSES/*
+%{_datadir}/licenses/%{name}/
 %doc README.md
 %{_bindir}/ocicl
 
@@ -59,6 +59,11 @@ install -m 0755 ocicl $RPM_BUILD_ROOT%{_bindir}/ocicl
 echo "Run 'ocicl setup' to complete installation"
 
 %changelog
+* Wed Oct 15 2025 Anthony Green <green@moxielogic.com> - 2.8.0-1
+- Add native Linux package distribution (RPM and DEB)
+- Add vendored license collection for all dependencies
+- Improve CI/CD with automated package building
+
 * Wed Oct 15 2025 Anthony Green <green@moxielogic.com> - 2.7.9-1
 - Fix Windows TLS verification default (Fixes #147)
 
