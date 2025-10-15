@@ -1489,10 +1489,10 @@ If FORCE is NIL, skip files that already exist."
                (setf *color* (or (string= color "always")
                                  (and tty? color-allowed?)))))
 
-           ;; TLS verification (default on); allow --insecure or OCICL_INSECURE
-           (let ((insecure (or (getf options :insecure)
-                               (uiop:getenvp "OCICL_INSECURE"))))
-             (setf ocicl.http:*verify-tls* (not insecure)))
+           ;; TLS verification (default depends on platform); allow --insecure or OCICL_INSECURE
+           (when (or (getf options :insecure)
+                     (uiop:getenvp "OCICL_INSECURE"))
+             (setf ocicl.http:*verify-tls* nil))
 
            (let ((depth (getf options :depth)))
              (setf *tree-depth* (if (eql depth :max)
