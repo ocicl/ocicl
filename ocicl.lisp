@@ -1187,31 +1187,21 @@ If FORCE is NIL, skip files that already exist."
         (car asd-files))))
 
 (defun do-collect-licenses (args)
-  "Collect licenses from vendored dependencies in systems/ directory."
+  "Collect licenses from vendored dependencies in systems/ directory and output to stdout."
   (when args
     (usage)
     (uiop:quit 1))
 
   (let* ((systems-dir (merge-pathnames "systems/" (uiop:getcwd)))
-         (licenses-dir (merge-pathnames "LICENSES/" (uiop:getcwd)))
-         (collected 0)
-         (missing 0))
-
-    ;; Remove existing LICENSES directory and recreate
-    (when (probe-file licenses-dir)
-      (uiop:delete-directory-tree licenses-dir :validate t))
-    (ensure-directories-exist licenses-dir)
-
-    (format t "Collecting licenses from vendored dependencies...~%")
+         (licenses nil)
+         (missing-systems nil))
 
     ;; Check if systems/ directory exists
     (unless (probe-file systems-dir)
-      (format t "~A~%No systems/ directory found. Nothing to collect.~A~%"
-              (if *color* *color-bright-red* "")
-              (if *color* *color-reset* ""))
-      (uiop:quit 0))
+      (format *error-output* "No systems/ directory found. Nothing to collect.~%")
+      (uiop:quit 1))
 
-    ;; Iterate through each system directory
+    ;; Iterate through each system directory and collect license content
     (dolist (system-dir (directory (merge-pathnames "*/" systems-dir)))
       (let* ((system-name (car (last (pathname-directory system-dir))))
              (license-file (find-license-file system-dir)))
@@ -1219,15 +1209,14 @@ If FORCE is NIL, skip files that already exist."
         (cond
           ;; Found a license file
           (license-file
-           (let ((dest (merge-pathnames
-                        (format nil "~A-~A" system-name (file-namestring license-file))
-                        licenses-dir)))
-             (uiop:copy-file license-file dest)
-             (format t "  ~A✓~A ~A~%"
-                     (if *color* *color-bright-green* "")
-                     (if *color* *color-reset* "")
-                     system-name)
-             (incf collected)))
+           (let ((content (alexandria:read-file-into-string license-file))
+                 (source-file (file-namestring license-file))
+                 (oci-url (format nil "https://ghcr.io/ocicl/~A" (subseq system-name 0 (position #\- system-name)))))
+             (push (list :system system-name
+                        :source source-file
+                        :oci-url oci-url
+                        :content content)
+                   licenses)))
 
           ;; Try to extract from .asd file
           (t
@@ -1239,30 +1228,55 @@ If FORCE is NIL, skip files that already exist."
                   (license-text (or field-text comment-text)))
              (cond
                ((and license-text (> (length license-text) 0))
-                (let ((dest (merge-pathnames
-                             (format nil "~A-LICENSE-from-asd.txt" system-name)
-                             licenses-dir)))
-                  (alexandria:write-string-into-file license-text dest :if-exists :supersede)
-                  (format t "  ~A✓~A ~A (extracted from .asd)~%"
-                          (if *color* *color-bright-green* "")
-                          (if *color* *color-reset* "")
-                          system-name)
-                  (incf collected)))
+                (let ((oci-url (format nil "https://ghcr.io/ocicl/~A" (subseq system-name 0 (position #\- system-name)))))
+                  (push (list :system system-name
+                             :source (format nil "extracted from ~A" (file-namestring asd-file))
+                             :oci-url oci-url
+                             :content license-text)
+                        licenses)))
                (t
-                (format t "  ~A⚠~A ~A (no license found)~%"
-                        (if *color* *color-dim* "")
-                        (if *color* *color-reset* "")
-                        system-name)
-                (incf missing))))))))
+                (push system-name missing-systems))))))))
 
-    (format t "~%Collected ~A license file~:P in ~A~%"
-            collected
-            (enough-namestring licenses-dir))
-    (when (> missing 0)
-      (format t "~A~A system~:P without license information~A~%"
-              (if *color* *color-dim* "")
-              missing
-              (if *color* *color-reset* "")))))
+    ;; Sort licenses by system name
+    (setf licenses (sort licenses #'string< :key (lambda (lic) (getf lic :system))))
+
+    ;; Print table of contents
+    (format t "================================================================================~%")
+    (format t "VENDORED DEPENDENCY LICENSES~%")
+    (format t "================================================================================~%")
+    (format t "~%Table of Contents:~%~%")
+    (loop for lic in licenses
+          for i from 1
+          do (format t "  ~2D. ~A (~A)~%"
+                     i
+                     (getf lic :system)
+                     (getf lic :source)))
+
+    (when missing-systems
+      (format t "~%Systems without license information (~A):~%" (length missing-systems))
+      (dolist (sys (sort (copy-list missing-systems) #'string<))
+        (format t "  - ~A~%" sys)))
+
+    (format t "~%================================================================================~%")
+    (format t "~%")
+
+    ;; Print each license
+    (loop for lic in licenses
+          for i from 1
+          do (format t "~%~%")
+             (format t "================================================================================~%")
+             (format t "~D. ~A~%" i (getf lic :system))
+             (format t "   Source: ~A~%" (getf lic :source))
+             (format t "   OCI: ~A~%" (getf lic :oci-url))
+             (format t "================================================================================~%")
+             (format t "~%~A~%" (getf lic :content)))
+
+    (format t "~%~%")
+    (format t "================================================================================~%")
+    (format t "Total: ~A license~:P collected~%" (length licenses))
+    (when missing-systems
+      (format t "       ~A system~:P without license information~%" (length missing-systems)))
+    (format t "================================================================================~%")))
 
 (defvar *tree-depth* nil)
 
