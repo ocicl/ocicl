@@ -19,7 +19,25 @@ for system_dir in systems/*/; do
         cp "$license_file" "$LICENSES_DIR/${system_name}-$(basename "$license_file")"
         echo "  ✓ $system_name"
     else
-        echo "  ⚠ $system_name (no license file found)"
+        # Try to extract license from .asd file header
+        asd_file=$(find "$system_dir" -maxdepth 1 -type f -name "*.asd" ! -name "*test*.asd" | head -1)
+        if [ -n "$asd_file" ]; then
+            # Extract copyright and license comments from top of file
+            awk '/^;;;.*[Cc]opyright/,/^\(|^[^;]/ {
+                if (/^\(|^[^;]/) exit;
+                print
+            }' "$asd_file" > "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt"
+
+            # Check if we extracted anything meaningful
+            if [ -s "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt" ]; then
+                echo "  ✓ $system_name (extracted from .asd)"
+            else
+                rm "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt"
+                echo "  ⚠ $system_name (no license found)"
+            fi
+        else
+            echo "  ⚠ $system_name (no license found)"
+        fi
     fi
 done
 
