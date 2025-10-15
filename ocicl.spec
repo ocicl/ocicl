@@ -7,9 +7,13 @@ License:        MIT
 URL:            https://github.com/ocicl/ocicl
 Source0:        ocicl-%{version}.tar.gz
 
-# Disable debug packages since this is a Lisp binary
+# Disable debug packages and stripping since this is a Lisp binary with dumped image
 %global debug_package %{nil}
 %global _build_id_links none
+%global __strip /bin/true
+%global __brp_strip %{nil}
+%global __brp_strip_comment_note %{nil}
+%global __brp_strip_static_archive %{nil}
 
 BuildRequires:  sbcl
 BuildRequires:  libfixposix-devel
