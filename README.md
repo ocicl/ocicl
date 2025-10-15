@@ -48,8 +48,29 @@ https://github.com/ocicl/ocicl/issues.
 Quick Start
 ------------
 
-You can install `ocicl` one of two ways: with
-[homebrew](https://brew.sh) or from source.
+You can install `ocicl` using native Linux packages, [homebrew](https://brew.sh), or from source.
+
+### Linux Packages
+
+Native RPM and DEB packages are available for x86_64 systems.
+
+**Fedora/RHEL/CentOS:**
+```bash
+# Download and install the latest version
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.8.0-1.fc*.x86_64.rpm
+sudo dnf install ./ocicl-2.8.0-1.fc*.x86_64.rpm
+ocicl setup
+```
+
+**Debian/Ubuntu:**
+```bash
+# Download and install the latest version
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.8.0-1_amd64.deb
+sudo apt install ./ocicl_2.8.0-1_amd64.deb
+ocicl setup
+```
+
+### Homebrew
 
 For [homebrew](https://brew.sh) on Linux, Windows WSL, or macOS,
 install and configure `ocicl` as follows:
@@ -73,6 +94,8 @@ green@fedora:~$ ocicl setup
 (asdf:initialize-source-registry
   (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
 ```
+
+### From Source
 
 To install from source, run ``sbcl --load setup.lisp`` in the source
 directory.  This will build and install the ``ocicl`` binary in
