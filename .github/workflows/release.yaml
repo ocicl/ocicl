@@ -4,15 +4,11 @@ on:
   push:
     tags:
       - '*'
+
 jobs:
-  build:
+  build-binary:
     permissions: write-all
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: linux-x86_64
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,29 +25,129 @@ jobs:
           ocicl install
 
       - name: Install libfixposix (Linux)
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update -y
           sudo apt-get install -y libfixposix-dev
 
-      - name: Build
+      - name: Build binary
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           sbcl --load setup.lisp
           mv ocicl ocicl-linux-x86_64
 
-      - name: Upload artifact
+      - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          path: ./ocicl-${{ matrix.target }}*
-          name: ocicl-${{ matrix.target }}
+          path: ./ocicl-linux-x86_64
+          name: ocicl-linux-x86_64
 
-      - name: Create a GitHub release
+  build-rpm:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y rpm-build rpmdevtools sbcl libfixposix-devel gcc make
+
+      - name: Setup rpmbuild directory
+        run: |
+          rpmdev-setuptree
+
+      - name: Create source tarball
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cd ..
+          tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz --transform "s,^ocicl,ocicl-${VERSION}," ocicl
+
+      - name: Update spec file version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^Version:.*/Version:        ${VERSION}/" ocicl.spec
+          cp ocicl.spec ~/rpmbuild/SPECS/
+
+      - name: Build RPM and SRPM
+        run: |
+          cd ~/rpmbuild/SPECS
+          rpmbuild -ba ocicl.spec
+
+      - name: Copy RPM and SRPM to workspace
+        run: |
+          cp ~/rpmbuild/RPMS/x86_64/*.rpm ${GITHUB_WORKSPACE}/
+          cp ~/rpmbuild/SRPMS/*.src.rpm ${GITHUB_WORKSPACE}/
+
+      - name: Upload RPM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-packages
+          path: ./*.rpm
+
+  build-deb:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    container:
+      image: debian:stable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y debhelper devscripts sbcl libfixposix-dev gcc make
+
+      - name: Update changelog version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^ocicl (.*)/ocicl (${VERSION}-1) unstable; urgency=medium/" debian/changelog
+
+      - name: Build DEB packages (binary and source)
+        run: |
+          dpkg-buildpackage -uc -us
+
+      - name: Copy DEB and source files to workspace
+        run: |
+          cp ../*.deb . 2>/dev/null || true
+          cp ../*.dsc . 2>/dev/null || true
+          cp ../*.tar.* . 2>/dev/null || true
+          cp ../*.buildinfo . 2>/dev/null || true
+          cp ../*.changes . 2>/dev/null || true
+
+      - name: Upload DEB artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-packages
+          path: |
+            ./*.deb
+            ./*.dsc
+            ./*.tar.*
+            ./*.buildinfo
+            ./*.changes
+
+  release:
+    needs: [build-binary, build-rpm, build-deb]
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ steps.tag_version.outputs.new_tag }}
-          name: Release ${{ steps.tag_version.outputs.new_tag }}
-          body: ${{ steps.tag_version.outputs.changelog }}
-          artifacts: ./ocicl-${{ matrix.target }}*
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          artifacts: |
+            artifacts/ocicl-linux-x86_64/ocicl-linux-x86_64
+            artifacts/rpm-packages/*.rpm
+            artifacts/deb-packages/*.deb
+            artifacts/deb-packages/*.dsc
+            artifacts/deb-packages/*.tar.*
           allowUpdates: true

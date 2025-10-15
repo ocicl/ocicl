@@ -1,0 +1,21 @@
+ocicl (2.7.9-1) unstable; urgency=medium
+
+  * Fix Windows TLS verification default (Fixes #147)
+
+ -- Anthony Green <green@moxielogic.com>  Wed, 15 Oct 2025 06:56:22 -0400
+
+ocicl (2.7.8-1) unstable; urgency=medium
+
+  * Add five new linting rules (wrong-otherwise, missing-otherwise,
+    bare-progn-in-if, asdf-component-strings, unused-local-function)
+  * Fix ASDF system name to use string instead of symbol
+  * Credit Eitaro Fukamachi for linting rule inspiration
+
+ -- Anthony Green <green@moxielogic.com>  Tue, 14 Oct 2025 18:57:38 -0400
+
+ocicl (2.7.7-1) unstable; urgency=medium
+
+  * Fix linter path resolution when running from saved core image
+  * Fix linter false positives for character literals and lambda lists
+
+ -- Anthony Green <green@moxielogic.com>  Mon, 13 Oct 2025 08:00:00 -0400

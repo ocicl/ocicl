@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	sbcl --load setup.lisp --eval "(sb-ext:quit)" || true
+
+override_dh_auto_install:
+	mkdir -p debian/ocicl/usr/bin
+	install -m 0755 ocicl debian/ocicl/usr/bin/
+
+override_dh_auto_clean:
+	rm -f ocicl
+	dh_auto_clean

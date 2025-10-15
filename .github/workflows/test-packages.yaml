@@ -1,0 +1,73 @@
+name: Test Package Building
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-rpm:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y rpm-build rpmdevtools sbcl libfixposix-devel gcc make grep
+
+      - name: Setup rpmbuild directory
+        run: rpmdev-setuptree
+
+      - name: Create source tarball
+        run: |
+          VERSION=$(grep ':version' ocicl.asd | sed 's/.*"\(.*\)".*/\1/')
+          echo "Building version: $VERSION"
+          cd ..
+          tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz --transform "s,^ocicl,ocicl-${VERSION}," ocicl
+
+      - name: Build RPM and SRPM
+        run: |
+          cp ocicl.spec ~/rpmbuild/SPECS/
+          cd ~/rpmbuild/SPECS
+          rpmbuild -ba ocicl.spec
+
+      - name: List built packages
+        run: |
+          echo "Binary RPMs:"
+          ls -lh ~/rpmbuild/RPMS/x86_64/
+          echo "Source RPMs:"
+          ls -lh ~/rpmbuild/SRPMS/
+
+      - name: Test installation
+        run: |
+          dnf install -y ~/rpmbuild/RPMS/x86_64/*.rpm
+          ocicl version
+
+  test-deb:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:stable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y debhelper devscripts sbcl libfixposix-dev gcc make
+
+      - name: Build DEB packages (binary and source)
+        run: dpkg-buildpackage -uc -us
+
+      - name: List built packages
+        run: |
+          echo "Binary packages:"
+          ls -lh ../*.deb 2>/dev/null || true
+          echo "Source packages:"
+          ls -lh ../*.dsc ../*.tar.* 2>/dev/null || true
+
+      - name: Test installation
+        run: |
+          apt-get install -y ../*.deb
+          ocicl version
