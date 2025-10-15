@@ -6,42 +6,6 @@ on:
       - '*'
 
 jobs:
-  build-binary:
-    permissions: write-all
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup SBCL and ocicl (Linux)
-        run: |
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew install sbcl gcc@11
-          patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 --set-rpath /lib64 /home/linuxbrew/.linuxbrew/Cellar/sbcl/*/libexec/bin/sbcl
-
-      - name: Install dependencies (Linux)
-        run: |
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          ocicl install
-
-      - name: Install libfixposix (Linux)
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y libfixposix-dev
-
-      - name: Build binary
-        run: |
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          sbcl --load setup.lisp
-          mv ocicl ocicl-linux-x86_64
-
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
-        with:
-          if-no-files-found: error
-          path: ./ocicl-linux-x86_64
-          name: ocicl-linux-x86_64
-
   build-rpm:
     permissions: write-all
     runs-on: ubuntu-latest
@@ -130,7 +94,7 @@ jobs:
             ./*.changes
 
   release:
-    needs: [build-binary, build-rpm, build-deb]
+    needs: [build-rpm, build-deb]
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
@@ -145,7 +109,6 @@ jobs:
           tag: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           artifacts: |
-            artifacts/ocicl-linux-x86_64/ocicl-linux-x86_64
             artifacts/rpm-packages/*.rpm
             artifacts/deb-packages/*.deb
             artifacts/deb-packages/*.dsc
