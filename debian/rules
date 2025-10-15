@@ -5,11 +5,15 @@
 
 override_dh_auto_build:
 	sbcl --load setup.lisp --eval "(sb-ext:quit)" || true
+	./collect-licenses.sh
 
 override_dh_auto_install:
 	mkdir -p debian/ocicl/usr/bin
+	mkdir -p debian/ocicl/usr/share/doc/ocicl
 	install -m 0755 ocicl debian/ocicl/usr/bin/
+	cp -r LICENSES debian/ocicl/usr/share/doc/ocicl/
 
 override_dh_auto_clean:
 	rm -f ocicl
+	rm -rf LICENSES
 	dh_auto_clean

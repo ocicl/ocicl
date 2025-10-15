@@ -40,12 +40,17 @@ sbcl --load setup.lisp --eval "(sb-ext:quit)" || true
 %install
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT%{_bindir}
+mkdir -p $RPM_BUILD_ROOT%{_docdir}/%{name}
 
 # Install the binary
 install -m 0755 ocicl $RPM_BUILD_ROOT%{_bindir}/ocicl
 
+# Collect licenses from vendored dependencies
+./collect-licenses.sh
+
 %files
 %license LICENSE
+%license LICENSES/*
 %doc README.md
 %{_bindir}/ocicl
 
