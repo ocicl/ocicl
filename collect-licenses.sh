@@ -33,8 +33,16 @@ for system_dir in systems/*/; do
             if [ -s "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt" ]; then
                 echo "  ✓ $system_name (extracted from .asd)"
             else
-                rm "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt"
-                echo "  ⚠ $system_name (no license found)"
+                # Try to find :license field in defsystem
+                license_line=$(grep -i ':license' "$asd_file" | head -1)
+                if [ -n "$license_line" ]; then
+                    echo ";;; License information from $system_name.asd:" > "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt"
+                    echo "$license_line" >> "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt"
+                    echo "  ✓ $system_name (license field from .asd)"
+                else
+                    rm "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt"
+                    echo "  ⚠ $system_name (no license found)"
+                fi
             fi
         else
             echo "  ⚠ $system_name (no license found)"
