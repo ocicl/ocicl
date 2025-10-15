@@ -1186,6 +1186,16 @@ If FORCE is NIL, skip files that already exist."
     (or (find-if-not (lambda (f) (search "test" (pathname-name f))) asd-files)
         (car asd-files))))
 
+(defun find-oci-url-for-directory (dir-name csv-systems)
+  "Find the OCI URL for a system directory by looking up entries in the CSV hash table."
+  (block found
+    (maphash (lambda (system-name registry-and-path)
+               (let ((path (cdr registry-and-path)))
+                 (when (and path (alexandria:starts-with-subseq dir-name path))
+                   (return-from found (car registry-and-path)))))
+             csv-systems)
+    nil))
+
 (defun do-collect-licenses (args)
   "Collect licenses from vendored dependencies in systems/ directory and output to stdout."
   (when args
@@ -1193,6 +1203,7 @@ If FORCE is NIL, skip files that already exist."
     (uiop:quit 1))
 
   (let* ((systems-dir (merge-pathnames "systems/" (uiop:getcwd)))
+         (csv-systems (read-systems-csv))
          (licenses nil)
          (missing-systems nil))
 
@@ -1204,14 +1215,14 @@ If FORCE is NIL, skip files that already exist."
     ;; Iterate through each system directory and collect license content
     (dolist (system-dir (directory (merge-pathnames "*/" systems-dir)))
       (let* ((system-name (car (last (pathname-directory system-dir))))
-             (license-file (find-license-file system-dir)))
+             (license-file (find-license-file system-dir))
+             (oci-url (find-oci-url-for-directory system-name csv-systems)))
 
         (cond
           ;; Found a license file
           (license-file
            (let ((content (alexandria:read-file-into-string license-file))
-                 (source-file (file-namestring license-file))
-                 (oci-url (format nil "https://ghcr.io/ocicl/~A" (subseq system-name 0 (position #\- system-name)))))
+                 (source-file (file-namestring license-file)))
              (push (list :system system-name
                         :source source-file
                         :oci-url oci-url
@@ -1228,12 +1239,11 @@ If FORCE is NIL, skip files that already exist."
                   (license-text (or field-text comment-text)))
              (cond
                ((and license-text (> (length license-text) 0))
-                (let ((oci-url (format nil "https://ghcr.io/ocicl/~A" (subseq system-name 0 (position #\- system-name)))))
-                  (push (list :system system-name
-                             :source (format nil "extracted from ~A" (file-namestring asd-file))
-                             :oci-url oci-url
-                             :content license-text)
-                        licenses)))
+                (push (list :system system-name
+                           :source (format nil "extracted from ~A" (file-namestring asd-file))
+                           :oci-url oci-url
+                           :content license-text)
+                      licenses))
                (t
                 (push system-name missing-systems))))))))
 
