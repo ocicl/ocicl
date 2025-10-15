@@ -49,7 +49,8 @@
                                                          (:file "ast")
                                                          (:file "single-pass")))
                                            (:file "main")))
-                             (:file "ocicl" :depends-on ("http" "package" "tree" "lint")))))
+                             (:file "licenses" :depends-on ("package"))
+                             (:file "ocicl" :depends-on ("http" "package" "tree" "lint" "licenses")))))
 
   :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
