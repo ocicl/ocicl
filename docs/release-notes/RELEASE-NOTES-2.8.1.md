@@ -1,31 +1,45 @@
-# ocicl 2.8.1 Release Notes (PRE-RELEASE)
-
-**Note:** These are pre-release notes for an upcoming version.
+# ocicl 2.8.1 Release Notes
 
 ## What's New
 
-### Enhanced License Collection
+### SBOM Generation
 
-The `collect-licenses` command has been significantly enhanced with better heuristics for finding license information:
+New `create-sbom` command generates Software Bill of Materials (SBOM) documents for your projects:
 
-**New License Sources:**
-- README License sections - supports both markdown-style (`#`) and underline-style (`---`) headers
-- Source file footers - checks last ~50 lines for copyright/license text
-- Fixed `.asd` `:license` field extraction (was broken due to empty string handling)
+**Features:**
+- Supports CycloneDX and SPDX formats
+- Catalogs all vendored dependencies with versions, licenses, and checksums
+- Output to file or stdout
+- Default format is CycloneDX
 
-**Multiple Source Priority:**
-The command now checks five different locations in priority order:
-1. Dedicated LICENSE/COPYING files (existing)
-2. README License sections (new)
-3. `.asd` file header comments (existing)
-4. `.asd` `:license` field (existing, now fixed)
-5. Source file footers (new)
+**Usage:**
+```bash
+ocicl create-sbom                    # CycloneDX to stdout
+ocicl create-sbom cyclonedx sbom.json
+ocicl create-sbom spdx sbom.spdx.json
+```
+
+### License Collection
+
+New `collect-licenses` command collects license information from all vendored dependencies:
+
+**License Sources:**
+The command checks five different locations in priority order:
+1. Dedicated LICENSE/COPYING files
+2. README License sections - supports both markdown-style (`#`) and underline-style (`---`) headers
+3. `.asd` file header comments
+4. `.asd` `:license` field
+5. Source file footers - checks last ~50 lines for copyright/license text
+
+**Output Format:**
+- Table of contents listing all dependencies
+- Full license text for each dependency
+- Source attribution (which file provided the license)
+- OCI URL for each vendored system
+- List of systems without license information
 
 **Results:**
-Testing on a real project with 78 vendored dependencies showed the enhanced heuristics reduce missing licenses from 17 to just 1, successfully finding licenses in:
-- README files (cl-utilities, slime, sly, dexador)
-- Source file footers (trivial-utf-8)
-- `.asd` :license fields (uuid - previously broken)
+Testing on a real project with 78 vendored dependencies found licenses for 77 systems (98.7% success rate).
 
 ### Build System Updates
 
@@ -40,7 +54,3 @@ Testing on a real project with 78 vendored dependencies showed the enhanced heur
 ## Breaking Changes
 
 None. This release is fully backward compatible with 2.8.0.
-
-## Contributors
-
-Thanks to all contributors who helped make this release possible!

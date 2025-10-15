@@ -57,16 +57,16 @@ Native RPM and DEB packages are available for x86_64 systems.
 **Fedora/RHEL/CentOS:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.8.0-1.fc*.x86_64.rpm
-sudo dnf install ./ocicl-2.8.0-1.fc*.x86_64.rpm
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.8.1-1.fc*.x86_64.rpm
+sudo dnf install ./ocicl-2.8.1-1.fc*.x86_64.rpm
 ocicl setup
 ```
 
 **Debian/Ubuntu:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.8.0-1_amd64.deb
-sudo apt install ./ocicl_2.8.0-1_amd64.deb
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.8.1-1_amd64.deb
+sudo apt install ./ocicl_2.8.1-1_amd64.deb
 ocicl setup
 ```
 
@@ -214,7 +214,7 @@ using the library versions locked in your ``ocicl.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.8.0 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.8.1 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
              [-c|--color WHEN] [-d|--depth NUM] [-k|--insecure] command
@@ -233,6 +233,8 @@ Choose from the following ocicl commands:
    help                                   Print this help text
    changes [SYSTEM[:VERSION]]...          Display changes
    clean                                  Remove system directories not listed in ocicl.csv
+   collect-licenses                       Collect licenses from vendored dependencies
+   create-sbom [FORMAT] [OUTPUT]          Create SBOM (cyclonedx/spdx, default: cyclonedx)
    diff SYSTEM                            Diff between the installed and latest versions
    diff SYSTEM VERSION                    Diff between the installed version and VERSION
    diff SYSTEM VERSION1 VERSION2          Diff between files in different system versions
@@ -528,6 +530,124 @@ py4cl2-cffi         0.02 libyears (6.01 days)
 
 TOTAL libyears: 0.09 (30.06 days)
 ```
+
+License Collection
+------------------
+
+The `ocicl collect-licenses` command collects license information from all vendored dependencies in your project's `ocicl/` (or `systems/`) directory.
+
+### Usage
+
+```bash
+ocicl collect-licenses
+```
+
+The command outputs a comprehensive license report to stdout, including:
+- **Table of contents**: Lists all dependencies with their license sources
+- **Full license text**: Complete license information for each dependency
+- **Source attribution**: Shows which file provided the license (LICENSE file, README, .asd file, etc.)
+- **OCI URLs**: Container registry URLs for each vendored system
+- **Missing systems**: Lists any systems without detectable license information
+
+### License Detection
+
+The command uses intelligent heuristics to find license information from multiple sources, checking in priority order:
+
+1. **Dedicated license files**: `LICENSE*`, `LICENCE*`, `COPYING*`, `COPYRIGHT*`
+2. **README sections**: Markdown or underline-style license headers
+3. **.asd file comments**: Header comments in ASDF system definitions
+4. **.asd :license field**: The `:license` field from system definitions
+5. **Source file footers**: Last ~50 lines of main source files
+
+In testing on a project with 78 vendored dependencies, this approach successfully found licenses for 77 systems (98.7% success rate).
+
+### Example Output
+
+```bash
+$ ocicl collect-licenses > LICENSES.txt
+```
+
+The output includes a structured report like:
+
+```
+================================================================================
+VENDORED DEPENDENCY LICENSES
+================================================================================
+
+Table of Contents:
+
+   1. alexandria (LICENSE)
+   2. cl-ppcre (LICENSE)
+   3. str (README.md)
+   ...
+
+================================================================================
+
+1. alexandria
+   Source: LICENSE
+   OCI: ghcr.io/ocicl/alexandria@sha256:...
+================================================================================
+
+[Full license text here]
+...
+```
+
+SBOM Generation
+---------------
+
+The `ocicl create-sbom` command generates Software Bill of Materials (SBOM) documents for your project, cataloging all vendored dependencies.
+
+### Usage
+
+```bash
+ocicl create-sbom [FORMAT] [OUTPUT]
+```
+
+**Arguments:**
+- `FORMAT`: Optional format specifier - `cyclonedx` (or `cdx`) or `spdx` (default: `cyclonedx`)
+- `OUTPUT`: Optional output file path (default: stdout)
+
+### Features
+
+- **CycloneDX format**: Industry-standard SBOM format (default)
+- **SPDX format**: Alternative SBOM standard for compliance
+- **Comprehensive cataloging**: Includes version, license, checksum, and OCI URL for each dependency
+- **License inference**: Automatically identifies SPDX license identifiers from license text
+- **Timestamped**: Includes generation timestamp and tool information
+
+### Examples
+
+```bash
+# Generate CycloneDX SBOM to stdout
+ocicl create-sbom
+
+# Generate CycloneDX SBOM to file
+ocicl create-sbom cyclonedx sbom.json
+
+# Generate SPDX SBOM
+ocicl create-sbom spdx sbom.spdx.json
+
+# Short format name
+ocicl create-sbom cdx my-sbom.json
+```
+
+### SBOM Contents
+
+The generated SBOM includes:
+- **Project metadata**: Name, timestamp, tool information
+- **Component list**: All vendored dependencies with:
+  - Package name and version
+  - SPDX license identifier
+  - MD5 checksum of .asd file
+  - OCI package URL (purl)
+  - Distribution URL (OCI registry)
+
+### Use Cases
+
+- **Compliance**: Meet regulatory requirements for software transparency
+- **Security**: Track dependencies for vulnerability management
+- **Supply chain**: Document your software supply chain
+- **Auditing**: Provide auditors with comprehensive dependency information
 
 Security
 --------
