@@ -49,7 +49,7 @@
 (defun make-ocicl ()
   "Build the ocicl binary if source files are newer than the existing binary."
   (let ((ocicl-timestamp (safe-timestamp "ocicl"))
-        (source-timestamp (newest-file-timestamp '("*.lisp" "*.asd" "runtime/*.lisp"))))
+        (source-timestamp (newest-file-timestamp '("*.lisp" "*.asd" "runtime/*.lisp" "src/*.lisp" "lint/*.lisp"))))
     (when (or (not ocicl-timestamp)
               (and ocicl-timestamp (> source-timestamp ocicl-timestamp)))
       (safe-delete-file "ocicl")

@@ -50,7 +50,7 @@
 
 (defparameter *runtime*
   #.(let* ((here         (or *compile-file-pathname* *load-pathname*))
-           (runtime-path (uiop:subpathname here "runtime/ocicl-runtime.lisp"))
+           (runtime-path (uiop:subpathname here "../runtime/ocicl-runtime.lisp"))
            (runtime      (uiop:read-file-string runtime-path))
            (start        (search "UNKNOWN" runtime)))
       (if start
@@ -63,7 +63,7 @@
 (defparameter *builtin-templates*
   #.(let* ((here          (or *compile-file-pathname* *load-pathname*))
            (here-dir      (uiop:pathname-directory-pathname here))
-           (templates-dir (uiop:subpathname here-dir "templates/"))
+           (templates-dir (uiop:subpathname here-dir "../templates/"))
            (wild          (make-pathname :directory '(:relative :wild-inferiors)
                                           :name :wild :type :wild))
            (files         (directory (merge-pathnames wild templates-dir)))
@@ -76,7 +76,7 @@
 
 (defparameter *asdf*
   #.(let* ((here       (or *compile-file-pathname* *load-pathname*))
-           (asdf-path  (uiop:subpathname here "runtime/asdf.lisp")))
+           (asdf-path  (uiop:subpathname here "../runtime/asdf.lisp")))
       (uiop:read-file-string asdf-path)))
 
 (defvar *template-params* nil)

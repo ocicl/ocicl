@@ -32,22 +32,24 @@
   :components ((:module "runtime"
                 :components ((:static-file "asdf.lisp")
                              (:static-file "ocicl-runtime.lisp")))
-               (:file "http")
-               (:file "tree")
-               (:file "package")
-               (:module "lint"
-                :components ((:file "package")
-                             (:file "config")
-                             (:file "file-utils")
-                             (:file "asd-support")
-                             (:file "parsing")
-                             (:file "linter")
-                             (:module "rules"
-                              :components ((:file "line-based")
-                                           (:file "ast")
-                                           (:file "single-pass")))
-                             (:file "main")))
-               (:file "ocicl" :depends-on ("runtime" "http" "package" "tree" "lint")))
+               (:module "src"
+                :components ((:file "http")
+                             (:file "tree")
+                             (:file "package")
+                             (:module "lint"
+                              :pathname "../lint"
+                              :components ((:file "package")
+                                           (:file "config")
+                                           (:file "file-utils")
+                                           (:file "asd-support")
+                                           (:file "parsing")
+                                           (:file "linter")
+                                           (:module "rules"
+                                            :components ((:file "line-based")
+                                                         (:file "ast")
+                                                         (:file "single-pass")))
+                                           (:file "main")))
+                             (:file "ocicl" :depends-on ("http" "package" "tree" "lint")))))
 
   :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
