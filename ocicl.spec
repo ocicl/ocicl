@@ -5,7 +5,7 @@ Summary:        A modern ASDF system distribution and management tool for Common
 
 License:        MIT
 URL:            https://github.com/ocicl/ocicl
-Source0:        https://github.com/ocicl/ocicl/archive/v%{version}.tar.gz
+Source0:        ocicl-%{version}.tar.gz
 
 BuildRequires:  sbcl
 BuildRequires:  libfixposix-devel
