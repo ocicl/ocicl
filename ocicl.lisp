@@ -181,6 +181,7 @@
    help                                   Print this help text
    changes [SYSTEM[:VERSION]]...          Display changes
    clean                                  Remove system directories not listed in ocicl.csv
+   collect-licenses                       Collect licenses from vendored dependencies
    diff SYSTEM                            Diff between the installed and latest versions
    diff SYSTEM VERSION                    Diff between the installed version and VERSION
    diff SYSTEM VERSION1 VERSION2          Diff between files in different system versions
@@ -1124,6 +1125,145 @@ If FORCE is NIL, skip files that already exist."
           (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*)))))))
      directories-to-clean)))
 
+(defun find-license-file (directory)
+  "Find a license file in DIRECTORY. Returns pathname or NIL."
+  (let* ((license-patterns '("LICENSE*" "LICENCE*" "COPYING*" "COPYRIGHT*"))
+         (files (loop for pattern in license-patterns
+                      append (directory (merge-pathnames pattern directory)))))
+    (car files)))
+
+(defun extract-license-from-asd-comments (asd-file)
+  "Extract license text from comment header of ASD-FILE. Returns string or NIL."
+  (when (probe-file asd-file)
+    (with-output-to-string (out)
+      (with-open-file (in asd-file :direction :input)
+        (let ((found nil)
+              (blank-count 0))
+          (loop for line = (read-line in nil nil)
+                while line
+                do (cond
+                     ;; Start capturing when we see license-related keywords
+                     ((and (not found)
+                           (ppcre:scan "^;;;.*(Copyright|License|Licence|Public Domain|warranty|Permission)" line))
+                      (setf found t blank-count 0)
+                      (write-line line out))
+                     ;; Continue capturing comment lines
+                     ((and found (ppcre:scan "^;;;" line))
+                      (setf blank-count 0)
+                      (write-line line out))
+                     ;; Count blank lines
+                     ((and found (string= (string-trim '(#\Space #\Tab) line) ""))
+                      (incf blank-count)
+                      (when (>= blank-count 3)
+                        (return)))
+                     ;; Stop if we hit non-comment, non-blank line
+                     (found
+                      (return)))))))))
+
+(defun extract-license-field-from-asd (asd-file)
+  "Extract :license field from ASDF system definition in ASD-FILE. Returns string or NIL."
+  (when (probe-file asd-file)
+    ;; Simple text-based extraction since reading forms requires ASDF package
+    (handler-case
+        (with-open-file (in asd-file :direction :input)
+          (loop for line = (read-line in nil nil)
+                while line
+                when (ppcre:scan "^\\s*:licen[cs]e\\s+" line)
+                  do (let* ((match-end (nth-value 1 (ppcre:scan "^\\s*:licen[cs]e\\s+" line)))
+                            (value (when match-end
+                                     (string-trim '(#\Space #\Tab #\")
+                                                  (subseq line match-end)))))
+                       (when (and value (> (length value) 0))
+                         (return-from extract-license-field-from-asd
+                           (format nil ";;; License information from ~A:~%~A"
+                                   (file-namestring asd-file)
+                                   value))))))
+      (error () nil))))
+
+(defun find-primary-asd-file (directory)
+  "Find primary .asd file in DIRECTORY (excluding test files). Returns pathname or NIL."
+  (let ((asd-files (directory (merge-pathnames "*.asd" directory))))
+    (or (find-if-not (lambda (f) (search "test" (pathname-name f))) asd-files)
+        (car asd-files))))
+
+(defun do-collect-licenses (args)
+  "Collect licenses from vendored dependencies in systems/ directory."
+  (when args
+    (usage)
+    (uiop:quit 1))
+
+  (let* ((systems-dir (merge-pathnames "systems/" (uiop:getcwd)))
+         (licenses-dir (merge-pathnames "LICENSES/" (uiop:getcwd)))
+         (collected 0)
+         (missing 0))
+
+    ;; Remove existing LICENSES directory and recreate
+    (when (probe-file licenses-dir)
+      (uiop:delete-directory-tree licenses-dir :validate t))
+    (ensure-directories-exist licenses-dir)
+
+    (format t "Collecting licenses from vendored dependencies...~%")
+
+    ;; Check if systems/ directory exists
+    (unless (probe-file systems-dir)
+      (format t "~A~%No systems/ directory found. Nothing to collect.~A~%"
+              (if *color* *color-bright-red* "")
+              (if *color* *color-reset* ""))
+      (uiop:quit 0))
+
+    ;; Iterate through each system directory
+    (dolist (system-dir (directory (merge-pathnames "*/" systems-dir)))
+      (let* ((system-name (car (last (pathname-directory system-dir))))
+             (license-file (find-license-file system-dir)))
+
+        (cond
+          ;; Found a license file
+          (license-file
+           (let ((dest (merge-pathnames
+                        (format nil "~A-~A" system-name (file-namestring license-file))
+                        licenses-dir)))
+             (uiop:copy-file license-file dest)
+             (format t "  ~A✓~A ~A~%"
+                     (if *color* *color-bright-green* "")
+                     (if *color* *color-reset* "")
+                     system-name)
+             (incf collected)))
+
+          ;; Try to extract from .asd file
+          (t
+           (let* ((asd-file (find-primary-asd-file system-dir))
+                  (comment-text (when asd-file (extract-license-from-asd-comments asd-file)))
+                  (field-text (when (and asd-file
+                                         (or (not comment-text) (= (length comment-text) 0)))
+                                (extract-license-field-from-asd asd-file)))
+                  (license-text (or field-text comment-text)))
+             (cond
+               ((and license-text (> (length license-text) 0))
+                (let ((dest (merge-pathnames
+                             (format nil "~A-LICENSE-from-asd.txt" system-name)
+                             licenses-dir)))
+                  (alexandria:write-string-into-file license-text dest :if-exists :supersede)
+                  (format t "  ~A✓~A ~A (extracted from .asd)~%"
+                          (if *color* *color-bright-green* "")
+                          (if *color* *color-reset* "")
+                          system-name)
+                  (incf collected)))
+               (t
+                (format t "  ~A⚠~A ~A (no license found)~%"
+                        (if *color* *color-dim* "")
+                        (if *color* *color-reset* "")
+                        system-name)
+                (incf missing))))))))
+
+    (format t "~%Collected ~A license file~:P in ~A~%"
+            collected
+            (enough-namestring licenses-dir))
+    (when (> missing 0)
+      (format t "~A~A system~:P without license information~A~%"
+              (if *color* *color-dim* "")
+              missing
+              (if *color* *color-reset* "")))))
+
 (defvar *tree-depth* nil)
 
 (defstruct tree-not-found name)
@@ -1539,6 +1679,8 @@ If FORCE is NIL, skip files that already exist."
                                  (do-diff (cdr free-args)))
                                 ((string= cmd "clean")
                                  (do-clean (cdr free-args)))
+                                ((string= cmd "collect-licenses")
+                                 (do-collect-licenses (cdr free-args)))
                                 ((string= cmd "setup")
                                  (do-setup (cdr free-args)))
                                 ((string= cmd "version")
