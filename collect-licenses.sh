@@ -24,22 +24,25 @@ for system_dir in systems/*/; do
         if [ -n "$asd_file" ]; then
             # Extract license-related comments from top of file
             # Start capturing when we see copyright/license keywords, continue through all comment lines
+            # Allow a few blank lines in case license text is separated
             awk 'BEGIN { found=0; blank_count=0 }
                  /^;;;.*([Cc]opyright|[Ll]icen[cs]e|[Pp]ublic [Dd]omain|warranty|[Pp]ermission)/ {
                      found=1
+                     print
+                     blank_count=0
+                     next
                  }
                  found && /^;;;/ {
                      print
                      blank_count=0
                      next
                  }
-                 found && /^;;;\s*$/ {
-                     print
+                 found && /^$/ {
                      blank_count++
-                     if (blank_count >= 2) exit
+                     if (blank_count >= 3) exit
                      next
                  }
-                 found && !/^;;;/ {
+                 found {
                      exit
                  }
             ' "$asd_file" > "$LICENSES_DIR/${system_name}-LICENSE-from-asd.txt"
