@@ -182,6 +182,7 @@
    changes [SYSTEM[:VERSION]]...          Display changes
    clean                                  Remove system directories not listed in ocicl.csv
    collect-licenses                       Collect licenses from vendored dependencies
+   create-sbom [FORMAT] [OUTPUT]          Create SBOM (cyclonedx/spdx, default: cyclonedx)
    diff SYSTEM                            Diff between the installed and latest versions
    diff SYSTEM VERSION                    Diff between the installed version and VERSION
    diff SYSTEM VERSION1 VERSION2          Diff between files in different system versions
@@ -1543,6 +1544,8 @@ If FORCE is NIL, skip files that already exist."
                                  (do-clean (cdr free-args)))
                                 ((string= cmd "collect-licenses")
                                  (do-collect-licenses (cdr free-args)))
+                                ((string= cmd "create-sbom")
+                                 (do-create-sbom (cdr free-args)))
                                 ((string= cmd "setup")
                                  (do-setup (cdr free-args)))
                                 ((string= cmd "version")
