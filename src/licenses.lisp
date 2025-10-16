@@ -42,7 +42,7 @@
 (defun find-license-file (directory)
   "Find a license file in DIRECTORY. Returns pathname or NIL.
    If a LICENSES directory is found, looks for files inside it."
-  (let* ((license-patterns '("LICENSE*" "LICENCE*" "COPYING*" "COPYRIGHT*"))
+  (let* ((license-patterns '("*LICEN?E*" "COPYING*" "COPYRIGHT*"))
          (matches (loop for pattern in license-patterns
                         append (directory (merge-pathnames pattern directory))))
          ;; Separate files from directories
@@ -179,10 +179,23 @@
       (error () nil))))
 
 (defun find-primary-asd-file (directory)
-  "Find primary .asd file in DIRECTORY (excluding test files). Returns pathname or NIL."
-  (let ((asd-files (directory (merge-pathnames "*.asd" directory))))
-    (or (find-if-not (lambda (f) (search "test" (pathname-name f))) asd-files)
-        (car asd-files))))
+  "Find primary .asd file in DIRECTORY (excluding test/example/docs files). Returns pathname or NIL."
+  (let* ((asd-files (directory (merge-pathnames "*.asd" directory)))
+         (dir-name (car (last (pathname-directory directory)))))
+    ;; First try to find .asd file matching directory name
+    (or (find-if (lambda (f)
+                   (string-equal (pathname-name f) dir-name))
+                 asd-files)
+        ;; Otherwise exclude test/example/docs files and prefer shortest name
+        (let ((filtered (remove-if (lambda (f)
+                                     (let ((name (pathname-name f)))
+                                       (or (search "test" name :test #'char-equal)
+                                           (search "example" name :test #'char-equal)
+                                           (search "docs" name :test #'char-equal))))
+                                   asd-files)))
+          (when filtered
+            (first (sort (copy-list filtered) #'< :key (lambda (f) (length (pathname-name f))))))))))
+
 
 (defun find-oci-url-for-directory (dir-name csv-systems)
   "Find the OCI URL for a system directory by looking up entries in the CSV hash table."
