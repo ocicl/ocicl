@@ -38,17 +38,29 @@
       (alexandria:read-file-into-string pathname :external-format :latin-1))))
 
 (defun find-license-file (directory)
-  "Find a license file in DIRECTORY. Returns pathname or NIL."
+  "Find a license file in DIRECTORY. Returns pathname or NIL.
+   If a LICENSES directory is found, looks for files inside it."
   (let* ((license-patterns '("LICENSE*" "LICENCE*" "COPYING*" "COPYRIGHT*"))
-         (files (loop for pattern in license-patterns
-                      append (directory (merge-pathnames pattern directory)))))
-    (car files)))
+         (matches (loop for pattern in license-patterns
+                        append (directory (merge-pathnames pattern directory))))
+         ;; Separate files from directories
+         (files (remove-if #'uiop:directory-pathname-p matches))
+         (dirs (remove-if-not #'uiop:directory-pathname-p matches)))
+    (or (car files)
+        ;; If no license file found but there's a license directory, look inside
+        (when dirs
+          (let ((license-dir (car dirs)))
+            ;; Find first file in the license directory
+            (car (remove-if #'uiop:directory-pathname-p
+                            (directory (merge-pathnames "*" license-dir)))))))))
 
 (defun find-readme-file (directory)
   "Find a README file in DIRECTORY. Returns pathname or NIL."
   (let* ((readme-patterns '("README" "README.*"))
-         (files (loop for pattern in readme-patterns
-                      append (directory (merge-pathnames pattern directory)))))
+         (matches (loop for pattern in readme-patterns
+                        append (directory (merge-pathnames pattern directory))))
+         ;; Filter out directories, keep only files
+         (files (remove-if #'uiop:directory-pathname-p matches)))
     (car files)))
 
 (defun extract-license-from-readme (readme-file)
