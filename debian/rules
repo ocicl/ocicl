@@ -13,6 +13,9 @@ override_dh_auto_install:
 	install -m 0755 ocicl debian/ocicl/usr/bin/
 	cp VENDORED-LICENSES.txt debian/ocicl/usr/share/doc/ocicl/
 
+override_dh_strip:
+	# Do not strip SBCL-based binaries as it corrupts the embedded core
+
 override_dh_auto_clean:
 	rm -f ocicl
 	rm -f VENDORED-LICENSES.txt
