@@ -1023,8 +1023,8 @@ If FORCE is NIL, skip files that already exist."
                              (t given-v2)))
              (system-fullname-1 (concatenate 'string system-name (when version1 ":") version1))
              (system-fullname-2 (concatenate 'string system-name ":" version2)))
-        (declare (type (simple-array character) system-name)
-                 (type (or null (simple-array character)) given-v1 given-v2 version1 version2))
+        (declare (type string system-name)
+                 (type (or null string) given-v1 given-v2 version1 version2))
         (when (and version1 (equal version1 version2))
           (return-from do-diff))
         (let* ((version1-system-info (if version1
