@@ -25,6 +25,18 @@
 
 (in-package #:ocicl)
 
+(defun read-file-with-fallback-encoding (pathname)
+  "Read file content as string, trying UTF-8 first, then falling back to Latin-1.
+   This handles LICENSE files that may be encoded in various character sets."
+  (handler-case
+      (alexandria:read-file-into-string pathname :external-format :utf-8)
+    (#+sbcl sb-int:stream-decoding-error
+     #+ccl ccl:stream-decoding-error
+     #+ecl ext:stream-decoding-error
+     #-(or sbcl ccl ecl) error ()
+      ;; Fall back to Latin-1 which can decode any byte sequence
+      (alexandria:read-file-into-string pathname :external-format :latin-1))))
+
 (defun find-license-file (directory)
   "Find a license file in DIRECTORY. Returns pathname or NIL."
   (let* ((license-patterns '("LICENSE*" "LICENCE*" "COPYING*" "COPYRIGHT*"))
@@ -42,7 +54,7 @@
 (defun extract-license-from-readme (readme-file)
   "Extract license section from README-FILE. Returns string or NIL."
   (when (probe-file readme-file)
-    (let ((content (alexandria:read-file-into-string readme-file)))
+    (let ((content (read-file-with-fallback-encoding readme-file)))
       ;; Look for License section - match both markdown (#) and underline (---) style headers
       (multiple-value-bind (start end)
           (ppcre:scan "(?im)^#+?\\s*Licen[cs]e\\s*$|^Licen[cs]e\\s*$\\n[-=]+" content)
@@ -187,7 +199,7 @@
                 (format out "~%~%--------------------------------------------------------------------------------~%")
                 (format out "Referenced file: ~A~%" ref-name)
                 (format out "--------------------------------------------------------------------------------~%~%")
-                (write-string (alexandria:read-file-into-string ref-file) out)))))
+                (write-string (read-file-with-fallback-encoding ref-file) out)))))
         ;; No references found, return original text
         license-text)))
 
@@ -215,7 +227,7 @@
         (cond
           ;; Found a license file
           (license-file
-           (let* ((content (alexandria:read-file-into-string license-file))
+           (let* ((content (read-file-with-fallback-encoding license-file))
                   (enhanced-content (follow-license-references content system-dir))
                   (source-file (file-namestring license-file)))
              (push (list :system system-name
