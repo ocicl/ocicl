@@ -57,16 +57,16 @@ Native RPM and DEB packages are available for x86_64 systems.
 **Fedora/RHEL/CentOS:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.8.1-1.fc*.x86_64.rpm
-sudo dnf install ./ocicl-2.8.1-1.fc*.x86_64.rpm
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.8.2-1.fc*.x86_64.rpm
+sudo dnf install ./ocicl-2.8.2-1.fc*.x86_64.rpm
 ocicl setup
 ```
 
 **Debian/Ubuntu:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.8.1-1_amd64.deb
-sudo apt install ./ocicl_2.8.1-1_amd64.deb
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.8.2-1_amd64.deb
+sudo apt install ./ocicl_2.8.2-1_amd64.deb
 ocicl setup
 ```
 
@@ -214,7 +214,7 @@ using the library versions locked in your ``ocicl.csv`` file.
 Now let's try the ``ocicl`` command line tool.
 
 ```
-ocicl 2.8.1 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.8.2 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
              [-c|--color WHEN] [-d|--depth NUM] [-k|--insecure] command
