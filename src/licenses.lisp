@@ -99,6 +99,14 @@
 (defun extract-license-from-source-file-start (source-file)
   "Extract license from beginning of SOURCE-FILE (first ~50 lines). Returns string or NIL."
   (when (and (probe-file source-file) (not (uiop:directory-exists-p source-file)))
+    ;; First check for block comment #| ... |# at start of file
+    (let ((content (read-file-with-fallback-encoding source-file)))
+      (when (and content (ppcre:scan "^\\s*#\\|" content))
+        (multiple-value-bind (start end)
+            (ppcre:scan "(?s)^\\s*#\\|.*?(Copyright|Licen[cs]e|Permission).*?\\|#" content)
+          (when start
+            (return-from extract-license-from-source-file-start (subseq content start end))))))
+    ;; Fall back to line comment detection
     (let ((lines (uiop:read-file-lines source-file)))
       (when (> (length lines) 3)
         ;; Check first 50 lines for copyright/license
@@ -200,6 +208,20 @@
          (dir-name (car (last (pathname-directory directory))))
          ;; Strip version suffix like -20240503-abc123f from directory name
          (base-name (ppcre:regex-replace "-\\d{8}-[a-f0-9]{7}$" dir-name "")))
+    ;; If no .asd files in root, search immediate subdirectories (except test/example/docs)
+    (when (null asd-files)
+      (let ((subdirs (remove-if (lambda (d)
+                                  (let ((name (car (last (pathname-directory d)))))
+                                    (or (search "test" name :test #'char-equal)
+                                        (search "example" name :test #'char-equal)
+                                        (search "docs" name :test #'char-equal))))
+                                (uiop:subdirectories directory))))
+        (dolist (subdir subdirs)
+          (let ((subdir-files (uiop:directory-files subdir)))
+            (setf asd-files (append asd-files
+                                    (remove-if-not (lambda (f) (string-equal (pathname-type f) "asd"))
+                                                   subdir-files)))))))
+
     ;; First try to find .asd file matching base directory name (without version)
     (or (find-if (lambda (f)
                    (string-equal (pathname-name f) base-name))
