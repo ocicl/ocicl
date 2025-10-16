@@ -139,6 +139,58 @@
              csv-systems)
     nil))
 
+(defun extract-filename-references (text)
+  "Extract file references from TEXT. Returns list of filenames or NIL.
+   Detects patterns like 'see file X', 'See [X](X)', etc."
+  (let ((filenames nil))
+    ;; Pattern 1: "see file FILENAME" (case insensitive)
+    (ppcre:do-matches-as-strings (match "(?i)see\\s+file\\s+([-_.a-zA-Z0-9]+)" text)
+      (multiple-value-bind (whole-match groups)
+          (ppcre:scan-to-strings "(?i)see\\s+file\\s+([-_.a-zA-Z0-9]+)" match)
+        (when (and groups (> (length groups) 0))
+          (push (aref groups 0) filenames))))
+    ;; Pattern 2: "See [FILENAME](FILENAME)" (markdown links)
+    (ppcre:do-matches-as-strings (match "(?i)see\\s+\\[([^\\]]+)\\]\\([^)]+\\)" text)
+      (multiple-value-bind (whole-match groups)
+          (ppcre:scan-to-strings "(?i)see\\s+\\[([^\\]]+)\\]\\([^)]+\\)" match)
+        (when (and groups (> (length groups) 0))
+          (push (aref groups 0) filenames))))
+    ;; Pattern 3: "see FILENAME" where FILENAME looks like a license file
+    (ppcre:do-matches-as-strings (match "(?i)see\\s+([A-Z][-_.a-zA-Z0-9]*)" text)
+      (multiple-value-bind (whole-match groups)
+          (ppcre:scan-to-strings "(?i)see\\s+([A-Z][-_.a-zA-Z0-9]*)" match)
+        (when (and groups (> (length groups) 0))
+          (let ((filename (aref groups 0)))
+            ;; Only include if it looks like a license file
+            (when (ppcre:scan "(?i)(LICEN[CS]E|COPYING|COPYRIGHT|NOTICE)" filename)
+              (push filename filenames))))))
+    (remove-duplicates filenames :test #'string-equal)))
+
+(defun resolve-license-file-reference (system-dir referenced-filename)
+  "Try to find REFERENCED-FILENAME in SYSTEM-DIR. Returns pathname or NIL."
+  (let ((candidate (merge-pathnames referenced-filename system-dir)))
+    (when (probe-file candidate)
+      candidate)))
+
+(defun follow-license-references (license-text system-dir)
+  "If LICENSE-TEXT contains file references, try to load and append those files.
+   Returns enhanced license text."
+  (let ((referenced-files (extract-filename-references license-text)))
+    (if referenced-files
+        (with-output-to-string (out)
+          ;; Include the original text first
+          (write-string license-text out)
+          ;; Then append contents of referenced files
+          (dolist (ref-name referenced-files)
+            (let ((ref-file (resolve-license-file-reference system-dir ref-name)))
+              (when ref-file
+                (format out "~%~%--------------------------------------------------------------------------------~%")
+                (format out "Referenced file: ~A~%" ref-name)
+                (format out "--------------------------------------------------------------------------------~%~%")
+                (write-string (alexandria:read-file-into-string ref-file) out)))))
+        ;; No references found, return original text
+        license-text)))
+
 (defun do-collect-licenses (args)
   "Collect licenses from vendored dependencies in systems/ directory and output to stdout."
   (when args
@@ -163,12 +215,13 @@
         (cond
           ;; Found a license file
           (license-file
-           (let ((content (alexandria:read-file-into-string license-file))
-                 (source-file (file-namestring license-file)))
+           (let* ((content (alexandria:read-file-into-string license-file))
+                  (enhanced-content (follow-license-references content system-dir))
+                  (source-file (file-namestring license-file)))
              (push (list :system system-name
                         :source source-file
                         :oci-url oci-url
-                        :content content)
+                        :content enhanced-content)
                    licenses)))
 
           ;; Try to extract from .asd file
@@ -200,11 +253,12 @@
                                  (t nil))))
              (cond
                ((and license-text (> (length license-text) 0))
-                (push (list :system system-name
-                           :source source-desc
-                           :oci-url oci-url
-                           :content license-text)
-                      licenses))
+                (let ((enhanced-text (follow-license-references license-text system-dir)))
+                  (push (list :system system-name
+                             :source source-desc
+                             :oci-url oci-url
+                             :content enhanced-text)
+                        licenses)))
                (t
                 (push system-name missing-systems))))))))
 
