@@ -27,15 +27,17 @@
 
 (defun read-file-with-fallback-encoding (pathname)
   "Read file content as string, trying UTF-8 first, then falling back to Latin-1.
-   This handles LICENSE files that may be encoded in various character sets."
-  (handler-case
-      (alexandria:read-file-into-string pathname :external-format :utf-8)
-    (#+sbcl sb-int:stream-decoding-error
-     #+ccl ccl:stream-decoding-error
-     #+ecl ext:stream-decoding-error
-     #-(or sbcl ccl ecl) error ()
-      ;; Fall back to Latin-1 which can decode any byte sequence
-      (alexandria:read-file-into-string pathname :external-format :latin-1))))
+   This handles LICENSE files that may be encoded in various character sets.
+   Returns NIL if pathname is a directory."
+  (when (and (probe-file pathname) (not (uiop:directory-exists-p pathname)))
+    (handler-case
+        (alexandria:read-file-into-string pathname :external-format :utf-8)
+      (#+sbcl sb-int:stream-decoding-error
+       #+ccl ccl:stream-decoding-error
+       #+ecl ext:stream-decoding-error
+       #-(or sbcl ccl ecl) error ()
+        ;; Fall back to Latin-1 which can decode any byte sequence
+        (alexandria:read-file-into-string pathname :external-format :latin-1)))))
 
 (defun find-license-file (directory)
   "Find a license file in DIRECTORY. Returns pathname or NIL.
@@ -65,7 +67,7 @@
 
 (defun extract-license-from-readme (readme-file)
   "Extract license section from README-FILE. Returns string or NIL."
-  (when (probe-file readme-file)
+  (when (and (probe-file readme-file) (not (uiop:directory-exists-p readme-file)))
     (let ((content (read-file-with-fallback-encoding readme-file)))
       ;; Look for License section - match both markdown (#) and underline (---) style headers
       (multiple-value-bind (start end)
@@ -79,9 +81,38 @@
             (string-trim '(#\Space #\Tab #\Newline)
                          (subseq after-heading 0 next-section))))))))
 
+(defun extract-license-from-source-file-start (source-file)
+  "Extract license from beginning of SOURCE-FILE (first ~50 lines). Returns string or NIL."
+  (when (and (probe-file source-file) (not (uiop:directory-exists-p source-file)))
+    (let ((lines (uiop:read-file-lines source-file)))
+      (when (> (length lines) 3)
+        ;; Check first 50 lines for copyright/license
+        (let* ((end-pos (min 50 (length lines)))
+               (start-lines (subseq lines 0 end-pos))
+               (license-start nil)
+               (license-end nil))
+          ;; Find where license block starts
+          (loop for i from 0 below (length start-lines)
+                for line = (nth i start-lines)
+                when (ppcre:scan "(?i)^;;;?.*(Copyright|Licen[cs]e|Permission|provided 'as-is')" line)
+                  do (setf license-start i) (return))
+          (when license-start
+            ;; Find where license block ends (first non-comment, non-blank line after license start)
+            (setf license-end
+                  (or (loop for i from (1+ license-start) below (length start-lines)
+                            for line = (nth i start-lines)
+                            unless (or (ppcre:scan "^;;;" line)
+                                      (ppcre:scan "^\\s*$" line))
+                              return i)
+                      (length start-lines)))
+            (with-output-to-string (out)
+              (loop for i from license-start below license-end
+                    for line = (nth i start-lines)
+                    do (write-line line out)))))))))
+
 (defun extract-license-from-source-file-end (source-file)
   "Extract license from end of SOURCE-FILE (last ~50 lines). Returns string or NIL."
-  (when (probe-file source-file)
+  (when (and (probe-file source-file) (not (uiop:directory-exists-p source-file)))
     (let ((lines (uiop:read-file-lines source-file)))
       (when (> (length lines) 10)
         ;; Check last 50 lines for copyright/license
@@ -101,7 +132,7 @@
 
 (defun extract-license-from-asd-comments (asd-file)
   "Extract license text from comment header of ASD-FILE. Returns string or NIL."
-  (when (probe-file asd-file)
+  (when (and (probe-file asd-file) (not (uiop:directory-exists-p asd-file)))
     (with-output-to-string (out)
       (with-open-file (in asd-file :direction :input)
         (let ((found nil)
@@ -129,7 +160,7 @@
 
 (defun extract-license-field-from-asd (asd-file)
   "Extract :license field from ASDF system definition in ASD-FILE. Returns string or NIL."
-  (when (probe-file asd-file)
+  (when (and (probe-file asd-file) (not (uiop:directory-exists-p asd-file)))
     ;; Simple text-based extraction since reading forms requires ASDF package
     (handler-case
         (with-open-file (in asd-file :direction :input)
@@ -180,9 +211,9 @@
         (when (and groups (> (length groups) 0))
           (push (aref groups 0) filenames))))
     ;; Pattern 3: "see FILENAME" where FILENAME looks like a license file
-    (ppcre:do-matches-as-strings (match "(?i)see\\s+([A-Z][-_.a-zA-Z0-9]*)" text)
+    (ppcre:do-matches-as-strings (match "(?i)see\\s+([A-Z][-_.a-zA-Z0-9/]*)" text)
       (multiple-value-bind (whole-match groups)
-          (ppcre:scan-to-strings "(?i)see\\s+([A-Z][-_.a-zA-Z0-9]*)" match)
+          (ppcre:scan-to-strings "(?i)see\\s+([A-Z][-_.a-zA-Z0-9/]*)" match)
         (when (and groups (> (length groups) 0))
           (let ((filename (aref groups 0)))
             ;; Only include if it looks like a license file
@@ -193,7 +224,7 @@
 (defun resolve-license-file-reference (system-dir referenced-filename)
   "Try to find REFERENCED-FILENAME in SYSTEM-DIR. Returns pathname or NIL."
   (let ((candidate (merge-pathnames referenced-filename system-dir)))
-    (when (probe-file candidate)
+    (when (and (probe-file candidate) (not (uiop:directory-exists-p candidate)))
       candidate)))
 
 (defun follow-license-references (license-text system-dir)
@@ -266,25 +297,38 @@
                                                        (make-pathname :name base-system-name :type "lisp")
                                                        system-dir)))
                                         (when (probe-file possible) possible))))
-                  (source-end-text (when (and main-source-file (not readme-text) (not has-asd-comment) (not asd-field-text))
-                                     (extract-license-from-source-file-end main-source-file)))
-                  (license-text (or readme-text (and has-asd-comment asd-comment-text) asd-field-text source-end-text))
-                  (source-desc (cond
-                                 (readme-text (file-namestring readme-file))
-                                 (has-asd-comment (format nil "~A (header)" (file-namestring asd-file)))
-                                 (asd-field-text (format nil "~A (:license field)" (file-namestring asd-file)))
-                                 (source-end-text (file-namestring main-source-file))
-                                 (t nil))))
-             (cond
-               ((and license-text (> (length license-text) 0))
-                (let ((enhanced-text (follow-license-references license-text system-dir)))
-                  (push (list :system system-name
-                             :source source-desc
-                             :oci-url oci-url
-                             :content enhanced-text)
-                        licenses)))
-               (t
-                (push system-name missing-systems))))))))
+                  ;; Try to extract license from source files (check both start and end)
+                  (source-text (when (and main-source-file (not readme-text) (not has-asd-comment) (not asd-field-text))
+                                 (or (extract-license-from-source-file-start main-source-file)
+                                     (extract-license-from-source-file-end main-source-file)))))
+             ;; If no main source file or no license found, try any .lisp file
+             (multiple-value-bind (fallback-source-text fallback-source-file)
+                 (when (and (not readme-text) (not has-asd-comment) (not asd-field-text) (not source-text))
+                   (let ((lisp-files (remove-if #'uiop:directory-pathname-p
+                                                (directory (merge-pathnames "*.lisp" system-dir)))))
+                     (loop for file in lisp-files
+                           for text = (or (extract-license-from-source-file-start file)
+                                         (extract-license-from-source-file-end file))
+                           when text
+                             return (values text file))))
+               (let* ((license-text (or readme-text (and has-asd-comment asd-comment-text) asd-field-text source-text fallback-source-text))
+                      (source-desc (cond
+                                     (readme-text (file-namestring readme-file))
+                                     (has-asd-comment (format nil "~A (header)" (file-namestring asd-file)))
+                                     (asd-field-text (format nil "~A (:license field)" (file-namestring asd-file)))
+                                     (source-text (file-namestring main-source-file))
+                                     (fallback-source-text (format nil "~A (header)" (file-namestring fallback-source-file)))
+                                     (t nil))))
+                 (cond
+                   ((and license-text (> (length license-text) 0))
+                    (let ((enhanced-text (follow-license-references license-text system-dir)))
+                      (push (list :system system-name
+                                  :source source-desc
+                                  :oci-url oci-url
+                                  :content enhanced-text)
+                            licenses)))
+                   (t
+                    (push system-name missing-systems))))))))))
 
     ;; Sort licenses by system name
     (setf licenses (sort licenses #'string< :key (lambda (lic) (getf lic :system))))
