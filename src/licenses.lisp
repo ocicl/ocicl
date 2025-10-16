@@ -42,27 +42,42 @@
 (defun find-license-file (directory)
   "Find a license file in DIRECTORY. Returns pathname or NIL.
    If a LICENSES directory is found, looks for files inside it."
-  (let* ((license-patterns '("*LICEN?E*" "COPYING*" "COPYRIGHT*"))
-         (matches (loop for pattern in license-patterns
-                        append (directory (merge-pathnames pattern directory))))
-         ;; Separate files from directories
-         (files (remove-if #'uiop:directory-pathname-p matches))
-         (dirs (remove-if-not #'uiop:directory-pathname-p matches)))
+  (let* ((all-files (uiop:directory-files directory))
+         (all-dirs (uiop:subdirectories directory))
+         ;; Match license file patterns
+         (files (remove-if-not
+                 (lambda (f)
+                   (let ((name (pathname-name f)))
+                     (and name
+                          (or (ppcre:scan "(?i)^.*licen[cs]e.*$" name)
+                              (ppcre:scan "(?i)^copying.*$" name)
+                              (ppcre:scan "(?i)^copyright.*$" name)))))
+                 all-files))
+         ;; Match license directory patterns
+         (dirs (remove-if-not
+                (lambda (d)
+                  (let ((name (car (last (pathname-directory d)))))
+                    (and name
+                         (or (ppcre:scan "(?i)^.*licen[cs]e.*$" name)
+                             (ppcre:scan "(?i)^copying.*$" name)
+                             (ppcre:scan "(?i)^copyright.*$" name)))))
+                all-dirs)))
     (or (car files)
         ;; If no license file found but there's a license directory, look inside
         (when dirs
           (let ((license-dir (car dirs)))
             ;; Find first file in the license directory
-            (car (remove-if #'uiop:directory-pathname-p
-                            (directory (merge-pathnames "*" license-dir)))))))))
+            (car (uiop:directory-files license-dir)))))))
 
 (defun find-readme-file (directory)
   "Find a README file in DIRECTORY. Returns pathname or NIL."
-  (let* ((readme-patterns '("README" "README.*"))
-         (matches (loop for pattern in readme-patterns
-                        append (directory (merge-pathnames pattern directory))))
-         ;; Filter out directories, keep only files
-         (files (remove-if #'uiop:directory-pathname-p matches)))
+  (let* ((all-files (uiop:directory-files directory))
+         ;; Match README file patterns
+         (files (remove-if-not
+                 (lambda (f)
+                   (let ((name (pathname-name f)))
+                     (and name (ppcre:scan "(?i)^readme.*$" name))))
+                 all-files)))
     (car files)))
 
 (defun extract-license-from-readme (readme-file)
@@ -180,7 +195,8 @@
 
 (defun find-primary-asd-file (directory)
   "Find primary .asd file in DIRECTORY (excluding test/example/docs files). Returns pathname or NIL."
-  (let* ((asd-files (directory (merge-pathnames "*.asd" directory)))
+  (let* ((all-files (uiop:directory-files directory))
+         (asd-files (remove-if-not (lambda (f) (string-equal (pathname-type f) "asd")) all-files))
          (dir-name (car (last (pathname-directory directory)))))
     ;; First try to find .asd file matching directory name
     (or (find-if (lambda (f)
@@ -317,13 +333,13 @@
              ;; If no main source file or no license found, try any .lisp file
              (multiple-value-bind (fallback-source-text fallback-source-file)
                  (when (and (not readme-text) (not has-asd-comment) (not asd-field-text) (not source-text))
-                   (let ((lisp-files (remove-if #'uiop:directory-pathname-p
-                                                (directory (merge-pathnames "*.lisp" system-dir)))))
-                     (loop for file in lisp-files
-                           for text = (or (extract-license-from-source-file-start file)
-                                         (extract-license-from-source-file-end file))
-                           when text
-                             return (values text file))))
+                   (let ((all-files (uiop:directory-files system-dir)))
+                     (let ((lisp-files (remove-if-not (lambda (f) (string-equal (pathname-type f) "lisp")) all-files)))
+                       (loop for file in lisp-files
+                             for text = (or (extract-license-from-source-file-start file)
+                                           (extract-license-from-source-file-end file))
+                             when text
+                               return (values text file)))))
                (let* ((license-text (or readme-text (and has-asd-comment asd-comment-text) asd-field-text source-text fallback-source-text))
                       (source-desc (cond
                                      (readme-text (file-namestring readme-file))
