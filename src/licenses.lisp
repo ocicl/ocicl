@@ -197,9 +197,15 @@
   "Find primary .asd file in DIRECTORY (excluding test/example/docs files). Returns pathname or NIL."
   (let* ((all-files (uiop:directory-files directory))
          (asd-files (remove-if-not (lambda (f) (string-equal (pathname-type f) "asd")) all-files))
-         (dir-name (car (last (pathname-directory directory)))))
-    ;; First try to find .asd file matching directory name
+         (dir-name (car (last (pathname-directory directory))))
+         ;; Strip version suffix like -20240503-abc123f from directory name
+         (base-name (ppcre:regex-replace "-\\d{8}-[a-f0-9]{7}$" dir-name "")))
+    ;; First try to find .asd file matching base directory name (without version)
     (or (find-if (lambda (f)
+                   (string-equal (pathname-name f) base-name))
+                 asd-files)
+        ;; Also try exact directory name match in case there's no version suffix
+        (find-if (lambda (f)
                    (string-equal (pathname-name f) dir-name))
                  asd-files)
         ;; Otherwise exclude test/example/docs files and prefer shortest name
