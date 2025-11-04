@@ -487,11 +487,37 @@ Returns a list of issues."
                         (or (null (second form)) (null (third form))))
                (push-iss ln col "equal-with-nil" "Use NULL or NOT instead of EQUAL with NIL"))
 
-             ;; (NOT (NULL x)) -> simplify
-             (when (and (eq head 'not)
+             ;; (NOT (NULL x)) in conditional context -> simplify
+             ;; Only flag when used as a test in IF, WHEN, UNLESS, AND, OR, COND
+             ;; because sometimes (NOT (NULL x)) is used to explicitly get T/NIL
+             (when (and (member head '(if when unless))
+                        (>= (length form) 2)
                         (consp (second form))
-                        (eq (first (second form)) 'null))
-               (push-iss ln col "not-null" "Simplify (NOT (NULL x)) to just x"))
+                        (eq (first (second form)) 'not)
+                        (consp (second (second form)))
+                        (eq (first (second (second form))) 'null))
+               (push-iss ln col "not-null" "Simplify (NOT (NULL x)) to just x in conditional test"))
+
+             ;; Check AND/OR arguments for (NOT (NULL x))
+             (when (and (member head '(and or))
+                        (> (length form) 1))
+               (dolist (arg (rest form))
+                 (when (and (consp arg)
+                            (eq (first arg) 'not)
+                            (consp (second arg))
+                            (eq (first (second arg)) 'null))
+                   (push-iss ln col "not-null" "Simplify (NOT (NULL x)) to just x in boolean expression"))))
+
+             ;; Check COND test clauses for (NOT (NULL x))
+             (when (and (eq head 'cond)
+                        (> (length form) 1))
+               (dolist (clause (rest form))
+                 (when (and (consp clause)
+                            (consp (first clause))
+                            (eq (first (first clause)) 'not)
+                            (consp (second (first clause)))
+                            (eq (first (second (first clause))) 'null))
+                   (push-iss ln col "not-null" "Simplify (NOT (NULL x)) to just x in COND test"))))
 
              ;; 'NIL quoted -> NIL
              (when (and (eq head 'quote)
