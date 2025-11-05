@@ -1396,15 +1396,46 @@ Returns a list of issues."
                (push-iss ln col "use-serapeum-nor"
                          "Consider using SERAPEUM:NOR for (NOT (OR ...))"))
 
-             ;; Suggest SERAPEUM:NAND for (not (and ...))
-             (when (and (eq head 'not)
+             ;; Suggest SERAPEUM:NAND for (not (and ...)) in conditional context
+             ;; Only flag when used as a test in IF, WHEN, UNLESS, AND, OR, COND
+             ;; because sometimes (NOT (AND ...)) is used to explicitly get T/NIL
+             (when (and (member head '(if when unless))
                         (library-suggestions-enabled-p "serapeum")
-                        (= (length form) 2)
+                        (>= (length form) 2)
                         (consp (second form))
-                        (eq (first (second form)) 'and)
-                        (>= (length (second form)) 3))
+                        (eq (first (second form)) 'not)
+                        (consp (second (second form)))
+                        (eq (first (second (second form))) 'and)
+                        (>= (length (second (second form))) 3))
                (push-iss ln col "use-serapeum-nand"
-                         "Consider using SERAPEUM:NAND for (NOT (AND ...))"))
+                         "Consider using SERAPEUM:NAND for (NOT (AND ...)) in conditional test"))
+
+             ;; Check AND/OR arguments for (NOT (AND ...))
+             (when (and (member head '(and or))
+                        (library-suggestions-enabled-p "serapeum")
+                        (> (length form) 1))
+               (dolist (arg (rest form))
+                 (when (and (consp arg)
+                            (eq (first arg) 'not)
+                            (consp (second arg))
+                            (eq (first (second arg)) 'and)
+                            (>= (length (second arg)) 3))
+                   (push-iss ln col "use-serapeum-nand"
+                             "Consider using SERAPEUM:NAND for (NOT (AND ...)) in boolean expression"))))
+
+             ;; Check COND test clauses for (NOT (AND ...))
+             (when (and (eq head 'cond)
+                        (library-suggestions-enabled-p "serapeum")
+                        (> (length form) 1))
+               (dolist (clause (rest form))
+                 (when (and (consp clause)
+                            (consp (first clause))
+                            (eq (first (first clause)) 'not)
+                            (consp (second (first clause)))
+                            (eq (first (second (first clause))) 'and)
+                            (>= (length (second (first clause))) 3))
+                   (push-iss ln col "use-serapeum-nand"
+                             "Consider using SERAPEUM:NAND for (NOT (AND ...)) in COND test"))))
 
              ;; Suggest SERAPEUM:FILTER-MAP for (remove nil (mapcar ...))
              (when (and (eq head 'remove)
