@@ -1044,12 +1044,40 @@ Returns a list of issues."
                (push-iss ln col "cond-or"
                          "Use (OR test else) instead of (COND (test T) (T else))"))
 
-             ;; AND ending with T
-             (when (and (eq head 'and)
-                        (> (length form) 2)
-                        (eq (first (last form)) t))
+             ;; AND ending with T in conditional context
+             ;; Only flag when used as a test in IF, WHEN, UNLESS, OR, COND
+             ;; because sometimes (AND ... T) is used to explicitly get T instead of the last value
+             (when (and (member head '(if when unless))
+                        (>= (length form) 2)
+                        (consp (second form))
+                        (eq (first (second form)) 'and)
+                        (> (length (second form)) 2)
+                        (eq (first (last (second form))) t))
                (push-iss ln col "needless-and-t"
-                         "Trailing T in AND expression is redundant"))
+                         "Trailing T in AND expression is redundant in conditional test"))
+
+             ;; Check OR arguments for (AND ... T)
+             (when (and (eq head 'or)
+                        (> (length form) 1))
+               (dolist (arg (rest form))
+                 (when (and (consp arg)
+                            (eq (first arg) 'and)
+                            (> (length arg) 2)
+                            (eq (first (last arg)) t))
+                   (push-iss ln col "needless-and-t"
+                             "Trailing T in AND expression is redundant in boolean expression"))))
+
+             ;; Check COND test clauses for (AND ... T)
+             (when (and (eq head 'cond)
+                        (> (length form) 1))
+               (dolist (clause (rest form))
+                 (when (and (consp clause)
+                            (consp (first clause))
+                            (eq (first (first clause)) 'and)
+                            (> (length (first clause)) 2)
+                            (eq (first (last (first clause))) t))
+                   (push-iss ln col "needless-and-t"
+                             "Trailing T in AND expression is redundant in COND test"))))
 
              ;; OR ending with NIL
              (when (and (eq head 'or)

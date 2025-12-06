@@ -128,11 +128,11 @@
                                         issues)))
                               ;; Try to recover and continue
                               (when-let ((restart (find-restart 'eclector.base:recover)))
-                                (invoke-restart restart)))))))))
+                                (invoke-restart restart))))))))
         (loop
           (let ((result (eclector.parse-result:read client stream nil :eof)))
             (when (eql result :eof)
-              (return))))))
+              (return)))))))
     (nreverse issues))
 
 (defun rule-whitespace-around-parens (path lines)
