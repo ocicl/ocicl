@@ -429,21 +429,34 @@ jobs:
         $OCICL_BIN collect-licenses | grep -q "LICENSE" || $OCICL_BIN collect-licenses | grep -q "license" || true
         echo "✅ collect-licenses works (no crash)"
 
+    - name: Install SBOM validation tools
+      run: |
+        # Install sbom-utility for SBOM validation
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          curl -sL https://github.com/CycloneDX/sbom-utility/releases/latest/download/sbom-utility-linux-amd64.tar.gz | tar xz
+        elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          curl -sL https://github.com/CycloneDX/sbom-utility/releases/latest/download/sbom-utility-darwin-amd64.tar.gz | tar xz
+        fi
+        chmod +x sbom-utility
+        $SUDO mv sbom-utility /usr/local/bin/
+
     - name: Test create-sbom cyclonedx command
       run: |
         set -euo pipefail
         cd test-install
-        # Should produce valid JSON
-        $OCICL_BIN create-sbom cyclonedx | head -1 | grep -q "{" || { echo "cyclonedx should output JSON"; exit 1; }
-        echo "✅ create-sbom cyclonedx works"
+        $OCICL_BIN create-sbom cyclonedx sbom-cdx.json
+        # Validate against CycloneDX schema
+        sbom-utility validate --input-file sbom-cdx.json || { echo "CycloneDX SBOM validation failed"; exit 1; }
+        echo "✅ create-sbom cyclonedx works and validates"
 
     - name: Test create-sbom spdx command
       run: |
         set -euo pipefail
         cd test-install
-        # Should produce valid JSON
-        $OCICL_BIN create-sbom spdx | head -1 | grep -q "{" || { echo "spdx should output JSON"; exit 1; }
-        echo "✅ create-sbom spdx works"
+        $OCICL_BIN create-sbom spdx sbom-spdx.json
+        # Validate against SPDX schema
+        sbom-utility validate --input-file sbom-spdx.json || { echo "SPDX SBOM validation failed"; exit 1; }
+        echo "✅ create-sbom spdx works and validates"
 
     - name: Test create-sbom to file
       run: |
