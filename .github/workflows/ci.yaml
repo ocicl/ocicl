@@ -441,10 +441,12 @@ jobs:
         echo "✅ collect-licenses works (no crash)"
 
     - name: Install SBOM validation tools
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
         # Install sbom-utility for SBOM validation
-        # Get latest version tag
-        SBOM_VERSION=$(curl -sSf https://api.github.com/repos/CycloneDX/sbom-utility/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        # Get latest version tag using gh CLI to avoid rate limits
+        SBOM_VERSION=$(gh api repos/CycloneDX/sbom-utility/releases/latest --jq '.tag_name')
         if [[ "$RUNNER_OS" == "Linux" ]]; then
           curl -sSfL "https://github.com/CycloneDX/sbom-utility/releases/download/${SBOM_VERSION}/sbom-utility-${SBOM_VERSION}-linux-amd64.tar.gz" -o sbom-utility.tar.gz
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
