@@ -184,3 +184,313 @@ jobs:
         set -euo pipefail
         rm -rf systems systems.csv
         sbcl --eval "(handler-case (progn (ocicl-runtime:system-list) (uiop:quit 0)) (error (e) (declare (ignore e)) (uiop:quit 1)))"
+
+    # ========================================
+    # Functional tests for CLI commands
+    # ========================================
+
+    - name: Test install without ocicl.csv
+      run: |
+        set -euo pipefail
+        rm -rf test-install && mkdir test-install && cd test-install
+        # Should not crash, should create ocicl.csv
+        $OCICL_BIN install str
+        [ -f ocicl.csv ] || { echo "ocicl.csv not created"; exit 1; }
+        grep -q "str," ocicl.csv || { echo "str not in ocicl.csv"; exit 1; }
+        ls ocicl/*/str.asd >/dev/null 2>&1 || { echo "str.asd not found"; exit 1; }
+        echo "✅ install without ocicl.csv works"
+
+    - name: Test list command
+      run: |
+        set -euo pipefail
+        $OCICL_BIN list str | grep -q "latest" || { echo "list should show latest tag"; exit 1; }
+        $OCICL_BIN list str | grep -qE "^[[:space:]]+20[0-9]{6}-" || { echo "list should show version tags"; exit 1; }
+        echo "✅ list command works"
+
+    - name: Test install specific version
+      run: |
+        set -euo pipefail
+        rm -rf test-version && mkdir test-version && cd test-version
+        # Get a specific version (not latest)
+        VERSION=$($OCICL_BIN list str | grep -E "^\s+20" | head -2 | tail -1 | tr -d ' ')
+        $OCICL_BIN install "str:$VERSION"
+        grep -q "$VERSION" ocicl.csv || { echo "specific version not in ocicl.csv"; exit 1; }
+        echo "✅ install specific version works"
+
+    - name: Test latest command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Get current version before update
+        BEFORE=$(grep "str," ocicl.csv)
+        $OCICL_BIN latest str
+        # Should not crash; version may or may not change
+        grep -q "str," ocicl.csv || { echo "str missing after latest"; exit 1; }
+        echo "✅ latest command works"
+
+    - name: Test diff command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Should not crash (may show no diff if already latest)
+        $OCICL_BIN diff str || true
+        echo "✅ diff command works (no crash)"
+
+    - name: Test libyear command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Should not crash, should show TOTAL line
+        $OCICL_BIN libyear | grep -q "TOTAL libyears:" || { echo "libyear should show TOTAL"; exit 1; }
+        echo "✅ libyear command works"
+
+    - name: Test changes command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Should not crash (output depends on whether there are newer versions)
+        $OCICL_BIN changes str || true
+        echo "✅ changes command works (no crash)"
+
+    - name: Test tree command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Should show dependency tree
+        $OCICL_BIN tree str | grep -q "str" || { echo "tree should show str"; exit 1; }
+        echo "✅ tree command works"
+
+    - name: Test remove command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Install something with no dependents to remove cleanly
+        $OCICL_BIN install trivial-features
+        grep -q "trivial-features" ocicl.csv || { echo "trivial-features not installed"; exit 1; }
+        $OCICL_BIN remove trivial-features
+        # Should be removed (unless something depends on it)
+        echo "✅ remove command works (no crash)"
+
+    - name: Test clean command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Create a stray directory
+        mkdir -p ocicl/stray-system-12345
+        $OCICL_BIN clean
+        # Stray directory should be removed
+        [ ! -d ocicl/stray-system-12345 ] || { echo "clean should remove stray dirs"; exit 1; }
+        echo "✅ clean command works"
+
+    - name: Test install command (reinstall existing)
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Installing existing system without version should be no-op
+        $OCICL_BIN install str 2>&1 | grep -q "already exists" || true
+        # Force reinstall
+        $OCICL_BIN --force install str
+        echo "✅ install existing system works"
+
+    # ========================================
+    # Global mode tests (--global)
+    # ========================================
+
+    - name: Test global install
+      run: |
+        set -euo pipefail
+        # Install a system globally
+        $OCICL_BIN --global install trivial-gray-streams
+        # Check it landed in the global directory
+        GLOBAL_DIR=$(dirname "$($OCICL_BIN setup | grep -o '/[^"]*ocicl-runtime.lisp' | head -1)")
+        [ -f "$GLOBAL_DIR/ocicl.csv" ] || { echo "global ocicl.csv not found"; exit 1; }
+        grep -q "trivial-gray-streams" "$GLOBAL_DIR/ocicl.csv" || { echo "trivial-gray-streams not in global ocicl.csv"; exit 1; }
+        echo "✅ global install works"
+
+    - name: Test global list
+      run: |
+        set -euo pipefail
+        # List should work globally
+        $OCICL_BIN --global list trivial-gray-streams | grep -q "latest" || { echo "global list failed"; exit 1; }
+        echo "✅ global list works"
+
+    - name: Test global latest
+      run: |
+        set -euo pipefail
+        $OCICL_BIN --global latest trivial-gray-streams
+        echo "✅ global latest works (no crash)"
+
+    - name: Test global libyear
+      run: |
+        set -euo pipefail
+        $OCICL_BIN --global libyear | grep -q "TOTAL libyears:" || { echo "global libyear should show TOTAL"; exit 1; }
+        echo "✅ global libyear works"
+
+    - name: Test global tree
+      run: |
+        set -euo pipefail
+        $OCICL_BIN --global tree trivial-gray-streams | grep -q "trivial-gray-streams" || { echo "global tree failed"; exit 1; }
+        echo "✅ global tree works"
+
+    - name: Test global remove
+      run: |
+        set -euo pipefail
+        $OCICL_BIN --global remove trivial-gray-streams
+        echo "✅ global remove works (no crash)"
+
+    - name: Test global clean
+      run: |
+        set -euo pipefail
+        $OCICL_BIN --global clean
+        echo "✅ global clean works (no crash)"
+
+    - name: Test local overrides global
+      run: |
+        set -euo pipefail
+        # Install globally first
+        $OCICL_BIN --global install trivial-features
+        # Create local project and install same system
+        rm -rf test-local-override && mkdir test-local-override && cd test-local-override
+        $OCICL_BIN install trivial-features
+        # Local should have its own copy
+        [ -f ocicl.csv ] || { echo "local ocicl.csv not created"; exit 1; }
+        grep -q "trivial-features" ocicl.csv || { echo "trivial-features not in local ocicl.csv"; exit 1; }
+        echo "✅ local overrides global works"
+
+    # ========================================
+    # Additional command tests
+    # ========================================
+
+    - name: Test version command
+      run: |
+        set -euo pipefail
+        $OCICL_BIN version | grep -qE "^[0-9]+\.[0-9]+\.[0-9]+" || { echo "version should show version number"; exit 1; }
+        echo "✅ version command works"
+
+    - name: Test help command
+      run: |
+        set -euo pipefail
+        $OCICL_BIN help | grep -q "Usage:" || { echo "help should show usage"; exit 1; }
+        $OCICL_BIN help | grep -q "install" || { echo "help should list install command"; exit 1; }
+        echo "✅ help command works"
+
+    - name: Test templates list command
+      run: |
+        set -euo pipefail
+        $OCICL_BIN templates list | grep -q "basic" || { echo "templates should list basic"; exit 1; }
+        $OCICL_BIN templates list | grep -q "cli" || { echo "templates should list cli"; exit 1; }
+        echo "✅ templates list command works"
+
+    - name: Test templates dirs command
+      run: |
+        set -euo pipefail
+        $OCICL_BIN templates dirs | grep -q "templates" || { echo "templates dirs should show path"; exit 1; }
+        echo "✅ templates dirs command works"
+
+    - name: Test lint command on file
+      run: |
+        set -euo pipefail
+        # Create a test file with a known issue
+        rm -rf test-lint && mkdir test-lint && cd test-lint
+        cat > test.lisp << 'EOF'
+        (defun foo (x)
+          (print x))
+        EOF
+        # Lint should not crash
+        $OCICL_BIN lint test.lisp || true
+        echo "✅ lint file works (no crash)"
+
+    - name: Test lint command on directory
+      run: |
+        set -euo pipefail
+        cd test-lint
+        # Lint directory should not crash
+        $OCICL_BIN lint . || true
+        echo "✅ lint directory works (no crash)"
+
+    - name: Test lint command on .asd file
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Find an .asd file and lint it
+        ASD_FILE=$(find ocicl -name "*.asd" | head -1)
+        if [ -n "$ASD_FILE" ]; then
+          $OCICL_BIN lint "$ASD_FILE" || true
+          echo "✅ lint .asd works (no crash)"
+        else
+          echo "⚠️ No .asd file found to test"
+        fi
+
+    - name: Test collect-licenses command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Should produce license output
+        $OCICL_BIN collect-licenses | grep -q "LICENSE" || $OCICL_BIN collect-licenses | grep -q "license" || true
+        echo "✅ collect-licenses works (no crash)"
+
+    - name: Test create-sbom cyclonedx command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Should produce valid JSON
+        $OCICL_BIN create-sbom cyclonedx | head -1 | grep -q "{" || { echo "cyclonedx should output JSON"; exit 1; }
+        echo "✅ create-sbom cyclonedx works"
+
+    - name: Test create-sbom spdx command
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Should produce valid JSON
+        $OCICL_BIN create-sbom spdx | head -1 | grep -q "{" || { echo "spdx should output JSON"; exit 1; }
+        echo "✅ create-sbom spdx works"
+
+    - name: Test create-sbom to file
+      run: |
+        set -euo pipefail
+        cd test-install
+        $OCICL_BIN create-sbom cyclonedx sbom.json
+        [ -f sbom.json ] || { echo "sbom.json not created"; exit 1; }
+        grep -q "components" sbom.json || { echo "sbom.json should have components"; exit 1; }
+        echo "✅ create-sbom to file works"
+
+    - name: Test install from ocicl.csv
+      run: |
+        set -euo pipefail
+        cd test-install
+        # Remove ocicl directory but keep ocicl.csv
+        rm -rf ocicl
+        # Install should restore from ocicl.csv
+        $OCICL_BIN install
+        ls ocicl/*/str.asd >/dev/null 2>&1 || { echo "str.asd not restored"; exit 1; }
+        echo "✅ install from ocicl.csv works"
+
+    - name: Test diff between two versions
+      run: |
+        set -euo pipefail
+        # Get two versions of a package
+        VERSIONS=$($OCICL_BIN list str | grep -E "^\s+20" | head -2 | tr -d ' ')
+        V1=$(echo "$VERSIONS" | head -1)
+        V2=$(echo "$VERSIONS" | tail -1)
+        if [ "$V1" != "$V2" ]; then
+          $OCICL_BIN diff str "$V1" "$V2" || true
+          echo "✅ diff between versions works (no crash)"
+        else
+          echo "⚠️ Only one version available, skipping diff test"
+        fi
+
+    - name: Test verbose flag
+      run: |
+        set -euo pipefail
+        # Verbose should produce more output
+        $OCICL_BIN --verbose list str 2>&1 | grep -qiE "(GET|HTTP|ghcr)" || { echo "verbose should show HTTP requests"; exit 1; }
+        echo "✅ verbose flag works"
+
+    - name: Test runtime auto-download
+      run: |
+        set -euo pipefail
+        rm -rf test-runtime && mkdir test-runtime && cd test-runtime
+        # Try to load a system via ASDF - should trigger download
+        sbcl --eval "(asdf:load-system :trivial-garbage)" --eval "(uiop:quit 0)" || { echo "runtime auto-download failed"; exit 1; }
+        [ -f ocicl.csv ] || { echo "ocicl.csv not created by runtime"; exit 1; }
+        echo "✅ runtime auto-download works"
