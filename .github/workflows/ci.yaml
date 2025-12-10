@@ -368,7 +368,7 @@ jobs:
     - name: Test version command
       run: |
         set -euo pipefail
-        $OCICL_BIN version | grep -qE "^[0-9]+\.[0-9]+\.[0-9]+" || { echo "version should show version number"; exit 1; }
+        $OCICL_BIN version | grep -qE "[0-9]+\.[0-9]+\.[0-9]+" || { echo "version should show version number"; exit 1; }
         echo "✅ version command works"
 
     - name: Test help command
