@@ -492,16 +492,18 @@ If FORCE is NIL, skip files that already exist."
                           (headers (when token
                                     `(("Authorization" . ,#?"Bearer ${token}"))))
                           (all-versions
-                            (filter-strings
-                             (cdr (assoc :tags
-                                         (cl-json:decode-json-from-string
-                                          (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024&last=latest"
-                                                               :force-string t
-                                                               :verbose *verbose*
-                                                               :headers headers))))))
+                            (sort
+                             (filter-strings
+                              (cdr (assoc :tags
+                                          (cl-json:decode-json-from-string
+                                           (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
+                                                                :force-string t
+                                                                :verbose *verbose*
+                                                                :headers headers)))))
+                             #'string<))
                           (p (position version all-versions :test #'string=)))
                      (when p (cdr (nthcdr p all-versions))))))
-             (drakma:drakma-error (e)
+             (error (e)
                (declare (ignore e))))))
 
 (defun number-to-ordinal-suffix (n)
@@ -601,13 +603,13 @@ If FORCE is NIL, skip files that already exist."
                                                                  (uiop:merge-pathnames* *relative-systems-dir*
                                                                                         "_00_OCICL_VERSION")))
                               projects)
-                     key))
+                     (extract-between-slash-and-at (car value))))
              *ocicl-systems*)
     (let ((age 0))
       (maphash (lambda (skey value)
-                 (let* ((asd (cdr (gethash value *ocicl-systems*)))
-                        (version (get-project-version asd))
-                        (project-name (get-project-name asd)))
+                 (let* ((system-info (gethash (mangle value) *ocicl-systems*))
+                        (asd (cdr system-info))
+                        (version (get-project-version asd)))
                    (let* ((newer-versions (get-versions-since value version))
                           (most-recent-version (car (last newer-versions)))
                           (using-date (get-project-date skey)))
@@ -618,15 +620,16 @@ If FORCE is NIL, skip files that already exist."
                                  (difference-in-years (parse-date-to-universal-time
                                                        (subseq most-recent-version 0 8))
                                                       using-date)))
-                           (format t (if *color*
-                                         #?"${*color-bold*}${*color-bright-green*}~A${*color-reset*}~40T~
+                           (when (> p-age 0)
+                             (format t (if *color*
+                                           #?"${*color-bold*}${*color-bright-green*}~A${*color-reset*}~40T~
                                             ${*color-bold*}~A${*color-reset*} libyears ~
                                             (${*color-bold*}~A${*color-reset*} days)~%"
-                                         "~A~27T~A libyears (~A days)~%")
-                                   project-name
-                                   (round-up-to-decimal p-age 2)
-                                   (round-up-to-decimal (* p-age 365.25) 2))
-                           (incf age p-age))))))
+                                           "~A~27T~A libyears (~A days)~%")
+                                     value
+                                     (round-up-to-decimal p-age 2)
+                                     (round-up-to-decimal (* p-age 365.25) 2))
+                             (incf age p-age)))))))
                projects)
       (format t (if *color*
                     #?"~&~%TOTAL libyears: ${*color-bold*}~A${*color-reset*} (${*color-bold*}~A${*color-reset*} days)~%"
