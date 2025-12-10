@@ -132,10 +132,11 @@
       (format out "  \"bomFormat\": \"CycloneDX\",~%")
       (format out "  \"specVersion\": \"1.5\",~%")
       (format out "  \"serialNumber\": \"urn:uuid:~a\",~%"
-              (format nil "~8,'0x-~4,'0x-~4,'0x-~4,'0x-~12,'0x"
-                      (random (expt 2 32)) (random (expt 2 16))
-                      (random (expt 2 16)) (random (expt 2 16))
-                      (random (expt 2 48))))
+              (string-downcase
+               (format nil "~8,'0x-~4,'0x-~4,'0x-~4,'0x-~12,'0x"
+                       (random (expt 2 32)) (random (expt 2 16))
+                       (random (expt 2 16)) (random (expt 2 16))
+                       (random (expt 2 48)))))
       (format out "  \"version\": 1,~%")
       (format out "  \"metadata\": {~%")
       (format out "    \"timestamp\": \"~a\",~%" timestamp)
