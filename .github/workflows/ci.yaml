@@ -78,13 +78,16 @@ jobs:
 
     - name: Write squid.conf
       run: |
-        cat > squid.conf <<'EOF'
+        mkdir -p "$(brew --prefix)/var/logs"
+        cat > squid.conf <<EOF
         http_port 3128
         dns_v4_first on
         logfile_rotate 0
         acl all src all
         http_access allow all
         shutdown_lifetime 1 second
+        access_log stdio:$SQUID_LOGS
+        cache_log stdio:/dev/null
         EOF
 
     - name: Launch Squid (Windows)
