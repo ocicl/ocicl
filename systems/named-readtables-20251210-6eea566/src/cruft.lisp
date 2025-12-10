@@ -231,7 +231,11 @@
                      (grovel-unicode-chars)
                      (let ((reader-fn (svref char-macro-array char-code))
                            (char (code-char (shiftf char-code (1+ char-code)))))
-                       (if reader-fn
+                       ;; In older SBCL, READER-FN may be NIL. Since
+                       ;; commit 00eabf5 ("Make a few mostly-stylistic
+                       ;; tweaks to macro char reading"), this is 0
+                       ;; instead.
+                       (if (and reader-fn (not (eql reader-fn 0)))
                            (yield char)
                            (grovel-base-chars)))))
                (grovel-unicode-chars ()
