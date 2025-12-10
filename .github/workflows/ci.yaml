@@ -79,6 +79,7 @@ jobs:
     - name: Write squid.conf
       run: |
         mkdir -p "$(brew --prefix)/var/logs"
+        touch "$SQUID_LOGS"
         cat > squid.conf <<EOF
         http_port 3128
         dns_v4_first on
