@@ -436,10 +436,13 @@ jobs:
     - name: Install SBOM validation tools
       run: |
         # Install sbom-utility for SBOM validation
+        # Get latest version tag
+        SBOM_VERSION=$(curl -sSf https://api.github.com/repos/CycloneDX/sbom-utility/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ "$RUNNER_OS" == "Linux" ]]; then
-          curl -sSfL https://github.com/CycloneDX/sbom-utility/releases/latest/download/sbom-utility-linux-amd64.tar.gz -o sbom-utility.tar.gz
+          curl -sSfL "https://github.com/CycloneDX/sbom-utility/releases/download/${SBOM_VERSION}/sbom-utility-${SBOM_VERSION}-linux-amd64.tar.gz" -o sbom-utility.tar.gz
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
-          curl -sSfL https://github.com/CycloneDX/sbom-utility/releases/latest/download/sbom-utility-darwin-amd64.tar.gz -o sbom-utility.tar.gz
+          # GitHub macOS runners are arm64
+          curl -sSfL "https://github.com/CycloneDX/sbom-utility/releases/download/${SBOM_VERSION}/sbom-utility-${SBOM_VERSION}-darwin-arm64.tar.gz" -o sbom-utility.tar.gz
         fi
         tar xzf sbom-utility.tar.gz
         chmod +x sbom-utility
