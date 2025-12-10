@@ -27,7 +27,7 @@
   :description "Common Lisp system management"
   :author "Anthony Green <green@moxielogic.com>"
   :license "MIT"
-  :version "2.8.5"
+  :version "2.8.6"
   :serial t
   :components ((:module "runtime"
                 :components ((:static-file "asdf.lisp")

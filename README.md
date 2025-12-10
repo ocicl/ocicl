@@ -90,16 +90,16 @@ Native RPM and DEB packages are available for x86_64 systems.
 **Fedora/RHEL/CentOS:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.8.4-1.fc*.x86_64.rpm
-sudo dnf install ./ocicl-2.8.4-1.fc*.x86_64.rpm
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.8.6-1.fc*.x86_64.rpm
+sudo dnf install ./ocicl-2.8.6-1.fc*.x86_64.rpm
 ocicl setup
 ```
 
 **Debian/Ubuntu:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.8.4-1_amd64.deb
-sudo apt install ./ocicl_2.8.4-1_amd64.deb
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.8.6-1_amd64.deb
+sudo apt install ./ocicl_2.8.6-1_amd64.deb
 ocicl setup
 ```
 
@@ -253,7 +253,7 @@ Command Line Tool
 The ``ocicl`` command line tool provides commands for managing systems.
 
 ```
-ocicl 2.8.4 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.8.6 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
 
 Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
              [-c|--color WHEN] [-d|--depth NUM] [-k|--insecure] command
