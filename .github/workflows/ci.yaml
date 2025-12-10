@@ -437,10 +437,11 @@ jobs:
       run: |
         # Install sbom-utility for SBOM validation
         if [[ "$RUNNER_OS" == "Linux" ]]; then
-          curl -sL https://github.com/CycloneDX/sbom-utility/releases/latest/download/sbom-utility-linux-amd64.tar.gz | tar xz
+          curl -sSfL https://github.com/CycloneDX/sbom-utility/releases/latest/download/sbom-utility-linux-amd64.tar.gz -o sbom-utility.tar.gz
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
-          curl -sL https://github.com/CycloneDX/sbom-utility/releases/latest/download/sbom-utility-darwin-amd64.tar.gz | tar xz
+          curl -sSfL https://github.com/CycloneDX/sbom-utility/releases/latest/download/sbom-utility-darwin-amd64.tar.gz -o sbom-utility.tar.gz
         fi
+        tar xzf sbom-utility.tar.gz
         chmod +x sbom-utility
         $SUDO mv sbom-utility /usr/local/bin/
 
