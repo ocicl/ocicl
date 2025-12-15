@@ -2,9 +2,9 @@
 
 ## What's New
 
-### Windows and macOS Binary Releases
+### Windows Binary Releases
 
-ocicl now provides pre-built binaries for Windows and macOS in addition to Linux:
+ocicl now provides pre-built binaries for Windows in addition to Linux:
 
 **Windows packages:**
 - `ocicl-2.9.0-windows-amd64.zip` - Standalone binary
@@ -12,9 +12,7 @@ ocicl now provides pre-built binaries for Windows and macOS in addition to Linux
 - `ocicl-2.9.0.msi` - Windows Installer package
 - `ocicl.2.9.0.nupkg` - Chocolatey package
 
-**macOS packages:**
-- `ocicl-2.9.0-macos-arm64.tar.gz` - Apple Silicon (M1/M2/M3)
-- `ocicl-2.9.0-macos-x64.tar.gz` - Intel Macs
+**macOS:** Use Homebrew (`brew install ocicl`)
 
 ### Bug Fixes
 
@@ -52,5 +50,4 @@ Download the appropriate package for your system from the [releases page](https:
 - **ZIP**: `ocicl-2.9.0-windows-amd64.zip`
 
 **macOS:**
-- **Apple Silicon**: `ocicl-2.9.0-macos-arm64.tar.gz`
-- **Intel**: `ocicl-2.9.0-macos-x64.tar.gz`
+- **Homebrew**: `brew install ocicl`

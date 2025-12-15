@@ -233,75 +233,10 @@ jobs:
           path: releng/chocolatey/*.nupkg
 
   # ========================================
-  # Build macOS executables
-  # ========================================
-  build-macos-arm64:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          brew install sbcl
-
-      - name: Build
-        run: sbcl --load setup.lisp
-
-      - name: Collect third-party licenses
-        run: |
-          ./ocicl collect-licenses > THIRD-PARTY-LICENSES.txt
-
-      - name: Package macOS binary
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          mkdir -p dist
-          cp ocicl dist/
-          cp README.md LICENSE THIRD-PARTY-LICENSES.txt dist/
-          cd dist && tar czf ../ocicl-${VERSION}-macos-arm64.tar.gz *
-
-      - name: Upload macOS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-arm64-package
-          path: ./*.tar.gz
-
-  build-macos-x64:
-    runs-on: macos-15-large  # Intel x64 runner
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          brew install sbcl
-
-      - name: Build
-        run: sbcl --load setup.lisp
-
-      - name: Collect third-party licenses
-        run: |
-          ./ocicl collect-licenses > THIRD-PARTY-LICENSES.txt
-
-      - name: Package macOS binary
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          mkdir -p dist
-          cp ocicl dist/
-          cp README.md LICENSE THIRD-PARTY-LICENSES.txt dist/
-          cd dist && tar czf ../ocicl-${VERSION}-macos-x64.tar.gz *
-
-      - name: Upload macOS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-x64-package
-          path: ./*.tar.gz
-
-  # ========================================
   # Create GitHub Release
   # ========================================
   release:
-    needs: [build-rpm, build-deb, build-windows, build-chocolatey, build-macos-arm64, build-macos-x64]
+    needs: [build-rpm, build-deb, build-windows, build-chocolatey]
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
@@ -334,6 +269,4 @@ jobs:
             artifacts/windows-package/*-setup.exe
             artifacts/windows-package/*.msi
             artifacts/chocolatey-package/*.nupkg
-            artifacts/macos-arm64-package/*.tar.gz
-            artifacts/macos-x64-package/*.tar.gz
           allowUpdates: true
