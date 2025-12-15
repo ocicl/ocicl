@@ -10,9 +10,9 @@ on:
 jobs:
   tests:
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        # Temporarily disabled: windows-latest
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
     defaults:      # use bash everywhere (Git Bash on Windows)
@@ -76,10 +76,26 @@ jobs:
           echo "SUDO=sudo" >> "$GITHUB_ENV"
         fi
 
-    - name: Write squid.conf
+    - name: Write squid.conf (Linux / macOS)
+      if: runner.os != 'Windows'
       run: |
         mkdir -p "$(brew --prefix)/var/logs"
         touch "$SQUID_LOGS"
+        cat > squid.conf <<EOF
+        http_port 3128
+        dns_v4_first on
+        logfile_rotate 0
+        acl all src all
+        http_access allow all
+        shutdown_lifetime 1 second
+        access_log stdio:$SQUID_LOGS
+        cache_log stdio:/dev/null
+        EOF
+
+    - name: Write squid.conf (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
         cat > squid.conf <<EOF
         http_port 3128
         dns_v4_first on
@@ -113,29 +129,38 @@ jobs:
     - name: Prepare test env
       run: rm -rf systems systems.csv
 
-    - name: Test “cli” template
+    - name: Test "cli" template
       run: |
         mkdir testdir1 && cd testdir1
         $OCICL_BIN new cli-test cli
         cd cli-test
         make
-        ./cli-test --help
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          ./cli-test.exe --help
+        else
+          ./cli-test --help
+        fi
 
-    - name: Test “web1” template
+    - name: Test "web1" template
       run: |
         mkdir testdir2 && cd testdir2
         $OCICL_BIN new web1-test web1
         cd web1-test
         make
-        ./web1-test --help
-        ./web1-test -p 8765 &
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          ./web1-test.exe --help
+          ./web1-test.exe -p 8765 &
+        else
+          ./web1-test --help
+          ./web1-test -p 8765 &
+        fi
         APP_PID=$!
         for i in {1..30}; do
           curl --silent --fail http://localhost:8765/ && break
           echo "Waiting for web1…" && sleep 1
         done
         curl -s http://localhost:8765/ | grep "Welcome"
-        kill $APP_PID
+        kill $APP_PID || true
 
     - name: Test “basic” template
       run: |
@@ -441,6 +466,7 @@ jobs:
         echo "✅ collect-licenses works (no crash)"
 
     - name: Install SBOM validation tools
+      if: runner.os != 'Windows'
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
@@ -458,6 +484,7 @@ jobs:
         $SUDO mv sbom-utility /usr/local/bin/
 
     - name: Test create-sbom cyclonedx command
+      if: runner.os != 'Windows'
       run: |
         set -euo pipefail
         cd test-install
@@ -467,6 +494,7 @@ jobs:
         echo "✅ create-sbom cyclonedx works and validates"
 
     - name: Test create-sbom spdx command
+      if: runner.os != 'Windows'
       run: |
         set -euo pipefail
         cd test-install
@@ -474,6 +502,17 @@ jobs:
         # Validate against SPDX schema
         sbom-utility validate --input-file sbom-spdx.json || { echo "SPDX SBOM validation failed"; exit 1; }
         echo "✅ create-sbom spdx works and validates"
+
+    - name: Test create-sbom command (Windows - no validation)
+      if: runner.os == 'Windows'
+      run: |
+        set -euo pipefail
+        cd test-install
+        $OCICL_BIN create-sbom cyclonedx sbom-cdx.json
+        [ -f sbom-cdx.json ] || { echo "sbom-cdx.json not created"; exit 1; }
+        $OCICL_BIN create-sbom spdx sbom-spdx.json
+        [ -f sbom-spdx.json ] || { echo "sbom-spdx.json not created"; exit 1; }
+        echo "✅ create-sbom works (no validation on Windows)"
 
     - name: Test create-sbom to file
       run: |
