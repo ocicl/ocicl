@@ -333,8 +333,13 @@ jobs:
         # Install a system globally
         $OCICL_BIN --global install trivial-gray-streams
         # Check it landed in the global directory
-        GLOBAL_DIR=$(dirname "$($OCICL_BIN setup | grep -o '/[^"]*ocicl-runtime.lisp' | head -1)")
-        [ -f "$GLOBAL_DIR/ocicl.csv" ] || { echo "global ocicl.csv not found"; exit 1; }
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          # Windows paths use backslashes and drive letters
+          GLOBAL_DIR=$($OCICL_BIN setup | grep -o '[A-Za-z]:[^"]*ocicl-runtime.lisp' | head -1 | xargs dirname)
+        else
+          GLOBAL_DIR=$(dirname "$($OCICL_BIN setup | grep -o '/[^"]*ocicl-runtime.lisp' | head -1)")
+        fi
+        [ -f "$GLOBAL_DIR/ocicl.csv" ] || { echo "global ocicl.csv not found at $GLOBAL_DIR"; exit 1; }
         grep -q "trivial-gray-streams" "$GLOBAL_DIR/ocicl.csv" || { echo "trivial-gray-streams not in global ocicl.csv"; exit 1; }
         echo "✅ global install works"
 
