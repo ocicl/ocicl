@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ocicl - OCI-based ASDF system distribution
+  Chocolatey Package Specification
+
+  SPDX-License-Identifier: MIT
+  Copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+
+  To build: choco pack
+  To test locally: choco install ocicl -s . -y
+-->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>ocicl</id>
+    <!-- Version is replaced during CI build -->
+    <version>2.8.6</version>
+    <title>ocicl - OCI-based ASDF system distribution</title>
+    <authors>Anthony Green</authors>
+    <owners>atgreen</owners>
+    <projectUrl>https://github.com/ocicl/ocicl</projectUrl>
+    <licenseUrl>https://github.com/ocicl/ocicl/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/ocicl/ocicl</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/ocicl/ocicl/issues</bugTrackerUrl>
+    <tags>lisp common-lisp asdf package-manager quicklisp oci sbcl programming development cli</tags>
+    <summary>A package manager for Common Lisp using OCI registries</summary>
+    <description><![CDATA[ocicl is a modern package manager for Common Lisp that uses OCI (Open Container Initiative) registries for distribution.
+
+## Features
+
+- Fast, reliable package installation from OCI registries
+- Project-local and global package management
+- Dependency resolution and version pinning
+- Built-in linter for Common Lisp code
+- SBOM (Software Bill of Materials) generation
+- License collection and management
+- Project templates for quick starts
+
+## Requirements
+
+ocicl requires SBCL (Steel Bank Common Lisp) to be installed:
+- Install with: `choco install sbcl`
+
+## Usage
+
+After installation, run `ocicl` from the command line:
+
+```
+ocicl help               # Show all commands
+ocicl install PKG        # Install a package
+ocicl install            # Install all packages from ocicl.csv
+ocicl list PKG           # List available versions
+ocicl latest PKG         # Update to latest version
+ocicl remove PKG         # Remove a package
+ocicl new NAME TEMPLATE  # Create new project from template
+ocicl lint FILE          # Lint Common Lisp code
+```
+
+## Quick Start
+
+```
+mkdir my-project && cd my-project
+ocicl install alexandria cl-ppcre
+```
+
+Then in your Lisp:
+```lisp
+(asdf:load-system :alexandria)
+```
+]]></description>
+    <releaseNotes>https://github.com/ocicl/ocicl/releases</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

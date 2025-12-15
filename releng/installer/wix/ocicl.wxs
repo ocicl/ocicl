@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ocicl - OCI-based ASDF system distribution MSI Installer
+  WiX v4 Source
+
+  SPDX-License-Identifier: MIT
+  Copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+
+  Build with: wix build ocicl.wxs -o ocicl.msi -d VERSION=2.8.6
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package
+    Name="ocicl - OCI-based ASDF system distribution"
+    Manufacturer="Anthony Green"
+    Version="$(VERSION)"
+    UpgradeCode="8A4E2B1C-6D5F-4E7A-9B3C-1D2E3F4A5B6C"
+    Scope="perMachine">
+
+    <SummaryInformation
+      Description="ocicl - A package manager for Common Lisp"
+      Manufacturer="Anthony Green" />
+
+    <!-- Major upgrade configuration -->
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+      AllowSameVersionUpgrades="yes" />
+
+    <!-- Embed cabinet in MSI -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Feature definition -->
+    <Feature Id="ProductFeature" Title="ocicl" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="EnvironmentComponents" />
+    </Feature>
+
+    <!-- UI configuration - use minimal UI -->
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+  </Package>
+
+  <!-- Directory structure -->
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="ocicl" />
+    </StandardDirectory>
+  </Fragment>
+
+  <!-- Product components -->
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="MainExecutable" Guid="1A2B3C4D-5E6F-7890-ABCD-EF1234567890">
+        <File Id="ocicl.exe" Source="$(SourceDir)\ocicl.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="LicenseFile" Guid="2B3C4D5E-6F7A-8901-BCDE-F12345678901">
+        <File Id="LICENSE" Source="$(SourceDir)\LICENSE" />
+      </Component>
+      <Component Id="ThirdPartyLicenses" Guid="3C4D5E6F-7A8B-9012-CDEF-123456789012">
+        <File Id="THIRD_PARTY_LICENSES.txt" Source="$(SourceDir)\THIRD-PARTY-LICENSES.txt" />
+      </Component>
+      <Component Id="ReadmeFile" Guid="4D5E6F7A-8B9C-0123-DEFA-234567890123">
+        <File Id="README.md" Source="$(SourceDir)\README.md" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Environment variable (PATH) -->
+  <Fragment>
+    <ComponentGroup Id="EnvironmentComponents" Directory="INSTALLFOLDER">
+      <Component Id="PathEnvironment" Guid="7A8B9C0D-1E2F-3456-ABCD-567890123456">
+        <Environment
+          Id="PATH"
+          Name="PATH"
+          Value="[INSTALLFOLDER]"
+          Permanent="no"
+          Part="last"
+          Action="set"
+          System="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>

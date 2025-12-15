@@ -1,0 +1,25 @@
+VERIFICATION
+
+Verification is intended to assist the Chocolatey moderators and community
+in verifying that this package's contents are trustworthy.
+
+This package downloads ocicl (OCI-based ASDF system distribution) from the
+official GitHub releases page.
+
+1. Download the Windows release ZIP from:
+   https://github.com/ocicl/ocicl/releases
+
+2. The checksum in chocolateyInstall.ps1 can be verified against the
+   SHA256 checksum published in the GitHub release notes.
+
+3. You can compute the checksum yourself using PowerShell:
+   Get-FileHash ocicl-<version>-windows-amd64.zip -Algorithm SHA256
+
+4. The source code is available at:
+   https://github.com/ocicl/ocicl
+
+5. The package is built using SBCL (Steel Bank Common Lisp) and the
+   build process is documented in the repository's CI workflow.
+
+License: MIT
+Project: https://github.com/ocicl/ocicl

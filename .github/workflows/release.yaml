@@ -6,6 +6,9 @@ on:
       - '*'
 
 jobs:
+  # ========================================
+  # Build Linux packages (RPM and DEB)
+  # ========================================
   build-rpm:
     permissions: write-all
     runs-on: ubuntu-latest
@@ -26,14 +29,17 @@ jobs:
       - name: Create source tarball
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          cd ..
-          tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz --transform "s,^ocicl,ocicl-${VERSION}," ocicl
+          # Create tarball with proper directory prefix for rpmbuild
+          mkdir -p /tmp/ocicl-${VERSION}
+          cp -r . /tmp/ocicl-${VERSION}/
+          rm -rf /tmp/ocicl-${VERSION}/.git
+          tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz -C /tmp ocicl-${VERSION}
 
       - name: Update spec file version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          sed -i "s/^Version:.*/Version:        ${VERSION}/" ocicl.spec
-          cp ocicl.spec ~/rpmbuild/SPECS/
+          sed -i "s/^Version:.*/Version:        ${VERSION}/" releng/ocicl.spec
+          cp releng/ocicl.spec ~/rpmbuild/SPECS/
 
       - name: Build RPM and SRPM
         run: |
@@ -42,8 +48,8 @@ jobs:
 
       - name: Copy RPM and SRPM to workspace
         run: |
-          cp ~/rpmbuild/RPMS/x86_64/*.rpm ${GITHUB_WORKSPACE}/
-          cp ~/rpmbuild/SRPMS/*.src.rpm ${GITHUB_WORKSPACE}/
+          cp ~/rpmbuild/RPMS/x86_64/*.rpm ${GITHUB_WORKSPACE}/ || true
+          cp ~/rpmbuild/SRPMS/*.src.rpm ${GITHUB_WORKSPACE}/ || true
 
       - name: Upload RPM artifacts
         uses: actions/upload-artifact@v4
@@ -68,10 +74,11 @@ jobs:
       - name: Update changelog version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          sed -i "s/^ocicl (.*)/ocicl (${VERSION}-1) unstable; urgency=medium/" debian/changelog
+          sed -i "s/^ocicl (.*)/ocicl (${VERSION}-1) unstable; urgency=medium/" releng/debian/changelog
 
       - name: Build DEB packages (binary and source)
         run: |
+          ln -s releng/debian debian
           dpkg-buildpackage -uc -us
 
       - name: Copy DEB and source files to workspace
@@ -93,8 +100,208 @@ jobs:
             ./*.buildinfo
             ./*.changes
 
+  # ========================================
+  # Build Windows executable and installers
+  # ========================================
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SBCL and build tools
+        shell: powershell
+        run: |
+          choco install -y sbcl nsis
+
+      - name: Build
+        run: sbcl --load setup.lisp
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Collect third-party licenses
+        run: |
+          ./ocicl.exe collect-licenses > THIRD-PARTY-LICENSES.txt
+
+      - name: Package Windows binary (ZIP)
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item ocicl.exe, README.md, LICENSE, THIRD-PARTY-LICENSES.txt -Destination dist/
+          Compress-Archive -Path dist/* -DestinationPath "ocicl-${VERSION}-windows-amd64.zip"
+
+      - name: Build NSIS installer (EXE)
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /DVERSION=$VERSION releng\installer\nsis\ocicl.nsi
+          Move-Item "releng\installer\nsis\ocicl-$VERSION-setup.exe" "."
+
+      - name: Install WiX Toolset
+        shell: powershell
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix extension add WixToolset.UI.wixext/5.0.2 -g
+
+      - name: Build MSI installer
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          # Copy files to wix directory for building
+          Copy-Item "ocicl.exe" "releng\installer\wix\"
+          Copy-Item "LICENSE" "releng\installer\wix\"
+          Copy-Item "README.md" "releng\installer\wix\"
+          Copy-Item "THIRD-PARTY-LICENSES.txt" "releng\installer\wix\"
+          cd releng\installer\wix
+          wix build ocicl.wxs -o "..\..\..\ocicl-$VERSION.msi" -d VERSION=$VERSION -d SourceDir=. -ext WixToolset.UI.wixext
+
+      - name: Calculate checksums
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sha256sum ocicl-${VERSION}-windows-amd64.zip > checksums-windows.txt
+          sha256sum ocicl-${VERSION}-setup.exe >> checksums-windows.txt
+          sha256sum ocicl-${VERSION}.msi >> checksums-windows.txt
+          cat checksums-windows.txt
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-package
+          path: |
+            ./*.zip
+            ./*-setup.exe
+            ./*.msi
+            ./checksums-windows.txt
+
+  # ========================================
+  # Build Chocolatey package
+  # ========================================
+  build-chocolatey:
+    needs: build-windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-package
+          path: artifacts
+
+      - name: Get version and checksum
+        id: info
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          CHECKSUM=$(grep "windows-amd64.zip" artifacts/checksums-windows.txt | cut -d' ' -f1)
+          echo "checksum=$CHECKSUM" >> $GITHUB_OUTPUT
+
+      - name: Update Chocolatey package
+        shell: bash
+        run: |
+          VERSION="${{ steps.info.outputs.version }}"
+          CHECKSUM="${{ steps.info.outputs.checksum }}"
+
+          # Update nuspec version
+          sed -i "s/<version>.*<\/version>/<version>${VERSION}<\/version>/" releng/chocolatey/ocicl.nuspec
+
+          # Update install script with version and checksum
+          sed -i "s/__VERSION__/${VERSION}/g" releng/chocolatey/tools/chocolateyInstall.ps1
+          sed -i "s/__CHECKSUM__/${CHECKSUM}/g" releng/chocolatey/tools/chocolateyInstall.ps1
+
+      - name: Build Chocolatey package
+        shell: powershell
+        run: |
+          cd releng\chocolatey
+          choco pack
+
+      - name: Upload Chocolatey package
+        uses: actions/upload-artifact@v4
+        with:
+          name: chocolatey-package
+          path: releng/chocolatey/*.nupkg
+
+  # ========================================
+  # Build macOS executables
+  # ========================================
+  build-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install sbcl
+
+      - name: Build
+        run: sbcl --load setup.lisp
+
+      - name: Collect third-party licenses
+        run: |
+          ./ocicl collect-licenses > THIRD-PARTY-LICENSES.txt
+
+      - name: Package macOS binary
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          cp ocicl dist/
+          cp README.md LICENSE THIRD-PARTY-LICENSES.txt dist/
+          cd dist && tar czf ../ocicl-${VERSION}-macos-arm64.tar.gz *
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64-package
+          path: ./*.tar.gz
+
+  build-macos-x64:
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install sbcl
+
+      - name: Build
+        run: sbcl --load setup.lisp
+
+      - name: Collect third-party licenses
+        run: |
+          ./ocicl collect-licenses > THIRD-PARTY-LICENSES.txt
+
+      - name: Package macOS binary
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          cp ocicl dist/
+          cp README.md LICENSE THIRD-PARTY-LICENSES.txt dist/
+          cd dist && tar czf ../ocicl-${VERSION}-macos-x64.tar.gz *
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-x64-package
+          path: ./*.tar.gz
+
+  # ========================================
+  # Create GitHub Release
+  # ========================================
   release:
-    needs: [build-rpm, build-deb]
+    needs: [build-rpm, build-deb, build-windows, build-chocolatey, build-macos-arm64, build-macos-x64]
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
@@ -123,4 +330,10 @@ jobs:
             artifacts/deb-packages/*.deb
             artifacts/deb-packages/*.dsc
             artifacts/deb-packages/*.tar.*
+            artifacts/windows-package/*.zip
+            artifacts/windows-package/*-setup.exe
+            artifacts/windows-package/*.msi
+            artifacts/chocolatey-package/*.nupkg
+            artifacts/macos-arm64-package/*.tar.gz
+            artifacts/macos-x64-package/*.tar.gz
           allowUpdates: true
