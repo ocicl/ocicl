@@ -7,6 +7,7 @@
 (in-package #:<%= @ app-name %>)
 
 (defun make-app ()
+  "Create and return the command-line application."
   (let ((p (clingon:make-option :integer :short-name #\p :long-name "port" :key :port
                                          :description "port" :initial-value 8080))
         (s (clingon:make-option :integer :short-name #\s :long-name "slynk-port" :key :slynk-port

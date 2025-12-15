@@ -902,10 +902,11 @@ If FORCE is NIL, skip files that already exist."
             (if *color*
                 (format t
                         "~{~a;~a no system to remove: ~a~a~A~a~%~}~&"
-                        (mapcar (lambda (n)
-                                  (list *color-dim* *color-reset*
-                                        *color-bold* *color-bright-red* n *color-reset*))
-                                nonexistent-systems))
+                        (apply #'append
+                                (mapcar (lambda (n)
+                                          (list *color-dim* *color-reset*
+                                                *color-bold* *color-bright-red* n *color-reset*))
+                                        nonexistent-systems)))
                 (format t "~{; no system to remove: ~A~^~%~}~&" nonexistent-systems))
             (remove-trees dependency-trees graph)
             ;; modify ocicl-systems
@@ -918,9 +919,10 @@ If FORCE is NIL, skip files that already exist."
                          (format t
                                  "~a;~a not removing systems (~{~a~a~A~a~^ ~}), depended on by: ~a~a~a~a~%"
                                  *color-dim* *color-reset*
-                                 (mapcar (lambda (n)
-                                           (list *color-bold* *color-bright-green* n *color-reset*))
-                                         system-group)
+                                 (apply #'append
+                                        (mapcar (lambda (n)
+                                                  (list *color-bold* *color-bright-green* n *color-reset*))
+                                                system-group))
                                  *color-bold* *color-bright-green* value *color-reset*)
                          (format t "~&; not removing systems ~a, depended on by: ~a~%" system-group value)))))
              seen-system-groups)))

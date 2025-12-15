@@ -16,12 +16,14 @@
 
 ;; Easy-routes setup
 (defclass my-acceptor (easy-routes:easy-routes-acceptor)
-  ())
+  ()
+  (:documentation "Custom acceptor for the web application."))
 
 (defun app-root ()
+  "Return the application root directory."
   (uiop:getcwd))
 
-(defparameter +static-dispatch-table+
+(defparameter *static-dispatch-table*
   (list
    (hunchentoot:create-folder-dispatcher-and-handler
     "/images/" (fad:pathname-as-directory
@@ -59,7 +61,7 @@
   (log:info "Starting server version ~A on port ~A" +version+ port)
 
   ;; Set up static file handlers in the global dispatch table
-  (setf hunchentoot:*dispatch-table* +static-dispatch-table+)
+  (setf hunchentoot:*dispatch-table* *static-dispatch-table*)
 
   ;; Create and start the easy-routes acceptor
   (setf *acceptor* (make-instance 'my-acceptor :port port))

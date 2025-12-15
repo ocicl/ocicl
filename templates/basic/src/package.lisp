@@ -6,6 +6,7 @@
 
 (defpackage #:<%= @ :app-name %>
   (:use #:cl)
+  (:documentation "The <%= @ :app-name %> package.")
   (:export #:main))
 
 (in-package #:<%= @ :app-name %>)

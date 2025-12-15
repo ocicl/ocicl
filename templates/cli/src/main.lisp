@@ -11,6 +11,7 @@
 ;;── CLI ────────────────────────────────────────────────────────────────────────
 
 (defun make-app ()
+  "Create and return the command-line application."
   (let ((n (clingon:make-option :flag :short-name #\n :long-name "dry-run" :key :dry-run
                                 :description "Don't really do it.")))
     (clingon:make-command
@@ -22,8 +23,7 @@
      :usage ""
      :options (list n)
      :handler (lambda (cmd)
-                ;; Do something with CMD here.
-                )
+                (declare (ignore cmd)))
      :examples '(("Do nothing example:"
                   . "<%= @ app-name %>")
                  ("Do even less:"
