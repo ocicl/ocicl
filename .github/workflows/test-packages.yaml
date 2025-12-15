@@ -23,12 +23,17 @@ jobs:
         run: |
           VERSION=$(grep '^\s*:version' ocicl.asd | head -1 | sed 's/.*"\(.*\)".*/\1/')
           echo "Building version: $VERSION"
-          cd ..
-          tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz --transform "s,^ocicl,ocicl-${VERSION}," ocicl
+          # Create tarball with proper directory prefix for rpmbuild
+          mkdir -p /tmp/ocicl-${VERSION}
+          cp -r . /tmp/ocicl-${VERSION}/
+          rm -rf /tmp/ocicl-${VERSION}/.git
+          tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz -C /tmp ocicl-${VERSION}
 
       - name: Build RPM and SRPM
         run: |
-          cp ocicl.spec ~/rpmbuild/SPECS/
+          VERSION=$(grep '^\s*:version' ocicl.asd | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          sed -i "s/^Version:.*/Version:        ${VERSION}/" releng/ocicl.spec
+          cp releng/ocicl.spec ~/rpmbuild/SPECS/
           cd ~/rpmbuild/SPECS
           rpmbuild -ba ocicl.spec
 
@@ -58,7 +63,9 @@ jobs:
           apt-get install -y debhelper devscripts sbcl libfixposix-dev gcc make
 
       - name: Build DEB packages (binary and source)
-        run: dpkg-buildpackage -uc -us
+        run: |
+          ln -s releng/debian debian
+          dpkg-buildpackage -uc -us
 
       - name: List built packages
         run: |
