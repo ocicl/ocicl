@@ -78,3 +78,79 @@ jobs:
         run: |
           apt-get install -y ../*.deb
           ocicl version
+
+  test-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SBCL and build tools
+        shell: powershell
+        run: |
+          choco install -y sbcl nsis
+
+      - name: Build
+        run: sbcl --load setup.lisp
+
+      - name: Test binary
+        run: |
+          ./ocicl.exe version
+          ./ocicl.exe help
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep '^\s*:version' ocicl.asd | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Collect third-party licenses
+        run: |
+          ./ocicl.exe collect-licenses > THIRD-PARTY-LICENSES.txt
+
+      - name: Package Windows binary (ZIP)
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item ocicl.exe, README.md, LICENSE, THIRD-PARTY-LICENSES.txt -Destination dist/
+          Compress-Archive -Path dist/* -DestinationPath "ocicl-${VERSION}-windows-amd64.zip"
+          echo "Created ZIP package:"
+          Get-ChildItem *.zip
+
+      - name: Build NSIS installer (EXE)
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /DVERSION=$VERSION releng\installer\nsis\ocicl.nsi
+          echo "Created NSIS installer:"
+          Get-ChildItem releng\installer\nsis\*.exe
+
+      - name: Install WiX Toolset
+        shell: powershell
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix extension add WixToolset.UI.wixext/5.0.2 -g
+
+      - name: Build MSI installer
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          Copy-Item "ocicl.exe" "releng\installer\wix\"
+          Copy-Item "LICENSE" "releng\installer\wix\"
+          Copy-Item "README.md" "releng\installer\wix\"
+          Copy-Item "THIRD-PARTY-LICENSES.txt" "releng\installer\wix\"
+          cd releng\installer\wix
+          wix build ocicl.wxs -o "..\..\..\ocicl-$VERSION.msi" -d VERSION=$VERSION -d SourceDir=. -ext WixToolset.UI.wixext
+          cd ..\..\..
+          echo "Created MSI installer:"
+          Get-ChildItem *.msi
+
+      - name: List all packages
+        run: |
+          echo "Built packages:"
+          ls -lh *.zip *.msi releng/installer/nsis/*.exe 2>/dev/null || true
