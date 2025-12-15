@@ -267,7 +267,7 @@ jobs:
           path: ./*.tar.gz
 
   build-macos-x64:
-    runs-on: macos-13
+    runs-on: macos-15-large  # Intel x64 runner
     steps:
       - name: Checkout
         uses: actions/checkout@v4
