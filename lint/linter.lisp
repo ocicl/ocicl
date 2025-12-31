@@ -126,26 +126,39 @@
                                  (member rule-name suppressed-rules :test #'string-equal)))))))))
              issues))
 
+(defun issue-fix-status (iss)
+  "Return the fix status suffix for an issue based on current mode."
+  (cond
+    ((not *fix-mode*) "")
+    (*dry-run*
+     (if (fixable-p iss) " [WOULD FIX]" ""))
+    ((fixable-p iss) " [FIXED]")
+    (t "")))
+
 (defun print-issue (iss)
   "Print an issue in standard linter format to stdout."
-  (if (and (boundp 'ocicl.lint::*use-color*) ocicl.lint::*use-color*)
-      (let ((color-reset (format nil "~c[0m" #\escape))
-            (color-bold (format nil "~c[1m" #\escape))
-            (color-dim (format nil "~c[2m" #\escape))
-            (color-red (format nil "~c[31m" #\escape))      ; Regular red (works on light/dark)
-            (color-blue (format nil "~c[34m" #\escape)))    ; Regular blue (works on light/dark)
-        (format t "~a~a~a:~a~a~a:~a~a~a: ~a~a~a: ~a~a~a~%"
-                color-bold (issue-file iss) color-reset
-                color-dim (issue-line iss) color-reset
-                color-dim (issue-column iss) color-reset
-                color-red (issue-rule iss) color-reset
-                color-blue (issue-message iss) color-reset))
-      (format t "~A:~A:~A: ~A: ~A~%"
-              (issue-file iss)
-              (issue-line iss)
-              (issue-column iss)
-              (issue-rule iss)
-              (issue-message iss))))
+  (let ((status (issue-fix-status iss)))
+    (if (and (boundp 'ocicl.lint::*use-color*) ocicl.lint::*use-color*)
+        (let ((color-reset (format nil "~c[0m" #\escape))
+              (color-bold (format nil "~c[1m" #\escape))
+              (color-dim (format nil "~c[2m" #\escape))
+              (color-red (format nil "~c[31m" #\escape))      ; Regular red (works on light/dark)
+              (color-blue (format nil "~c[34m" #\escape))     ; Regular blue (works on light/dark)
+              (color-green (format nil "~c[32m" #\escape)))   ; Green for fix status
+          (format t "~a~a~a:~a~a~a:~a~a~a: ~a~a~a: ~a~a~a~a~a~a~%"
+                  color-bold (issue-file iss) color-reset
+                  color-dim (issue-line iss) color-reset
+                  color-dim (issue-column iss) color-reset
+                  color-red (issue-rule iss) color-reset
+                  color-blue (issue-message iss) color-reset
+                  color-green status color-reset))
+        (format t "~A:~A:~A: ~A: ~A~A~%"
+                (issue-file iss)
+                (issue-line iss)
+                (issue-column iss)
+                (issue-rule iss)
+                (issue-message iss)
+                status))))
 
 ;; Utilities for ordering issues by source position
 (defun %issue-valid-pos-p (iss)
@@ -165,18 +178,29 @@ unknown positions are ordered after all positioned issues."
   (stable-sort issues #'< :key #'%issue-sort-key))
 
 (defun lint-paths (paths &key max-line-length)
-  "Lint multiple paths and return aggregated results."
+  "Lint multiple paths and return aggregated results.
+Returns (values issues issue-count file-count fixed-count)."
   ;; Load config from the first path to establish project-wide settings
   (when paths
     (load-project-config (first paths)))
+  ;; Clear backup tracking for this session
+  (clrhash *backed-up-files*)
   (let* ((effective-max-line-length (or max-line-length (config-max-line-length)))
          (files (remove-duplicates (collect-paths paths) :test #'equal))
-         (all-issues nil))
+         (all-issues nil)
+         (total-fixed 0))
     (dolist (f files)
-      (dolist (iss (lint-file f :max-line-length effective-max-line-length :load-config nil))
-        (push iss all-issues)))
+      (let ((file-issues (lint-file f :max-line-length effective-max-line-length :load-config nil)))
+        ;; Apply fixes if in fix mode (not dry-run)
+        (when (and *fix-mode* (not *dry-run*))
+          (let ((fixable (remove-if-not #'fixable-p file-issues)))
+            (when fixable
+              (let ((fixed (apply-fixes-to-file f fixable)))
+                (incf total-fixed fixed)))))
+        (dolist (iss file-issues)
+          (push iss all-issues))))
     (setf all-issues (nreverse all-issues))
-    (values all-issues (length all-issues) (length files))))
+    (values all-issues (length all-issues) (length files) total-fixed)))
 (defparameter *verbose* nil)
 
 (defun logf (fmt &rest args)

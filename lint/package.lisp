@@ -26,6 +26,8 @@
                 #:nand
                 #:append1
                 #:drop)
-  (:export #:lint-files))
+  (:export #:lint-files
+           #:*fix-mode*
+           #:*dry-run*))
 
 (in-package #:ocicl.lint)

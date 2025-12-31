@@ -131,9 +131,20 @@
    :long "insecure"))
 ;; Template-dir option intentionally disabled for now; reserved for future use.
 
+(defvar *lint-options* '("--fix" "--dry-run" "--max-line-length")
+  "Command-line options that are specific to the lint subcommand.")
+
+(defvar *captured-lint-args* nil
+  "Lint-specific arguments captured during option parsing.")
+
 (defun unknown-option (condition)
   "Handler for unknown command-line options."
-  (format t "warning: ~s option is unknown!~%" (opts:option condition))
+  (let ((opt (opts:option condition)))
+    (if (member opt *lint-options* :test #'string=)
+        ;; Capture lint-specific options for later use
+        (push opt *captured-lint-args*)
+        ;; Warn about truly unknown options
+        (format t "warning: ~s option is unknown!~%" opt)))
   (invoke-restart 'opts:skip-option))
 
 (defmacro when-option ((options opt) &body body)
@@ -189,7 +200,7 @@
    install [SYSTEM[:VERSION]]...          Install systems
    latest [SYSTEM]...                     Install latest version of systems
    libyear                                Calculate the libyear dependency freshness metric
-   lint PATH...                           Lint Common Lisp files, directories, or .asd systems
+   lint [--fix] [--dry-run] PATH...       Lint Common Lisp files (--fix to auto-remediate)
    list SYSTEM...                         List available system versions
    new APP-NAME [TEMPLATE] [KEY=VALUE]... Create a new app
    remove [SYSTEM]...                     Remove systems
@@ -1214,15 +1225,29 @@ If FORCE is NIL, skip files that already exist."
     (write-string *color-reset*)))
 
 (defun do-lint (args)
-  "Lint the specified files, directories, or .asd systems."
-  (if args
-      (let ((*inhibit-download-during-search* t))
-        (setf ocicl.lint::*verbose* *verbose*)
-        (let ((issue-count (ocicl.lint:lint-files args :color *color*)))
-          (uiop:quit (if (plusp issue-count) 1 0))))
-      (progn
-        (format *error-output* "Error: no paths specified for linting~%")
-        (uiop:quit 1))))
+  "Lint the specified files, directories, or .asd systems.
+Supports --fix and --dry-run flags for auto-remediation."
+  (let ((fix nil)
+        (dry-run nil)
+        (paths nil))
+    ;; Parse lint-specific arguments
+    (loop for arg in args do
+      (cond
+        ((string= arg "--fix") (setf fix t))
+        ((string= arg "--dry-run") (setf dry-run t))
+        (t (push arg paths))))
+    (setf paths (nreverse paths))
+    (if paths
+        (let ((*inhibit-download-during-search* t))
+          (setf ocicl.lint::*verbose* *verbose*)
+          (let ((issue-count (ocicl.lint:lint-files paths
+                                                    :color *color*
+                                                    :fix fix
+                                                    :dry-run dry-run)))
+            (uiop:quit (if (plusp issue-count) 1 0))))
+        (progn
+          (format *error-output* "Error: no paths specified for linting~%")
+          (uiop:quit 1)))))
 
 (defun render-template-file (in-path out-path env)
   "Read template text from IN-PATH, render with ENV, write to OUT-PATH."
@@ -1428,7 +1453,8 @@ If FORCE is NIL, skip files that already exist."
                  (format *error-output* "; Error reading global directory config: ~A~%" e))))))
 
        (let ((workdir *default-pathname-defaults*))
-
+         ;; Reset captured lint args before parsing
+         (setf *captured-lint-args* nil)
          (multiple-value-bind (options free-args)
              (handler-case
                  (handler-bind ((opts:unknown-option #'unknown-option))
@@ -1510,7 +1536,8 @@ If FORCE is NIL, skip files that already exist."
            ;; Handle lint command separately - it doesn't need workdir or directory changes
            (if (and (> (length free-args) 0)
                     (string= (car free-args) "lint"))
-               (do-lint (cdr free-args))
+               ;; Combine captured lint options with free args after "lint"
+               (do-lint (append (nreverse *captured-lint-args*) (cdr free-args)))
                (progn
                  (setf workdir (find-workdir workdir))
                  (locally (declare #+sbcl(sb-ext:muffle-conditions sb-kernel:redefinition-warning))

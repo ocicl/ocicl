@@ -43,9 +43,13 @@
                (:file "file-utils")
                (:file "asd-support")
                (:file "parsing")
-               (:file "linter")
+               (:file "fixer")
                (:module "rules"
                 :components ((:file "line-based")
                              (:file "ast")
                              (:file "single-pass")))
+               (:module "fixes"
+                :components ((:file "whitespace")
+                             (:file "style")))
+               (:file "linter")
                (:file "main")))

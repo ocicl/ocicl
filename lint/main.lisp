@@ -16,15 +16,20 @@
 (defun print-usage ()
   "Print usage information and command line options."
   (format t "cl-lint ~A~%" +version+)
-  (format t "Usage: cl-lint [--max-line-length N] [--verbose] PATH...~%")
+  (format t "Usage: cl-lint [OPTIONS] PATH...~%")
   (format t "Options:~%")
   (format t "  --max-line-length N   Set the maximum allowed line length (default 120)~%")
+  (format t "  --fix                 Automatically fix issues where possible~%")
+  (format t "  --dry-run             Show what would be fixed without modifying files~%")
+  (format t "  --verbose             Enable verbose output~%")
   (format t "  -h, --help            Show this help~%"))
 
 (defun parse-args (argv)
   "Parse command line arguments. Returns (values status data)."
   (let ((max-len nil)
         (verbose nil)
+        (fix nil)
+        (dry-run nil)
         (paths nil))
     (loop while argv do
          (let ((a (pop argv)))
@@ -33,6 +38,10 @@
               (return (values :help nil)))
              ((string= a "--verbose")
               (setf verbose t))
+             ((string= a "--fix")
+              (setf fix t))
+             ((string= a "--dry-run")
+              (setf dry-run t))
              ((string= a "--max-line-length")
               (unless argv
                 (return (values :error "Missing number for --max-line-length")))
@@ -45,7 +54,8 @@
     (setf paths (nreverse paths))
     (if (null paths)
         (values :error "No input paths provided")
-        (values :ok (list :max-line-length max-len :verbose verbose :paths paths)))))
+        (values :ok (list :max-line-length max-len :verbose verbose
+                          :fix fix :dry-run dry-run :paths paths)))))
 
 (defun %print-backtrace-and-exit (condition)
   "Print error message with backtrace and exit."
@@ -61,15 +71,30 @@
 (defparameter *use-color* nil
   "Whether to use color output in linting results.")
 
-(defun lint-files (paths &key max-line-length color)
+(defun lint-files (paths &key max-line-length color fix dry-run)
   "Lint the given files/directories. Returns number of issues found.
-   PATHS is a list of file or directory paths to lint."
-  (let ((*use-color* color))
-    (multiple-value-bind (issues issue-count file-count)
+   PATHS is a list of file or directory paths to lint.
+   If FIX is non-nil, automatically fix issues where possible.
+   If DRY-RUN is non-nil, show what would be fixed without modifying."
+  (let ((*use-color* color)
+        (*fix-mode* fix)
+        (*dry-run* dry-run))
+    (multiple-value-bind (issues issue-count file-count fixed-count)
         (lint-paths paths :max-line-length max-line-length)
       (mapc #'print-issue issues)
-      (format t "~%Scanned ~D file(s), found ~D issue(s).~%"
-              file-count issue-count)
+      (cond
+        ((and fix (not dry-run) (plusp fixed-count))
+         (format t "~%Fixed ~D issue(s), ~D issue(s) remaining.~%"
+                 fixed-count (- issue-count fixed-count))
+         (format t "Scanned ~D file(s).~%" file-count))
+        (dry-run
+         (let ((fixable (count-if #'fixable-p issues)))
+           (format t "~%Would fix ~D issue(s) (use --fix without --dry-run to apply).~%"
+                   fixable)
+           (format t "Scanned ~D file(s), found ~D issue(s).~%" file-count issue-count)))
+        (t
+         (format t "~%Scanned ~D file(s), found ~D issue(s).~%"
+                 file-count issue-count)))
       issue-count)))
 
 (defun main ()
@@ -83,13 +108,12 @@
                                   (format *error-output* "Error: ~A~%" data)
                                   (uiop:quit 2)))
                    (:ok
-                    (destructuring-bind (&key max-line-length verbose paths) data
+                    (destructuring-bind (&key max-line-length verbose fix dry-run paths) data
                       (setf ocicl.lint::*verbose* verbose)
-                      (multiple-value-bind (issues issue-count file-count)
-                          (lint-paths paths :max-line-length max-line-length)
-                        (mapc #'print-issue issues)
-                        (format t "~%Scanned ~D file(s), found ~D issue(s).~%"
-                                file-count issue-count)
+                      (let ((issue-count (lint-files paths
+                                                     :max-line-length max-line-length
+                                                     :fix fix
+                                                     :dry-run dry-run)))
                         (uiop:quit (if (plusp issue-count) 1 0)))))))))
       #+sbcl
       (let ((sb-ext:*invoke-debugger-hook*

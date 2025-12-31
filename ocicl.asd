@@ -43,11 +43,15 @@
                                            (:file "file-utils")
                                            (:file "asd-support")
                                            (:file "parsing")
-                                           (:file "linter")
+                                           (:file "fixer")
                                            (:module "rules"
                                             :components ((:file "line-based")
                                                          (:file "ast")
                                                          (:file "single-pass")))
+                                           (:module "fixes"
+                                            :components ((:file "whitespace")
+                                                         (:file "style")))
+                                           (:file "linter")
                                            (:file "main")))
                              (:file "licenses" :depends-on ("package"))
                              (:file "sbom" :depends-on ("package" "licenses"))
@@ -55,7 +59,7 @@
 
   :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
-                :version-string :alexandria
+                :version-string :alexandria :serapeum
                 :ecclesia :rewrite-cl
 
                 ;; sbcl internals
