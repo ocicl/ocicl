@@ -450,7 +450,7 @@ Code Linting
 ### Usage
 
 ```bash
-ocicl lint PATH...
+ocicl lint [--fix] [--dry-run] PATH...
 ```
 
 Where `PATH` can be:
@@ -458,10 +458,18 @@ Where `PATH` can be:
 - **Directories**: `ocicl lint src/` (recursively lints all `.lisp` files)
 - **ASDF systems**: `ocicl lint myproject.asd` (lints all components in the system definition)
 
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--fix` | Automatically fix issues where possible |
+| `--dry-run` | Show what would be fixed without modifying files |
+
 ### Features
 
 - Comprehensive style checking based on Common Lisp best practices
 - Detects common errors and anti-patterns
+- **Auto-fix support** for many common issues
 - Configurable rules via `.ocicl-lint.conf` file
 - Colorized output (respects `--color` flag)
 - Zero configuration required for basic usage
