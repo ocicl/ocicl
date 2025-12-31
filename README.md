@@ -465,6 +465,40 @@ Where `PATH` can be:
 | `--fix` | Automatically fix issues where possible |
 | `--dry-run` | Show what would be fixed without modifying files |
 
+### Auto-Fixable Rules
+
+The following 27 rules can be automatically fixed with `--fix`:
+
+| Rule | Transformation |
+|------|---------------|
+| `whitespace-after-open-paren` | Remove whitespace after `(` |
+| `whitespace-before-close-paren` | Remove whitespace before `)` |
+| `trailing-whitespace` | Remove trailing spaces/tabs |
+| `no-tabs` | Replace tabs with spaces |
+| `closing-parens-same-line` | Collapse `)))))` to one line |
+| `use-first-rest` | `CAR` → `FIRST`, `CDR` → `REST` |
+| `use-eql` | `EQ` → `EQL` for numbers/chars |
+| `setf-vs-setq` | `SETQ` → `SETF` |
+| `quoted-nil` | `'NIL` → `NIL` |
+| `quote-keyword` | `':foo` → `:foo` |
+| `quote-number` | `'42` → `42` |
+| `car-cdr` | `(CAR (CDR x))` → `(CADR x)` |
+| `cdr-cdr` | `(CDR (CDR x))` → `(CDDR x)` |
+| `cons-with-nil` | `(CONS x NIL)` → `(LIST x)` |
+| `not-null` | `(NOT (NULL x))` → `x` |
+| `when-for-unless` | `(WHEN (NOT x) ...)` → `(UNLESS x ...)` |
+| `unless-for-when` | `(UNLESS (NOT x) ...)` → `(WHEN x ...)` |
+| `needless-and` | `(AND x)` → `x` |
+| `needless-or` | `(OR x)` → `x` |
+| `rplaca` | `(RPLACA x y)` → `(SETF (CAR x) y)` |
+| `rplacd` | `(RPLACD x y)` → `(SETF (CDR x) y)` |
+| `setf-incf` | `(SETF x (+ x n))` → `(INCF x n)` |
+| `setf-decf` | `(SETF x (- x n))` → `(DECF x n)` |
+| `plus-one` | `(+ x 1)` → `(1+ x)` |
+| `minus-one` | `(- x 1)` → `(1- x)` |
+| `use-zerop` | `(= x 0)` → `(ZEROP x)` |
+| `add-zero` | `(+ x 0)` → `x` |
+
 ### Features
 
 - Comprehensive style checking based on Common Lisp best practices
