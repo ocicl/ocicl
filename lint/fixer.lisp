@@ -53,13 +53,19 @@ Each fixer function takes (content issue) and returns new content or nil.")
         (zerop exit-code))
     (error () nil)))
 
-(defun rcs-dir-exists-p (path)
-  "Check if an RCS directory already exists for PATH's directory."
-  (let ((dir (uiop:pathname-directory-pathname path)))
-    (uiop:directory-exists-p (merge-pathnames "RCS/" dir))))
+(defun ensure-rcs-dir (path)
+  "Ensure RCS directory exists for PATH's directory. Creates it if needed.
+Returns the RCS directory path if successful, nil otherwise."
+  (let* ((dir (uiop:pathname-directory-pathname path))
+         (rcs-dir (merge-pathnames "RCS/" dir)))
+    (handler-case
+        (progn
+          (ensure-directories-exist rcs-dir)
+          rcs-dir)
+      (error () nil))))
 
 (defun backup-file-rcs (path)
-  "Create RCS backup of PATH using ci -l. Only uses existing RCS/ directory."
+  "Create RCS backup of PATH using ci -l."
   (handler-case
       (uiop:run-program
        (list "ci" "-l" "-m'Before ocicl lint --fix'" (namestring path))
@@ -91,11 +97,11 @@ Each fixer function takes (content issue) and returns new content or nil.")
 
 (defun backup-file (path)
   "Create backup of PATH before modification.
-Uses RCS if ci/co available AND RCS/ directory exists, else .bak.
+Uses RCS if ci/co available (creates RCS/ directory if needed), else .bak.
 Only backs up each file once per session."
   (let ((path-str (namestring path)))
     (unless (gethash path-str *backed-up-files*)
-      (when-let ((success (if (and (rcs-available-p) (rcs-dir-exists-p path))
+      (when-let ((success (if (and (rcs-available-p) (ensure-rcs-dir path))
                               (backup-file-rcs path)
                               (backup-file-bak path))))
         (setf (gethash path-str *backed-up-files*) t)
