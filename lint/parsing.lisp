@@ -48,19 +48,19 @@
 
 (defun zip-line (z)
   "Get line number from zipper position."
-  (car (zip-pos z)))
+  (first (zip-pos z)))
 
 (defun zip-column (z)
   "Get column number from zipper position."
-  (cdr (zip-pos z)))
+  (rest (zip-pos z)))
 
 (defun zip-list-p (z)
   "Check if zipper points to a list node."
-  (eq (rewrite-cl:zip-tag z) :list))
+  (eql (rewrite-cl:zip-tag z) :list))
 
 (defun zip-symbol-p (z)
   "Check if zipper points to a symbol node."
-  (eq (rewrite-cl:zip-tag z) :symbol))
+  (eql (rewrite-cl:zip-tag z) :symbol))
 
 (defun zip-head (z)
   "Get the first symbol in a list node (the 'head' of the form)."
@@ -118,7 +118,7 @@ Detects both (quote ...) forms and 'x reader macro quotes."
   (loop for parent = (rewrite-cl:zip-up z) then (rewrite-cl:zip-up parent)
         while parent
         thereis (or ;; Quote reader macro: 'x becomes a quote-node with tag :quote
-                    (eq (rewrite-cl:zip-tag parent) :quote)
+                    (eql (rewrite-cl:zip-tag parent) :quote)
                     ;; Explicit (quote ...) form
                     (and (zip-list-p parent) (eq (zip-head parent) 'quote)))))
 
