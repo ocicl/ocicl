@@ -84,16 +84,17 @@
       (mapc #'print-issue issues)
       (cond
         ((and fix (not dry-run) (plusp fixed-count))
-         (format t "~%Fixed ~D issue(s), ~D issue(s) remaining.~%"
-                 fixed-count (- issue-count fixed-count))
-         (format t "Scanned ~D file(s).~%" file-count))
+         (let ((remaining (- issue-count fixed-count)))
+           (format t "~%Fixed ~D issue~:P, ~D issue~:P remaining.~%"
+                   fixed-count remaining))
+         (format t "Scanned ~D file~:P.~%" file-count))
         (dry-run
          (let ((fixable (count-if #'fixable-p issues)))
-           (format t "~%Would fix ~D issue(s) (use --fix without --dry-run to apply).~%"
+           (format t "~%Would fix ~D issue~:P (use --fix without --dry-run to apply).~%"
                    fixable)
-           (format t "Scanned ~D file(s), found ~D issue(s).~%" file-count issue-count)))
+           (format t "Scanned ~D file~:P, found ~D issue~:P.~%" file-count issue-count)))
         (t
-         (format t "~%Scanned ~D file(s), found ~D issue(s).~%"
+         (format t "~%Scanned ~D file~:P, found ~D issue~:P.~%"
                  file-count issue-count)))
       issue-count)))
 

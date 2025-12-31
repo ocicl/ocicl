@@ -132,18 +132,25 @@ Returns t if fix was applied, nil otherwise."
 
 (defun apply-fixes-to-file (path issues)
   "Apply all fixes for ISSUES to PATH, one at a time, re-parsing between.
-Returns count of fixes applied."
+Returns count of issues fixed (not just fix operations applied).
+Multiple issues at the same position are all counted when fixed."
   ;; Backup before any modifications
   (backup-file path)
-  (let ((fixed 0))
+  (let ((fixed-positions (make-hash-table :test 'equal)))
     ;; Sort by position descending to minimize offset issues
     (dolist (issue (sort (copy-list issues) #'>
                          :key (lambda (i)
                                 (+ (* (issue-line i) 100000)
                                    (issue-column i)))))
-      (when (apply-fix path issue)
-        (incf fixed)))
-    fixed))
+      (let ((pos (cons (issue-line issue) (issue-column issue))))
+        (when (and (not (gethash pos fixed-positions))
+                   (apply-fix path issue))
+          (setf (gethash pos fixed-positions) t))))
+    ;; Count all issues at fixed positions
+    (count-if (lambda (issue)
+                (gethash (cons (issue-line issue) (issue-column issue))
+                         fixed-positions))
+              issues)))
 
 ;;; String utilities for fixers
 

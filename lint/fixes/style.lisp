@@ -1144,3 +1144,144 @@
                            (setf current (rewrite-cl:zip-right current))))))))))))
 
 (register-fixer "asdf-component-strings" #'fix-asdf-component-strings)
+
+
+;;; Fix: let*-single - (LET* ((x y)) ...) -> (LET ((x y)) ...)
+
+(defun fix-let*-single (content issue)
+  "Transform LET* with single binding to LET at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (when-let ((first-child (rewrite-cl:zip-down target)))
+            ;; Skip whitespace to find let*
+            (loop while (and first-child
+                             (member (rewrite-cl:zip-tag first-child) '(:whitespace :newline)))
+                  do (setf first-child (rewrite-cl:zip-right first-child)))
+            (when (and first-child (eq (rewrite-cl:zip-sexpr first-child) 'let*))
+              (zip-root-content-string
+               (rewrite-cl:zip-replace first-child
+                                       (rewrite-cl:make-token-node 'let "let"))))))))))
+
+(register-fixer "let*-single" #'fix-let*-single)
+
+
+;;; Fix: missing-otherwise - T -> OTHERWISE in CASE
+
+(defun fix-missing-otherwise (content issue)
+  "Transform T to OTHERWISE in CASE clause at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (member (first form) '(case ecase ccase)))
+              ;; Find the last clause with T as key
+              (when-let ((first-child (rewrite-cl:zip-down target)))
+                ;; Navigate to clauses (skip case, key-form, and whitespace)
+                (let ((current first-child)
+                      (last-t-clause nil))
+                  ;; Find all T clauses (should be the last one)
+                  (loop while current
+                        do (when (and (zip-list-p current)
+                                      (let ((clause-form (rewrite-cl:zip-sexpr current)))
+                                        (and (consp clause-form)
+                                             (eq (first clause-form) t))))
+                             (setf last-t-clause current))
+                           (setf current (rewrite-cl:zip-right current)))
+                  ;; Replace T with OTHERWISE in the last T clause
+                  (when last-t-clause
+                    (when-let ((clause-first (rewrite-cl:zip-down last-t-clause)))
+                      ;; Skip whitespace
+                      (loop while (and clause-first
+                                       (member (rewrite-cl:zip-tag clause-first) '(:whitespace :newline)))
+                            do (setf clause-first (rewrite-cl:zip-right clause-first)))
+                      (when (and clause-first (eq (rewrite-cl:zip-sexpr clause-first) t))
+                        (zip-root-content-string
+                         (rewrite-cl:zip-replace clause-first
+                                                 (rewrite-cl:make-token-node 'otherwise "otherwise")))))))))))))))
+
+(register-fixer "missing-otherwise" #'fix-missing-otherwise)
+
+
+;;; Fix: bare-progn-in-if - (IF test (PROGN ...) (PROGN ...)) -> (COND ...)
+;;; This fixer works by extracting original source text to preserve package prefixes.
+
+(defun extract-progn-body-text (node)
+  "Extract the body of a PROGN form as text (everything after 'progn')."
+  (let* ((node-str (rewrite-cl:zip-string node))
+         ;; Find 'progn' and skip past it
+         (progn-end (search "progn" node-str :test #'char-equal)))
+    (when progn-end
+      ;; Skip 'progn' and get the rest (but not the final paren)
+      (let* ((after-progn (subseq node-str (+ progn-end 5)))
+             ;; Trim leading whitespace but not too aggressively
+             (trimmed (string-left-trim '(#\Space #\Tab) after-progn)))
+        ;; Remove the trailing )
+        (when (and (> (length trimmed) 0)
+                   (char= (char trimmed (1- (length trimmed))) #\)))
+          (subseq trimmed 0 (1- (length trimmed))))))))
+
+(defun fix-bare-progn-in-if (content issue)
+  "Transform IF with bare PROGN to COND at ISSUE location.
+Preserves original source text including package prefixes."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'if)
+                       (>= (length form) 3))
+              ;; Navigate to get child nodes (skip whitespace, newlines, and comments)
+              (let* ((children (loop for c = (rewrite-cl:zip-down target) then (rewrite-cl:zip-right c)
+                                     while c
+                                     unless (member (rewrite-cl:zip-tag c) '(:whitespace :newline :comment))
+                                     collect c))
+                     (test-node (second children))   ; Skip IF symbol
+                     (then-node (third children))
+                     (else-node (fourth children)))
+                (when (and test-node then-node)
+                  (let* ((then-form (rewrite-cl:zip-sexpr then-node))
+                         (else-form (when else-node (rewrite-cl:zip-sexpr else-node)))
+                         (then-is-progn (and (consp then-form) (eq (first then-form) 'progn)))
+                         (else-is-progn (and (consp else-form) (eq (first else-form) 'progn))))
+                    ;; Only transform if at least one branch has progn
+                    (when (or then-is-progn else-is-progn)
+                      ;; Build COND using original source text
+                      (let* ((test-str (rewrite-cl:zip-string test-node))
+                             (then-body-str (if then-is-progn
+                                                (extract-progn-body-text then-node)
+                                                (rewrite-cl:zip-string then-node)))
+                             (else-body-str (when else-node
+                                              (if else-is-progn
+                                                  (extract-progn-body-text else-node)
+                                                  (rewrite-cl:zip-string else-node))))
+                             (cond-str (if else-body-str
+                                           (format nil "(cond (~A ~A)~%      (t ~A))"
+                                                   test-str then-body-str else-body-str)
+                                           (format nil "(cond (~A ~A))"
+                                                   test-str then-body-str))))
+                        (when (and then-body-str (or (not else-node) else-body-str))
+                          (handler-case
+                              (let* ((parsed (rewrite-cl:of-string cond-str))
+                                     ;; The parsed result IS the COND form (a LIST at root)
+                                     (new-node (when parsed
+                                                 (rewrite-cl:zip-node parsed))))
+                                (when new-node
+                                  (zip-root-content-string
+                                   (rewrite-cl:zip-replace target new-node))))
+                            (error () nil)))))))))))))))
+
+(register-fixer "bare-progn-in-if" #'fix-bare-progn-in-if)
