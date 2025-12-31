@@ -69,6 +69,23 @@ The issue column points to the list position."
 (register-fixer "trailing-whitespace" #'fix-trailing-whitespace)
 
 
+;;; Fix: no-tabs
+;;; Replace tab characters with spaces
+
+(defun fix-no-tabs (content issue)
+  "Replace tab with spaces at ISSUE location."
+  (declare (ignore issue))
+  ;; Replace all tabs with 8 spaces (standard tab width)
+  (let ((result (make-string-output-stream)))
+    (loop for char across content
+          do (if (char= char #\Tab)
+                 (write-string "        " result)
+                 (write-char char result)))
+    (get-output-stream-string result)))
+
+(register-fixer "no-tabs" #'fix-no-tabs)
+
+
 ;;; Fix: closing-parens-same-line
 ;;; Removes newline between consecutive closing parens
 ;;; Note: The detection rule already skips cases with comments, so this fixer
