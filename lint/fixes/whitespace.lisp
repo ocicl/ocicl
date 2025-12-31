@@ -122,3 +122,40 @@ The issue column points to the list position."
                   (zip-root-content-string result))))))))))
 
 (register-fixer "closing-parens-same-line" #'fix-closing-parens-same-line)
+
+
+;;; Fix: final-newline
+;;; Ensure file ends with a newline
+
+(defun fix-final-newline (content issue)
+  "Add newline at end of file if missing."
+  (declare (ignore issue))
+  (if (and (> (length content) 0)
+           (not (char= (char content (1- (length content))) #\Newline)))
+      (concatenate 'string content (string #\Newline))
+      content))
+
+(register-fixer "final-newline" #'fix-final-newline)
+
+
+;;; Fix: consecutive-blank-lines
+;;; Remove extra blank lines (keep max 2)
+
+(defun fix-consecutive-blank-lines (content issue)
+  "Remove consecutive blank lines, keeping at most 2."
+  (declare (ignore issue))
+  (let* ((lines (split-lines content))
+         (result nil)
+         (blank-count 0))
+    (dolist (line lines)
+      (if (string= (string-trim '(#\Space #\Tab) line) "")
+          (progn
+            (incf blank-count)
+            (when (<= blank-count 2)
+              (push line result)))
+          (progn
+            (setf blank-count 0)
+            (push line result))))
+    (join-lines (nreverse result))))
+
+(register-fixer "consecutive-blank-lines" #'fix-consecutive-blank-lines)

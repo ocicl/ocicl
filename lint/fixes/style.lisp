@@ -582,3 +582,524 @@
                      (rewrite-cl:coerce-to-node arg))))))))))))
 
 (register-fixer "add-zero" #'fix-add-zero)
+
+
+;;; Fix: if-for-not - (IF test NIL T) -> (NOT test)
+
+(defun fix-if-for-not (content issue)
+  "Transform (IF test NIL T) to (NOT test) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'if)
+                       (= (length form) 4)
+                       (null (third form))
+                       (eq (fourth form) t))
+              (let ((test (second form)))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(not ,test))))))))))))
+
+(register-fixer "if-for-not" #'fix-if-for-not)
+
+
+;;; Fix: if-no-else - (IF test then) -> (WHEN test then)
+
+(defun fix-if-no-else (content issue)
+  "Transform (IF test then) to (WHEN test then) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'if)
+                       (= (length form) 3))
+              (let ((test (second form))
+                    (then (third form)))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(when ,test ,then))))))))))))
+
+(register-fixer "if-no-else" #'fix-if-no-else)
+
+
+;;; Fix: if-or - (IF test T else) -> (OR test else)
+
+(defun fix-if-or (content issue)
+  "Transform (IF test T else) to (OR test else) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'if)
+                       (= (length form) 4)
+                       (eq (third form) t))
+              (let ((test (second form))
+                    (else (fourth form)))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(or ,test ,else))))))))))))
+
+(register-fixer "if-or" #'fix-if-or)
+
+
+;;; Fix: needless-and-t - (AND ... T) -> (AND ...)
+
+(defun fix-needless-and-t (content issue)
+  "Remove trailing T from AND expression at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'and)
+                       (> (length form) 2)
+                       (eq (car (last form)) t))
+              (let ((args (butlast (rest form))))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (if (= (length args) 1)
+                       (rewrite-cl:coerce-to-node (first args))
+                       (rewrite-cl:coerce-to-node `(and ,@args)))))))))))))
+
+(register-fixer "needless-and-t" #'fix-needless-and-t)
+
+
+;;; Fix: needless-or-nil - (OR ... NIL) -> (OR ...)
+
+(defun fix-needless-or-nil (content issue)
+  "Remove trailing NIL from OR expression at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'or)
+                       (> (length form) 2)
+                       (null (car (last form))))
+              (let ((args (butlast (rest form))))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (if (= (length args) 1)
+                       (rewrite-cl:coerce-to-node (first args))
+                       (rewrite-cl:coerce-to-node `(or ,@args)))))))))))))
+
+(register-fixer "needless-or-nil" #'fix-needless-or-nil)
+
+
+;;; Fix: not-consp - (NOT (CONSP x)) -> (ATOM x)
+
+(defun fix-not-consp (content issue)
+  "Transform (NOT (CONSP x)) to (ATOM x) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'not)
+                       (= (length form) 2)
+                       (consp (second form))
+                       (eq (first (second form)) 'consp)
+                       (= (length (second form)) 2))
+              (let ((arg (second (second form))))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(atom ,arg))))))))))))
+
+(register-fixer "not-consp" #'fix-not-consp)
+
+
+;;; Fix: equal-with-nil - (EQUAL x NIL) -> (NULL x)
+
+(defun fix-equal-with-nil (content issue)
+  "Transform (EQUAL x NIL) to (NULL x) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'equal)
+                       (= (length form) 3))
+              (let ((arg (cond
+                           ((null (second form)) (third form))
+                           ((null (third form)) (second form))
+                           (t nil))))
+                (when arg
+                  (zip-root-content-string
+                   (rewrite-cl:zip-replace target
+                     (rewrite-cl:coerce-to-node `(null ,arg)))))))))))))
+
+(register-fixer "equal-with-nil" #'fix-equal-with-nil)
+
+
+;;; Fix: progn-in-when - (WHEN x (PROGN ...)) -> (WHEN x ...)
+
+(defun fix-progn-in-when (content issue)
+  "Remove unnecessary PROGN in WHEN at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'when)
+                       (>= (length form) 3)
+                       (consp (third form))
+                       (eq (first (third form)) 'progn)
+                       (= (length form) 3))  ; Only one body form
+              (let ((test (second form))
+                    (progn-body (rest (third form))))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(when ,test ,@progn-body))))))))))))
+
+(register-fixer "progn-in-when" #'fix-progn-in-when)
+
+
+;;; Fix: progn-in-if - (IF x (PROGN ...)) -> (WHEN x ...)
+
+(defun fix-progn-in-if (content issue)
+  "Transform (IF x (PROGN ...)) to (WHEN x ...) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'if)
+                       (= (length form) 3)  ; No else branch
+                       (consp (third form))
+                       (eq (first (third form)) 'progn))
+              (let ((test (second form))
+                    (progn-body (rest (third form))))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(when ,test ,@progn-body))))))))))))
+
+(register-fixer "progn-in-if" #'fix-progn-in-if)
+
+
+;;; Fix: redundant-progn - (PROGN form) -> form
+
+(defun fix-redundant-progn (content issue)
+  "Remove redundant PROGN wrapper at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'progn)
+                       (= (length form) 2))
+              (zip-root-content-string
+               (rewrite-cl:zip-replace target
+                 (rewrite-cl:coerce-to-node (second form)))))))))))
+
+(register-fixer "redundant-progn" #'fix-redundant-progn)
+
+
+;;; Fix: quote-true - 'TRUE -> T
+
+(defun fix-quote-true (content issue)
+  "Transform 'TRUE to T at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'quote)
+                       (eq (second form) 'true))
+              (zip-root-content-string
+               (rewrite-cl:zip-replace target
+                 (rewrite-cl:make-token-node t "t"))))))))))
+
+(register-fixer "quote-true" #'fix-quote-true)
+
+
+;;; Fix: cond-vs-if - (COND (test then)) -> (WHEN test then)
+
+(defun fix-cond-vs-if (content issue)
+  "Transform single-clause COND to WHEN at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'cond)
+                       (= (length form) 2)  ; Single clause
+                       (consp (second form))
+                       (>= (length (second form)) 2))
+              (let ((clause (second form)))
+                (let ((test (first clause))
+                      (body (rest clause)))
+                  (zip-root-content-string
+                   (rewrite-cl:zip-replace target
+                     (rewrite-cl:coerce-to-node
+                      (if (= (length body) 1)
+                          `(when ,test ,(first body))
+                          `(when ,test ,@body))))))))))))))
+
+(register-fixer "cond-vs-if" #'fix-cond-vs-if)
+
+
+;;; Fix: cons-list - (CONS x (LIST ...)) -> (LIST x ...)
+
+(defun fix-cons-list (content issue)
+  "Transform (CONS x (LIST ...)) to (LIST x ...) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'cons)
+                       (= (length form) 3)
+                       (consp (third form))
+                       (eq (first (third form)) 'list))
+              (let ((first-elem (second form))
+                    (rest-elems (rest (third form))))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(list ,first-elem ,@rest-elems))))))))))))
+
+(register-fixer "cons-list" #'fix-cons-list)
+
+
+;;; Fix: append-single - (APPEND x NIL) -> (COPY-LIST x)
+
+(defun fix-append-single (content issue)
+  "Transform (APPEND x NIL) to (COPY-LIST x) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'append)
+                       (= (length form) 3)
+                       (null (third form)))
+              (let ((arg (second form)))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(copy-list ,arg))))))))))))
+
+(register-fixer "append-single" #'fix-append-single)
+
+
+;;; Fix: append-list-list - (APPEND (LIST x) y) -> (CONS x y)
+
+(defun fix-append-list-list (content issue)
+  "Transform (APPEND (LIST x) y) to (CONS x y) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'append)
+                       (= (length form) 3)
+                       (consp (second form))
+                       (eq (first (second form)) 'list)
+                       (= (length (second form)) 2))  ; Single-element list
+              (let ((elem (second (second form)))
+                    (rest-list (third form)))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(cons ,elem ,rest-list))))))))))))
+
+(register-fixer "append-list-list" #'fix-append-list-list)
+
+
+;;; Fix: cons-cons-acons - (CONS (CONS k v) alist) -> (ACONS k v alist)
+
+(defun fix-cons-cons-acons (content issue)
+  "Transform (CONS (CONS k v) alist) to (ACONS k v alist) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'cons)
+                       (= (length form) 3)
+                       (consp (second form))
+                       (eq (first (second form)) 'cons)
+                       (= (length (second form)) 3))
+              (let ((key (second (second form)))
+                    (val (third (second form)))
+                    (alist (third form)))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(acons ,key ,val ,alist))))))))))))
+
+(register-fixer "cons-cons-acons" #'fix-cons-cons-acons)
+
+
+;;; Fix: use-identity - (LAMBDA (X) X) -> #'IDENTITY
+
+(defun fix-use-identity (content issue)
+  "Transform (LAMBDA (X) X) to #'IDENTITY at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'lambda)
+                       (= (length form) 3)
+                       (consp (second form))
+                       (= (length (second form)) 1)
+                       (eq (third form) (first (second form))))
+              (zip-root-content-string
+               (rewrite-cl:zip-replace target
+                 (rewrite-cl:coerce-to-node '#'identity))))))))))
+
+(register-fixer "use-identity" #'fix-use-identity)
+
+
+;;; Fix: use-constantly - (LAMBDA (...) value) -> (CONSTANTLY value)
+;;; where the lambda ignores all arguments
+
+(defun fix-use-constantly (content issue)
+  "Transform constant-returning lambda to (CONSTANTLY value) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'lambda)
+                       (= (length form) 3)
+                       (listp (second form))
+                       ;; Body is a constant (not using any params)
+                       (atom (third form)))
+              (let ((value (third form)))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(constantly ,value))))))))))))
+
+(register-fixer "use-constantly" #'fix-use-constantly)
+
+
+;;; Fix: needless-shiftf - (SHIFTF a b) -> (SETF a b)
+
+(defun fix-needless-shiftf (content issue)
+  "Transform (SHIFTF a b) to (SETF a b) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'shiftf)
+                       (= (length form) 3))
+              (let ((place (second form))
+                    (value (third form)))
+                (zip-root-content-string
+                 (rewrite-cl:zip-replace target
+                   (rewrite-cl:coerce-to-node `(setf ,place ,value))))))))))))
+
+(register-fixer "needless-shiftf" #'fix-needless-shiftf)
+
+
+;;; Fix: setq-incf - (SETQ x (+ x n)) -> (INCF x n)
+
+(defun fix-setq-incf (content issue)
+  "Transform (SETQ x (+ x n)) to (INCF x n) at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (eq (first form) 'setq)
+                       (= (length form) 3)
+                       (consp (third form))
+                       (eq (first (third form)) '+)
+                       (>= (length (third form)) 3))
+              (let* ((var (second form))
+                     (plus-form (third form))
+                     (plus-args (rest plus-form)))
+                (when (member var plus-args :test #'equal)
+                  (let ((delta (remove var plus-args :test #'equal :count 1)))
+                    (when (= (length delta) 1)
+                      (let ((amount (first delta)))
+                        (zip-root-content-string
+                         (rewrite-cl:zip-replace target
+                           (if (eql amount 1)
+                               (rewrite-cl:coerce-to-node `(incf ,var))
+                               (rewrite-cl:coerce-to-node `(incf ,var ,amount)))))))))))))))))
+
+(register-fixer "setq-incf" #'fix-setq-incf)

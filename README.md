@@ -467,8 +467,9 @@ Where `PATH` can be:
 
 ### Auto-Fixable Rules
 
-The following 27 rules can be automatically fixed with `--fix`:
+The following 49 rules can be automatically fixed with `--fix`:
 
+**Whitespace & Formatting:**
 | Rule | Transformation |
 |------|---------------|
 | `whitespace-after-open-paren` | Remove whitespace after `(` |
@@ -476,28 +477,74 @@ The following 27 rules can be automatically fixed with `--fix`:
 | `trailing-whitespace` | Remove trailing spaces/tabs |
 | `no-tabs` | Replace tabs with spaces |
 | `closing-parens-same-line` | Collapse `)))))` to one line |
+| `final-newline` | Add newline at end of file |
+| `consecutive-blank-lines` | Remove extra blank lines |
+
+**Symbol & Quote Fixes:**
+| Rule | Transformation |
+|------|---------------|
 | `use-first-rest` | `CAR` → `FIRST`, `CDR` → `REST` |
 | `use-eql` | `EQ` → `EQL` for numbers/chars |
 | `setf-vs-setq` | `SETQ` → `SETF` |
 | `quoted-nil` | `'NIL` → `NIL` |
 | `quote-keyword` | `':foo` → `:foo` |
 | `quote-number` | `'42` → `42` |
+| `quote-true` | `'TRUE` → `T` |
+
+**List Operations:**
+| Rule | Transformation |
+|------|---------------|
 | `car-cdr` | `(CAR (CDR x))` → `(CADR x)` |
 | `cdr-cdr` | `(CDR (CDR x))` → `(CDDR x)` |
 | `cons-with-nil` | `(CONS x NIL)` → `(LIST x)` |
-| `not-null` | `(NOT (NULL x))` → `x` |
-| `when-for-unless` | `(WHEN (NOT x) ...)` → `(UNLESS x ...)` |
-| `unless-for-when` | `(UNLESS (NOT x) ...)` → `(WHEN x ...)` |
-| `needless-and` | `(AND x)` → `x` |
-| `needless-or` | `(OR x)` → `x` |
+| `cons-list` | `(CONS x (LIST ...))` → `(LIST x ...)` |
+| `cons-cons-acons` | `(CONS (CONS k v) alist)` → `(ACONS k v alist)` |
+| `append-single` | `(APPEND x NIL)` → `(COPY-LIST x)` |
+| `append-list-list` | `(APPEND (LIST x) y)` → `(CONS x y)` |
 | `rplaca` | `(RPLACA x y)` → `(SETF (CAR x) y)` |
 | `rplacd` | `(RPLACD x y)` → `(SETF (CDR x) y)` |
-| `setf-incf` | `(SETF x (+ x n))` → `(INCF x n)` |
-| `setf-decf` | `(SETF x (- x n))` → `(DECF x n)` |
+
+**Logic Simplification:**
+| Rule | Transformation |
+|------|---------------|
+| `not-null` | `(NOT (NULL x))` → `x` |
+| `not-consp` | `(NOT (CONSP x))` → `(ATOM x)` |
+| `equal-with-nil` | `(EQUAL x NIL)` → `(NULL x)` |
+| `needless-and` | `(AND x)` → `x` |
+| `needless-or` | `(OR x)` → `x` |
+| `needless-and-t` | `(AND ... T)` → `(AND ...)` |
+| `needless-or-nil` | `(OR ... NIL)` → `(OR ...)` |
+
+**Conditionals:**
+| Rule | Transformation |
+|------|---------------|
+| `when-for-unless` | `(WHEN (NOT x) ...)` → `(UNLESS x ...)` |
+| `unless-for-when` | `(UNLESS (NOT x) ...)` → `(WHEN x ...)` |
+| `if-for-not` | `(IF test NIL T)` → `(NOT test)` |
+| `if-no-else` | `(IF test then)` → `(WHEN test then)` |
+| `if-or` | `(IF test T else)` → `(OR test else)` |
+| `cond-vs-if` | `(COND (test then))` → `(WHEN test then)` |
+| `progn-in-when` | `(WHEN x (PROGN ...))` → `(WHEN x ...)` |
+| `progn-in-if` | `(IF x (PROGN ...))` → `(WHEN x ...)` |
+| `redundant-progn` | `(PROGN form)` → `form` |
+
+**Arithmetic:**
+| Rule | Transformation |
+|------|---------------|
 | `plus-one` | `(+ x 1)` → `(1+ x)` |
 | `minus-one` | `(- x 1)` → `(1- x)` |
 | `use-zerop` | `(= x 0)` → `(ZEROP x)` |
 | `add-zero` | `(+ x 0)` → `x` |
+| `setf-incf` | `(SETF x (+ x n))` → `(INCF x n)` |
+| `setf-decf` | `(SETF x (- x n))` → `(DECF x n)` |
+| `setq-incf` | `(SETQ x (+ x n))` → `(INCF x n)` |
+
+**Functions:**
+| Rule | Transformation |
+|------|---------------|
+| `use-identity` | `(LAMBDA (X) X)` → `#'IDENTITY` |
+| `use-constantly` | `(LAMBDA (...) val)` → `(CONSTANTLY val)` |
+| `needless-shiftf` | `(SHIFTF a b)` → `(SETF a b)` |
 
 ### Features
 
