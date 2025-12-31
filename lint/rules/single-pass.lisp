@@ -8,68 +8,29 @@
 
 (in-package #:ocicl.lint)
 
-;; Quote-aware walker that tracks when we're inside quoted contexts
-(defun walk-forms-with-positions-quote-aware-ctx (ctx visitor)
-  "Walk forms while tracking quote contexts using context. VISITOR gets (form ln col quoted-p lambda-list-p)."
-  (let ((flat-nodes (parse-context-flat-nodes ctx)))
-    (when (null flat-nodes)
-      (let ((acc nil))
-        (let ((stack (mapcar (lambda (tree) (list tree nil nil))
-                             (copy-list (parse-context-parse-trees ctx)))))
-          (loop while stack do
-                (let* ((item (pop stack))
-                       (tree (first item))
-                       (quoted-p (second item))
-                       (lambda-list-p (third item)))
-                  (when (and (listp tree) (getf tree :form))
-                    (let* ((form (getf tree :form))
-                           (source (getf tree :source))
-                           (children (getf tree :children))
-                           (file-pos (if (consp source) (first source) source))
-                           (new-quoted-p (or quoted-p
-                                             (and (consp form) (eq (first form) 'quote))))
-                           (new-lambda-list-p nil))
-                      ;; Check if any children are lambda lists (position 3 in defun/defmacro/lambda)
-                      (when (and (consp form)
-                                 (member (first form) '(defun defmacro lambda flet labels macrolet))
-                                 children
-                                 (not lambda-list-p))
-                        ;; Mark the appropriate child as a lambda list
-                        (let* ((ll-index (if (eq (first form) 'lambda) 1 2))
-                               (ll-child (and (>= (length children) (1+ ll-index))
-                                              (nth ll-index children))))
-                          (when ll-child
-                            (setf new-lambda-list-p ll-child))))
-                      (when (and file-pos (numberp file-pos))
-                        (let ((computed-line
-                               (nth-value 0 (index->line/col
-                                             file-pos (parse-context-line-index ctx))))
-                              (computed-column
-                               (nth-value 1 (index->line/col
-                                             file-pos (parse-context-line-index ctx)))))
-                          (when (or (not (numberp computed-line))
-                                    (not (numberp computed-column)))
-                            (format *error-output*
-                                    "; BUG: non-numeric position for form ~S: line=~S col=~S ~
-                                    file-pos=~S~%"
-                                    form computed-line computed-column file-pos))
-                          (push (list form computed-line computed-column quoted-p lambda-list-p) acc)))
-                      (when children
-                        ;; push children onto stack with inherited quote context and lambda-list marking
-                        (setf stack (nconc (mapcar (lambda (child)
-                                                     (let ((is-ll-p (and new-lambda-list-p
-                                                                         (eq child new-lambda-list-p))))
-                                                       (list child new-quoted-p is-ll-p)))
-                                                   (copy-list children)) stack))))))))
-        (setf flat-nodes (nreverse acc))
-        (setf (parse-context-flat-nodes ctx) flat-nodes)))
-    (dolist (quintuple flat-nodes)
-      (destructuring-bind (form line-num col-num quoted-p lambda-list-p) quintuple
-        (funcall visitor form line-num col-num quoted-p lambda-list-p)))))
+;; Quote-aware walker using rewrite-cl's native zip-walk
+(defun walk-forms-with-positions-quote-aware (ctx visitor)
+  "Walk all list forms, calling VISITOR with (form ln col quoted-p lambda-list-p).
+Uses rewrite-cl's native zip-walk for traversal.
+CTX is a lint-context."
+  (let ((visited (make-hash-table :test 'equal)))
+    (lint-walk ctx
+      (lambda (z)
+        (when (zip-list-p z)
+          (let* ((pos (zip-pos z))
+                 (pos-key pos))
+            ;; Avoid duplicate visits
+            (unless (gethash pos-key visited)
+              (setf (gethash pos-key visited) t)
+              (when-let ((sexpr (zip-form z)))
+                (funcall visitor sexpr
+                         (car pos) (cdr pos)
+                         (zip-in-quote-p z)
+                         (zip-in-lambda-list-p z))))))))))
 
 
-;; Single-pass dispatcher: run multiple simple pattern checks in one traversal using context
-(defun run-single-pass-visitors-ctx (path ctx)
+;; Single-pass dispatcher: run multiple simple pattern checks in one traversal
+(defun run-single-pass-visitors (path ctx)
   "Traverse the parse tree once and evaluate a set of fast, local pattern rules using context.
 Returns a list of issues."
   (let ((issues nil))
@@ -77,7 +38,7 @@ Returns a list of issues."
       (logf "; single-pass: running on ~A~%" path))
     (flet ((push-iss (ln col rule msg)
              (push (%make-issue path ln col rule msg) issues)))
-      (walk-forms-with-positions-quote-aware-ctx
+      (walk-forms-with-positions-quote-aware
        ctx
        (lambda (form ln col quoted-p lambda-list-p)
          (when (and form (consp form) (not lambda-list-p))
@@ -769,7 +730,8 @@ Returns a list of issues."
                    (condition (c1)
                      (push-iss ln col "destructuring-bind-invalid" (princ-to-string c1))))))
 
-             (when (member head '(defun defmacro))
+             (when (and (member head '(defun defmacro))
+                       (not quoted-p))  ; Skip quoted contexts
                (let ((lambda-list (third form)))
                  (handler-case
                      (progn
@@ -905,7 +867,8 @@ Returns a list of issues."
                              (format nil "Destructive operation ~A on quoted constant" head)))))
 
              ;; Lambda lists with both &optional and &key
-             (when (member head '(defun defmacro lambda)) ; lint:suppress lambda-list-invalid
+             (when (and (member head '(defun defmacro lambda))
+                        (not quoted-p)) ; lint:suppress lambda-list-invalid
                (let ((lambda-list (if (eq head 'lambda) (second form) (third form))))
                  (when (and (listp lambda-list)  ; Only proceed if lambda-list is actually a list
                             (>= (length form) (if (eq head 'lambda) 2 3))  ; Has minimum elements

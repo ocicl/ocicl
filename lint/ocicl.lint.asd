@@ -37,7 +37,7 @@
   :depends-on (:alexandria
                :serapeum
                :ecclesia
-               :eclector)
+               :rewrite-cl)
   :components ((:file "package")
                (:file "config")
                (:file "file-utils")

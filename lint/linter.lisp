@@ -31,63 +31,61 @@
     (logf "; linting file: ~A (verbose=~A)~%" path *verbose*))
   (handler-case
       (let* ((lines (read-file-lines path))
-             (content (uiop:read-file-string path)))
-        (let ((%%parse-context (read-forms-with-full-positions content)))
-          (when *verbose*
-            (logf "; linter: got ~D parse trees from read-forms-with-full-positions~%"
-                  (length (parse-context-parse-trees %%parse-context))))
-          (let ((forms-with-pos (read-top-forms-with-pos-ctx %%parse-context)))
-            (labels ((safe (name thunk)
-                       (handler-case (funcall thunk)
-                         (error (e4)
-                           ;; Show stack traces only when verbose mode is enabled
-                           (when *verbose*
-                             (format *error-output* "; INTERNAL ERROR in ~A: ~A~%" name e4)
-                             (format *error-output* "; Stack trace:~%")
-                             #+sbcl (sb-debug:backtrace 20 *error-output*)
-                             #+ccl (ccl:print-call-history *error-output*)
-                             (format *error-output* "; End stack trace~%"))
-                           ;; Return empty list instead of creating internal error issues
-                           nil))))
-              (let* ((chunks (list
-                             (safe 'trailing-whitespace
-                                   (lambda () (rule-trailing-whitespace path lines)))
-                             (safe 'no-tabs (lambda () (rule-no-tabs path lines)))
-                             (safe 'max-line-length
-                                   (lambda ()
-                                     (rule-max-line-length path lines :limit max-line-length)))
-                             (safe 'multiple-blank-lines
-                                   (lambda () (rule-multiple-blank-lines path lines)))
-                             (safe 'final-newline (lambda () (rule-final-newline path)))
-                             (safe 'in-package (lambda () (rule-in-package-present path lines)))
-                             (safe 'spdx-license-identifier
-                                   (lambda () (rule-spdx-license-identifier path lines)))
-                             (safe 'reader-syntax
-                                   (lambda () (rule-reader-syntax path)))
-                             (safe 'whitespace-around-parens
-                                   (lambda () (rule-whitespace-around-parens path lines)))
-                             (safe 'consecutive-closing-parens
-                                   (lambda () (rule-consecutive-closing-parens path lines))))))
-                (nconcf chunks
-                        (list
-                         (safe 'naming-and-packages
-                               (lambda ()
-                                 (rule-naming-and-packages path forms-with-pos)))
-                         (safe 'lambda-list-ecclesia
-                               (lambda ()
-                                 (rule-lambda-list-ecclesia path forms-with-pos)))
-                         (safe 'unused-parameters
-                               (lambda () (rule-unused-parameters path forms-with-pos)))
-                         (safe 'let-validation
-                               (lambda () (rule-let-validation path forms-with-pos)))
-                         (safe 'unused-local-functions
-                               (lambda () (rule-unused-local-functions path forms-with-pos)))
-                         (safe 'single-pass-core
-                               (lambda ()
-                                 (run-single-pass-visitors-ctx
-                                  path %%parse-context)))))
-                (let ((issues (apply #'append chunks)))
-                  (sort-issues-by-position (filter-suppressed-issues issues lines))))))))
+             (content (uiop:read-file-string path))
+             (ctx (make-lint-context-from-string content)))
+        (when *verbose*
+          (logf "; linter: created lint-context for ~A~%" path))
+        (labels ((safe (name thunk)
+                   (handler-case (funcall thunk)
+                     (error (e4)
+                       ;; Show stack traces only when verbose mode is enabled
+                       (when *verbose*
+                         (format *error-output* "; INTERNAL ERROR in ~A: ~A~%" name e4)
+                         (format *error-output* "; Stack trace:~%")
+                         #+sbcl (sb-debug:backtrace 20 *error-output*)
+                         #+ccl (ccl:print-call-history *error-output*)
+                         (format *error-output* "; End stack trace~%"))
+                       ;; Return empty list instead of creating internal error issues
+                       nil))))
+          (let* ((chunks (list
+                          ;; Line-based rules
+                          (safe 'trailing-whitespace
+                                (lambda () (rule-trailing-whitespace path lines)))
+                          (safe 'no-tabs (lambda () (rule-no-tabs path lines)))
+                          (safe 'max-line-length
+                                (lambda ()
+                                  (rule-max-line-length path lines :limit max-line-length)))
+                          (safe 'multiple-blank-lines
+                                (lambda () (rule-multiple-blank-lines path lines)))
+                          (safe 'final-newline (lambda () (rule-final-newline path)))
+                          (safe 'spdx-license-identifier
+                                (lambda () (rule-spdx-license-identifier path lines)))
+                          (safe 'reader-syntax
+                                (lambda () (rule-reader-syntax path))))))
+            (nconcf chunks
+                    (list
+                     ;; AST-based rules using lint-context
+                     (safe 'naming-and-packages
+                           (lambda () (rule-naming-and-packages path ctx)))
+                     (safe 'lambda-list-ecclesia
+                           (lambda () (rule-lambda-list-ecclesia path ctx)))
+                     (safe 'unused-parameters
+                           (lambda () (rule-unused-parameters path ctx)))
+                     (safe 'let-validation
+                           (lambda () (rule-let-validation path ctx)))
+                     (safe 'unused-local-functions
+                           (lambda () (rule-unused-local-functions path ctx)))
+                     (safe 'whitespace-around-parens-ast
+                           (lambda () (rule-whitespace-around-parens-ast path ctx)))
+                     (safe 'in-package-ast
+                           (lambda () (rule-in-package-present-ast path ctx)))
+                     (safe 'consecutive-closing-parens-ast
+                           (lambda () (rule-consecutive-closing-parens-ast path ctx)))
+                     ;; Single-pass rules using lint-context
+                     (safe 'single-pass-core
+                           (lambda () (run-single-pass-visitors path ctx)))))
+            (let ((issues (apply #'append chunks)))
+              (sort-issues-by-position (filter-suppressed-issues issues lines))))))
     (error (e5)
       (list (%make-issue path 0 0 "error" (princ-to-string e5))))))
 

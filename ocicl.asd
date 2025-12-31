@@ -56,7 +56,7 @@
   :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
                 :version-string :alexandria
-                :ecclesia :eclector
+                :ecclesia :rewrite-cl
 
                 ;; sbcl internals
                 (:feature :sbcl :sb-posix)

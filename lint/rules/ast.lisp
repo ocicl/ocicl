@@ -1,6 +1,7 @@
 ;;;; ast.lisp
 ;;;;
 ;;;; AST-based linting rules for semantic analysis
+;;;; Uses rewrite-cl's native zipper functions for traversal
 ;;;;
 ;;;; SPDX-License-Identifier: MIT
 ;;;;
@@ -8,10 +9,8 @@
 
 (in-package #:ocicl.lint)
 
-;; AST helpers
+;;; Style helpers from The One True Lisp Style Guide
 
-
-;; Style helpers from The One True Lisp Style Guide
 (defun symbol-name-has-underscore-p (sym)
   "Check if symbol SYM contains underscores in its name."
   (and (symbolp sym) (position #\_ (symbol-name sym))))
@@ -32,100 +31,117 @@
               (char= (char n 0) #\+)
               (char= (char n (1- len)) #\+)))))
 
-;; Rule: Naming conventions and package :use usage
-(defun rule-naming-and-packages (path forms)
-  "Check naming conventions and package usage patterns."
-  (when *verbose* (logf "; naming-and-packages: checking ~D forms in ~A~%" (length forms) path))
+
+;;; Rule: Naming conventions and package :use usage
+(defun rule-naming-and-packages (path ctx)
+  "Check naming conventions and package usage patterns.
+CTX is a lint-context."
+  (when *verbose* (logf "; naming-and-packages: checking ~A~%" path))
   (let ((issues nil))
-    (dolist (pair forms)
-      (destructuring-bind (form . lc) pair
-        (when (consp form)
-          (let ((ln (first lc)) (col (rest lc)))
-            (case (first form)
-              ((defvar defparameter)  ; lint:suppress defvar-without-value
-               (let ((name (second form)))
-                 (unless (star-delimited-name-p name)
-                   (push (%make-issue path ln col "special-name-style"
-                                      (format nil "~A ~A should be named like *special-var*" (first form) name))  ; lint:suppress max-line-length special-name-style
-                         issues))
-                 (when (symbol-name-has-underscore-p name)
-                   (push (%make-issue path ln col "naming-underscore"
-                                      (format nil "Symbol ~A contains underscore; prefer hyphens" name)) ; lint:suppress
-                         issues))))
-              ((defconstant)
-               (let ((name (second form)))
-                 (unless (plus-delimited-name-p name)
-                   (push (%make-issue path ln col "constant-name-style"
-                                      (format nil "defconstant ~A should be named like +constant+" name))
-                         issues))
-                 (when (symbol-name-has-underscore-p name)
-                   (push (%make-issue path ln col "naming-underscore"
-                                      (format nil "Symbol ~A contains underscore; prefer hyphens" name)) ; lint:suppress
-                         issues))))
-              ((defun defmacro)
-               (when (and (>= (length form) 3)           ; has minimum elements
-                          (symbolp (second form))           ; name is a symbol
-                          (listp (third form)))           ; lambda-list is a list
-                 (let ((name (second form)))
-                   (when (symbol-name-has-underscore-p name)
-                     (push (%make-issue path ln col "naming-underscore"
-                                        (format nil "Symbol ~A contains underscore; prefer hyphens" name)) ; lint:suppress
-                           issues)))))
-              ((defclass)
-               (when (and (>= (length form) 2)           ; has minimum elements
-                          (symbolp (second form)))          ; name is a symbol
-                 (let ((name (second form)))
-                   (when (symbol-name-has-underscore-p name)
-                     (push (%make-issue path ln col "naming-underscore"
-                                        (format nil "Symbol ~A contains underscore; prefer hyphens" name)) ; lint:suppress
-                           issues)))))
-              ((defpackage)
-               (let ((opts (cddr form)))
-                 (loop for (k . rest-opts) on opts by #'cddr do
-                      (when (eql k :use)
-                        (push (%make-issue path ln col "defpackage-use"
-                                           ":use present; prefer :import-from and/or package-local nicknames")
-                              issues))
-                      (when (eql k :export)
-                        (let ((v (first rest-opts)))
-                          (dolist (sym (cond
-                                         ((and (consp v) (eq (first v) 'list)) (rest v))
-                                         ((consp v) v)
-                                         (t nil)))
-                            (when (symbol-name-has-underscore-p sym)
-                              (push (%make-issue path ln col "naming-underscore"
-                                                 (format nil "Exported symbol ~A contains underscore; prefer hyphens"
-                                                         sym))
-                                    issues))))))))
-              (otherwise nil))))))
+    ;; Walk all forms (skip quoted contexts to avoid false positives)
+    (lint-walk ctx
+      (lambda (z)
+        (when (and (zip-list-p z)
+                   (not (zip-in-quote-p z)))
+          (let ((head (zip-head z))
+                (form (zip-form z)))
+            (when (and head form)
+              (let ((pos (zip-pos z))
+                    (ln) (col))
+                (setf ln (car pos) col (cdr pos))
+                (case head
+                  ((defvar defparameter)
+                   (let ((name (second form)))
+                     (unless (star-delimited-name-p name)
+                       (push (%make-issue path ln col "special-name-style"
+                                          (format nil "~A ~A should be named like *special-var*" head name))
+                             issues))
+                     (when (symbol-name-has-underscore-p name)
+                       (push (%make-issue path ln col "naming-underscore"
+                                          (format nil "Symbol ~A contains underscore; prefer hyphens" name))
+                             issues))))
+                  ((defconstant)
+                   (let ((name (second form)))
+                     (unless (plus-delimited-name-p name)
+                       (push (%make-issue path ln col "constant-name-style"
+                                          (format nil "defconstant ~A should be named like +constant+" name))
+                             issues))
+                     (when (symbol-name-has-underscore-p name)
+                       (push (%make-issue path ln col "naming-underscore"
+                                          (format nil "Symbol ~A contains underscore; prefer hyphens" name))
+                             issues))))
+                  ((defun defmacro)
+                   (when (and (>= (length form) 3)
+                              (symbolp (second form))
+                              (listp (third form)))
+                     (let ((name (second form)))
+                       (when (symbol-name-has-underscore-p name)
+                         (push (%make-issue path ln col "naming-underscore"
+                                            (format nil "Symbol ~A contains underscore; prefer hyphens" name))
+                               issues)))))
+                  ((defclass)
+                   (when (and (>= (length form) 2)
+                              (symbolp (second form)))
+                     (let ((name (second form)))
+                       (when (symbol-name-has-underscore-p name)
+                         (push (%make-issue path ln col "naming-underscore"
+                                            (format nil "Symbol ~A contains underscore; prefer hyphens" name))
+                               issues)))))
+                  ((defpackage)
+                   (let ((opts (cddr form)))
+                     (loop for (k . rest-opts) on opts by #'cddr do
+                          (when (eql k :use)
+                            (push (%make-issue path ln col "defpackage-use"
+                                               ":use present; prefer :import-from and/or package-local nicknames")
+                                  issues))
+                          (when (eql k :export)
+                            (let ((v (first rest-opts)))
+                              (dolist (sym (cond
+                                             ((and (consp v) (eq (first v) 'list)) (rest v))
+                                             ((consp v) v)
+                                             (t nil)))
+                                (when (symbol-name-has-underscore-p sym)
+                                  (push (%make-issue path ln col "naming-underscore"
+                                                     (format nil "Exported symbol ~A contains underscore; prefer hyphens" sym))
+                                        issues))))))))
+                  (otherwise nil))))))))
     (nreverse issues)))
 
-;; Rule: Lambda-list validation via Ecclesia
-(defun rule-lambda-list-ecclesia (path forms)
-  "Validate lambda lists using Ecclesia library."
+
+;;; Rule: Lambda-list validation via Ecclesia
+(defun rule-lambda-list-ecclesia (path ctx)
+  "Validate lambda lists using Ecclesia library.
+CTX is a lint-context."
   (let ((issues nil))
-    (dolist (pair forms)
-      (destructuring-bind (form . lc) pair
-        (when (and (consp form)
-                   (member (first form) '(defun defmacro))
-                   (>= (length form) 3)           ; has minimum elements
-                   (symbolp (second form))          ; name is a symbol
-                   (listp (third form)))          ; lambda-list is a list
-          (let* ((ln (first lc)) (col (rest lc))
-                 (lambda-list (third form)))
-            (handler-case
-                (progn
-                  (if (eq (first form) 'defmacro)
-                      (canonicalize-macro-lambda-list lambda-list)
-                      (canonicalize-ordinary-lambda-list lambda-list))
-                  nil)
-              (condition (c2)
-                (push (%make-issue path ln col "lambda-list-invalid"
-                                   (princ-to-string c2))
-                      issues)))))))
+    ;; Find all defun/defmacro forms (skip quoted contexts)
+    (lint-walk ctx
+      (lambda (z)
+        (when (and (zip-list-p z)
+                   (not (zip-in-quote-p z))
+                   (member (zip-head z) '(defun defmacro)))
+          (let ((form (zip-form z)))
+            (when (and form
+                       (>= (length form) 3)
+                       (symbolp (second form))
+                       (listp (third form)))
+              (let* ((pos (zip-pos z))
+                     (ln (car pos))
+                     (col (cdr pos))
+                     (lambda-list (third form)))
+                (handler-case
+                    (progn
+                      (if (eq (first form) 'defmacro)
+                          (canonicalize-macro-lambda-list lambda-list)
+                          (canonicalize-ordinary-lambda-list lambda-list))
+                      nil)
+                  (condition (c)
+                    (push (%make-issue path ln col "lambda-list-invalid"
+                                       (princ-to-string c))
+                          issues)))))))))
     (nreverse issues)))
 
-;; Rule: unused function/macro parameters (heuristic)
+
+;;; Rule: Unused function/macro parameters (heuristic)
 (defun lambda-list-vars (lambda-list)
   "Extract all variable names from a lambda list."
   (let ((vars nil))
@@ -167,61 +183,67 @@
              (symbol-used-p sym (rest form)))))
     (t nil)))
 
-(defun rule-unused-parameters (path forms)
-  "Check for function parameters that are defined but never used."
+(defun rule-unused-parameters (path ctx)
+  "Check for function parameters that are defined but never used.
+CTX is a lint-context."
   (let ((issues nil))
-    (dolist (pair forms)
-      (destructuring-bind (form . lc) pair
-        (when (and (consp form)
-                   (member (first form) '(defun defmacro))
-                   (>= (length form) 3)           ; has minimum elements
-                   (symbolp (second form))          ; name is a symbol
-                   (listp (third form)))          ; lambda-list is a list
-          (let* ((ln (first lc)) (col (rest lc))
-                 (lambda-list (third form))
-                 (body (cdddr form)))
-            (multiple-value-bind (decls doc forms-left)
-                (separate-function-body body)
-              (declare (ignore doc))
-              (let* ((ignored
-                       ;; Extract ignored parameters from declare forms
-                       (loop for decl in decls
-                             when (and (consp decl) (eq (first decl) 'declare))
-                               append (loop for spec in (rest decl)
-                                          when (and (consp spec) (member (first spec) '(ignore ignorable)))
-                                            append (rest spec))))
-                     (vars (if (eq (first form) 'defun)
-                               (ignore-errors (extract-lambda-list-variables lambda-list))
-                               (lambda-list-vars lambda-list))))
-                (dolist (v vars)
-                  (unless (or (member v ignored)
-                              (some (lambda (f) (symbol-used-p v f)) forms-left))
-                    (push (%make-issue path ln col "unused-parameter"
-                                       (format nil
-                                               "Parameter ~A appears unused; declare IGNORE/IGNORABLE if intentional"
-                                               v))
-                          issues)))))))))
+    (lint-walk ctx
+      (lambda (z)
+        (when (and (zip-list-p z)
+                   (not (zip-in-quote-p z))
+                   (member (zip-head z) '(defun defmacro)))
+          (let ((form (zip-form z)))
+            (when (and form
+                       (>= (length form) 3)
+                       (symbolp (second form))
+                       (listp (third form)))
+              (let* ((pos (zip-pos z))
+                     (ln (car pos))
+                     (col (cdr pos))
+                     (lambda-list (third form))
+                     (body (cdddr form)))
+                (multiple-value-bind (decls doc forms-left)
+                    (separate-function-body body)
+                  (declare (ignore doc))
+                  (let* ((ignored
+                           (loop for decl in decls
+                                 when (and (consp decl) (eq (first decl) 'declare))
+                                   append (loop for spec in (rest decl)
+                                               when (and (consp spec) (member (first spec) '(ignore ignorable)))
+                                                 append (rest spec))))
+                         (vars (if (eq (first form) 'defun)
+                                   (ignore-errors (extract-lambda-list-variables lambda-list))
+                                   (lambda-list-vars lambda-list))))
+                    (dolist (v vars)
+                      (unless (or (member v ignored)
+                                  (some (lambda (f) (symbol-used-p v f)) forms-left))
+                        (push (%make-issue path ln col "unused-parameter"
+                                           (format nil
+                                                   "Parameter ~A appears unused; declare IGNORE/IGNORABLE if intentional"
+                                                   v))
+                              issues)))))))))))
     (nreverse issues)))
 
-(defun rule-let-validation (path forms)
-  "Check for malformed let and let* binding structures."
-  (when *verbose* (logf "; let-validation: checking ~D forms in ~A~%" (length forms) path))
+
+;;; Rule: Let validation
+(defun rule-let-validation (path ctx)
+  "Check for malformed let and let* binding structures.
+CTX is a lint-context."
+  (when *verbose* (logf "; let-validation: checking ~A~%" path))
   (let ((issues nil))
     (labels ((effective-symbol-p (form)
-               "Check if FORM is effectively a symbol, including unquoted symbols in macros."
+               "Check if FORM is effectively a symbol, including unquoted symbols."
                (or (symbolp form)
-                   ;; Handle (eclector.reader:unquote symbol) from macro templates
                    (and (consp form)
-                        (eq (first form) 'eclector.reader:unquote)
+                        (eq (first form) 'unquote)
                         (= (length form) 2)
                         (symbolp (second form)))))
              (check-let-form (form ln col)
                (when (and (consp form)
-                          (listp form)                   ; Ensure it's a proper list
-                          (member (first form) '(let let*)) ; lint:suppress
-                          (>= (length form) 2)           ; Must have at least operator and bindings
-                          (listp (second form)))         ; Bindings must be a list
-                 (when *verbose* (logf "; let-validation: found ~A form with bindings ~S~%" (first form) (second form)))
+                          (member (first form) '(let let*))
+                          (>= (length form) 2)
+                          (listp (second form)))
+                 (when *verbose* (logf "; let-validation: found ~A form~%" (first form)))
                  (let ((operator (first form))
                        (bindings (second form))
                        (body (cddr form)))
@@ -241,72 +263,52 @@
                      (push (%make-issue path ln col "malformed-let"
                                        (format nil "~A form missing body expressions" operator))
                            issues))
-                   ;; Check individual bindings if bindings is a proper list
+                   ;; Check individual bindings
                    (when (and (listp bindings) bindings)
                      (dolist (binding bindings)
                        (cond
-                         ;; Empty binding represented as NIL (from parsing ())
                          ((null binding)
                           (push (%make-issue path ln col "malformed-let"
                                             (format nil "~A has empty binding form ()" operator))
                                 issues))
-                         ;; Symbol binding (shorthand for (var nil))
-                         ((effective-symbol-p binding)
-                          ;; This is valid, nothing to check
-                          nil)
-                         ;; List binding
+                         ((effective-symbol-p binding) nil)
                          ((consp binding)
                           (cond
-                            ;; Empty binding ()
-                            ((null binding)
-                             (push (%make-issue path ln col "malformed-let"
-                                               (format nil "~A has empty binding form ()" operator))
-                                   issues))
-                            ;; Single element (var) - valid
-                            ((and (= (length binding) 1) (effective-symbol-p (first binding)))
-                             nil)
-                            ;; Two elements (var value) - check variable is symbol
+                            ((and (= (length binding) 1) (effective-symbol-p (first binding))) nil)
                             ((= (length binding) 2)
                              (unless (effective-symbol-p (first binding))
                                (push (%make-issue path ln col "malformed-let"
                                                  (format nil "~A binding variable must be a symbol, got ~A"
                                                          operator (type-of (first binding))))
                                      issues)))
-                            ;; Too many elements
                             ((> (length binding) 2)
                              (push (%make-issue path ln col "malformed-let"
                                                (format nil "~A binding has too many elements: ~A" operator binding))
                                    issues))
-                            ;; Improper list
                             (t
                              (push (%make-issue path ln col "malformed-let"
                                                (format nil "~A binding must be proper list, got ~A" operator binding))
                                    issues))))
-                         ;; Neither symbol nor list
                          (t
                           (push (%make-issue path ln col "malformed-let"
                                             (format nil "~A binding must be symbol or list, got ~A"
                                                     operator (type-of binding)))
-                                issues))))))))
-             (walk-form (form ln col)
-               (check-let-form form ln col)
-               ;; Recursively walk sub-forms
-               (when (consp form)
-                 (dolist (sub-form (rest form))
-                   (walk-form sub-form ln col)))))
-      (dolist (pair forms)
-        (handler-case
-            (destructuring-bind (form . lc) pair
-              (when (and (consp lc) (numberp (first lc)) (numberp (rest lc)))
-                (let ((ln (first lc)) (col (rest lc)))
-                  (walk-form form ln col))))
-          (error (e)
-            ;; Skip malformed entries but don't propagate error
-            (when *verbose*
-              (logf "; let-validation: skipping malformed form pair: ~S (error: ~A)~%" pair e))))))
+                                issues)))))))))
+      ;; Walk all forms looking for let/let* (skip quoted contexts)
+      (lint-walk ctx
+        (lambda (z)
+          (when (and (zip-list-p z)
+                     (not (zip-in-quote-p z)))
+            (let ((form (zip-form z)))
+              (when form
+                (let* ((pos (zip-pos z))
+                       (ln (car pos))
+                       (col (cdr pos)))
+                  (check-let-form form ln col))))))))
     (nreverse issues)))
 
-;; Rule: unused local functions in flet/labels
+
+;;; Rule: Unused local functions in flet/labels
 (defun ignored-function-p (func-name)
   "Check if function name should be ignored (starts with underscore)."
   (and (symbolp func-name)
@@ -315,7 +317,7 @@
               (char= (char name 0) #\_)))))
 
 (defun extract-ignored-functions (body)
-  "Extract function names from (declare (ignore ...)) and (declare (ignorable ...)) forms."
+  "Extract function names from (declare (ignore ...)) forms."
   (let ((ignored '()))
     (dolist (form body)
       (when (and (consp form) (eq (first form) 'declare))
@@ -328,24 +330,20 @@
     ignored))
 
 (defun function-referenced-p (func-name body)
-  "Check if FUNC-NAME is referenced as a function in BODY.
-Only matches when the name appears in function position or with #'."
+  "Check if FUNC-NAME is referenced as a function in BODY."
   (labels ((check-form (form)
              (cond
                ((null form) nil)
-               ;; Symbol in function position (CAR of a cons)
                ((and (consp form)
                      (symbolp (first form))
                      (eq (first form) func-name))
                 t)
-               ;; #'func-name or (function func-name)
                ((and (consp form)
                      (member (first form) '(function))
                      (consp (rest form))
                      (symbolp (second form))
                      (eq (second form) func-name))
                 t)
-               ;; (funcall #'func-name ...) or (apply #'func-name ...)
                ((and (consp form)
                      (member (first form) '(funcall apply))
                      (consp (rest form))
@@ -355,12 +353,10 @@ Only matches when the name appears in function position or with #'."
                      (symbolp (second (second form)))
                      (eq (second (second form)) func-name))
                 t)
-               ;; Check if shadowed by nested flet/labels
                ((and (consp form)
                      (member (first form) '(flet labels))
                      (consp (rest form))
                      (listp (second form)))
-                ;; Check if any binding shadows our function name
                 (let ((bindings (second form))
                       (nested-body (cddr form)))
                   (if (some (lambda (binding)
@@ -368,73 +364,162 @@ Only matches when the name appears in function position or with #'."
                                    (symbolp (first binding))
                                    (eq (first binding) func-name)))
                             bindings)
-                      ;; Shadowed - don't search nested body
                       nil
-                      ;; Not shadowed - search nested body
                       (some #'check-form nested-body))))
-               ;; Recursively check nested forms
                ((consp form)
                 (or (check-form (first form))
                     (check-form (rest form))))
                (t nil))))
     (some #'check-form body)))
 
-(defun rule-unused-local-functions (path forms)
-  "Check for local functions in flet/labels that are never used."
-  (when *verbose* (logf "; unused-local-functions: checking ~D forms in ~A~%" (length forms) path))
+(defun rule-unused-local-functions (path ctx)
+  "Check for local functions in flet/labels that are never used.
+CTX is a lint-context."
+  (when *verbose* (logf "; unused-local-functions: checking ~A~%" path))
   (let ((issues nil))
-    (labels ((check-form (form ln col)
-               (when (and (consp form)
-                          (member (first form) '(flet labels))
-                          (consp (rest form))
-                          (listp (second form))
-                          (>= (length form) 2))
-                 (let ((bindings (second form))
-                       (body (cddr form))
-                       (ignored-funcs (extract-ignored-functions (cddr form))))
-                   (when *verbose*
-                     (logf "; unused-local-functions: found ~A with ~D bindings~%"
-                           (first form) (length bindings)))
-                   (dolist (binding bindings)
-                     (when (and (consp binding)
-                                (symbolp (first binding))
-                                (>= (length binding) 3))
-                       (let* ((func-name (first binding))
-                              (is-labels (eq (first form) 'labels))
-                              ;; For labels, check other function bodies too
-                              (search-bodies (if is-labels
-                                                 (append
-                                                  ;; Bodies of other local functions
-                                                  (loop for b in bindings
-                                                        when (and (consp b)
-                                                                  (not (eq b binding))
-                                                                  (>= (length b) 3))
-                                                        append (cddr b))
-                                                  ;; Main body
-                                                  body)
-                                                 ;; For flet, only check main body
-                                                 body)))
-                         (unless (or (member func-name ignored-funcs)
-                                     (ignored-function-p func-name)
-                                     (function-referenced-p func-name search-bodies))
-                           (when *verbose*
-                             (logf "; unused-local-functions: ~A ~A is unused~%"
-                                   (first form) func-name))
-                           (push (%make-issue path ln col "unused-local-function"
-                                             (format nil "Local function ~A is unused (declare IGNORE if intentional)"
-                                                     func-name))
-                                 issues)))))))
-               ;; Recursively check nested forms
-               (when (consp form)
-                 (dolist (sub-form (rest form))
-                   (check-form sub-form ln col)))))
-      (dolist (pair forms)
-        (handler-case
-            (destructuring-bind (form . lc) pair
-              (when (and (consp lc) (numberp (first lc)) (numberp (rest lc)))
-                (let ((ln (first lc)) (col (rest lc)))
-                  (check-form form ln col))))
-          (error (e)
-            (when *verbose*
-              (logf "; unused-local-functions: skipping malformed form pair: ~S (error: ~A)~%" pair e))))))
+    (lint-walk ctx
+      (lambda (z)
+        (when (and (zip-list-p z)
+                   (not (zip-in-quote-p z))
+                   (member (zip-head z) '(flet labels)))
+          (let ((form (zip-form z)))
+            (when (and form
+                       (consp (rest form))
+                       (listp (second form))
+                       (>= (length form) 2))
+              (let* ((pos (zip-pos z))
+                     (ln (car pos))
+                     (col (cdr pos))
+                     (bindings (second form))
+                     (body (cddr form))
+                     (ignored-funcs (extract-ignored-functions body)))
+                (when *verbose*
+                  (logf "; unused-local-functions: found ~A with ~D bindings~%"
+                        (first form) (length bindings)))
+                (dolist (binding bindings)
+                  (when (and (consp binding)
+                             (symbolp (first binding))
+                             (>= (length binding) 3))
+                    (let* ((func-name (first binding))
+                           (is-labels (eq (first form) 'labels))
+                           (search-bodies (if is-labels
+                                              (append
+                                               (loop for b in bindings
+                                                     when (and (consp b)
+                                                               (not (eq b binding))
+                                                               (>= (length b) 3))
+                                                     append (cddr b))
+                                               body)
+                                              body)))
+                      (unless (or (member func-name ignored-funcs)
+                                  (ignored-function-p func-name)
+                                  (function-referenced-p func-name search-bodies))
+                        (when *verbose*
+                          (logf "; unused-local-functions: ~A ~A is unused~%"
+                                (first form) func-name))
+                        (push (%make-issue path ln col "unused-local-function"
+                                          (format nil "Local function ~A is unused (declare IGNORE if intentional)"
+                                                  func-name))
+                              issues)))))))))))
+    (nreverse issues)))
+
+
+;;; Rule: Whitespace around parentheses (Google Lisp style)
+;;; Uses AST to avoid false positives in comments and strings
+
+(defun rule-whitespace-around-parens-ast (path ctx)
+  "Check for whitespace immediately inside parentheses using AST.
+CTX is a lint-context.
+This avoids false positives from parens in comments or strings."
+  (let ((issues nil))
+    (lint-walk ctx
+      (lambda (z)
+        (when (zip-list-p z)
+          (let* ((pos (zip-pos z))
+                 (ln (car pos))
+                 (col (cdr pos)))
+            ;; Check first child for whitespace after open paren
+            (when-let ((first-child (rewrite-cl:zip-down z)))
+              (let ((tag (rewrite-cl:zip-tag first-child)))
+                ;; :whitespace is spaces/tabs (bad), :newline is OK
+                (when (eq tag :whitespace)
+                  (push (%make-issue path ln (1+ col) "whitespace-after-open-paren"
+                                     "Remove whitespace after opening parenthesis")
+                        issues))))
+            ;; Check last child for whitespace before close paren
+            (when-let ((first-child (rewrite-cl:zip-down z)))
+              (let* ((last-child (rewrite-cl:zip-rightmost first-child))
+                     (tag (rewrite-cl:zip-tag last-child)))
+                ;; :whitespace is spaces/tabs (bad), :newline is OK
+                (when (eq tag :whitespace)
+                  (push (%make-issue path ln col "whitespace-before-close-paren"
+                                     "Remove whitespace before closing parenthesis")
+                        issues))))))))
+    (nreverse issues)))
+
+
+;;; Rule: Check for in-package or defpackage (AST-based)
+;;; Avoids false positives from commented-out package declarations
+
+(defun rule-in-package-present-ast (path ctx)
+  "Check that files contain either (in-package ...) or (defpackage ...) forms.
+CTX is a lint-context.
+Uses AST to avoid false positives from package forms in comments."
+  (let ((type (string-downcase (or (pathname-type path) ""))))
+    (if (string= type "asd")
+        nil  ; Skip .asd files
+        (let ((found nil))
+          ;; Walk looking for in-package or defpackage forms
+          (lint-walk ctx
+            (lambda (z)
+              (when (and (zip-list-p z)
+                         (not (zip-in-quote-p z))
+                         (member (zip-head z) '(in-package defpackage cl:in-package cl:defpackage
+                                                common-lisp:in-package common-lisp:defpackage)))
+                (setf found t))))
+          (unless found
+            (list (%make-issue path 1 1 "in-package"
+                               "No package declaration found (file should contain in-package or defpackage)")))))))
+
+
+;;; Rule: Consecutive closing parens should be on same line (AST-based)
+;;; Avoids false positives from ) in comments or strings
+;;;
+;;; The rule: if a list's last non-whitespace child is itself a list,
+;;; and there's a newline between that child and the parent's closing paren,
+;;; then consecutive closing parens are improperly split across lines.
+
+(defun has-split-closing-parens-p (z)
+  "Check if list node Z has consecutive closing parens split across lines.
+This happens when:
+  1. The last non-whitespace child is a list (ends with ))
+  2. There's a newline between that child and our closing paren"
+  (when-let ((last-meaningful (rewrite-cl.zip:zip-last-child z)))
+    ;; Only check if last child is also a list (so we'd have consecutive parens)
+    (when (zip-list-p last-meaningful)
+      ;; Now check if there's a newline between this child and the closing paren
+      (loop for sibling = (rewrite-cl:zip-right last-meaningful)
+                     then (rewrite-cl:zip-right sibling)
+            while sibling
+            for tag = (rewrite-cl:zip-tag sibling)
+            thereis (eq tag :newline)))))
+
+(defun rule-consecutive-closing-parens-ast (path ctx)
+  "Check that consecutive closing parentheses are on the same line.
+CTX is a lint-context.
+Uses AST to avoid false positives from ) in comments or strings."
+  (let ((issues nil))
+    (lint-walk ctx
+      (lambda (z)
+        ;; Skip the root node (synthetic wrapper for multi-form files)
+        (when (and (zip-list-p z)
+                   (rewrite-cl:zip-up z)  ; Has a parent (not root)
+                   (has-split-closing-parens-p z))
+          ;; This list has consecutive closing parens split across lines
+          (let* ((pos (zip-pos z))
+                 (ln (car pos))
+                 (col (cdr pos)))
+            (push (%make-issue path ln col "closing-parens-same-line"
+                               "Consecutive closing parentheses should be on same line")
+                  issues)))))
     (nreverse issues)))

@@ -1,6 +1,6 @@
 ;;;; parsing.lisp
 ;;;;
-;;;; Eclector-based parsing with position tracking
+;;;; rewrite-cl based parsing - thin wrapper over native zipper operations
 ;;;;
 ;;;; SPDX-License-Identifier: MIT
 ;;;;
@@ -8,124 +8,156 @@
 
 (in-package #:ocicl.lint)
 
-;; Custom Eclector client to capture source positions
-(defclass position-tracking-client (eclector.parse-result:parse-result-client)
-  ()
-  (:documentation "Eclector client for capturing source positions during parsing."))
+;;; Lint context - wraps a rewrite-cl zipper
+(defstruct lint-context
+  "Context for linting a file using rewrite-cl zippers."
+  zipper        ; The rewrite-cl zipper at root
+  content       ; Original file content string
+  line-index)   ; For line-based rules
 
-(defmethod eclector.parse-result:make-expression-result
-    ((client position-tracking-client) (result t) (children t) (source t))
-  ;; Return a cons of the actual result and its source position
-  (cons result source))
 
-;; Enhanced client that builds a position-aware parse tree
-(defclass parse-tree-client (eclector.parse-result:parse-result-client)
-  ()
-  (:documentation "Enhanced Eclector client that builds position-aware parse trees."))
-
-;; Lenient client for linting that creates packages on demand
-(defclass lenient-parse-client (parse-tree-client)
-  ()
-  (:documentation "Lenient Eclector client that auto-creates missing packages for linting."))
-
-;; Handle unknown dispatch characters that are configured as supported
-(defmethod eclector.reader:call-reader-macro ((client lenient-parse-client)
-                                               input-stream
-                                               char
-                                               sub-char)
-  ;; If we get an unknown dispatch character that's in our supported list,
-  ;; just read and ignore the content instead of erroring
+(defun make-lint-context-from-string (content)
+  "Create a lint context from a string of Lisp source code."
   (handler-case
-      (call-next-method)
-    (eclector.reader:unknown-macro-sub-character (condition)
-      (let ((supported-chars (config-supported-dispatch-chars)))
-        (if (and (char= char #\#)
-                 sub-char
-                 (member (string sub-char) supported-chars :test #'string-equal))
-            ;; For supported dispatch chars, read the next form and return a placeholder
-            (handler-case
-                (read input-stream nil :reader-macro-placeholder)
-              (error ()
-                :reader-macro-placeholder))
-            ;; If not in supported list, re-signal the error
-            (error condition))))))
-
-(defmethod eclector.reader:interpret-symbol ((client lenient-parse-client)
-                                              input-stream
-                                              package-indicator
-                                              symbol-name
-                                              internp)
-  ;; For linting purposes, we want to continue parsing even if packages are missing
-  ;; So we create dummy packages on demand
-  (let ((package (case package-indicator
-                   (:current *package*)
-                   (:keyword (find-package "KEYWORD"))
-                   (otherwise (or (find-package package-indicator)
-                                  ;; Create a dummy package if it doesn't exist
-                                  (make-package package-indicator :use nil))))))
-    (if internp
-        (intern symbol-name package)
-        (or (find-symbol symbol-name package)
-            (intern symbol-name package)))))
-
-(defmethod eclector.parse-result:make-expression-result
-    ((client parse-tree-client) (result t) (children t) (source t))
-  ;; Create a structure that preserves both the form and position info for all sub-forms
-  (if children
-      ;; For compound forms, create a structure that maps sub-forms to positions
-      (list :form result :source source :children children)
-      ;; For atoms, just return form with source
-      (list :form result :source source)))
-
-;; Parse context structure to replace global state
-(defstruct parse-context
-  content
-  parse-trees
-  line-index
-  flat-nodes) ;; list of (form ln col)
+      (make-lint-context
+       :zipper (rewrite-cl:of-string content)
+       :content content
+       :line-index (build-line-index content))
+    (error (e)
+      (when *verbose*
+        (logf "; PARSE ERROR: ~A~%" e))
+      (make-lint-context
+       :zipper nil
+       :content content
+       :line-index (build-line-index content)))))
 
 
-(defun read-forms-with-full-positions (content)
-  "Read all top-level forms with complete position information for all sub-forms."
-  (let ((forms nil)
-        (line-index (build-line-index content))
-        (client (make-instance 'lenient-parse-client)))
-    (when *verbose* (logf "; read-forms-with-full-positions: starting parse~%"))
-    (with-input-from-string (stream content)
-      (loop
-        (handler-case
-            (let ((result (eclector.parse-result:read client stream nil :eof)))
-              (when (eql result :eof)
-                (return))
-              (when result
-                (push result forms)))
-          (error (e)
-            (when *verbose*
-              (logf "; PARSE ERROR: ~A~%" e))
-            (return)))))
-    (when *verbose* (logf "; read-forms-with-full-positions: parsed ~D forms~%" (length forms)))
-    (make-parse-context :content content
-                       :parse-trees (nreverse forms)
-                       :line-index line-index
-                       :flat-nodes nil)))
+(defun make-lint-context-from-file (path)
+  "Create a lint context from a file."
+  (make-lint-context-from-string (uiop:read-file-string path)))
 
 
-(defun read-top-forms-with-pos-ctx (ctx)
-  "Return top-level forms as ((form . (ln . col)) ...) from parse context."
-  (when *verbose*
-    (logf "; read-top-forms-with-pos: processing ~D parse trees~%"
-          (length (parse-context-parse-trees ctx))))
-  (let ((forms nil))
-    (dolist (tree (parse-context-parse-trees ctx))
-      (when (and (listp tree) (getf tree :form))
-        (let* ((form (getf tree :form))
-               (source (getf tree :source))
-               (file-pos (if (consp source) (first source) source)))
-          (when (and file-pos (numberp file-pos))
-            (multiple-value-bind (ln col)
-                (index->line/col file-pos (parse-context-line-index ctx))
-              (push (list* form ln col) forms))))))
-    (when *verbose* (logf "; read-top-forms-with-pos: extracted ~D forms~%" (length forms)))
-    (nreverse forms)))
+;;; Thin wrappers for common zipper operations
+
+(defun zip-pos (z)
+  "Get (line . column) from zipper, or (1 . 1) if unavailable."
+  (if-let ((pos (rewrite-cl:zip-position z)))
+    (cons (rewrite-cl.node:pos-line pos)
+          (rewrite-cl.node:pos-column pos))
+    (cons 1 1)))
+
+(defun zip-line (z)
+  "Get line number from zipper position."
+  (car (zip-pos z)))
+
+(defun zip-column (z)
+  "Get column number from zipper position."
+  (cdr (zip-pos z)))
+
+(defun zip-list-p (z)
+  "Check if zipper points to a list node."
+  (eq (rewrite-cl:zip-tag z) :list))
+
+(defun zip-symbol-p (z)
+  "Check if zipper points to a symbol node."
+  (eq (rewrite-cl:zip-tag z) :symbol))
+
+(defun zip-head (z)
+  "Get the first symbol in a list node (the 'head' of the form)."
+  (when (zip-list-p z)
+    (when-let ((first-child (rewrite-cl:zip-down* z)))
+      (when (zip-symbol-p first-child)
+        (rewrite-cl:zip-sexpr first-child)))))
+
+(defun zip-form (z)
+  "Get sexpr from zipper, or nil for non-sexpr-able nodes."
+  (when (rewrite-cl.node:node-sexpr-able-p (rewrite-cl:zip-node z))
+    (ignore-errors (rewrite-cl:zip-sexpr z))))
 
 
+;;; Predicates for finding specific forms
+
+(defun zip-defun-p (z)
+  "Check if zipper points to a defun form."
+  (and (zip-list-p z) (eq (zip-head z) 'defun)))
+
+(defun zip-defmacro-p (z)
+  "Check if zipper points to a defmacro form."
+  (and (zip-list-p z) (eq (zip-head z) 'defmacro)))
+
+(defun zip-defvar-p (z)
+  "Check if zipper points to a defvar form."
+  (and (zip-list-p z) (eq (zip-head z) 'defvar)))
+
+(defun zip-defparameter-p (z)
+  "Check if zipper points to a defparameter form."
+  (and (zip-list-p z) (eq (zip-head z) 'defparameter)))
+
+(defun zip-defconstant-p (z)
+  "Check if zipper points to a defconstant form."
+  (and (zip-list-p z) (eq (zip-head z) 'defconstant)))
+
+(defun zip-let-p (z)
+  "Check if zipper points to a let or let* form."
+  (and (zip-list-p z) (member (zip-head z) '(let let*))))
+
+(defun zip-lambda-p (z)
+  "Check if zipper points to a lambda form."
+  (and (zip-list-p z) (eq (zip-head z) 'lambda)))
+
+(defun zip-if-p (z)
+  "Check if zipper points to an if form."
+  (and (zip-list-p z) (eq (zip-head z) 'if)))
+
+
+;;; Context-aware predicates (using zip-up to check parents)
+
+(defun zip-in-quote-p (z)
+  "Check if zipper is inside a quoted context.
+Detects both (quote ...) forms and 'x reader macro quotes."
+  (loop for parent = (rewrite-cl:zip-up z) then (rewrite-cl:zip-up parent)
+        while parent
+        thereis (or ;; Quote reader macro: 'x becomes a quote-node with tag :quote
+                    (eq (rewrite-cl:zip-tag parent) :quote)
+                    ;; Explicit (quote ...) form
+                    (and (zip-list-p parent) (eq (zip-head parent) 'quote)))))
+
+(defun zip-in-lambda-list-p (z)
+  "Check if zipper is in a lambda-list position."
+  (when-let ((parent (rewrite-cl:zip-up z)))
+    (when (zip-list-p parent)
+      (let ((head (zip-head parent)))
+        (when (member head '(defun defmacro defmethod lambda flet labels macrolet))
+          (let* ((ll-index (if (eq head 'lambda) 1 2))
+                 (ll-child (rewrite-cl:zip-nth-child parent ll-index)))
+            (and ll-child
+                 (equal (zip-pos z) (zip-pos ll-child)))))))))
+
+
+;;; High-level linting operations using rewrite-cl's native functions
+
+(defun lint-walk (ctx fn)
+  "Walk all nodes in lint context, calling FN with each zipper.
+Uses rewrite-cl's native zip-walk."
+  (when-let ((z (lint-context-zipper ctx)))
+    (rewrite-cl:zip-walk z fn)))
+
+(defun lint-collect (ctx predicate)
+  "Collect all zippers matching PREDICATE.
+Uses rewrite-cl's native zip-collect."
+  (when-let ((z (lint-context-zipper ctx)))
+    (rewrite-cl:zip-collect z predicate)))
+
+(defun lint-find-all (ctx predicate)
+  "Find all zippers matching PREDICATE.
+Uses rewrite-cl's native zip-find-all."
+  (when-let ((z (lint-context-zipper ctx)))
+    (rewrite-cl:zip-find-all z predicate)))
+
+(defun lint-top-level-forms (ctx)
+  "Get list of zippers for top-level list forms."
+  (when-let ((z (lint-context-zipper ctx)))
+    (loop for child = (rewrite-cl:zip-down* z) then (rewrite-cl:zip-right* child)
+          while child
+          when (zip-list-p child)
+          collect child)))
