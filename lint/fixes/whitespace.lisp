@@ -71,6 +71,8 @@ The issue column points to the list position."
 
 ;;; Fix: closing-parens-same-line
 ;;; Removes newline between consecutive closing parens
+;;; Note: The detection rule already skips cases with comments, so this fixer
+;;; will only be called when there are no comments between the parens.
 
 (defun fix-closing-parens-same-line (content issue)
   "Remove newline between consecutive closing parens at ISSUE location."
@@ -90,10 +92,10 @@ The issue column points to the list position."
                 (loop while current
                       for tag = (rewrite-cl:zip-tag current)
                       do (cond
-                           ((eq tag :newline)
+                           ((eql tag :newline)
                             ;; Remove newline, keep going with updated zipper
                             (setf current (rewrite-cl:zip-remove current)))
-                           ((eq tag :whitespace)
+                           ((eql tag :whitespace)
                             ;; Also remove any trailing whitespace after newline
                             (setf current (rewrite-cl:zip-remove current)))
                            (t

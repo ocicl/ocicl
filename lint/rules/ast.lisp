@@ -49,8 +49,8 @@ CTX is a lint-context."
               (let ((pos (zip-pos z))
                     (ln) (col))
                 (setf ln (car pos) col (cdr pos))
-                (case head
-                  ((defvar defparameter)
+                (case head ; lint:suppress
+                  ((defvar defparameter) ; lint:suppress special-name-style
                    (let ((name (second form)))
                      (unless (star-delimited-name-p name)
                        (push (%make-issue path ln col "special-name-style"
@@ -60,7 +60,7 @@ CTX is a lint-context."
                        (push (%make-issue path ln col "naming-underscore"
                                           (format nil "Symbol ~A contains underscore; prefer hyphens" name))
                              issues))))
-                  ((defconstant)
+                  ((defconstant) ; lint:suppress constant-name-style
                    (let ((name (second form)))
                      (unless (plus-delimited-name-p name)
                        (push (%make-issue path ln col "constant-name-style"
@@ -493,16 +493,25 @@ Uses AST to avoid false positives from package forms in comments."
   "Check if list node Z has consecutive closing parens split across lines.
 This happens when:
   1. The last non-whitespace child is a list (ends with ))
-  2. There's a newline between that child and our closing paren"
+  2. There's a newline between that child and our closing paren
+  3. There are NO comments between the child and closing paren"
   (when-let ((last-meaningful (rewrite-cl.zip:zip-last-child z)))
     ;; Only check if last child is also a list (so we'd have consecutive parens)
     (when (zip-list-p last-meaningful)
-      ;; Now check if there's a newline between this child and the closing paren
-      (loop for sibling = (rewrite-cl:zip-right last-meaningful)
-                     then (rewrite-cl:zip-right sibling)
-            while sibling
-            for tag = (rewrite-cl:zip-tag sibling)
-            thereis (eq tag :newline)))))
+      ;; Check what's between this child and the closing paren
+      ;; Return T if there's a newline but no comments
+      (let ((has-newline nil))
+        (loop for sibling = (rewrite-cl:zip-right last-meaningful)
+                       then (rewrite-cl:zip-right sibling)
+              while sibling
+              for tag = (rewrite-cl:zip-tag sibling)
+              do (cond
+                   ((eql tag :comment)
+                    ;; Comment found - don't flag this as an issue
+                    (return-from has-split-closing-parens-p nil))
+                   ((eql tag :newline)
+                    (setf has-newline t))))
+        has-newline))))
 
 (defun rule-consecutive-closing-parens-ast (path ctx)
   "Check that consecutive closing parentheses are on the same line.
