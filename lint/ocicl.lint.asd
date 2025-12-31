@@ -25,7 +25,7 @@
 ;;; SOFTWARE.
 ;;;
 
-(asdf:defsystem #:ocicl.lint
+(asdf:defsystem "ocicl.lint"
   :description "A comprehensive Common Lisp linter with style and error checking"
   :author "Anthony Green <green@moxielogic.com>"
   :license "MIT"

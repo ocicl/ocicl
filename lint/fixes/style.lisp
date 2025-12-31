@@ -1103,3 +1103,44 @@
                                (rewrite-cl:coerce-to-node `(incf ,var ,amount)))))))))))))))))
 
 (register-fixer "setq-incf" #'fix-setq-incf)
+
+
+;;; Fix: asdf-component-strings - #:symbol -> "string" in defsystem
+
+(defun fix-asdf-component-strings (content issue)
+  "Transform ASDF system name from symbol to string at ISSUE location."
+  (let* ((target-line (issue-line issue))
+         (target-col (issue-column issue))
+         (z (handler-case (rewrite-cl:of-string content)
+              (error () nil))))
+    (when z
+      (let ((target (find-list-at-position z target-line target-col)))
+        (when target
+          (let ((form (rewrite-cl:zip-sexpr target)))
+            (when (and (consp form)
+                       (member (first form) '(asdf:defsystem defsystem))
+                       (>= (length form) 2)
+                       (symbolp (second form)))
+              ;; Find the second child (the system name) and replace it
+              (when-let ((first-child (rewrite-cl:zip-down target)))
+                ;; Skip to the system name (after defsystem symbol and whitespace)
+                (let ((current first-child))
+                  (loop while (and current
+                                   (member (rewrite-cl:zip-tag current)
+                                           '(:whitespace :newline :symbol :keyword)))
+                        do (when (member (rewrite-cl:zip-tag current) '(:symbol :keyword))
+                             ;; Check if this is the defsystem symbol or the name
+                             (let ((sym (rewrite-cl:zip-sexpr current)))
+                               (when (and (symbolp sym)
+                                          (not (member sym '(asdf:defsystem defsystem
+                                                             asdf::defsystem))))
+                                 ;; This is the system name - replace it with a string
+                                 (let ((name (string-downcase (symbol-name sym))))
+                                   (return-from fix-asdf-component-strings
+                                     (zip-root-content-string
+                                      (rewrite-cl:zip-replace current
+                                        (rewrite-cl:make-token-node
+                                         name (format nil "~S" name)))))))))
+                           (setf current (rewrite-cl:zip-right current))))))))))))
+
+(register-fixer "asdf-component-strings" #'fix-asdf-component-strings)
