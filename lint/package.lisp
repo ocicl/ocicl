@@ -4,7 +4,7 @@
 ;;;;
 ;;;; SPDX-License-Identifier: MIT
 ;;;;
-;;;; Copyright (C) 2025 Anthony Green
+;;;; Copyright (C) 2025, 2026 Anthony Green
 
 (defpackage #:ocicl.lint
   (:documentation "A Common Lisp linter with comprehensive style and error checking.")

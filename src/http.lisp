@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: MIT
 ;;;
-;;; Copyright (C) 2025  Anthony Green <green@moxielogic.com>
+;;; Copyright (C) 2025, 2026  Anthony Green <green@moxielogic.com>
 
 ;;;; ---------------------------------------------------------------------------
 ;;;;  Very small shim so we can continue writing (http-get …) just as we wrote

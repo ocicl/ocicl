@@ -4,7 +4,7 @@
   WiX v4 Source
 
   SPDX-License-Identifier: MIT
-  Copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+  Copyright (C) 2023-2026 Anthony Green <green@moxielogic.com>
 
   Build with: wix build ocicl.wxs -o ocicl.msi -d VERSION=2.8.6
 -->

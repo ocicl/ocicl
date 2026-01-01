@@ -4,7 +4,7 @@
 ;;;;
 ;;;; SPDX-License-Identifier: MIT
 ;;;;
-;;;; Copyright (C) 2025 Anthony Green
+;;;; Copyright (C) 2025, 2026 Anthony Green
 
 (in-package #:ocicl.lint)
 
@@ -62,7 +62,7 @@
 (defun rule-spdx-license-identifier (path lines)
   "Check for SPDX license identifier in file headers."
   (let ((limit (min (length lines) 20)))
-    (unless (loop for line in (subseq lines 0 limit)
+    (unless (loop for line in (take limit lines)
                   thereis (search "SPDX-License-Identifier:" line :test #'char-equal))
       (list (%make-issue path 1 1 "spdx-license-identifier"
                          "Missing SPDX-License-Identifier in file header (add comment like: SPDX-License-Identifier: MIT)")))))

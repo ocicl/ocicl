@@ -4,7 +4,7 @@
   Chocolatey Package Specification
 
   SPDX-License-Identifier: MIT
-  Copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+  Copyright (C) 2023-2026 Anthony Green <green@moxielogic.com>
 
   To build: choco pack
   To test locally: choco install ocicl -s . -y

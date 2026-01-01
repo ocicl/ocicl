@@ -2,7 +2,7 @@
 ; NSIS Installer Script
 ;
 ; SPDX-License-Identifier: MIT
-; Copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+; Copyright (C) 2023-2026 Anthony Green <green@moxielogic.com>
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"

@@ -5,7 +5,7 @@
 ;;;;
 ;;;; SPDX-License-Identifier: MIT
 ;;;;
-;;;; Copyright (C) 2025 Anthony Green
+;;;; Copyright (C) 2025, 2026 Anthony Green
 
 (in-package #:ocicl.lint)
 
