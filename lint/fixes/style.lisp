@@ -89,7 +89,7 @@
                              (second form))))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(1+ ,var))))))))))))
+                   (coerce-to-node-downcase `(1+ ,var))))))))))))
 
 (register-fixer "plus-one" #'fix-plus-one)
 
@@ -113,7 +113,7 @@
                        (eql (third form) 1))
               (zip-root-content-string
                (rewrite-cl:zip-replace target
-                 (rewrite-cl:coerce-to-node `(1- ,(second form))))))))))))
+                 (coerce-to-node-downcase `(1- ,(second form))))))))))))
 
 (register-fixer "minus-one" #'fix-minus-one)
 
@@ -143,7 +143,7 @@
                 (when var
                   (zip-root-content-string
                    (rewrite-cl:zip-replace target
-                     (rewrite-cl:coerce-to-node `(zerop ,var)))))))))))))
+                     (coerce-to-node-downcase `(zerop ,var)))))))))))))
 
 (register-fixer "use-zerop" #'fix-use-zerop)
 
@@ -260,7 +260,7 @@
               (let ((arg (second (second form))))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(cadr ,arg))))))))))))
+                   (coerce-to-node-downcase `(cadr ,arg))))))))))))
 
 (register-fixer "car-cdr" #'fix-car-cdr)
 
@@ -286,7 +286,7 @@
               (let ((arg (second (second form))))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(cddr ,arg))))))))))))
+                   (coerce-to-node-downcase `(cddr ,arg))))))))))))
 
 (register-fixer "cdr-cdr" #'fix-cdr-cdr)
 
@@ -310,7 +310,7 @@
               (let ((arg (second form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(list ,arg))))))))))))
+                   (coerce-to-node-downcase `(list ,arg))))))))))))
 
 (register-fixer "cons-with-nil" #'fix-cons-with-nil)
 
@@ -336,7 +336,7 @@
               (let ((arg (second (second form))))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node arg)))))))))))
+                   (coerce-to-node-downcase arg)))))))))))
 
 (register-fixer "not-null" #'fix-not-null)
 
@@ -363,7 +363,7 @@
                     (body (cddr form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(unless ,test ,@body))))))))))))
+                   (coerce-to-node-downcase `(unless ,test ,@body))))))))))))
 
 (register-fixer "when-for-unless" #'fix-when-for-unless)
 
@@ -390,7 +390,7 @@
                     (body (cddr form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(when ,test ,@body))))))))))))
+                   (coerce-to-node-downcase `(when ,test ,@body))))))))))))
 
 (register-fixer "unless-for-when" #'fix-unless-for-when)
 
@@ -412,7 +412,7 @@
                        (= (length form) 2))
               (zip-root-content-string
                (rewrite-cl:zip-replace target
-                 (rewrite-cl:coerce-to-node (second form)))))))))))
+                 (coerce-to-node-downcase (second form)))))))))))
 
 (register-fixer "needless-and" #'fix-needless-and)
 
@@ -434,7 +434,7 @@
                        (= (length form) 2))
               (zip-root-content-string
                (rewrite-cl:zip-replace target
-                 (rewrite-cl:coerce-to-node (second form)))))))))))
+                 (coerce-to-node-downcase (second form)))))))))))
 
 (register-fixer "needless-or" #'fix-needless-or)
 
@@ -458,7 +458,7 @@
                     (value (third form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(setf (car ,place) ,value))))))))))))
+                   (coerce-to-node-downcase `(setf (car ,place) ,value))))))))))))
 
 (register-fixer "rplaca" #'fix-rplaca)
 
@@ -482,7 +482,7 @@
                     (value (third form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(setf (cdr ,place) ,value))))))))))))
+                   (coerce-to-node-downcase `(setf (cdr ,place) ,value))))))))))))
 
 (register-fixer "rplacd" #'fix-rplacd)
 
@@ -516,8 +516,8 @@
                         (zip-root-content-string
                          (rewrite-cl:zip-replace target
                            (if (eql amount 1)
-                               (rewrite-cl:coerce-to-node `(incf ,var))
-                               (rewrite-cl:coerce-to-node `(incf ,var ,amount)))))))))))))))))
+                               (coerce-to-node-downcase `(incf ,var))
+                               (coerce-to-node-downcase `(incf ,var ,amount)))))))))))))))))
 
 (register-fixer "setf-incf" #'fix-setf-incf)
 
@@ -549,8 +549,8 @@
                   (zip-root-content-string
                    (rewrite-cl:zip-replace target
                      (if (eql subtrahend 1)
-                         (rewrite-cl:coerce-to-node `(decf ,var))
-                         (rewrite-cl:coerce-to-node `(decf ,var ,subtrahend))))))))))))))
+                         (coerce-to-node-downcase `(decf ,var))
+                         (coerce-to-node-downcase `(decf ,var ,subtrahend))))))))))))))
 
 (register-fixer "setf-decf" #'fix-setf-decf)
 
@@ -579,7 +579,7 @@
                 (when arg
                   (zip-root-content-string
                    (rewrite-cl:zip-replace target
-                     (rewrite-cl:coerce-to-node arg))))))))))))
+                     (coerce-to-node-downcase arg))))))))))))
 
 (register-fixer "add-zero" #'fix-add-zero)
 
@@ -604,7 +604,7 @@
               (let ((test (second form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(not ,test))))))))))))
+                   (coerce-to-node-downcase `(not ,test))))))))))))
 
 (register-fixer "if-for-not" #'fix-if-for-not)
 
@@ -628,7 +628,7 @@
                     (then (third form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(when ,test ,then))))))))))))
+                   (coerce-to-node-downcase `(when ,test ,then))))))))))))
 
 (register-fixer "if-no-else" #'fix-if-no-else)
 
@@ -653,7 +653,7 @@
                     (else (fourth form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(or ,test ,else))))))))))))
+                   (coerce-to-node-downcase `(or ,test ,else))))))))))))
 
 (register-fixer "if-or" #'fix-if-or)
 
@@ -678,8 +678,8 @@
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
                    (if (= (length args) 1)
-                       (rewrite-cl:coerce-to-node (first args))
-                       (rewrite-cl:coerce-to-node `(and ,@args)))))))))))))
+                       (coerce-to-node-downcase (first args))
+                       (coerce-to-node-downcase `(and ,@args)))))))))))))
 
 (register-fixer "needless-and-t" #'fix-needless-and-t)
 
@@ -704,8 +704,8 @@
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
                    (if (= (length args) 1)
-                       (rewrite-cl:coerce-to-node (first args))
-                       (rewrite-cl:coerce-to-node `(or ,@args)))))))))))))
+                       (coerce-to-node-downcase (first args))
+                       (coerce-to-node-downcase `(or ,@args)))))))))))))
 
 (register-fixer "needless-or-nil" #'fix-needless-or-nil)
 
@@ -731,7 +731,7 @@
               (let ((arg (second (second form))))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(atom ,arg))))))))))))
+                   (coerce-to-node-downcase `(atom ,arg))))))))))))
 
 (register-fixer "not-consp" #'fix-not-consp)
 
@@ -758,7 +758,7 @@
                 (when arg
                   (zip-root-content-string
                    (rewrite-cl:zip-replace target
-                     (rewrite-cl:coerce-to-node `(null ,arg)))))))))))))
+                     (coerce-to-node-downcase `(null ,arg)))))))))))))
 
 (register-fixer "equal-with-nil" #'fix-equal-with-nil)
 
@@ -785,7 +785,7 @@
                     (progn-body (rest (third form))))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(when ,test ,@progn-body))))))))))))
+                   (coerce-to-node-downcase `(when ,test ,@progn-body))))))))))))
 
 (register-fixer "progn-in-when" #'fix-progn-in-when)
 
@@ -811,7 +811,7 @@
                     (progn-body (rest (third form))))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(when ,test ,@progn-body))))))))))))
+                   (coerce-to-node-downcase `(when ,test ,@progn-body))))))))))))
 
 (register-fixer "progn-in-if" #'fix-progn-in-if)
 
@@ -833,7 +833,7 @@
                        (= (length form) 2))
               (zip-root-content-string
                (rewrite-cl:zip-replace target
-                 (rewrite-cl:coerce-to-node (second form)))))))))))
+                 (coerce-to-node-downcase (second form)))))))))))
 
 (register-fixer "redundant-progn" #'fix-redundant-progn)
 
@@ -882,7 +882,7 @@
                       (body (rest clause)))
                   (zip-root-content-string
                    (rewrite-cl:zip-replace target
-                     (rewrite-cl:coerce-to-node
+                     (coerce-to-node-downcase
                       (if (= (length body) 1)
                           `(when ,test ,(first body))
                           `(when ,test ,@body))))))))))))))
@@ -911,7 +911,7 @@
                     (rest-elems (rest (third form))))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(list ,first-elem ,@rest-elems))))))))))))
+                   (coerce-to-node-downcase `(list ,first-elem ,@rest-elems))))))))))))
 
 (register-fixer "cons-list" #'fix-cons-list)
 
@@ -935,7 +935,7 @@
               (let ((arg (second form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(copy-list ,arg))))))))))))
+                   (coerce-to-node-downcase `(copy-list ,arg))))))))))))
 
 (register-fixer "append-single" #'fix-append-single)
 
@@ -962,7 +962,7 @@
                     (rest-list (third form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(cons ,elem ,rest-list))))))))))))
+                   (coerce-to-node-downcase `(cons ,elem ,rest-list))))))))))))
 
 (register-fixer "append-list-list" #'fix-append-list-list)
 
@@ -990,7 +990,7 @@
                     (alist (third form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(acons ,key ,val ,alist))))))))))))
+                   (coerce-to-node-downcase `(acons ,key ,val ,alist))))))))))))
 
 (register-fixer "cons-cons-acons" #'fix-cons-cons-acons)
 
@@ -1015,7 +1015,7 @@
                        (eq (third form) (first (second form))))
               (zip-root-content-string
                (rewrite-cl:zip-replace target
-                 (rewrite-cl:coerce-to-node '#'identity))))))))))
+                 (coerce-to-node-downcase '#'identity))))))))))
 
 (register-fixer "use-identity" #'fix-use-identity)
 
@@ -1042,7 +1042,7 @@
               (let ((value (third form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(constantly ,value))))))))))))
+                   (coerce-to-node-downcase `(constantly ,value))))))))))))
 
 (register-fixer "use-constantly" #'fix-use-constantly)
 
@@ -1066,7 +1066,7 @@
                     (value (third form)))
                 (zip-root-content-string
                  (rewrite-cl:zip-replace target
-                   (rewrite-cl:coerce-to-node `(setf ,place ,value))))))))))))
+                   (coerce-to-node-downcase `(setf ,place ,value))))))))))))
 
 (register-fixer "needless-shiftf" #'fix-needless-shiftf)
 
@@ -1099,8 +1099,8 @@
                         (zip-root-content-string
                          (rewrite-cl:zip-replace target
                            (if (eql amount 1)
-                               (rewrite-cl:coerce-to-node `(incf ,var))
-                               (rewrite-cl:coerce-to-node `(incf ,var ,amount)))))))))))))))))
+                               (coerce-to-node-downcase `(incf ,var))
+                               (coerce-to-node-downcase `(incf ,var ,amount)))))))))))))))))
 
 (register-fixer "setq-incf" #'fix-setq-incf)
 

@@ -192,6 +192,24 @@ just the children's content without the wrapper parens."
         ;; Single form - serialize normally
         (rewrite-cl.node:node-string root))))
 
+;;; Node coercion with lowercase output
+
+(defun coerce-to-node-downcase (form)
+  "Convert FORM to a rewrite-cl node with lowercase symbol names."
+  (typecase form
+    (null (rewrite-cl:make-token-node nil "nil"))
+    (keyword (rewrite-cl:make-token-node form
+               (format nil ":~(~A~)" (symbol-name form))))
+    (symbol (rewrite-cl:make-token-node form
+               (string-downcase (symbol-name form))))
+    (cons (rewrite-cl.node:make-list-node
+           (loop for (elem . rest) on form
+                 for first = t then nil
+                 unless first
+                   collect (rewrite-cl.node:spaces 1)
+                 collect (coerce-to-node-downcase elem))))
+    (otherwise (rewrite-cl:coerce-to-node form))))
+
 ;;; Position finding utilities for AST-based fixers
 
 (defun find-list-at-position (z target-line target-col)
