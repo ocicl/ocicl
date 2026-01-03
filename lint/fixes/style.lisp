@@ -133,17 +133,33 @@
             (when (and (consp form)
                        (eq (first form) '=)
                        (= (length form) 3))
-              ;; Find the non-0 argument
-              (let ((var (cond
-                           ((and (numberp (second form)) (zerop (second form)))
-                            (third form))
-                           ((and (numberp (third form)) (zerop (third form)))
-                            (second form))
-                           (t nil))))
-                (when var
+              ;; zip-children returns NODES (not zippers)
+              ;; Filter to only token/seq nodes (skip whitespace)
+              (let* ((children (rewrite-cl:zip-children target))
+                     (content-nodes (remove-if-not
+                                     (lambda (node)
+                                       (or (rewrite-cl.node:token-node-p node)
+                                           (rewrite-cl.node:seq-node-p node)))
+                                     children))
+                     ;; content-nodes should be: (=-node arg1-node arg2-node)
+                     (arg1-node (second content-nodes))
+                     (arg2-node (third content-nodes))
+                     (arg1-val (when arg1-node (rewrite-cl.node:node-sexpr arg1-node)))
+                     (arg2-val (when arg2-node (rewrite-cl.node:node-sexpr arg2-node)))
+                     ;; Find the non-zero argument's node (preserve original text)
+                     (var-node (cond
+                                 ((and (numberp arg1-val) (zerop arg1-val))
+                                  arg2-node)
+                                 ((and (numberp arg2-val) (zerop arg2-val))
+                                  arg1-node)
+                                 (t nil))))
+                (when var-node
                   (zip-root-content-string
                    (rewrite-cl:zip-replace target
-                     (coerce-to-node-downcase `(zerop ,var)))))))))))))
+                     (rewrite-cl.node:make-list-node
+                      (list (rewrite-cl:make-token-node 'zerop "zerop")
+                            (rewrite-cl.node:spaces 1)
+                            var-node)))))))))))))
 
 (register-fixer "use-zerop" #'fix-use-zerop)
 
