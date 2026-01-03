@@ -104,4 +104,8 @@
    ;; Session resumption
    #:*session-ticket-cache*
    #:*server-ticket-key*
-   #:session-ticket-cache-clear))
+   #:session-ticket-cache-clear
+
+   ;; Platform-specific verification
+   #:*use-windows-certificate-store*
+   #+windows #:verify-certificate-chain-windows))

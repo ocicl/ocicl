@@ -9,11 +9,15 @@
   :author "Anthony Green <green@moxielogic.com>"
   :license "MIT"
   :version "1.0.0"
+  :defsystem-depends-on (#:trivial-features)
   :depends-on (#:ironclad
                #:trivial-gray-streams
                #:flexi-streams
                #:alexandria
-               #:cl-base64)
+               #:cl-base64
+               #:trivial-features
+               ;; CFFI only needed on Windows for native cert validation
+               (:feature :windows #:cffi))
   :serial t
   :components ((:file "src/package")
                (:file "src/constants")
@@ -39,6 +43,8 @@
                 :serial t
                 :components ((:file "asn1")
                              (:file "certificate")
+                             ;; Windows native cert validation via CryptoAPI
+                             (:file "windows-verify" :if-feature :windows)
                              (:file "verify")))
                (:file "src/context")
                (:file "src/streams")))

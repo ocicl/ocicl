@@ -92,13 +92,28 @@
 ;;;
 ;;; For now, we provide basic building blocks.
 
-(defun verify-certificate-chain (chain trusted-roots &optional (now (get-universal-time)))
+(defun verify-certificate-chain (chain trusted-roots &optional (now (get-universal-time)) hostname)
   "Verify a certificate chain against trusted roots.
    CHAIN is a list of certificates, leaf first.
-   TRUSTED-ROOTS is a list of trusted CA certificates.
+   TRUSTED-ROOTS is a list of trusted CA certificates (may be NIL on Windows with CryptoAPI).
+   HOSTNAME is optional; if provided on Windows, enables native verification.
    Returns T if verification succeeds, signals an error otherwise."
+  (declare (ignorable hostname))  ; Only used on Windows with CryptoAPI
   (when (null chain)
     (error 'tls-certificate-error :message "Empty certificate chain"))
+
+  ;; On Windows with CryptoAPI enabled and hostname provided, use Windows verification
+  #+windows
+  (when (and hostname *use-windows-certificate-store*)
+    ;; Windows CryptoAPI verification is authoritative when enabled
+    (verify-certificate-chain-native chain hostname)
+    (return-from verify-certificate-chain t))
+
+  ;; Pure Lisp verification requires trusted-roots
+  (unless trusted-roots
+    (error 'tls-verification-error
+           :message "No trusted root certificates available for verification"
+           :reason :unknown-ca))
   ;; Verify each certificate's dates
   (dolist (cert chain)
     (verify-certificate-dates cert now))
@@ -342,6 +357,32 @@
     (when (and (plusp (length public-key-bytes))
                (= (aref public-key-bytes 0) 4))  ; Uncompressed point format
       (ironclad:make-public-key curve :y public-key-bytes))))
+
+;;;; Platform-specific verification
+
+#+windows
+(defvar *use-windows-certificate-store* t
+  "When T on Windows, use Windows CryptoAPI for certificate chain verification.
+This uses the system's trusted root certificates and respects enterprise PKI
+policies. Set to NIL to use pure Lisp verification instead.")
+
+#-windows
+(defvar *use-windows-certificate-store* nil
+  "Always NIL on non-Windows platforms.")
+
+(defun verify-certificate-chain-native (chain hostname)
+  "Attempt native certificate chain verification.
+Returns T if verification succeeded, NIL if native verification not available,
+or signals an error on verification failure."
+  (declare (ignorable chain hostname))  ; Only used on Windows
+  #+windows
+  (when *use-windows-certificate-store*
+    (verify-certificate-chain-windows
+     (mapcar #'x509-certificate-raw-der chain)
+     hostname)
+    (return-from verify-certificate-chain-native t))
+  ;; Not available on this platform or disabled
+  nil)
 
 ;;;; Trust Store
 

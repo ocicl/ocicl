@@ -90,16 +90,16 @@ Native RPM and DEB packages are available for x86_64 systems.
 **Fedora/RHEL/CentOS:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.12.0-1.fc*.x86_64.rpm
-sudo dnf install ./ocicl-2.12.0-1.fc*.x86_64.rpm
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.13.0-1.fc*.x86_64.rpm
+sudo dnf install ./ocicl-2.13.0-1.fc*.x86_64.rpm
 ocicl setup
 ```
 
 **Debian/Ubuntu:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.12.0-1_amd64.deb
-sudo apt install ./ocicl_2.12.0-1_amd64.deb
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.13.0-1_amd64.deb
+sudo apt install ./ocicl_2.13.0-1_amd64.deb
 ocicl setup
 ```
 
@@ -140,10 +140,6 @@ dynamic memory space.  If you need a different amount, run it like so:
 ```
 sbcl --eval "(defconstant +dynamic-space-size+ 2048)" --load setup.lisp
 ```
-
-Note that on Windows systems you will need `openssl.dll`.  For Windows
-CI testing, we install `openssl.dll` using chocolatey, like so: `choco
-install openssl.light`.
 
 Setup
 -----

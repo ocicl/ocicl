@@ -15,7 +15,7 @@
 
 ;;;; Connection Helper
 
-(defun try-tls-connect (hostname &key (port 443) (verify pure-tls:+verify-required+))
+(defun try-tls-connect (hostname &key (port 443) (verify pure-tls:+verify-required+) context)
   "Attempt TLS connection. Returns :success or an error keyword."
   (let ((socket nil))
     (unwind-protect
@@ -23,9 +23,13 @@
             (progn
               (setf socket (usocket:socket-connect hostname port
                                                    :element-type '(unsigned-byte 8)))
-              (let ((tls (pure-tls:make-tls-client-stream
-                          (usocket:socket-stream socket)
-                          :hostname hostname :verify verify)))
+              (let ((tls (if context
+                             (pure-tls:make-tls-client-stream
+                              (usocket:socket-stream socket)
+                              :hostname hostname :verify verify :context context)
+                             (pure-tls:make-tls-client-stream
+                              (usocket:socket-stream socket)
+                              :hostname hostname :verify verify))))
                 ;; TLS handshake succeeded - that's all we need to verify
                 (close tls)
                 :success))
@@ -57,6 +61,22 @@
 (test connect-amazon
   "Connect to amazon.com"
   (is (eq (try-tls-connect "www.amazon.com") :success)))
+
+#+windows
+(defun %make-empty-trust-context ()
+  "Create a context that forces native Windows verification (no CA bundle)."
+  (let ((ctx (pure-tls:make-tls-context :verify-mode pure-tls:+verify-required+
+                                        :auto-load-system-ca nil)))
+    (setf (pure-tls::tls-context-trust-store ctx)
+          (pure-tls::make-trust-store :certificates nil))
+    ctx))
+
+#+windows
+(test connect-google-windows-native
+  "Connect to google.com using Windows CryptoAPI verification"
+  (let ((ctx (%make-empty-trust-context))
+        (pure-tls:*use-windows-certificate-store* t))
+    (is (eq (try-tls-connect "www.google.com" :context ctx) :success))))
 
 ;;;; Test Runner
 

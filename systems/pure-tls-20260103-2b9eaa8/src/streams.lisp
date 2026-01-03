@@ -410,11 +410,14 @@
           ;; Verify hostname
           (when hostname
             (verify-hostname cert hostname))
-          ;; Verify certificate chain with trust store (if we have one and verify is required)
-          (when (and (= verify +verify-required+)
-                     trust-store
-                     chain)
-            (verify-certificate-chain chain (trust-store-certificates trust-store))))))
+          ;; Verify certificate chain when verification is required
+          (when (and (= verify +verify-required+) chain)
+            ;; On Windows with CryptoAPI enabled, verify even without trust-store
+            ;; (Windows uses its own trusted root store)
+            (let ((trusted-roots (when trust-store
+                                   (trust-store-certificates trust-store))))
+              (verify-certificate-chain chain trusted-roots
+                                        (get-universal-time) hostname))))))
     ;; Wrap with flexi-stream if external-format specified
     (if external-format
         (flexi-streams:make-flexi-stream stream :external-format external-format)

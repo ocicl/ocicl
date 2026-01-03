@@ -8,6 +8,7 @@ A pure Common Lisp implementation of TLS 1.3 (RFC 8446).
 - **TLS 1.3 only** - Modern, secure protocol with simplified handshake
 - **Gray streams** - Seamless integration with existing I/O code
 - **cl+ssl compatible** - Drop-in replacement API available
+- **Native Windows trust store** - Uses Windows CryptoAPI for certificate validation
 
 ### Supported Cipher Suites
 
@@ -232,28 +233,50 @@ Create a reusable TLS context for configuration.
 - `+verify-peer+` (1) - Verify peer certificate if provided
 - `+verify-required+` (2) - Require and verify peer certificate
 
-## Certificate Configuration
+## Certificate Verification
 
-### Automatic CA Certificate Discovery
+### Windows
 
-pure-tls automatically searches for system CA certificates in this order:
+On Windows, pure-tls uses the Windows CryptoAPI to validate certificates
+against the system certificate store. This is the authoritative verification
+method on Windows - there is no fallback to pure Lisp verification:
 
-1. **`SSL_CERT_FILE`** environment variable (OpenSSL compatible)
-2. **`SSL_CERT_DIR`** environment variable (OpenSSL compatible)
-3. **Platform-specific locations:**
+- **No CA bundle needed** - Uses Windows trusted root certificates
+- **Enterprise PKI support** - Respects Group Policy certificate deployments
+- **Automatic updates** - Trust store is maintained by Windows Update
+- **Authoritative** - CryptoAPI verdict is final; if it rejects a certificate, the connection fails
 
-   **Unix/Linux:**
+To disable native verification and use pure Lisp verification instead
+(requires providing CA certificates manually):
+
+```lisp
+(setf pure-tls:*use-windows-certificate-store* nil)
+```
+
+### macOS and Linux
+
+On non-Windows platforms, pure-tls uses pure Lisp certificate verification
+and automatically searches for CA certificates:
+
+1. `SSL_CERT_FILE` environment variable
+2. `SSL_CERT_DIR` environment variable
+3. Platform-specific locations:
    - `/etc/ssl/certs/ca-certificates.crt` (Debian/Ubuntu)
    - `/etc/pki/tls/certs/ca-bundle.crt` (RHEL/CentOS)
    - `/etc/ssl/cert.pem` (macOS)
    - Homebrew OpenSSL paths
 
-   **Windows:**
-   - Git for Windows: `C:/Program Files/Git/mingw64/ssl/certs/ca-bundle.crt`
-   - MSYS2: `C:/msys64/usr/ssl/certs/ca-bundle.crt`
-   - Cygwin, Scoop (curl package)
+If CA certificates are not found automatically:
+
+```sh
+export SSL_CERT_FILE=/path/to/cacert.pem
+```
+
+Or download the Mozilla CA bundle from https://curl.se/ca/cacert.pem
 
 ### Custom CA Certificates
+
+For corporate environments or testing with custom CAs:
 
 ```lisp
 ;; Use a specific CA bundle file
@@ -262,25 +285,14 @@ pure-tls automatically searches for system CA certificates in this order:
 ;; Use a directory of certificates
 (pure-tls:make-tls-context :ca-directory "/path/to/certs/")
 
-;; Combine custom CA with system certificates
+;; Add corporate CA alongside system certificates
 (pure-tls:make-tls-context :ca-file "/path/to/corporate-ca.pem")
 
-;; Skip system CA auto-loading
+;; Use only custom CA (skip system certificates)
 (pure-tls:make-tls-context
   :ca-file "/path/to/custom-ca.pem"
   :auto-load-system-ca nil)
 ```
-
-### Windows Users
-
-If CA certificates are not found automatically, either:
-
-1. **Install Git for Windows** (recommended) - includes Mozilla CA bundle
-2. **Set environment variable:**
-   ```powershell
-   $env:SSL_CERT_FILE = "C:\path\to\cacert.pem"
-   ```
-3. **Download Mozilla CA bundle** from https://curl.se/ca/cacert.pem
 
 ## Side-Channel Hardening
 
@@ -375,6 +387,8 @@ The following secrets are logged (compatible with Wireshark TLS 1.3 dissector):
 - [trivial-gray-streams](https://github.com/trivial-gray-streams/trivial-gray-streams) - Gray stream support
 - [flexi-streams](https://github.com/edicl/flexi-streams) - Character encoding (optional)
 - [alexandria](https://github.com/keithj/alexandria) - Utilities
+- [trivial-features](https://github.com/trivial-features/trivial-features) - Portable platform detection
+- [cffi](https://github.com/cffi/cffi) - Windows only, for CryptoAPI bindings
 
 ## Session Resumption (PSK)
 

@@ -21,9 +21,7 @@
 (in-package #:ocicl.http)
 
 (defvar *proxy-basic-auth* nil)
-(defvar *verify-tls*
-  #+windows nil  ; Disable TLS verification on Windows by default due to certificate issues
-  #-windows t)
+(defvar *verify-tls* t)
 
 (defun %first-existing-file (paths)
   (loop for path in paths
