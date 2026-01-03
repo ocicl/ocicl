@@ -754,6 +754,9 @@ Returns a list of issues."
                              "Use EQL/= or STRING= for numbers/chars/strings"))))
 
              ;; CASE duplicate keys
+             ;; Note: #.+constant+ reader macros are represented as
+             ;; (eval-when (:compile-toplevel :load-toplevel :execute) <constant>)
+             ;; by rewrite-cl, so we skip those since each #. form is unique in source
              (when (eq head 'case)
                (let ((clauses (cddr form))
                      (seen (make-hash-table :test 'equal)))
@@ -761,13 +764,20 @@ Returns a list of issues."
                    (when (consp clause)
                      (let ((keys (first clause)))
                        (cond
+                         ;; Skip read-time eval forms (#.+constant+) - they are
+                         ;; parsed as (eval-when ...) and can be assumed unique
+                         ((and (listp keys)
+                               (eq (first keys) 'eval-when))
+                          nil)
                          ((listp keys)
                           (dolist (k keys)
-                            (when (and (or (symbolp k) (characterp k) (integerp k))
-                                       (gethash k seen))
-                              (push-iss ln col "case-duplicate-key"
-                                        (format nil "Duplicate CASE key: ~S" k)))
-                            (setf (gethash k seen) t)))
+                            ;; Skip eval-when forms within key lists too
+                            (unless (and (listp k) (eq (first k) 'eval-when))
+                              (when (and (or (symbolp k) (characterp k) (integerp k))
+                                         (gethash k seen))
+                                (push-iss ln col "case-duplicate-key"
+                                          (format nil "Duplicate CASE key: ~S" k)))
+                              (setf (gethash k seen) t))))
                          ((or (symbolp keys) (characterp keys) (integerp keys))
                           (when (gethash keys seen)
                             (push-iss ln col "case-duplicate-key"
