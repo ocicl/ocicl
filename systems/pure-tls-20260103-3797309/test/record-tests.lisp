@@ -116,7 +116,7 @@
 
 (test alert-description-constants
   "Verify important alert description constants"
-  (is (= pure-tls:+alert-close-notify+ 0))
+  (is (zerop pure-tls:+alert-close-notify+))
   (is (= pure-tls:+alert-unexpected-message+ 10))
   (is (= pure-tls:+alert-bad-record-mac+ 20))
   (is (= pure-tls:+alert-handshake-failure+ 40))

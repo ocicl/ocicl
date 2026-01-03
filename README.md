@@ -90,16 +90,16 @@ Native RPM and DEB packages are available for x86_64 systems.
 **Fedora/RHEL/CentOS:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.14.0-1.fc*.x86_64.rpm
-sudo dnf install ./ocicl-2.14.0-1.fc*.x86_64.rpm
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.14.1-1.fc*.x86_64.rpm
+sudo dnf install ./ocicl-2.14.1-1.fc*.x86_64.rpm
 ocicl setup
 ```
 
 **Debian/Ubuntu:**
 ```bash
 # Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.14.0-1_amd64.deb
-sudo apt install ./ocicl_2.14.0-1_amd64.deb
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.14.1-1_amd64.deb
+sudo apt install ./ocicl_2.14.1-1_amd64.deb
 ocicl setup
 ```
 
