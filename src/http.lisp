@@ -25,6 +25,37 @@
   #+windows nil  ; Disable TLS verification on Windows by default due to certificate issues
   #-windows t)
 
+(defun %first-existing-file (paths)
+  (loop for path in paths
+        when (and path (probe-file path))
+          return path))
+
+(defun %first-existing-dir (paths)
+  (loop for path in paths
+        when (and path (uiop:directory-exists-p path))
+          return path))
+
+(defun %resolve-ca-locations ()
+  "Return two values: CA-FILE and CA-DIRECTORY for TLS verification."
+  (let* ((env-ca-file (uiop:getenv "OCICL_CA_FILE"))
+         (env-ca-dir (uiop:getenv "OCICL_CA_DIR"))
+         (ca-file (and env-ca-file (string/= env-ca-file "") env-ca-file))
+         (ca-dir (and env-ca-dir (string/= env-ca-dir "") env-ca-dir)))
+    (unless ca-file
+      (setf ca-file
+            (%first-existing-file
+             '("/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
+               "/etc/pki/tls/certs/ca-bundle.crt"
+               "/etc/ssl/certs/ca-certificates.crt"
+               "/etc/ssl/cert.pem"))))
+    (unless ca-dir
+      (setf ca-dir
+            (%first-existing-dir
+             '("/etc/ssl/certs"
+               "/etc/pki/ca-trust/extracted/pem"
+               "/etc/pki/ca-trust/extracted/openssl"))))
+    (values ca-file ca-dir)))
+
 (defun %split-userinfo (authority)
   "Return two values USER and PASS (either may be NIL)."
   (when authority
@@ -108,10 +139,15 @@
                               (t nil)))))
                  ;; Drakma uses :additional-headers, not :headers.
                  (let* ((verify (if *verify-tls* :required nil))
-                        (ca-file (uiop:getenv "OCICL_CA_FILE"))
-                        (ca-dir  (uiop:getenv "OCICL_CA_DIR"))
+                        (ca-file nil)
+                        (ca-dir nil)
                         (timeout-env (uiop:getenv "OCICL_HTTP_TIMEOUT"))
                         (conn-timeout (ignore-errors (and timeout-env (parse-integer timeout-env)))))
+                   (multiple-value-setq (ca-file ca-dir)
+                     (%resolve-ca-locations))
+                   (when verbose
+                     (format verbose "; TLS verify=~A ca-file=~A ca-dir=~A~%"
+                             verify ca-file ca-dir))
                    (handler-case
                        (drakma:http-request url
                                             :method :get
@@ -119,8 +155,8 @@
                                             :want-stream want-stream
                                             :force-binary force-binary
                                             :verify verify
-                                            :ca-file (and ca-file (string/= ca-file "") ca-file)
-                                            :ca-directory (and ca-dir (string/= ca-dir "") ca-dir)
+                                            :ca-file ca-file
+                                            :ca-directory ca-dir
                                             #+(or abcl clisp lispworks mcl openmcl sbcl)
                                             :connection-timeout
                                             #+(or abcl clisp lispworks mcl openmcl sbcl)
