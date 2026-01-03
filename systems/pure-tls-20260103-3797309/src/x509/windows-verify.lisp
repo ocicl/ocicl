@@ -209,7 +209,6 @@ Signals an error with details on verification failure."
                  (%cert-free-context ctx))))
 
            ;; Build the certificate chain
-           ;; CERT_CHAIN_PARA: memset zeros all optional fields, just set cbSize
            (cffi:with-foreign-objects ((chain-para '(:struct cert-chain-para))
                                        (chain-ptr :pointer))
              (%memset chain-para (cffi:foreign-type-size '(:struct cert-chain-para)))

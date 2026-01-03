@@ -108,4 +108,6 @@
 
    ;; Platform-specific verification
    #:*use-windows-certificate-store*
-   #+windows #:verify-certificate-chain-windows))
+   #+windows #:verify-certificate-chain-windows
+   #:*use-macos-keychain*
+   #+(or darwin macos) #:verify-certificate-chain-macos))

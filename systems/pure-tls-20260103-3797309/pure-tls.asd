@@ -8,7 +8,7 @@
   :description "Pure Common Lisp TLS 1.3 implementation"
   :author "Anthony Green <green@moxielogic.com>"
   :license "MIT"
-  :version "1.0.0"
+  :version "1.2.0"
   :defsystem-depends-on (#:trivial-features)
   :depends-on (#:ironclad
                #:trivial-gray-streams
@@ -16,8 +16,9 @@
                #:alexandria
                #:cl-base64
                #:trivial-features
-               ;; CFFI only needed on Windows for native cert validation
-               (:feature :windows #:cffi))
+               ;; CFFI needed on Windows and macOS for native cert validation
+               (:feature :windows #:cffi)
+               (:feature (:or :darwin :macos) #:cffi))
   :serial t
   :components ((:file "src/package")
                (:file "src/constants")
@@ -45,6 +46,8 @@
                              (:file "certificate")
                              ;; Windows native cert validation via CryptoAPI
                              (:file "windows-verify" :if-feature :windows)
+                             ;; macOS native cert validation via Security.framework
+                             (:file "macos-verify" :if-feature (:or :darwin :macos))
                              (:file "verify")))
                (:file "src/context")
                (:file "src/streams")))
@@ -53,7 +56,7 @@
   :description "cl+ssl API compatibility layer for pure-tls"
   :author "Anthony Green <green@moxielogic.com>"
   :license "MIT"
-  :version "1.0.0"
+  :version "1.2.0"
   :depends-on (#:pure-tls
                #:usocket)
   :serial t

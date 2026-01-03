@@ -95,10 +95,10 @@
 (defun verify-certificate-chain (chain trusted-roots &optional (now (get-universal-time)) hostname)
   "Verify a certificate chain against trusted roots.
    CHAIN is a list of certificates, leaf first.
-   TRUSTED-ROOTS is a list of trusted CA certificates (may be NIL on Windows with CryptoAPI).
-   HOSTNAME is optional; if provided on Windows, enables native verification.
+   TRUSTED-ROOTS is a list of trusted CA certificates (may be NIL on Windows/macOS with native verification).
+   HOSTNAME is optional; if provided on Windows/macOS, enables native verification.
    Returns T if verification succeeds, signals an error otherwise."
-  (declare (ignorable hostname))  ; Only used on Windows with CryptoAPI
+  (declare (ignorable hostname))  ; Only used with native verification
   (when (null chain)
     (error 'tls-certificate-error :message "Empty certificate chain"))
 
@@ -106,6 +106,13 @@
   #+windows
   (when (and hostname *use-windows-certificate-store*)
     ;; Windows CryptoAPI verification is authoritative when enabled
+    (verify-certificate-chain-native chain hostname)
+    (return-from verify-certificate-chain t))
+
+  ;; On macOS with Keychain enabled and hostname provided, use macOS verification
+  #+(or darwin macos)
+  (when (and hostname *use-macos-keychain*)
+    ;; macOS Security.framework verification is authoritative when enabled
     (verify-certificate-chain-native chain hostname)
     (return-from verify-certificate-chain t))
 
@@ -370,14 +377,30 @@ policies. Set to NIL to use pure Lisp verification instead.")
 (defvar *use-windows-certificate-store* nil
   "Always NIL on non-Windows platforms.")
 
+#+(or darwin macos)
+(defvar *use-macos-keychain* t
+  "When T on macOS, use Security.framework for certificate chain verification.
+This uses the system Keychain trusted roots and respects enterprise PKI
+policies. Set to NIL to use pure Lisp verification instead.")
+
+#-(or darwin macos)
+(defvar *use-macos-keychain* nil
+  "Always NIL on non-macOS platforms.")
+
 (defun verify-certificate-chain-native (chain hostname)
   "Attempt native certificate chain verification.
 Returns T if verification succeeded, NIL if native verification not available,
 or signals an error on verification failure."
-  (declare (ignorable chain hostname))  ; Only used on Windows
+  (declare (ignorable chain hostname))
   #+windows
   (when *use-windows-certificate-store*
     (verify-certificate-chain-windows
+     (mapcar #'x509-certificate-raw-der chain)
+     hostname)
+    (return-from verify-certificate-chain-native t))
+  #+(or darwin macos)
+  (when *use-macos-keychain*
+    (verify-certificate-chain-macos
      (mapcar #'x509-certificate-raw-der chain)
      hostname)
     (return-from verify-certificate-chain-native t))

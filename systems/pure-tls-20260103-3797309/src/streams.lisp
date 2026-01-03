@@ -410,10 +410,11 @@
           ;; Verify hostname
           (when hostname
             (verify-hostname cert hostname))
-          ;; Verify certificate chain when verification is required
-          (when (and (= verify +verify-required+) chain)
-            ;; On Windows with CryptoAPI enabled, verify even without trust-store
-            ;; (Windows uses its own trusted root store)
+          ;; Verify certificate chain for both +verify-peer+ and +verify-required+
+          ;; (+verify-peer+ means "verify if presented" - servers always present certs)
+          (when chain
+            ;; On Windows/macOS with native verification enabled, verify even without trust-store
+            ;; (they use their own trusted root stores)
             (let ((trusted-roots (when trust-store
                                    (trust-store-certificates trust-store))))
               (verify-certificate-chain chain trusted-roots

@@ -8,7 +8,7 @@ A pure Common Lisp implementation of TLS 1.3 (RFC 8446).
 - **TLS 1.3 only** - Modern, secure protocol with simplified handshake
 - **Gray streams** - Seamless integration with existing I/O code
 - **cl+ssl compatible** - Drop-in replacement API available
-- **Native Windows trust store** - Uses Windows CryptoAPI for certificate validation
+- **Native trust store integration** - Uses Windows CryptoAPI and macOS Security.framework for certificate validation
 
 ### Supported Cipher Suites
 
@@ -253,9 +253,27 @@ To disable native verification and use pure Lisp verification instead
 (setf pure-tls:*use-windows-certificate-store* nil)
 ```
 
-### macOS and Linux
+### macOS
 
-On non-Windows platforms, pure-tls uses pure Lisp certificate verification
+On macOS, pure-tls uses the Security.framework to validate certificates
+against the system Keychain. This is the authoritative verification
+method on macOS - there is no fallback to pure Lisp verification:
+
+- **No CA bundle needed** - Uses macOS Keychain trusted root certificates
+- **Enterprise PKI support** - Respects MDM-deployed certificates
+- **Automatic updates** - Trust store is maintained by macOS updates
+- **Authoritative** - Keychain verdict is final; if it rejects a certificate, the connection fails
+
+To disable native verification and use pure Lisp verification instead
+(requires providing CA certificates manually):
+
+```lisp
+(setf pure-tls:*use-macos-keychain* nil)
+```
+
+### Linux
+
+On Linux, pure-tls uses pure Lisp certificate verification
 and automatically searches for CA certificates:
 
 1. `SSL_CERT_FILE` environment variable
@@ -263,7 +281,6 @@ and automatically searches for CA certificates:
 3. Platform-specific locations:
    - `/etc/ssl/certs/ca-certificates.crt` (Debian/Ubuntu)
    - `/etc/pki/tls/certs/ca-bundle.crt` (RHEL/CentOS)
-   - `/etc/ssl/cert.pem` (macOS)
    - Homebrew OpenSSL paths
 
 If CA certificates are not found automatically:
@@ -388,7 +405,7 @@ The following secrets are logged (compatible with Wireshark TLS 1.3 dissector):
 - [flexi-streams](https://github.com/edicl/flexi-streams) - Character encoding (optional)
 - [alexandria](https://github.com/keithj/alexandria) - Utilities
 - [trivial-features](https://github.com/trivial-features/trivial-features) - Portable platform detection
-- [cffi](https://github.com/cffi/cffi) - Windows only, for CryptoAPI bindings
+- [cffi](https://github.com/cffi/cffi) - Windows and macOS only, for native trust store bindings
 
 ## Session Resumption (PSK)
 

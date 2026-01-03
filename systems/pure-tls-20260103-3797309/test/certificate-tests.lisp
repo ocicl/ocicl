@@ -278,6 +278,84 @@
       (is (= month 4) "Should expire in April")
       (is (= date 12) "Should expire on the 12th"))))
 
+;;;; Windows Native Verification Tests (offline)
+;;;; These test the CryptoAPI path with bundled bad certificates
+
+#+windows
+(test windows-native-rejects-expired
+  "Test that Windows CryptoAPI rejects expired certificates"
+  (let* ((cert-path (test-cert-path "wildcard-expired.pem"))
+         (cert (pure-tls:parse-certificate-from-file cert-path))
+         (der-list (list (pure-tls::x509-certificate-raw-der cert))))
+    (signals pure-tls:tls-certificate-error
+      (pure-tls::verify-certificate-chain-windows der-list "expired.badssl.com"))))
+
+#+windows
+(test windows-native-rejects-self-signed
+  "Test that Windows CryptoAPI rejects self-signed certificates"
+  (let* ((cert-path (test-cert-path "self-signed-valid.pem"))
+         (cert (pure-tls:parse-certificate-from-file cert-path))
+         (der-list (list (pure-tls::x509-certificate-raw-der cert))))
+    (signals pure-tls:tls-certificate-error
+      (pure-tls::verify-certificate-chain-windows der-list "test.example.com"))))
+
+#+windows
+(test windows-native-rejects-superfish
+  "Test that Windows CryptoAPI rejects Superfish malware CA"
+  (let* ((cert-path (test-cert-path "ca-superfish.crt"))
+         (cert (pure-tls:parse-certificate-from-file cert-path))
+         (der-list (list (pure-tls::x509-certificate-raw-der cert))))
+    (signals pure-tls:tls-certificate-error
+      (pure-tls::verify-certificate-chain-windows der-list "superfish.com"))))
+
+#+windows
+(test windows-native-rejects-edellroot
+  "Test that Windows CryptoAPI rejects eDellRoot malware CA"
+  (let* ((cert-path (test-cert-path "ca-edellroot.crt"))
+         (cert (pure-tls:parse-certificate-from-file cert-path))
+         (der-list (list (pure-tls::x509-certificate-raw-der cert))))
+    (signals pure-tls:tls-certificate-error
+      (pure-tls::verify-certificate-chain-windows der-list "dell.com"))))
+
+;;;; macOS Native Verification Tests (offline)
+;;;; These test the Security.framework path with bundled bad certificates
+
+#+(or darwin macos)
+(test macos-native-rejects-expired
+  "Test that macOS Security.framework rejects expired certificates"
+  (let* ((cert-path (test-cert-path "wildcard-expired.pem"))
+         (cert (pure-tls:parse-certificate-from-file cert-path))
+         (der-list (list (pure-tls::x509-certificate-raw-der cert))))
+    (signals pure-tls:tls-certificate-error
+      (pure-tls::verify-certificate-chain-macos der-list "expired.badssl.com"))))
+
+#+(or darwin macos)
+(test macos-native-rejects-self-signed
+  "Test that macOS Security.framework rejects self-signed certificates"
+  (let* ((cert-path (test-cert-path "self-signed-valid.pem"))
+         (cert (pure-tls:parse-certificate-from-file cert-path))
+         (der-list (list (pure-tls::x509-certificate-raw-der cert))))
+    (signals pure-tls:tls-certificate-error
+      (pure-tls::verify-certificate-chain-macos der-list "test.example.com"))))
+
+#+(or darwin macos)
+(test macos-native-rejects-superfish
+  "Test that macOS Security.framework rejects Superfish malware CA"
+  (let* ((cert-path (test-cert-path "ca-superfish.crt"))
+         (cert (pure-tls:parse-certificate-from-file cert-path))
+         (der-list (list (pure-tls::x509-certificate-raw-der cert))))
+    (signals pure-tls:tls-certificate-error
+      (pure-tls::verify-certificate-chain-macos der-list "superfish.com"))))
+
+#+(or darwin macos)
+(test macos-native-rejects-edellroot
+  "Test that macOS Security.framework rejects eDellRoot malware CA"
+  (let* ((cert-path (test-cert-path "ca-edellroot.crt"))
+         (cert (pure-tls:parse-certificate-from-file cert-path))
+         (der-list (list (pure-tls::x509-certificate-raw-der cert))))
+    (signals pure-tls:tls-certificate-error
+      (pure-tls::verify-certificate-chain-macos der-list "dell.com"))))
+
 ;;;; Test Runner
 
 (defun run-certificate-tests ()
