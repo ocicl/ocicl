@@ -1,0 +1,6 @@
+(:digest-test #a"" #h"f71837502ba8e10837bdd8d365adb85591895602fc552b48b7390abd")
+(:digest-test #a"abc" #h"c30411768506ebe1c2871b1ee2e87d38df342317300a9b97a95ec6a8")
+(:digest-test #a"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq" #h"e51faa2b4655150b931ee8d700dc202f763ca5f962c529eae55012b6")
+(:digest-test #a"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu" #h"344298994b1b06873eae2ce739c425c47291a2e24189e01b524f88dc")
+(:digest-test #a"The quick brown fox jumps over the lazy dog" #h"310aee6b30c47350576ac2873fa89fd190cdc488442f3ef654cf23fe")
+(:digest-test #a"The quick brown fox jumps over the lazy dog." #h"c59d4eaeac728671c635ff645014e2afa935bebffdb5fbd207ffdeab")

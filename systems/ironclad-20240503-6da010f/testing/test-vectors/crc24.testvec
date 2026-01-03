@@ -1,0 +1,9 @@
+;;; standard tests for crc24
+
+(:digest-test #a"" #h"b704ce")
+(:digest-test #a"a" #h"f25713")
+(:digest-test #a"abc" #h"ba1c7b")
+(:digest-test #a"message digest" #h"dbf0b6")
+(:digest-test #a"abcdefghijklmnopqrstuvwxyz" #h"ed3665")
+(:digest-test #a"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" #h"4662cd")
+(:digest-test #a"12345678901234567890123456789012345678901234567890123456789012345678901234567890" #h"8313bb")

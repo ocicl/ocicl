@@ -1,0 +1,9 @@
+;;; standard tests for crc32
+
+(:digest-test #a"" #h"00000000")
+(:digest-test #a"a" #h"e8b7be43")
+(:digest-test #a"abc" #h"352441c2")
+(:digest-test #a"message digest" #h"20159d7f")
+(:digest-test #a"abcdefghijklmnopqrstuvwxyz" #h"4c2750bd")
+(:digest-test #a"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" #h"1fc2e6d2")
+(:digest-test #a"12345678901234567890123456789012345678901234567890123456789012345678901234567890" #h"7ca94a72")

@@ -1,0 +1,16 @@
+;;; standard tests
+
+;; See corresponding tests in binascii/tests/base32.testvec
+(:digest-test #a"" #h"5D9ED00A030E638BDB753A6A24FB900E5A63B8E73E6C25B6")
+(:digest-bit-test 0 0 0 #h"AABBCCA084ACECD0511D1F6232A17BFAEFA441B2982E5548")
+(:digest-test #.(make-array '(1024) :element-type '(unsigned-byte 8) :initial-element 65)
+              #h"5FBD0E62AD016D596B77D1D28883B94FED78ECBAF4640914")
+(:digest-test #.(make-array '(1025) :element-type '(unsigned-byte 8) :initial-element 65)
+              #h"7E591C1CD8F2E6121FDBCD8071BA279626B771642D10A3DB")
+
+(:digest-test #a"abc" #h"0487CA26443F59CFBC780F3CA0CE509C8C352C27C5DCCA20")
+(:digest-test #a"message digest" #h"C339BD324EBF6085A0FA5F26D77B44DBB7DB60D690649704")
+(:digest-test #a"abcdefghijklmnopqrstuvwxyz" #h"5B0ED06AB8773DD7EA2371A71D097EBA8F96A357E0854C77")
+(:digest-test #a"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq" #h"A9E27D4684D9E49D49A09A7803DA15B258E5DDE0923870E9")
+(:digest-test #a"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" #h"997FC234BF6175678C9BEB35B6C655525115622C9AEC03DA")
+(:digest-test #a"12345678901234567890123456789012345678901234567890123456789012345678901234567890" #h"685420361A70DB395782FE1252ED31057EB54CA879E0D0A7")

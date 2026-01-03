@@ -1,0 +1,153 @@
+hey emacs, show me an -*- mode: outline -*-
+
+* misc
+** cleanup octet-stream: positions are either INDEX or POSITION, not both
+The latter requires :SHADOW adjustments in Ironclad's DEFPACKAGE.
+
+* ciphers to add
+
+CAST6
+MARS
+...others?...
+
+* add OpenPGP functions
+
+This would involve writing some simple base64 encoding and decoding.
+I'm not sure how to add this and achieve the right amount of generality
+and functionality.  Just writing an OpenPGP parser is straightforward,
+but determining what to do with the data is a little more complicated.
+
+* make a condition hierarchy for the library
+
+Some conditions have been added as of 0.7, but there probably need to be
+more, with helpful messages along the way.
+
+* remove generic function calls from inner loops
+
+ENCRYPT-WITH-MODE, by virtue of calling <CIPHER>-ENCRYPT-BLOCK on
+every iteration of the loop, requires <CIPHER>-ENCRYPT-BLOCK to
+repeatedly extract the cipher-specific data from the provided cipher
+context.  No idea if this is a bottleneck (probably not).
+
+Doing this extraction on every iteration of the loop is overhead,
+though--unnecessary overhead compared to a C implementation.  Pulling
+the extraction out of the loop in a clean, cipher-independent manner is
+probably pretty hairy, however.
+
+* figure out interface for extra cipher creation parameters
+
+RC5, for instance, is configurable in the number of rounds.  The number
+of rounds must be fixed the way the current system works.  Configuring
+the number of rounds for TEA and XTEA would be another example of where
+this is useful.  Surely there are other reasons, too.
+
+* add more cipher modes of operation
+
+CBC with ciphertext stealing (CBC-CTS) (this would require some sort
+of ENCRYPT-FINAL-BLOCK interface so we would know when to perform the
+ciphertext stealing)
+PCBC, for all those Lispers who want to implement Kerberos 4
+OpenPGP CFB
+
+* efficient 32-bit implementations of SHA2-{512,384}
+
+These digests are currently implemented with straight 64-bit arithmetic,
+which is elegant, but causes a lot of consing on 32-bit platforms.  Is
+it worth spending the time to tweak these?
+
+* add other MACs
+
+The NESSIE project has a boatload of MAC recommendations with test
+vectors and everything.  Adding other MACs would help with cleaning up
+the MAC interface (or lack thereof).
+
+* add other digests
+
+Are there any other reputable hash functions?
+
+* figure out interface for stream ciphers
+
+WiderWake 4+1
+SEAL (intellectual property issues, although that doesn't seem to stop
+  many other crypto libraries)
+
+* blue-sky ideas
+
+** implementation-specific algorithm implementations
+
+Ironclad is written with implementations that are capable of performing
+32-bit unboxed arithmetic in mind.  However, there is no reason to leave
+other implementations out in the cold.  I particularly have in mind
+ABCL, whose clean Java integration could facilitate using Java's crypto
+routines for many of the algorithms Ironclad provides.
+
+Using 32-bit integer arithmetic in LispWorks (SYSTEM:INT32-*) and
+DEF*LAPFUNCTION in ClozureCL, along with architecture-specific VOPs
+and/or DEF{KNOWN,OPTIMIZER,TRANSFORM} in SBCL/CMUCL are other ways of
+doing this.
+
+** compilable encryption and decryption routines
+
+One trick that's commonly used in high-performance crypto libraries is
+unrolling inner loops of ciphers, which are generally Feistel networks
+of some sort.  This transformation has many benefits: avoiding jumps and
+compiling more efficient code for structure accesses, to name two.
+Ironclad features unrolled loops in various places (e.g. the CAST5 and
+Blowfish ciphers).  Unrolled loops can be particularly helpful in Common
+Lisp because the compiler can often optimize away things like array
+bounds checks.
+
+Unfortunately, this tends to limit the libraries to only handling a
+fixed number of rounds (or other configurable parameters of block
+ciphers).  Accomodating variable numbers of rounds makes life easier for
+the truly paranoid and is more in the spirit of the ciphers as
+originally designed.
+
+One way of getting around this limitation would be to use Common Lisp's
+provision of the COMPILE function at create-the-cipher time.  One could
+compile--on demand--specialized encryption/decryption routines that only
+accommodated a fixed number of rounds (or other static configuration
+parameters).  This facility would be particularly helpful for those
+ciphers whose round keys are variable in the number of rounds chosen;
+bounds checking for accesses to these keys could be done away with
+entirely (except perhaps for a check to ensure the round key vector is
+of the proper length and type).  Furthermore, the round keys could
+actually be compiled directly into the code--as 32-bit constant
+arguments on the x86, for example.  Such a change would necessarily make
+the compiled routines key-specific, but perhaps that would be OK.
+
+(When reading the specifications for Blowfish and Twofish, the authors
+make much of this capability by citing screaming performance numbers for
+this scenario while noting that modifying the code for each individual
+key is difficult.  In Ironclad, providing three differing levels of
+generality--general, n-rounds-specific, and key-specific--would be
+relatively easy compared to the difficulty of doing it in C.)
+
+Changes to MAKE-CIPHER--a keyword argument specifying the level of
+specialization--would be necessary.  Extensive changes to the individual
+block ciphers would also be necessary.  Perhaps this sort of facility
+need not be added to all ciphers; the common ones could come first
+(e.g. AES) and less-common ones would be converted as people contributed
+patches or needs were found for them.
+
+** use word-aligned loads when possible
+
+The current code uses byte loads + shifts and ors to fetch
+(UNSIGNED-BYTE 32) values out of a (SIMPLE-ARRAY (UNSIGNED-BYTE 8) (*)).
+Some implementations (I have in mind particularly SBCL and CMUCL) could
+use a more efficient mechanism if the offset of the (UNSIGNED-BYTE 32)
+value was known to be four-byte aligned.  Once this was done for each
+encryption/decryption function for a particular block cipher, the
+high-level generic functions could call efficient versions if possible,
+eliminating some overhead.
+
+There is actually some (SBCL) support for this in cipher.lisp, in the
+alternate definition for WITH-WORDS.  It doesn't make that much of a
+difference--at least not in the case where WITH-WORDS needs to check for
+alignment and safety.  It might be a win if there were several
+different *-ENCRYPT-BLOCK functions and the high-level ones knew which
+one to call, but...
+
+* add option to allow INTEGER-TO-OCTETS to output directly to a buffer
+
+This could be handy in certain internals, e.g. in GENERATE-BLOCKS.

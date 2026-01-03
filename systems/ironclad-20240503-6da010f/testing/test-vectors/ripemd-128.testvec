@@ -1,0 +1,8 @@
+(:digest-test #a"" #h"cdf26213a150dc3ecb610f18f6b38b46")
+(:digest-test #a"a" #h"86be7afa339d0fc7cfc785e72f578d33")
+(:digest-test #a"abc" #h"c14a12199c66e4ba84636b0f69144c77")
+(:digest-test #a"message digest" #h"9e327b3d6e523062afc1132d7df9d1b8")
+(:digest-test #a"abcdefghijklmnopqrstuvwxyz" #h"fd2aa607f71dc8f510714922b371834e")
+(:digest-test #a"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq" #h"a1aa0689d0fafa2ddc22e88b49133a06")
+(:digest-test #a"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" #h"d1e959eb179c911faea4624c60c5c702")
+(:digest-test #a"12345678901234567890123456789012345678901234567890123456789012345678901234567890" #h"3f45ef194732c2dbb2c4a2c769795fa3")

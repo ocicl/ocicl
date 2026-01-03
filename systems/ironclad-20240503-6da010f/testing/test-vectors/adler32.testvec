@@ -1,0 +1,9 @@
+;;; standard tests for adler32
+
+(:digest-test #a"" #h"00000001")
+(:digest-test #a"a" #h"00620062")
+(:digest-test #a"abc" #h"024d0127")
+(:digest-test #a"message digest" #h"29750586")
+(:digest-test #a"abcdefghijklmnopqrstuvwxyz" #h"90860b20")
+(:digest-test #a"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" #h"8adb150c")
+(:digest-test #a"12345678901234567890123456789012345678901234567890123456789012345678901234567890" #h"97b61069")
