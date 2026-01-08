@@ -221,6 +221,190 @@ Distributed under the terms of the MIT License"
   (when *verbose*
     (format t "; ~A~%" s)))
 
+(defun skip-whitespace (str pos)
+  "Skip whitespace characters (space and tab) in STR starting at POS.
+
+STR: The string to scan.
+POS: Starting position in STR.
+
+Returns the new position after skipping whitespace. Implements OWS (Optional
+WhiteSpace) from RFC 7230 Section 3.2.3."
+  (loop :while (and (< pos (length str))
+                    (member (char str pos) '(#\Space #\Tab)))
+        :do (incf pos))
+  pos)
+
+(defun position-unescaped-char (char str &key (start 0))
+  "Find the position of CHAR in STR that is not preceded by a backslash.
+
+CHAR: The character to search for.
+STR: The string to search in.
+START: Starting position for the search (default 0).
+
+Returns the position of the first unescaped occurrence of CHAR, or NIL if not found.
+Recursively skips over escaped characters (preceded by backslash)."
+  (let ((end-pos (position char str :start start)))
+    (when end-pos
+      (if (and (> end-pos 0) (char= (char str (1- end-pos)) #\\))
+          (position-unescaped-char char str :start (1+ end-pos))
+          end-pos))))
+
+(defun parse-quoted-token (str pos)
+  "Parse a quoted string value from STR starting at POS.
+
+STR: The string to parse.
+POS: Position of the opening quote character.
+
+Returns (VALUES VALUE NEW-POS) where VALUE is the string content between quotes
+(with quotes removed but escape sequences preserved), and NEW-POS is the position
+after the closing quote. Returns (VALUES NIL NIL) on parse failure.
+
+Handles escaped quotes (\\\" ) within the value per RFC 7230 quoted-string rules."
+  (when (and (< pos (length str)) (char= (char str pos) #\"))
+    (incf pos)
+    (let ((value-end (position-unescaped-char #\" str :start pos)))
+      (unless value-end
+        (return-from parse-quoted-token (values nil nil)))
+      (let ((value (subseq str pos value-end)))
+        (values value (1+ value-end))))))
+
+(defun parse-unquoted-token (str pos)
+  "Parse an unquoted token value from STR starting at POS.
+
+STR: The string to parse.
+POS: Starting position in STR.
+
+Returns (VALUES VALUE NEW-POS) where VALUE is the token string up to the next
+comma or end of string, and NEW-POS is the position at the comma (or at end).
+Returns (VALUES NIL NIL) on parse failure.
+
+Per RFC 7235, token values are allowed but less common than quoted-string in practice."
+  (let ((value-end (or (position #\, str :start pos)
+                       (length str))))
+    (let ((value (string-trim '(#\Space #\Tab) (subseq str pos value-end))))
+      (if (zerop (length value))
+          (values nil nil)
+          (values value value-end)))))
+
+(defun parse-bearer-param (str pos)
+  "Parse a single auth-param (key=value pair) from STR starting at POS.
+
+STR: The parameter string to parse.
+POS: Starting position in STR.
+
+Returns (VALUES KEY VALUE NEW-POS) on success, or (VALUES NIL NIL NIL) on failure.
+KEY is lowercase string, VALUE has quotes removed (if quoted), NEW-POS is position
+at the comma separator (or at end of string if no comma).
+
+Implements auth-param grammar from RFC 7235:
+  auth-param = token BWS \"=\" BWS ( token / quoted-string )
+
+Handles:
+  - Optional whitespace around keys and after '='
+  - Both quoted strings (\"value\") and unquoted tokens (value)
+  - Empty key validation
+  - Escaped quotes within quoted strings
+
+NEW-POS semantics: Always returns position at the comma separator (or end of string).
+Caller must skip the comma and any following whitespace."
+  (let ((len (length str)))
+    (setf pos (skip-whitespace str pos))
+    (when (>= pos len)
+      (return-from parse-bearer-param (values nil nil nil)))
+    (let ((eq-pos (position #\= str :start pos)))
+      (unless eq-pos
+        (return-from parse-bearer-param (values nil nil nil)))
+      (let ((key (string-trim '(#\Space #\Tab) (subseq str pos eq-pos))))
+        (when (zerop (length key))
+          (return-from parse-bearer-param (values nil nil nil)))
+        (setf pos (1+ eq-pos))
+        (setf pos (skip-whitespace str pos))
+        (when (>= pos len)
+          (return-from parse-bearer-param (values nil nil nil)))
+        (multiple-value-bind (value pos)
+            (if (char= (char str pos) #\")
+                (parse-quoted-token str pos)
+                (parse-unquoted-token str pos))
+          (when value
+            (values (string-downcase key) value pos)))))))
+
+(defun parse-bearer-challenge (auth-header)
+  "Parse all key-value pairs from a WWW-Authenticate Bearer challenge header.
+
+AUTH-HEADER: The WWW-Authenticate header string to parse.
+
+Returns an association list of (KEY . VALUE) pairs, or NIL if parsing fails.
+Keys are lowercase strings, values are strings with quotes removed.
+Returns NIL on any parse error for consistent error handling.
+
+Implements Bearer challenge format per RFC 6750 (OAuth 2.0 Bearer Token Usage)
+and RFC 7235 (HTTP/1.1 Authentication):
+
+  challenge = \"Bearer\" [ 1*SP ( token68 / #auth-param ) ]
+  auth-param = token BWS \"=\" BWS ( token / quoted-string )
+
+Expected format:
+  Bearer realm=\"https://example.com/token\",service=\"registry\",scope=\"repo:pull\"
+
+Handles:
+  - Case-insensitive \"Bearer\" prefix
+  - Optional whitespace around commas (OWS from RFC 7230)
+  - Optional whitespace around equals signs (BWS from RFC 7230)
+  - Both quoted and unquoted parameter values
+  - Escaped quotes within quoted values (\\\" )
+
+Does NOT handle:
+  - token68 format (single base64-encoded parameter without key=value)
+  - Nested quotes or complex escape sequences beyond \\\"
+  - Validation of specific parameter names (realm, scope, etc.)
+
+RFC References:
+  - RFC 6750: OAuth 2.0 Bearer Token Usage
+  - RFC 7235: HTTP/1.1 Authentication (auth-param syntax)
+  - RFC 7230: HTTP/1.1 Message Syntax (whitespace rules)"
+  (when (and auth-header (stringp auth-header))
+    (let ((bearer-prefix "Bearer "))
+      (when (and (>= (length auth-header) (length bearer-prefix))
+                 (string-equal (subseq auth-header 0 (length bearer-prefix))
+                               bearer-prefix))
+        (let ((params-str (subseq auth-header (length bearer-prefix)))
+              (result nil)
+              (pos 0))
+          (loop :while (< pos (length params-str))
+                :do (multiple-value-bind (key value new-pos)
+                        (parse-bearer-param params-str pos)
+                      (unless key
+                        (return-from parse-bearer-challenge nil))
+                      (push (cons key value) result)
+                      (setf pos new-pos)
+                      (when (and (< pos (length params-str))
+                                 (char= (char params-str pos) #\,))
+                        (incf pos))))
+          (nreverse result))))))
+
+(defun get-token-authentication-url (registry)
+  "Get the token authentication URL from REGISTRY's WWW-Authenticate header.
+
+REGISTRY: The registry URL to query for authentication information.
+
+Returns the token endpoint URL string, or NIL if not available."
+  (handler-case
+      (let ((server (get-up-to-first-slash registry)))
+        (multiple-value-bind (body status-code headers)
+            (ocicl.http:http-get #?"https://${server}/v2/"
+                                 :verbose *verbose*)
+          (declare (ignore body))
+          (if (eql status-code 401)
+              (let ((params (parse-bearer-challenge (gethash :www-authenticate headers))))
+                (cdr (assoc "realm" params :test #'string=)))
+              (progn
+                (format *error-output* "; Error getting authentication URL for ~A~%" registry)
+                nil))))
+    (error (e)
+      (when *verbose*
+        (format *error-output* "; Error getting authentication URL for ~A: ~A~%" registry e))
+      nil)))
+
 (defun get-up-to-first-slash (str)
   "Extract the substring up to the first slash in STR, returning the substring and position."
   (if-let ((pos (position #\/ str)))
@@ -253,15 +437,16 @@ Distributed under the terms of the MIT License"
 (defun get-bearer-token (registry system)
   (handler-case
       (let* ((safe-system (validate-system-name system))
-             (server (get-up-to-first-slash registry))
+             (realm (get-token-authentication-url registry))
              (repository (get-repository-name registry)))
         (unless safe-system
           (error "Invalid system name: ~A" system))
-        (cdr (assoc :token
-                    (cl-json:decode-json-from-string
-                     (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${safe-system}:pull"
-                                          :force-string t
-                                          :verbose *verbose*)))))
+        (when realm
+          (cdr (assoc :token
+                      (cl-json:decode-json-from-string
+                       (ocicl.http:http-get #?"${realm}?scope=repository:${repository}/${safe-system}:pull"
+                                            :force-string t
+                                            :verbose *verbose*))))))
     (error (e)
       (when *verbose*
         (format *error-output* "; Error getting bearer token for ~A: ~A~%" system e))
