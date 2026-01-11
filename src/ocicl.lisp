@@ -35,6 +35,8 @@
 (defvar *force* nil)
 (defvar *color* nil)
 (defvar *ocicl-systems* nil)
+(defvar *global-ocicl-systems* nil)
+(defvar *global-systems-dir* nil)
 (defvar *inhibit-download-during-search* nil)
 (defvar *systems-csv* "ocicl.csv")
 (defvar *relative-systems-dir* (make-pathname :directory '(:relative "ocicl")))
@@ -167,9 +169,10 @@
   "Split LINE on newline characters."
   (split-on-delimiter line #\Newline))
 
-(defun read-systems-csv ()
-  "Read the systems CSV file and return a hash table of system names to (registry . path) pairs."
-  (let ((systems-file (merge-pathnames (uiop:getcwd) *systems-csv*))
+(defun read-systems-csv (&optional csv-path)
+  "Read the systems CSV file and return a hash table of system names to (registry . path) pairs.
+If CSV-PATH is provided, read from that file; otherwise read from current directory's CSV."
+  (let ((systems-file (or csv-path (merge-pathnames (uiop:getcwd) *systems-csv*)))
         (ht (make-hash-table :test #'equal)))
     (when (uiop:file-exists-p systems-file)
       (handler-case
@@ -1546,6 +1549,13 @@ Supports --fix and --dry-run flags for auto-remediation."
                        (setq *ocicl-systems* (read-systems-csv))
                        (setq *systems-dir* (merge-pathnames *relative-systems-dir*
                                                             (uiop:getcwd)))
+                       ;; Initialize global systems registry if configured and different from local
+                       (let ((globaldir (or *ocicl-globaldir* (get-ocicl-dir))))
+                         (unless (uiop:pathname-equal globaldir workdir)
+                           (let ((global-csv (merge-pathnames *systems-csv* globaldir)))
+                             (when (uiop:file-exists-p global-csv)
+                               (setq *global-ocicl-systems* (read-systems-csv global-csv))
+                               (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir))))))
                        (if (not (> (length free-args) 0))
                            (usage)
                            (let ((cmd (car free-args)))
@@ -1814,15 +1824,28 @@ download the system unless a version is specified."
             (uiop:delete-directory-tree dl-dir :validate t))))))
 
 (defun find-asdf-system-file (name)
-  (let* ((system-info (gethash (mangle name) *ocicl-systems*))
-         (system-asd (when system-info (merge-pathnames (cdr system-info) *systems-dir*))))
-    (cond ((and system-asd (probe-file system-asd)))
-          ((not *inhibit-download-during-search*)
-           (handler-case
-               (probe-file (merge-pathnames (cdr (download-system name)) *systems-dir*))
-             (error (e)
-               (declare (ignore e))
-               nil))))))
+  "Find ASDF system file for NAME, checking local systems, then global systems, then downloading."
+  (let* ((mangled-name (mangle name))
+         ;; Check local systems first
+         (local-info (gethash mangled-name *ocicl-systems*))
+         (local-asd (when local-info (merge-pathnames (cdr local-info) *systems-dir*)))
+         ;; Check global systems if not found locally
+         (global-info (when (and (not (and local-asd (probe-file local-asd)))
+                                 *global-ocicl-systems*)
+                        (gethash mangled-name *global-ocicl-systems*)))
+         (global-asd (when global-info (merge-pathnames (cdr global-info) *global-systems-dir*))))
+    (cond
+      ;; Found in local systems
+      ((and local-asd (probe-file local-asd)) local-asd)
+      ;; Found in global systems
+      ((and global-asd (probe-file global-asd)) global-asd)
+      ;; Not found anywhere - download if allowed
+      ((not *inhibit-download-during-search*)
+       (handler-case
+           (probe-file (merge-pathnames (cdr (download-system name)) *systems-dir*))
+         (error (e)
+           (declare (ignore e))
+           nil))))))
 
 (defun system-definition-searcher (name)
   (unless (or (string= name "asdf") (string= name "uiop"))
