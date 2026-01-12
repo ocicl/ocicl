@@ -23,6 +23,7 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
 - [ocicl Scope](#ocicl-scope)
   - [Local (default)](#local-default)
   - [Global (--global)](#global---global)
+  - [Local-Only Mode (OCICL_LOCAL_ONLY)](#local-only-mode-ocicl_local_only)
 - [Proxy Configuration](#proxy-configuration)
 - [TLS Verification](#tls-verification)
 - [AI-Generated Change Summaries](#ai-generated-change-summaries)
@@ -417,6 +418,41 @@ optional ``GLOBALDIR`` argument when you invoke ``ocicl setup``.
 
 You can change the default behaviour of downloading systems on demand
 by setting ``ocicl-runtime:*download*`` to nil.
+
+### Local-Only Mode (OCICL_LOCAL_ONLY)
+
+For CI pipelines and reproducible builds, you may want to ensure that
+`ocicl` only uses systems from the current working directory, ignoring
+any `ocicl.csv` files in parent directories and any globally installed
+systems.
+
+Set the `OCICL_LOCAL_ONLY` environment variable to enable this mode:
+
+```bash
+export OCICL_LOCAL_ONLY=1
+ocicl install
+sbcl --load my-app.lisp
+```
+
+Or inline:
+```bash
+OCICL_LOCAL_ONLY=1 ocicl install
+```
+
+When `OCICL_LOCAL_ONLY` is set:
+- The CLI tool only looks for `ocicl.csv` in the current directory (no parent directory traversal)
+- Global systems are not loaded or searched
+- The runtime behaves the same way, ensuring your Lisp code won't accidentally pick up systems from parent directories or global repos
+
+You can also set it programmatically in Lisp before loading systems:
+```lisp
+(setf ocicl-runtime:*local-only* t)
+```
+
+This is particularly useful for:
+- **CI/CD pipelines**: Ensures builds are isolated and reproducible
+- **Testing**: Prevents interference from development environments
+- **Containerized builds**: Guarantees only explicitly declared dependencies are used
 
 AI-Generated Change Summaries
 -----------------------------

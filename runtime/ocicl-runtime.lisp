@@ -54,13 +54,14 @@
 (defpackage #:ocicl-runtime
   (:use #:cl)
   (:documentation "Runtime support for ocicl system discovery and installation")
-  (:export #:*download* #:*verbose* #:*force-global* #:+version+ #:system-list))
+  (:export #:*download* #:*verbose* #:*force-global* #:*local-only* #:+version+ #:system-list))
 
 (in-package #:ocicl-runtime)
 
 (defvar *download* t)
 (defvar *verbose* nil)
 (defvar *force-global* nil)
+(defvar *local-only* (uiop:getenv "OCICL_LOCAL_ONLY"))
 (defconstant +version+ "UNKNOWN")
 (defconstant +required-programs+ (list "ocicl"))
 
@@ -219,6 +220,7 @@
         ;; Need pathname return value, not just boolean
         for existing-csv = (or (probe-file ocicl-csv) (probe-file systems-csv)) ; lint:suppress use-uiop-file-exists-p
         until (or existing-csv
+                  *local-only*
                   (null parent-dir)
                   (equal parent-dir dir))
         finally (return
@@ -238,7 +240,7 @@
       (setf *local-systems-dir* (merge-pathnames *relative-systems-dir* workdir))
       (setf *local-systems-csv* (merge-pathnames *systems-csv* workdir))))
 
-  (unless *global-systems-dir*
+  (unless (or *local-only* *global-systems-dir*)
     (let* ((config-file (merge-pathnames "ocicl-globaldir.cfg" (get-ocicl-dir)))
            (globaldir (if (uiop:file-exists-p config-file)
                           (handler-case
@@ -263,7 +265,7 @@
             (when (should-log)
               (format *verbose* "; Error reading local systems CSV ~A: ~A~%" *local-systems-csv* e)))))))
 
-  (when (uiop:file-exists-p *global-systems-csv*)
+  (when (and (not *local-only*) (uiop:file-exists-p *global-systems-csv*))
     (let ((timestamp (file-write-date *global-systems-csv*)))
       (when (> timestamp *global-systems-csv-timestamp*)
         (handler-case
@@ -289,7 +291,8 @@
                            pn)
                          (when (should-log) (format *verbose* "missing~%"))))))))
     (or (try-load *local-ocicl-systems* *local-systems-dir*)
-        (try-load *global-ocicl-systems* *global-systems-dir*)
+        (unless *local-only*
+          (try-load *global-ocicl-systems* *global-systems-dir*))
         (when download-p
           (ocicl-install name)
           (setf *local-ocicl-systems* (read-systems-csv *local-systems-csv*))

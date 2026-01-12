@@ -38,6 +38,7 @@
 (defvar *global-ocicl-systems* nil)
 (defvar *global-systems-dir* nil)
 (defvar *inhibit-download-during-search* nil)
+(defvar *local-only* nil)
 (defvar *systems-csv* "ocicl.csv")
 (defvar *relative-systems-dir* (make-pathname :directory '(:relative "ocicl")))
 
@@ -1378,6 +1379,7 @@ Supports --fix and --dry-run flags for auto-remediation."
         for ocicl-csv = (merge-pathnames (make-pathname :name "ocicl" :type "csv") dir)
         for existing-csv = (or (probe-file ocicl-csv) (probe-file systems-csv))
         until (or existing-csv
+                  *local-only*
                   (null parent-dir)
                   (equal parent-dir dir))
         finally (return
@@ -1531,6 +1533,10 @@ Supports --fix and --dry-run flags for auto-remediation."
                      (uiop:getenvp "OCICL_INSECURE"))
              (setf ocicl.http:*verify-tls* nil))
 
+           ;; Local-only mode: disable parent dir traversal and global lookups
+           (when (uiop:getenvp "OCICL_LOCAL_ONLY")
+             (setf *local-only* t))
+
            (let ((depth (getf options :depth)))
              (setf *tree-depth* (if (eql depth :max)
                                     nil
@@ -1550,13 +1556,15 @@ Supports --fix and --dry-run flags for auto-remediation."
                        (setq *systems-dir* (merge-pathnames *relative-systems-dir*
                                                             (uiop:getcwd)))
                        ;; Initialize global systems registry if configured and different from local
-                       (let ((globaldir (or *ocicl-globaldir* (get-ocicl-dir))))
-                         (unless (uiop:pathname-equal globaldir workdir)
-                           ;; Use just the filename, not full path (which find-workdir may have set)
-                           (let ((global-csv (merge-pathnames (file-namestring *systems-csv*) globaldir)))
-                             (when (uiop:file-exists-p global-csv)
-                               (setq *global-ocicl-systems* (read-systems-csv global-csv))
-                               (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir))))))
+                       ;; (skip entirely in local-only mode)
+                       (unless *local-only*
+                         (let ((globaldir (or *ocicl-globaldir* (get-ocicl-dir))))
+                           (unless (uiop:pathname-equal globaldir workdir)
+                             ;; Use just the filename, not full path (which find-workdir may have set)
+                             (let ((global-csv (merge-pathnames (file-namestring *systems-csv*) globaldir)))
+                               (when (uiop:file-exists-p global-csv)
+                                 (setq *global-ocicl-systems* (read-systems-csv global-csv))
+                                 (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir)))))))
                        (if (not (> (length free-args) 0))
                            (usage)
                            (let ((cmd (car free-args)))
@@ -1830,8 +1838,9 @@ download the system unless a version is specified."
          ;; Check local systems first
          (local-info (gethash mangled-name *ocicl-systems*))
          (local-asd (when local-info (merge-pathnames (cdr local-info) *systems-dir*)))
-         ;; Check global systems if not found locally
-         (global-info (when (and (not (and local-asd (probe-file local-asd)))
+         ;; Check global systems if not found locally (unless local-only mode)
+         (global-info (when (and (not *local-only*)
+                                 (not (and local-asd (probe-file local-asd)))
                                  *global-ocicl-systems*)
                         (gethash mangled-name *global-ocicl-systems*)))
          (global-asd (when global-info (merge-pathnames (cdr global-info) *global-systems-dir*))))
