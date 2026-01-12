@@ -1552,7 +1552,8 @@ Supports --fix and --dry-run flags for auto-remediation."
                        ;; Initialize global systems registry if configured and different from local
                        (let ((globaldir (or *ocicl-globaldir* (get-ocicl-dir))))
                          (unless (uiop:pathname-equal globaldir workdir)
-                           (let ((global-csv (merge-pathnames *systems-csv* globaldir)))
+                           ;; Use just the filename, not full path (which find-workdir may have set)
+                           (let ((global-csv (merge-pathnames (file-namestring *systems-csv*) globaldir)))
                              (when (uiop:file-exists-p global-csv)
                                (setq *global-ocicl-systems* (read-systems-csv global-csv))
                                (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir))))))
@@ -1834,13 +1835,21 @@ download the system unless a version is specified."
                                  *global-ocicl-systems*)
                         (gethash mangled-name *global-ocicl-systems*)))
          (global-asd (when global-info (merge-pathnames (cdr global-info) *global-systems-dir*))))
+    (when *verbose*
+      (format t "; find-asdf-system-file ~A: local-info=~A global-info=~A global-systems=~A~%"
+              name (not (null local-info)) (not (null global-info)) (not (null *global-ocicl-systems*))))
     (cond
       ;; Found in local systems
-      ((and local-asd (probe-file local-asd)) local-asd)
+      ((and local-asd (probe-file local-asd))
+       (when *verbose* (format t ";   -> found in local: ~A~%" local-asd))
+       local-asd)
       ;; Found in global systems
-      ((and global-asd (probe-file global-asd)) global-asd)
+      ((and global-asd (probe-file global-asd))
+       (when *verbose* (format t ";   -> found in global: ~A~%" global-asd))
+       global-asd)
       ;; Not found anywhere - download if allowed
       ((not *inhibit-download-during-search*)
+       (when *verbose* (format t ";   -> downloading ~A~%" name))
        (handler-case
            (probe-file (merge-pathnames (cdr (download-system name)) *systems-dir*))
          (error (e)
