@@ -277,7 +277,7 @@ If CSV-PATH is provided, read from that file; otherwise read from current direct
 (defun usage ()
   "Display usage information and available commands."
   (opts:describe
-   :prefix (format nil "ocicl ~A - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>" +version+)
+   :prefix (format nil "ocicl ~A - copyright (C) 2023-2026 Anthony Green <green@moxielogic.com>" +version+)
    :suffix "Choose from the following ocicl commands:
 
    help                                   Print this help text

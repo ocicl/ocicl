@@ -250,18 +250,18 @@ Command Line Tool
 The ``ocicl`` command line tool provides commands for managing systems.
 
 ```
-ocicl 2.8.6 - copyright (C) 2023-2025 Anthony Green <green@moxielogic.com>
+ocicl 2.14.3-gfe4beec+dirty - copyright (C) 2023-2026 Anthony Green <green@moxielogic.com>
 
-Usage: ocicl [-v|--verbose] [-f|--force] [-g|--global] [-r|--registry REGISTRY]
-             [-c|--color WHEN] [-d|--depth NUM] [-k|--insecure] command
+Usage: ocicl [-h|--help] [-v|--verbose] [-f|--force] [-g|--global]
+             [-r|--registry REGISTRY] [-c|--color WHEN] [-k|--insecure] command
 
 Available options:
+  -h, --help              show this help text
   -v, --verbose           produce verbose output
   -f, --force             force action
   -g, --global            operate on the global system collection
   -r, --registry REGISTRY use alternate oci registry [Default: ghcr.io/ocicl]
   -c, --color WHEN        color the output WHEN (auto, always, or never)
-  -d, --depth NUM         maximum depth for the tree command (integer or "max", default 1)
   -k, --insecure          allow insecure TLS (skip certificate verification)
 
 Choose from the following ocicl commands:
@@ -277,15 +277,18 @@ Choose from the following ocicl commands:
    install [SYSTEM[:VERSION]]...          Install systems
    latest [SYSTEM]...                     Install latest version of systems
    libyear                                Calculate the libyear dependency freshness metric
-   lint PATH...                           Lint Common Lisp files, directories, or .asd systems
+   lint [OPTIONS] PATH...                 Lint Common Lisp files
    list SYSTEM...                         List available system versions
    new APP-NAME [TEMPLATE] [KEY=VALUE]... Create a new app
    remove [SYSTEM]...                     Remove systems
    setup [GLOBALDIR]                      Mandatory ocicl configuration
    templates [list]                       List available templates
    templates dirs                         Show template search path
-   tree [SYSTEM]...                       Print tree of installed systems
+   tree [OPTIONS] [SYSTEM]...             Print tree of installed systems
+   update [OPTIONS]                       Update ocicl from GitHub releases
    version                                Show the ocicl version information
+
+Use 'ocicl COMMAND --help' for command-specific options.
 
 Distributed under the terms of the MIT License
 ```

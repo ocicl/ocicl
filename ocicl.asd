@@ -66,7 +66,7 @@
 
   :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
-                :version-string :alexandria :serapeum
+                :version-string :alexandria :serapeum :cl-selfupdate/drakma
                 :ecclesia :rewrite-cl
 
                 ;; sbcl internals
