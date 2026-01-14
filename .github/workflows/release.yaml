@@ -101,6 +101,57 @@ jobs:
             ./*.changes
 
   # ========================================
+  # Build Linux standalone tarball
+  # ========================================
+  build-linux-tarball:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    container:
+      image: debian:stable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y sbcl libfixposix-dev gcc make
+
+      - name: Build
+        run: sbcl --load setup.lisp
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Collect third-party licenses
+        run: |
+          ./ocicl collect-licenses > THIRD-PARTY-LICENSES.txt
+
+      - name: Package Linux binary (tar.gz)
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p dist
+          cp ocicl README.md LICENSE THIRD-PARTY-LICENSES.txt dist/
+          tar czf "ocicl-${VERSION}-linux-amd64.tar.gz" -C dist .
+
+      - name: Calculate checksums
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sha256sum ocicl-${VERSION}-linux-amd64.tar.gz > checksums-linux.txt
+          cat checksums-linux.txt
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-package
+          path: |
+            ./*.tar.gz
+            ./checksums-linux.txt
+
+  # ========================================
   # Build Windows executable and installers
   # ========================================
   build-windows:
@@ -236,7 +287,7 @@ jobs:
   # Create GitHub Release
   # ========================================
   release:
-    needs: [build-rpm, build-deb, build-windows, build-chocolatey]
+    needs: [build-rpm, build-deb, build-linux-tarball, build-windows, build-chocolatey]
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
@@ -265,6 +316,8 @@ jobs:
             artifacts/deb-packages/*.deb
             artifacts/deb-packages/*.dsc
             artifacts/deb-packages/*.tar.*
+            artifacts/linux-package/*.tar.gz
+            artifacts/linux-package/checksums-linux.txt
             artifacts/windows-package/*.zip
             artifacts/windows-package/*-setup.exe
             artifacts/windows-package/*.msi
