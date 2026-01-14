@@ -839,10 +839,10 @@ ocicl update [OPTIONS]
 
 | Option | Description |
 |--------|-------------|
-| `--check` | Check for updates without installing |
-| `--dry-run` | Download but don't apply the update |
-| `--prerelease`, `--pre` | Include prerelease versions |
-| `--help` | Show update command help |
+| `-c`, `--check` | Check for updates without downloading |
+| `-n`, `--dry-run` | Download but don't apply the update |
+| `-p`, `--prerelease`, `--pre` | Include prerelease versions |
+| `-h`, `--help` | Show update command help |
 
 ### Examples
 

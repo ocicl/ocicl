@@ -541,15 +541,15 @@ Distributed under the terms of the MIT License"
   (format t "Usage: ocicl update [OPTIONS]~%~%")
   (format t "Update ocicl from GitHub releases.~%~%")
   (format t "Options:~%")
-  (format t "  -n, --dry-run     Check for updates without applying~%")
-  (format t "  -c, --check       Same as --dry-run~%")
+  (format t "  -c, --check       Check for updates without downloading~%")
+  (format t "  -n, --dry-run     Download but don't apply the update~%")
   (format t "  -p, --prerelease  Include prerelease versions~%")
   (format t "  -h, --help        Show this help message~%")
   (uiop:quit 0))
 
 (defun parse-update-args (args)
   "Parse update subcommand arguments.
-Returns (values dry-run include-prerelease)."
+Returns (values check-only dry-run include-prerelease)."
   (multiple-value-bind (options remaining)
       (parse-command-options args *update-option-specs* "update")
     (when remaining
@@ -558,7 +558,8 @@ Returns (values dry-run include-prerelease)."
       (uiop:quit 1))
     (when (getf options :help)
       (update-help))
-    (values (or (getf options :dry-run) (getf options :check))
+    (values (getf options :check)
+            (getf options :dry-run)
             (or (getf options :prerelease) (getf options :pre)))))
 
 (defun normalize-semver-string (version)
@@ -569,7 +570,7 @@ Returns (values dry-run include-prerelease)."
       semver)))
 
 (defun do-update (args)
-  (multiple-value-bind (dry-run include-prerelease)
+  (multiple-value-bind (check-only dry-run include-prerelease)
       (parse-update-args args)
     (handler-case
         (let* ((executable-name (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))
@@ -578,13 +579,37 @@ Returns (values dry-run include-prerelease)."
             (format *error-output*
                     "ocicl update: warning: unable to parse version ~S; assuming 0.0.0~%"
                     +version+))
-          (cl-selfupdate:update-self
-           "ocicl"
-           "ocicl"
-           :current-version current-version
-           :executable-name executable-name
-           :include-prerelease include-prerelease
-           :dry-run dry-run))
+          (if check-only
+              ;; Check-only mode: just report if update is available
+              (progn
+                (format *error-output* "Checking for updates to ocicl/ocicl (GitHub)...~%")
+                (format *error-output* "Current version: ~A~%" current-version)
+                (multiple-value-bind (release newer-p)
+                    (cl-selfupdate:update-available-p
+                     "ocicl" "ocicl"
+                     :current-version current-version
+                     :include-prerelease include-prerelease)
+                  (cond
+                    ((not release)
+                     (format *error-output* "No releases found.~%"))
+                    ((not newer-p)
+                     (format *error-output* "Already up to date.~%"))
+                    (t
+                     (format *error-output* "New version available: ~A~%"
+                             (cl-selfupdate:safe-print-version
+                              (cl-selfupdate:release-version release)))
+                     (let ((notes (cl-selfupdate:release-notes release)))
+                       (when (and notes (plusp (length notes)))
+                         (format *error-output* "~%Release Notes:~%~A~%" notes)))
+                     (format *error-output* "~%Run 'ocicl update' to install.~%")))))
+              ;; Full update mode
+              (cl-selfupdate:update-self
+               "ocicl"
+               "ocicl"
+               :current-version current-version
+               :executable-name executable-name
+               :include-prerelease include-prerelease
+               :dry-run dry-run)))
       (error (e)
         (format *error-output* "ocicl update failed: ~A~%" e)
         (uiop:quit 1)))))
