@@ -595,13 +595,15 @@ Returns (values check-only dry-run include-prerelease)."
                     ((not newer-p)
                      (format *error-output* "Already up to date.~%"))
                     (t
-                     (format *error-output* "New version available: ~A~%"
-                             (cl-selfupdate:safe-print-version
-                              (cl-selfupdate:release-version release)))
-                     (let ((notes (cl-selfupdate:release-notes release)))
-                       (when (and notes (plusp (length notes)))
-                         (format *error-output* "~%Release Notes:~%~A~%" notes)))
-                     (format *error-output* "~%Run 'ocicl update' to install.~%")))))
+                     (let ((new-version (cl-selfupdate:release-version release)))
+                       (format *error-output* "New version available: ~A~%"
+                               (if new-version
+                                   (semver:print-version-to-string new-version)
+                                   "unknown"))
+                       (let ((notes (cl-selfupdate:release-notes release)))
+                         (when (and notes (plusp (length notes)))
+                           (format *error-output* "~%Release Notes:~%~A~%" notes)))
+                       (format *error-output* "~%Run 'ocicl update' to install.~%"))))))
               ;; Full update mode
               (cl-selfupdate:update-self
                "ocicl"
