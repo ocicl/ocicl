@@ -31,6 +31,7 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
 - [Dependency Freshness](#dependency-freshness)
 - [License Collection](#license-collection)
 - [SBOM Generation](#sbom-generation)
+- [Self-Updates](#self-updates)
 - [Security](#security)
 - [Self-Hosting](#self-hosting)
 - [Systems](#systems)
@@ -822,6 +823,53 @@ The generated SBOM includes:
 - **Security**: Track dependencies for vulnerability management
 - **Supply chain**: Document your software supply chain
 - **Auditing**: Provide auditors with comprehensive dependency information
+
+Self-Updates
+------------
+
+The `ocicl update` command checks for new versions and updates the `ocicl` binary itself from GitHub releases.
+
+### Usage
+
+```bash
+ocicl update [OPTIONS]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--check` | Check for updates without installing |
+| `--dry-run` | Download but don't apply the update |
+| `--prerelease`, `--pre` | Include prerelease versions |
+| `--help` | Show update command help |
+
+### Examples
+
+```bash
+# Check for updates without installing
+ocicl update --check
+
+# Update to the latest version
+ocicl update
+
+# Include prerelease versions in update check
+ocicl update --prerelease
+
+# Download but don't apply (for testing)
+ocicl update --dry-run
+```
+
+### How It Works
+
+The update command:
+1. Queries GitHub releases for the `ocicl/ocicl` repository
+2. Compares the latest release version with your installed version
+3. Downloads the appropriate binary for your platform (Linux, macOS, Windows)
+4. Validates the download (SHA256 checksum when available)
+5. Atomically replaces the current executable with a backup for rollback
+
+The update is performed in-place with automatic rollback on failure, ensuring your installation is never left in a broken state.
 
 Security
 --------
