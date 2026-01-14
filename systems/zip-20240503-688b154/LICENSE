@@ -1,0 +1,85 @@
+History
+-------
+
+This repository includes
+
+  1. ZIP source code authored by David Lichteblau -- all there changes
+     were originally under Lisp-LGPL but relicensed under a BSD-style
+     license (reproduced below) in 2015.
+
+  2. inflate.cl and other parts covered under the so-called Lisp-LGPL,
+     i.e. a special preamble combined with the Library/Lesser General
+     Public License.  File header from inflate.cl reproduced below.
+
+  3. Some patches from contributors.  For these parts, explicit
+     permission to relicense according to (1) may still be pending.
+     (Please update this section accordingly.)
+
+Files
+-----
+
+zip.lisp, sbcl.lisp, acl.lisp
+	Copyright (c) 2004,2005 David Lichteblau <david@lichteblau.com>
+        Lizenz: BSD, (L)LGPL
+	COMPRESS function taken from Zachary Beane's salza.
+        Changes copyright (c) 2004 knowledgeTools Int. GmbH
+
+inflate.lisp
+        copyright (c) 1986-2000 Franz Inc, Berkeley, CA
+        (moved into the "ZIP" package, no other changes)
+
+For reference, here the individual licenses
+
+------------------------------------------------------------------------
+BSD-style license (where applicable)
+------------------------------------------------------------------------
+Copyright (c) 2004-2015 David Lichteblau and contributors. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+  * Redistributions in binary form must reproduce the above
+    copyright notice, this list of conditions and the following
+    disclaimer in the documentation and/or other materials
+    provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR 'AS IS' AND ANY EXPRESSED
+OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+------------------------------------------------------------------------
+Lisp-LGPL license (remainder of this section copied verbatim from inflate.cl):
+------------------------------------------------------------------------
+
+;; copyright (c) 1986-2000 Franz Inc, Berkeley, CA 
+;;
+;; This code is free software; you can redistribute it and/or
+;; modify it under the terms of the version 2.1 of
+;; the GNU Lesser General Public License as published by 
+;; the Free Software Foundation, as clarified by the AllegroServe
+;; prequel found in license-allegroserve.txt.
+;;
+;; This code is distributed in the hope that it will be useful,
+;; but without any warranty; without even the implied warranty of
+;; merchantability or fitness for a particular purpose.  See the GNU
+;; Lesser General Public License for more details.
+;;
+;; Version 2.1 of the GNU Lesser General Public License is in the file 
+;; license-lgpl.txt that was distributed with this file.
+;; If it is not present, you can access it from
+;; http://www.gnu.org/copyleft/lesser.txt (until superseded by a newer
+;; version) or write to the Free Software Foundation, Inc., 59 Temple Place, 
+;; Suite 330, Boston, MA  02111-1307  USA

@@ -1,0 +1,145 @@
+                            Common Lisp ZIP library
+
+   A library for .zip-file reading and writing, written in Common Lisp.
+
+   Credits: David Lichteblau, Tomas Hlavaty. Thanks to everyone who has
+   contributed patches.
+
+   Send bug reports to [1]<zip-devel@common-lisp.net> ([2]list
+   information).
+
+   Thanks to [3]common-lisp.net for web site and mailing list hosting.
+   Please note the repository on [4]github.
+
+   Uses [5]salza2 for compression, [6]flexi-streams for external format
+   support, [7]trivial-gray-streams for gray streams portability, and
+   includes [8]inflate.cl for decompression.
+
+Recent changes
+
+   2015: Move to github, and backport of changes from downstream fork
+   (Thanks to Tomas Hlavaty.)
+
+   2006 -- 2011: During this time a fork occurred. The common-lisp.net
+   version of the library received little attention, except that it was
+   ported to ASDF2. (Thanks to Faré Rideau.)
+
+   2006: Fixed the gray stream port, including a data corruption bug that
+   was in CVS for some time. (Thanks to Kevin Reid and others.) Switched
+   to flexi-stream external-format functions for portability. Uses
+   trivial-gray-streams now. Allegro 8.0 fix (thanks to Edi Weitz).
+   Comment support (thanks to Surendra Singhi). Incompatible change: Don't
+   bind *locale* on Allegro anymore.
+
+   2005-04-05: ACL fixes (thank to Edi Weitz). Lispworks port (thanks to
+   Sean Ross). Store file-write-date (also fixes FilZip compatibility).
+
+Download
+
+     * Using Quicklisp (if in doubt, this is a good way to get started):
+(ql:quickload :zip)
+     * From github:
+git clone https://github.com/bluelisp/zip
+     * Using clbuild2 from github:
+clbuild install-from-upstream zip
+       -- For the one or two clbuild users out there
+     * Using clbuild2 via QuickLisp:
+clbuild quickload zip
+       -- Ditto
+     * Tarball releases -- Unfortunately we are not currently offering a
+       release tarball for download.
+
+Portability
+
+   Needs gray streams. The original version had separate support
+   out-of-the-box on SBCL, Lispworks, and ACL. The fork briefly introduced
+   some features specific to simple-stream / ACL. We believe the library
+   to currently be portable to most popular Common Lisp implementations,
+   but patches are welcome.
+
+ZIP-file reading
+
+   Zip archives are represented as opaque handles. Entries of the zip-file
+   are named by strings and represented as objects, too.
+
+   Function OPEN-ZIPFILE (pathname) => zipfile
+
+   Open .zip-file pathname for reading and return a handle for it.
+
+   Function CLOSE-ZIPFILE (zipfile)
+
+   Close the file handle.
+
+   Macro WITH-ZIPFILE ((var pathname) &body body) => result of body
+
+   Bind var to the result of open-zipfile, evaluate body as an implicit
+   progn and call close-zipfile before exiting.
+
+   Function GET-ZIPFILE-ENTRY (name zipfile) => zipfile-entry
+
+   Return an entry handle for the file called name.
+
+   Function ZIPFILE-ENTRIES (zipfile) => hash-table
+
+   Return a hash-table mapping filenames to entry handles for all files
+   contained in the zip archive.
+
+   Macro DO-ZIPFILE-ENTRIES ((name-var entry-var zipfile) &body body) =>
+   nil
+
+   Map over all entries in zipfile binding name-var and entry-var to each
+   file name and entry handle in turn. Establish implicit block named nil
+   around the loop.
+
+   Function ZIPFILE-ENTRY-NAME (zipfile-entry) => string
+
+   Return an entry's file name as a string.
+
+   Function ZIPFILE-ENTRY-CONTENTS (entry &optional stream) => see below
+
+   If stream is given, extract entry to the (unsigned-byte 8) stream given
+   as the argument. Otherwise, return the entry contents as an
+   (unsigned-byte 8) vector.
+
+   Function UNZIP (pathname target-directory &key if-exists verbose) =>
+   nil
+
+   Extract all entries from the zip archive at pathname into
+   target-directory. if-exists as for [9]cl:open.
+
+ZIP-file writing
+
+   zipwriters are handles used to create zip archives. They are distinct
+   from the zip handles used for reading.
+
+   Macro WITH-OUTPUT-TO-ZIPFILE ((var pathname &key if-exists) &body body)
+
+   Function WRITE-ZIPENTRY (zipwriter name data &key file-write-date)
+
+   Append a new entry called name to zipwriter. Read data from
+   (unsigned-byte 8) stream data until EOF and compress it into
+   "deflate"-format. Use file-write-date as the entry's date and time.
+   Default to (file-write-date data), use 1980-01-01T00:00 if nil.
+
+   Function ZIP (pathname source-directory &key if-exists)
+
+   Compress all files in source-directory recursively into a new zip
+   archive at pathname. Note that entry file names will not contain the
+   name source-directory.
+
+Bookmark
+
+   [10]spec
+
+References
+
+   1. mailto:zip-devel@common-lisp.net
+   2. http://common-lisp.net/cgi-bin/mailman/listinfo/zip-devel
+   3. http://common-lisp.net/
+   4. https://github.com/bluelisp/zip
+   5. http://www.xach.com/lisp/salza2/
+   6. http://www.weitz.de/flexi-streams/
+   7. http://common-lisp.net/project/cl-plus-ssl/#trivial-gray-streams
+   8. http://opensource.franz.com/deflate/
+   9. http://www.xach.com/clhs.php?open
+  10. http://www.pkware.com/company/standards/appnote/appnote.txt

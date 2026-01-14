@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <title>Common Lisp ZIP library</title>
+    <style type="text/css">
+      body {
+        color: #000000;
+        background-color: #ffffff;
+        margin-bottom: 10%;
+        padding-left: 30px;
+      }
+      h1,h2,h3 {
+        margin-left: -30px;
+      }
+      pre {
+        background-color: #eeeeee;
+        border: solid 1px #d0d0d0;
+        padding: 1em;
+        margin-right: 10%;
+      }
+      .def {
+        background-color: #ddddff;
+        font-weight: bold;
+      }
+      .nomargin {
+        margin-bottom: 0;
+        margin-top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Common Lisp ZIP library</h1>
+
+    <p>A library for .zip-file reading and writing, written in Common Lisp.</p>
+
+    <p>
+      Credits: David Lichteblau, Tomas Hlavaty.  Thanks to everyone who
+      has contributed patches.
+    </p>
+    <p>
+      Send bug reports to <a
+      href="mailto:zip-devel@common-lisp.net">&lt;zip-devel@common-lisp.net&gt;</a>
+      (<a
+      href="http://common-lisp.net/cgi-bin/mailman/listinfo/zip-devel">list information</a>).
+    </p>
+    <p>
+      Thanks to <a href="http://common-lisp.net">common-lisp.net</a> for
+      web site and mailing list hosting.  Please note the repository
+      on <a href="https://github.com/bluelisp/zip">github</a>.
+    </p>
+    <p>
+      Uses <a href="http://www.xach.com/lisp/salza2/">salza2</a> for
+      compression, <a
+      href="http://www.weitz.de/flexi-streams/">flexi-streams</a> for external
+      format support, <a
+      href="http://common-lisp.net/project/cl-plus-ssl/#trivial-gray-streams">trivial-gray-streams</a>
+      for gray streams portability, and includes <a
+      href="http://opensource.franz.com/deflate/">inflate.cl</a>
+      for decompression.
+    </p>
+
+    <h2>Recent changes</h2>
+    <p>
+      2015: Move to github, and backport of changes from downstream fork
+      (Thanks to Tomas Hlavaty.)
+    <p>
+    <p>
+      2006 -- 2011: During this time a fork occurred.  The
+      common-lisp.net version of the library received little attention,
+      except that it was ported to ASDF2.  (Thanks to Faré Rideau.)
+    <p>
+    <p>
+      2006: Fixed the gray stream port, including a data corruption bug
+      that was in CVS for some time.  (Thanks to Kevin Reid and others.)
+      Switched to flexi-stream external-format functions for
+      portability.  Uses trivial-gray-streams now.  Allegro 8.0 fix
+      (thanks to Edi Weitz).  Comment support (thanks to Surendra
+      Singhi).  Incompatible change: Don't bind
+      <tt>*locale*</tt> on Allegro anymore.
+    <p>
+    </p>
+      2005-04-05: ACL fixes (thank to Edi Weitz).  Lispworks port
+      (thanks to Sean Ross).  Store <tt>file-write-date</tt> (also fixes
+      FilZip compatibility).
+    </p>
+
+    <h2>Download</h2>
+    <ul>
+      <li>Using Quicklisp (if in doubt,
+	this is a good way to get started):<br/>
+	<pre>(ql:quickload :zip)</pre></li>
+      <li>From github: <pre>git clone https://github.com/bluelisp/zip</pre></li>
+      <li>Using clbuild2 from github: <pre>clbuild install-from-upstream zip</pre> &#45;&#45; For the one or two clbuild users out there</li>
+      <li>Using clbuild2 via QuickLisp: <pre>clbuild quickload zip</pre> &#45;&#45; Ditto</li>
+      <li>Tarball releases &#45;&#45; Unfortunately we are not currently offering a release tarball for download.</li>
+    </ul>
+
+    <h2>Portability</h2>
+    <p>
+      Needs gray streams.  The original version had separate support
+      out-of-the-box on SBCL, Lispworks, and ACL.  The fork briefly
+      introduced some features specific to simple-stream / ACL.  We
+      believe the library to currently be portable to most popular
+      Common Lisp implementations, but patches are welcome.
+    </p>
+
+    <h2>ZIP-file reading</h2>
+    <p>
+      Zip archives are represented as opaque handles.  Entries of the
+      zip-file are named by strings and represented as objects, too.
+    </p>
+
+    <div class="def">Function OPEN-ZIPFILE (pathname) => zipfile</div>
+    <p>
+      Open .zip-file <tt>pathname</tt> for reading and return a handle for it.
+    </p>
+    <div class="def">Function CLOSE-ZIPFILE (zipfile)</div>
+    <p>
+      Close the file handle.
+    </p>
+
+    <div class="def">Macro WITH-ZIPFILE ((var pathname) &body body) => result of body</div>
+    <p>
+      Bind <tt>var</tt> to the result of <tt>open-zipfile</tt>, evaluate
+      body as an implicit progn and call <tt>close-zipfile</tt> before
+      exiting.
+    </p>
+
+    <div class="def">Function GET-ZIPFILE-ENTRY (name zipfile) => zipfile-entry</div>
+    <p>Return an entry handle for the file called <tt>name</tt>.</p>
+    <div class="def">Function ZIPFILE-ENTRIES (zipfile) => hash-table</div>
+    <p>
+      Return a hash-table mapping filenames to entry handles for all
+      files contained in the zip archive.
+    </p>
+    <div class="def">Macro DO-ZIPFILE-ENTRIES ((name-var entry-var zipfile) &body body) => nil</div>
+    <p>
+      Map over all entries in <tt>zipfile</tt> binding <tt>name-var</tt>
+      and <tt>entry-var</tt> to each file name and entry handle in
+      turn.  Establish implicit block named <tt>nil</tt> around the
+      loop.
+    </p>
+
+    <div class="def">Function ZIPFILE-ENTRY-NAME (zipfile-entry) => string</div>
+    <p>Return an entry's file name as a string.</p>
+    <div class="def">Function ZIPFILE-ENTRY-CONTENTS (entry &optional
+    stream) => see below</div>
+    <p>
+      If <tt>stream</tt> is given, extract <tt>entry</tt> to the
+      <tt>(unsigned-byte 8)</tt> stream given as the argument.
+      Otherwise, return the entry contents as an <tt>(unsigned-byte
+      8)</tt> vector.
+    </p>
+
+    <div class="def">Function UNZIP (pathname target-directory &key if-exists verbose) => nil</div>
+    <p>
+      Extract all entries from the zip archive at <tt>pathname</tt> into
+      <tt>target-directory</tt>.  <tt>if-exists</tt> as for <a
+      href="http://www.xach.com/clhs.php?open">cl:open</a>.
+    </p>
+
+    <h2>ZIP-file writing</h2>
+    <p>
+      <tt>zipwriter</tt>s are handles used to create zip archives. They
+      are distinct from the zip handles used for reading.
+    </p>
+    <div class="def">Macro WITH-OUTPUT-TO-ZIPFILE ((var pathname &key if-exists) &body body)</div>
+    <p>
+    </p>
+
+    <div class="def">Function WRITE-ZIPENTRY (zipwriter name data &key file-write-date)</div>
+    <p>
+      Append a new entry called <tt>name</tt> to <tt>zipwriter</tt>.
+      Read data from <tt>(unsigned-byte 8)</tt> stream <tt>data</tt>
+      until EOF and compress it into "deflate"-format.
+      Use <tt>file-write-date</tt> as the entry's date and time.
+      Default to <tt>(file-write-date data)</tt>, use 1980-01-01T00:00
+      if <tt>nil</tt>.
+    </p>
+
+    <div class="def">Function ZIP (pathname source-directory &key if-exists)</div>
+    <p>
+      Compress all files in <tt>source-directory</tt> recursively into a
+      new zip archive at <tt>pathname</tt>.  Note that entry file names
+      will not contain the name <tt>source-directory</tt>.
+    </p>
+
+    <h2>Bookmark</h2>
+    <p>
+      <a href="http://www.pkware.com/company/standards/appnote/appnote.txt">spec</a>
+    </p>
+  </body>
+</html>

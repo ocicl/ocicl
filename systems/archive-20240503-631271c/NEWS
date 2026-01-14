@@ -1,0 +1,134 @@
+-*- mode: outline -*-
+
+* Version 0.9, released 16-12-2012
+
+** bugfixes
+
+Handling of absolute pathnames when creating tar archives was fixed.
+(Thanks to Vsevolod Dymokin.)
+
+Handling of *PRINT-CASE* when interning symbols was fixed.  (Thanks to
+Orivej Desh.)
+
+* Version 0.8.1, release 19-07-2010
+
+** new features
+
+Support was adding for writing directories and recursively adding files
+in directories.  (Thanks to Vsevolod Dyomkin.)
+
+A condition hierarchy was added.
+
+* Version 0.8, released 18-12-2009
+
+** bugfixes
+
+ARCHIVE can now read POSIX extended header entries, such as those
+created by git.  The data from them are currently ignored.
+
+Fixed extraction of files on SBCL, CMUCL, and Lispworks.  (Thanks to
+Elliot Slaughter.)
+
+Fixed compilation error in CLISP.  (Thanks to Elliot Slaughter.)
+
+Fixed calling out to _stat on Lispworks/Win32.  (Thanks to Luke Crook.)
+
+* Version 0.7, released 09-02-2008
+
+** bugfixes
+
+Due to a packaging snafu, the Lispworks/Win32 support contributed by
+Sean Ross was not included in previous versions.  This oversight has
+been fixed.
+
+ARCHIVE now works correctly with archives created by BSD tar variants.
+(Thanks to Matthew Kennedy.)
+
+ARCHIVE now works much better on Win32 SBCL.  (Thanks to Matthew
+Kennedy.)
+
+* Version 0.6, released 30-04-2007
+
+** incompatible changes
+
+The :WRITE-FILE-DATA argument to WRITE-ENTRY-TO-STREAM has been
+renamed to :STREAM and its semantics changed.  Please see the
+documentation string for details about the semantics of :STREAM.
+
+The dependence on FLEXI-STREAMS has been removed; ENTRY-STREAM now
+returns a stream with element-type (UNSIGNED-BYTE 8).  This was done to
+facilitate using implementation-dependent translation streams.
+
+** bugfixes
+
+The names of the archive classes (TAR-ARCHIVE, ODC-CPIO-ARCHIVE,
+SVR4-CPIO-ARCHIVE) have been exported from ARCHIVE for easier access.
+
+Error checking for READ-ENTRY-FROM-ARCHIVE and WRITE-ENTRY-TO-ARCHIVE
+has been tightened.
+
+** new features
+
+ARCHIVE now knows how to extract directories.
+
+WITH-OPEN-ARCHIVE now accepts either a pathname or a stream from which
+to open an archive.  (Thanks to Sean Ross.)
+
+ARCHIVE can now create archives on Lispworks/Win32.  (Thanks to Sean
+Ross.)
+
+A new generic function, (SETF NAME) has been added for setting the
+name of an archive entry.
+
+A family of functions, ENTRY-<foo>-P, have been added for determining
+what sort of file an entry is associated with.  Please see the
+documentation strings for these functions for details.
+
+* Version 0.5, released 12-01-2006
+
+The README contains a few examples of the library's use.
+
+** bugfixes
+
+Several bugs have been fixed with this release.  The file buffering
+code, a source of bugs in the past, has been completely re-written.
+
+** new features
+
+ARCHIVE now understands GNU-style "long filename" and "long linkname"
+entries in tar files.
+
+CLISP is now a supported implementation for creating archives.  Other
+relevant fixes for CLISP have been made as well.  (Thanks to Magnus
+Henoch.)
+
+CMUCL is now a supported implementation for creating archives.
+
+Accessing the data associated with an archive entry has been revamped
+thanks to the use of Edi Weitz's FLEXI-STREAMS library.  Please see
+the documentation string for ENTRY-STREAM for an explanation and the
+example of its use in the README file.
+
+* Version 0.3.1, released 11-02-2005
+
+** new features
+
+Sean Ross contributed a compatibility layer for Lispworks as well as
+some other small fixes.
+
+* Version 0.2, released 05-01-2004
+
+ARCHIVE no longer comes in a single 'tar.lisp' file, instead being
+split across multiple files and tied together with an ASDF file, as
+is standard for Common Lisp projects nowadays.
+
+** new features
+
+Support for reading cpio archives.  The input layer was rewritten
+somewhat to support this, but the output layer has not yet had the
+corresponding changes made.  Old-style and SVR4-style cpio archives are
+supported.
+
+* Version 0.1, released 15-12-2004
+
+Initial release

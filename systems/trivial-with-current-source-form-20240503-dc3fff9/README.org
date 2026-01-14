@@ -1,0 +1,137 @@
+#+OPTIONS: toc:nil num:nil
+
+* Introduction
+
+  This library allows macro writers to provide better feedback to
+  macro users when errors are signaled during macroexpansion.
+
+  #+BEGIN_QUOTE
+    Note: While this library can be loaded into and used in any Common
+    Lisp implementation, the improved behavior described below is only
+    available in [[https://github.com/clasp-developers/clasp][CLASP]] and [[http://www.sbcl.org][SBCL]] (only in versions 1.3.13 and newer).
+  #+END_QUOTE
+
+  For example, consider the following macro
+
+  #+BEGIN_SRC lisp
+    (defmacro even-number-case (value &body clauses)
+      "Like `cl:case' but each key has to be an even number."
+      (alexandria:once-only (value)
+        `(cond ,@(mapcar (lambda (clause)
+                           (destructuring-bind (number &rest body) clause
+                             (unless (evenp number)
+                               (error "Only even numbers are allowed."))
+                             `((= ,value ,number)
+                               ,@body)))
+                         clauses))))
+  #+END_SRC
+
+  This is fine if the expansion does not signal an error. If it does,
+  however, it is not immediately clear which of the clauses (if any)
+  caused the error:
+
+  #+BEGIN_SRC lisp
+    (defun foo (x)
+      (even-number-case x
+        (2 :two)
+        (4 :four)
+        (5 :fix)
+        (8 :eight)
+        (10 :ten)))
+  #+END_SRC
+
+  [[file:pictures/bad-expansion-error.png]]
+
+  The problem is not very hard to spot in the above code, but think of
+  macros for declaring complex things like ~cl:defpackage~ or
+  ~cl:defclass~ or macros for domain specific languages, and the
+  problem becomes more severe.
+
+  The mechanism provided by this library is the
+  ~with-current-source-form~ macro. The macro is intended to surround
+  parts of macro expanders that process certain sub-forms of the form
+  passed to the expander:
+
+  #+BEGIN_SRC lisp
+    (defmacro even-number-case (value &body clauses)
+      "Like `cl:case' but each key has to be an even number."
+      (alexandria:once-only (value)
+        `(cond ,@(mapcar (lambda (clause)
+                           (trivial-with-current-source-form:with-current-source-form (clause)
+                             (destructuring-bind (number &rest body) clause
+                               (unless (evenp number)
+                                 (error "Only even numbers are allowed."))
+                               `((= ,value ,number)
+                                 ,@body))))
+                         clauses))))
+  #+END_SRC
+
+  The effect of the above change is that the implementation can now
+  report a more useful location when reporting the error during macro
+  expansion. Other tools like SLIME benefit from this functionality as
+  well:
+
+  [[file:pictures/better-expansion-error.png]]
+
+* Tutorial
+
+  Since the example given in the [[*Introduction]] should explain the
+  basic usage of this library, here are just a few additional hints:
+
+  + ~trivial-with-current-source-form:with-current-source-form~
+    optionally accepts additional source forms besides the mandatory
+    one. The reason for this mechanism is that a Common Lisp
+    implementation may be unable to produce a source location for the
+    most specific source form, for example if that form is a symbol or
+    a number. In such cases, the client may be able to help the
+    implementation by providing additional, less specific source forms
+    which contain the first form as sub-forms.
+
+    For example, if a macro expansion function detects a problem with
+    ~foo~ (bound to, say, ~head~ in the expansion function) in ~(foo
+    bar baz)~ (bound to ~call~ in the expansion function), the
+    expansion function could provide the source information as
+
+    #+BEGIN_SRC
+      (trivial-with-current-source-form:with-current-source-form (head call)
+        …)
+    #+END_SRC
+
+    in case the implementation cannot handle just ~head~.
+
+* Reference
+
+  #+BEGIN_SRC lisp :results none :exports none
+    #.(progn
+        #1=(ql:quickload '("trivial-with-current-source-form" "alexandria" "split-sequence"))
+        '#1#)
+    (defun doc (symbol kind)
+      (let* ((lambda-list (sb-introspect:function-lambda-list symbol))
+             (string      (documentation symbol kind))
+             (lines       (split-sequence:split-sequence #\Newline string))
+             (trimmed     (mapcar (alexandria:curry #'string-left-trim '(#\Space)) lines)))
+        (format nil "~(~A~) ~<~{~A~^ ~}~:@>~2%~{~A~^~%~}"
+                symbol (list lambda-list) trimmed)))
+  #+END_SRC
+
+  #+BEGIN_SRC lisp :results value :exports results
+    (doc 'trivial-with-current-source-form:with-current-source-form 'function)
+  #+END_SRC
+
+  #+RESULTS:
+  #+BEGIN_EXAMPLE
+  with-current-source-form (FORM &REST FORMS) &BODY BODY
+
+  In a macroexpander, indicate that FORM, FORMS are being processed by BODY.
+
+  FORMS are usually sub-forms of the whole form passed to the expander.
+
+  If more than one form is supplied, FORMS should be ordered by
+  specificity, with the most specific form first. This allows the
+  compiler to try and obtain a source path using subsequent elements of
+  FORMS if it fails for the first one.
+
+  Indicating the processing of sub-forms lets the compiler report
+  precise source locations in case conditions are signaled during the
+  execution of BODY.
+  #+END_EXAMPLE

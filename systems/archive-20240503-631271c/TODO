@@ -1,0 +1,35 @@
+-*- mode: outline -*-
+
+* Support other CL implementations
+
+Any CL implementation should be able to read archives
+SBCL/CMUCL/CLISP/Lispworks are the only implementations capable of
+writing archives at this point.
+
+* Improving extraction
+
+Extraction really only supports plain files.  Directories, at the very
+least, should be supported.  Symbolic and hard links would be good.
+Better restoration of metadata (keyword arguments to the EXTRACT-ENTRY
+call) would also be desirable.
+
+* Make buffering conform to the POSIX standard
+
+Tar files, for example, are supposed to read and write data in blocks
+of 10240 bytes, which ARCHIVE does not currently do.
+
+* Read/write support for pax-style archives
+
+Self-explanatory.
+
+* Support for writing cpio archives
+
+Self-explanatory, although people are probably not clamoring for this.
+
+* Autodetection of archive formats
+
+* Appending to archives
+
+This support will be tricky to add.
+
+* Robust error handling, particularly with truncated archives

@@ -1,0 +1,89 @@
+h1. jsown, high performance Common Lisp json parser
+
+jsown is a high performance Common Lisp json parser.  Its aim is to allow for the fast parsing of json objects in CL.  Recently, functions and macros have been added to ease the burden of writing and editing jsown objects.
+
+jsown allows you to parse json objects quickly to a modifiable lisp list and write them back.  If you only need partial retrieval of objects, jsown allows you to select the keys which you would like to see parsed.  jsown also has a json writer and some helper methods to alter the json objects themselves.
+
+h2. parsing json objects
+
+In order to parse a json object, simply use the @parse@ function.
+<pre><code>  (jsown:parse "{\"foo\":\"bar\",\"baz\":100.25}")
+  =>(:OBJ ("foo" . "bar") ("baz" . 401/4))</code></pre>
+
+Without any extra arguments, the @parse@ function will return all keywords.  In order to select only a few keywords, you can add those keywords in which you're interested:
+<pre><code>  (jsown:parse "{\"foo\":\"bar\",\"frolic\":100,\"fragrance\":10.01,\"for\":\"markup\"}" "foo" "frolic" "fragrance")
+  => (:OBJ ("foo" . "bar") ("frolic" . 100) ("fragrance" . 1001/100))</code></pre>
+
+In order to achieve high performance when parsing specific keywords, the keywords to be found should be known at compile time. The compiler-macro-function can calculate the keyword container with the requested keywords at compile-time.  When specifying the keywords in which you're interested you should ignore any escaped characters.  For instance, supplying the string "foo" will automatically match "f\\\\oo" too."
+
+h2. Using jsown objects
+
+jsown ships with some convience functions to inspect and alter the returned json content.
+
+The fetching of the value given to a certain keyword may be done by using the @val@ function.  This function also has a setf defined on it.
+The @(setf val)@ function may alter the original object, it is however not guaranteed to do so.
+<pre><code>  (jsown:val '(:obj ("foo" . "bar") ("frolic" . 100) ("fragrance" . 1001/100)) "frolic")
+  => 100
+  (setf (jsown:val '(:obj ("foo" . "bar") ("frolic" . 100) ("fragrance" . 1001/100)) "frolic") "I wasn't here before")
+  => (:obj ("foo" . "bar") ("frolic" . "I wasn't here before") ("fragrance" . 1001/100))</code></pre>
+
+You can build objects by using the @val@ function too, albeit it doesn't look really sexy.
+<pre><code>  (setf (jsown:val (setf (jsown:val (setf (jsown:val (jsown:empty-object) "foo") "bar") "bang") (list 1 2 3 "foo" 4 5)) "bingo") 24.93)
+  =>(:obj ("bingo" . 24.93) ("bang" 1 2 3 "foo" 4 5) ("foo" . "bar"))</code></pre>
+
+For building objects, the macros @new-js@ and @extend-js@ can be used.  @new-js@ creates a new jsown object, @extend-js@ extends an existing jsown object.
+
+<pre><code>  (jsown:new-js
+    ("foo" "bar")
+    ("baz" (+ 100 0.25)))
+  => (:obj ("baz" . 100.25) ("foo" . "bar"))</code></pre>
+
+This object can be extended by use of @extend-js@.  Say we store the previously built json object in the parameter @*jsown-obj*@, then we can extend it like so:
+
+<pre><code>  epicdb> (jsown:extend-js *jsown-obj*
+    ("bing" "bang")
+    ("ping" (print "Adding ping") "pong"))
+  => (:obj ("ping" . "pong") ("bing" . "bang") ("baz" . 100.25) ("foo" . "bar"))</code></pre>
+
+For didactical purposes, we've defined ping in more than one form.
+
+In order to see which keywords have been defined in a parsed json object, you can use the @keywords@ function:
+<pre><code>  (jsown:keywords '(:obj ("foo" . "bar") ("frolic" . 100) ("fragrance" . 1001/100)))
+  => ("foo" "frolic" "fragrance")</code></pre>
+
+You can traverse over all keywords by using the @do-json-keys@ macro.
+<pre><code>  CL-USER> (jsown:do-json-keys (keyword value)
+               '(:obj ("foo" . "bar") ("frolic" . 100) ("fragrance" . 1001/100))
+             (format T "~A => ~A~&" keyword value))
+  foo => bar
+  frolic => 100
+  fragrance => 1001/100
+  NIL</code></pre>
+
+Lastly, the @filter@ function allows you to traverse a tree of json objects and interpret its results.
+
+<pre><code>  (jsown:filter (jsown:new-js
+                  ("one" 100)
+                  ("two" (jsown:new-js
+                           ("three" (list (jsown:new-js ("four" (jsown:new-js
+                                                                  ("five" "result-one"))))
+                                          (jsown:new-js ("four" (jsown:new-js
+                                                                  ("five" "result-two"))))
+                                          (jsown:new-js ("four" (jsown:new-js
+                                                                  ("five" "result-three")))))))))
+                "two" "three" map "four" "five")
+  => ("result-one" "result-two" "result-three")</code></pre>
+
+h2. Writing json objects
+
+jsown supports the writing of json objects too, use the @to-json@ CLOS method for this.  You can provide an implementation for this method for your own objects so those can easily be converted to json too (and it will ensure that nested objects are correctly transformed to json).
+<pre><code>  (jsown:to-json '(:obj ("bingo" . 24.93) ("bang" 1 2 3 "foo" 4 5) ("foo" . "bar")))
+  => "{\"bingo\":24.93,\"bang\":[1,2,3,\"foo\",4,5],\"foo\":\"bar\"}"</code></pre>
+
+When reading json objects, jsown converts their content to the most lispy translation of what was in there.  As such json's @false@ will be translated to nil, which coincidentally also be the translation of json's @[]@.  When writing objects lisp's @nil@ is translated to the empty json list @[]@.  You can write json's @false@ by writing lisp's keywords @:false@ or @:f@.
+
+<pre><code>  (jsown:to-json (jsown:new-js
+                   ("items" nil)
+                   ("falseIsEmptyList" :f)
+                   ("success" t)))
+"{\"success\":true,\"falseIsEmptyList\":false,\"items\":[]}"</code></pre>
