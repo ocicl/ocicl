@@ -87,6 +87,10 @@
 (defvar *template-dirs* nil)
 
 (opts:define-opts
+  (:name :help
+   :description "show this help text"
+   :short #\h
+   :long "help")
   (:name :verbose
    :description "produce verbose output"
    :short #\v
@@ -118,37 +122,120 @@
                    (t
                     (usage)
                     (uiop:quit 1)))))
-  (:name :depth
-   :description "maximum depth for the tree command (integer or \"max\", default 1)"
-   :short #\d
-   :long "depth"
-   :meta-var "NUM"
-   :arg-parser (lambda (arg)
-                 (or (and (equal arg "max") :max)
-                     (ignore-errors (parse-integer arg))
-                     (progn (usage)
-                            (uiop:quit 1)))))
   (:name :insecure
    :description "allow insecure TLS (skip certificate verification)"
    :short #\k
    :long "insecure"))
-;; Template-dir option intentionally disabled for now; reserved for future use.
-
-(defvar *lint-options* '("--fix" "--dry-run" "--max-line-length")
-  "Command-line options that are specific to the lint subcommand.")
-
-(defvar *captured-lint-args* nil
-  "Lint-specific arguments captured during option parsing.")
 
 (defun unknown-option (condition)
-  "Handler for unknown command-line options."
-  (let ((opt (opts:option condition)))
-    (if (member opt *lint-options* :test #'string=)
-        ;; Capture lint-specific options for later use
-        (push opt *captured-lint-args*)
-        ;; Warn about truly unknown options
-        (format t "warning: ~s option is unknown!~%" opt)))
-  (invoke-restart 'opts:skip-option))
+  "Handler for unknown command-line options - error and exit."
+  (format *error-output* "Error: unknown option ~S~%" (opts:option condition))
+  (format *error-output* "Try 'ocicl --help' for usage information.~%")
+  (uiop:quit 1))
+
+;; Global options that take an argument (used to find command boundary)
+(defparameter *global-options-with-args*
+  '("-r" "--registry" "-c" "--color")
+  "Global options that consume the next argument.")
+
+(defun split-args-at-command (args)
+  "Split ARGS into (global-args command cmd-args).
+Global options come before the command name.
+Returns three values: list of global args, command name (or NIL), command args."
+  (let ((global-args nil)
+        (i 0)
+        (args-vec (coerce args 'vector))
+        (n (length args)))
+    (loop while (< i n)
+          for arg = (aref args-vec i)
+          do (cond
+               ;; Option that takes an argument - consume both
+               ((member arg *global-options-with-args* :test #'string=)
+                (push arg global-args)
+                (incf i)
+                (when (< i n)
+                  (push (aref args-vec i) global-args)
+                  (incf i)))
+               ;; Other option (flag) - consume it
+               ((and (> (length arg) 0) (char= (char arg 0) #\-))
+                (push arg global-args)
+                (incf i))
+               ;; Non-option - this is the command
+               (t
+                (return-from split-args-at-command
+                  (values (nreverse global-args)
+                          arg
+                          (coerce (subseq args-vec (1+ i)) 'list))))))
+    ;; No command found - return all as global args
+    (values (nreverse global-args) nil nil)))
+
+;;; Command-specific option parsing infrastructure
+
+(defun parse-command-options (args option-specs command-name)
+  "Parse command-specific options from ARGS.
+OPTION-SPECS is a list of option specifications, each being:
+  (long-name short-char :flag) - boolean flag
+  (long-name short-char :arg parser-fn) - option with argument
+COMMAND-NAME is used for error messages.
+Returns (values option-plist remaining-args)."
+  (let ((options nil)
+        (remaining nil)
+        (i 0)
+        (args-vec (coerce args 'vector))
+        (n (length args)))
+    (loop while (< i n)
+          for arg = (aref args-vec i)
+          do (cond
+               ;; Check if it's an option (starts with -)
+               ((and (> (length arg) 1) (char= (char arg 0) #\-))
+                (let ((spec (find-option-spec arg option-specs)))
+                  (cond
+                    ;; Known option
+                    (spec
+                     (destructuring-bind (long-name short-char type &optional parser) spec
+                       (declare (ignore long-name short-char))
+                       (case type
+                         (:flag
+                          (setf (getf options (option-keyword spec)) t)
+                          (incf i))
+                         (:arg
+                          (if (< (1+ i) n)
+                              (let ((value (funcall parser (aref args-vec (1+ i)))))
+                                (if value
+                                    (progn
+                                      (setf (getf options (option-keyword spec)) value)
+                                      (incf i 2))
+                                    (progn
+                                      (format *error-output* "Error: invalid value for ~A~%" arg)
+                                      (uiop:quit 1))))
+                              (progn
+                                (format *error-output* "Error: ~A requires an argument~%" arg)
+                                (uiop:quit 1)))))))
+                    ;; Unknown option - error
+                    (t
+                     (format *error-output* "Error: unknown option ~S for ~A command~%"
+                             arg command-name)
+                     (format *error-output* "Try 'ocicl ~A --help' for usage information.~%"
+                             command-name)
+                     (uiop:quit 1)))))
+               ;; Not an option - add to remaining args
+               (t
+                (push arg remaining)
+                (incf i))))
+    (values options (nreverse remaining))))
+
+(defun find-option-spec (arg specs)
+  "Find the option spec matching ARG in SPECS."
+  (dolist (spec specs)
+    (destructuring-bind (long-name short-char &rest _) spec
+      (declare (ignore _))
+      (when (or (string= arg (format nil "--~A" long-name))
+                (string= arg (format nil "-~A" short-char)))
+        (return spec)))))
+
+(defun option-keyword (spec)
+  "Convert option spec to keyword for plist storage."
+  (intern (string-upcase (car spec)) :keyword))
 
 (defmacro when-option ((options opt) &body body)
   "Execute BODY when OPT is present in OPTIONS."
@@ -204,15 +291,18 @@ If CSV-PATH is provided, read from that file; otherwise read from current direct
    install [SYSTEM[:VERSION]]...          Install systems
    latest [SYSTEM]...                     Install latest version of systems
    libyear                                Calculate the libyear dependency freshness metric
-   lint [--fix] [--dry-run] PATH...       Lint Common Lisp files (--fix to auto-remediate)
+   lint [OPTIONS] PATH...                 Lint Common Lisp files
    list SYSTEM...                         List available system versions
    new APP-NAME [TEMPLATE] [KEY=VALUE]... Create a new app
    remove [SYSTEM]...                     Remove systems
    setup [GLOBALDIR]                      Mandatory ocicl configuration
    templates [list]                       List available templates
    templates dirs                         Show template search path
-   tree [SYSTEM]...                       Print tree of installed systems
+   tree [OPTIONS] [SYSTEM]...             Print tree of installed systems
+   update [OPTIONS]                       Update ocicl from GitHub releases
    version                                Show the ocicl version information
+
+Use 'ocicl COMMAND --help' for command-specific options.
 
 Distributed under the terms of the MIT License"
    :usage-of "ocicl"
@@ -437,6 +527,67 @@ Distributed under the terms of the MIT License"
   (format t "ocicl version:   ~A~%" +version+)
   (format t "Lisp runtime:    ~A ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version) (get-memory-in-gb))
   (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
+
+(defparameter *update-option-specs*
+  `(("dry-run" #\n :flag)
+    ("check" #\c :flag)
+    ("prerelease" #\p :flag)
+    ("pre" #\P :flag)
+    ("help" #\h :flag))
+  "Option specifications for the update command.")
+
+(defun update-help ()
+  "Display help for the update command."
+  (format t "Usage: ocicl update [OPTIONS]~%~%")
+  (format t "Update ocicl from GitHub releases.~%~%")
+  (format t "Options:~%")
+  (format t "  -n, --dry-run     Check for updates without applying~%")
+  (format t "  -c, --check       Same as --dry-run~%")
+  (format t "  -p, --prerelease  Include prerelease versions~%")
+  (format t "  -h, --help        Show this help message~%")
+  (uiop:quit 0))
+
+(defun parse-update-args (args)
+  "Parse update subcommand arguments.
+Returns (values dry-run include-prerelease)."
+  (multiple-value-bind (options remaining)
+      (parse-command-options args *update-option-specs* "update")
+    (when remaining
+      (format *error-output* "Error: update command takes no positional arguments~%")
+      (format *error-output* "Try 'ocicl update --help' for usage information.~%")
+      (uiop:quit 1))
+    (when (getf options :help)
+      (update-help))
+    (values (or (getf options :dry-run) (getf options :check))
+            (or (getf options :prerelease) (getf options :pre)))))
+
+(defun normalize-semver-string (version)
+  "Extract a semver string (MAJOR.MINOR.PATCH) from VERSION, or NIL."
+  (when (stringp version)
+    (cl-ppcre:register-groups-bind (semver)
+        ("^v?([0-9]+\\.[0-9]+\\.[0-9]+)" version)
+      semver)))
+
+(defun do-update (args)
+  (multiple-value-bind (dry-run include-prerelease)
+      (parse-update-args args)
+    (handler-case
+        (let* ((executable-name (if (uiop:os-windows-p) "ocicl.exe" "ocicl"))
+               (current-version (or (normalize-semver-string +version+) "0.0.0")))
+          (when (string= current-version "0.0.0")
+            (format *error-output*
+                    "ocicl update: warning: unable to parse version ~S; assuming 0.0.0~%"
+                    +version+))
+          (cl-selfupdate:update-self
+           "ocicl"
+           "ocicl"
+           :current-version current-version
+           :executable-name executable-name
+           :include-prerelease include-prerelease
+           :dry-run dry-run))
+      (error (e)
+        (format *error-output* "ocicl update failed: ~A~%" e)
+        (uiop:quit 1)))))
 
 (defun install-builtin-templates (&key (force nil))
   "Write the embedded templates to ~/.local/share/ocicl/templates/ .
@@ -1146,9 +1297,6 @@ If FORCE is NIL, skip files that already exist."
           (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*)))))))
      directories-to-clean)))
 
-
-(defvar *tree-depth* nil)
-
 (defstruct tree-not-found name)
 
 (defstruct tree-top systems)
@@ -1211,47 +1359,84 @@ If FORCE is NIL, skip files that already exist."
     (unless seen
       (setf (gethash system *tree-seen*) :printed))))
 
+(defun parse-depth-arg (arg)
+  "Parse a depth argument: integer or \"max\"."
+  (or (and (string-equal arg "max") :max)
+      (ignore-errors (parse-integer arg))))
+
+(defparameter *tree-option-specs*
+  `(("depth" #\d :arg ,#'parse-depth-arg)
+    ("help" #\h :flag))
+  "Option specifications for the tree command.")
+
+(defun tree-help ()
+  "Display help for the tree command."
+  (format t "Usage: ocicl tree [OPTIONS] [SYSTEM]...~%~%")
+  (format t "Print dependency tree of installed systems.~%~%")
+  (format t "Options:~%")
+  (format t "  -d, --depth NUM  Maximum depth (integer or \"max\", default 1)~%")
+  (format t "  -h, --help       Show this help message~%")
+  (uiop:quit 0))
+
 (defun do-tree (args)
-  (when *color*
-    (write-string *color-dim*))
-  (let ((top (make-tree-top
-              :systems
-              (or (remove-duplicates args :test #'equal)
-                  (mapcar
-                   #'unmangle
-                   (sort (alexandria:hash-table-keys *ocicl-systems*) #'string<))))))
-    (tree:print-tree
-     top
-     :unicode t
-     :max-depth (when *tree-depth*
-                  (+ *tree-depth* (if args 1 0)))))
-  (when *color*
-    (write-string *color-reset*)))
+  (multiple-value-bind (options remaining)
+      (parse-command-options args *tree-option-specs* "tree")
+    (when (getf options :help)
+      (tree-help))
+    (let ((depth (or (getf options :depth) 1)))
+      (when *color*
+        (write-string *color-dim*))
+      (let ((top (make-tree-top
+                  :systems
+                  (or (remove-duplicates remaining :test #'equal)
+                      (mapcar
+                       #'unmangle
+                       (sort (alexandria:hash-table-keys *ocicl-systems*) #'string<))))))
+        (tree:print-tree
+         top
+         :unicode t
+         :max-depth (when (not (eql depth :max))
+                      (+ depth (if remaining 1 0)))))
+      (when *color*
+        (write-string *color-reset*)))))
+
+(defparameter *lint-option-specs*
+  `(("fix" #\x :flag)
+    ("dry-run" #\n :flag)
+    ("help" #\h :flag))
+  "Option specifications for the lint command.")
+
+(defun lint-help ()
+  "Display help for the lint command."
+  (format t "Usage: ocicl lint [OPTIONS] PATH...~%~%")
+  (format t "Lint Common Lisp files for style and correctness issues.~%~%")
+  (format t "Options:~%")
+  (format t "      --fix      Auto-remediate fixable issues~%")
+  (format t "  -n, --dry-run  Show what would be fixed without making changes~%")
+  (format t "  -h, --help     Show this help message~%")
+  (uiop:quit 0))
 
 (defun do-lint (args)
   "Lint the specified files, directories, or .asd systems.
 Supports --fix and --dry-run flags for auto-remediation."
-  (let ((fix nil)
-        (dry-run nil)
-        (paths nil))
-    ;; Parse lint-specific arguments
-    (loop for arg in args do
-      (cond
-        ((string= arg "--fix") (setf fix t))
-        ((string= arg "--dry-run") (setf dry-run t))
-        (t (push arg paths))))
-    (setf paths (nreverse paths))
-    (if paths
-        (let ((*inhibit-download-during-search* t))
-          (setf ocicl.lint::*verbose* *verbose*)
-          (let ((issue-count (ocicl.lint:lint-files paths
-                                                    :color *color*
-                                                    :fix fix
-                                                    :dry-run dry-run)))
-            (uiop:quit (if (plusp issue-count) 1 0))))
-        (progn
-          (format *error-output* "Error: no paths specified for linting~%")
-          (uiop:quit 1)))))
+  (multiple-value-bind (options paths)
+      (parse-command-options args *lint-option-specs* "lint")
+    (when (getf options :help)
+      (lint-help))
+    (let ((fix (getf options :fix))
+          (dry-run (getf options :dry-run)))
+      (if paths
+          (let ((*inhibit-download-during-search* t))
+            (setf ocicl.lint::*verbose* *verbose*)
+            (let ((issue-count (ocicl.lint:lint-files paths
+                                                      :color *color*
+                                                      :fix fix
+                                                      :dry-run dry-run)))
+              (uiop:quit (if (plusp issue-count) 1 0))))
+          (progn
+            (format *error-output* "Error: no paths specified for linting~%")
+            (format *error-output* "Try 'ocicl lint --help' for usage information.~%")
+            (uiop:quit 1))))))
 
 (defun render-template-file (in-path out-path env)
   "Read template text from IN-PATH, render with ENV, write to OUT-PATH."
@@ -1457,20 +1642,26 @@ Supports --fix and --dry-run flags for auto-remediation."
                (when *verbose*
                  (format *error-output* "; Error reading global directory config: ~A~%" e))))))
 
-       (let ((workdir *default-pathname-defaults*))
-         ;; Reset captured lint args before parsing
-         (setf *captured-lint-args* nil)
-         (multiple-value-bind (options free-args)
-             (handler-case
-                 (handler-bind ((opts:unknown-option #'unknown-option))
-                   (opts:get-opts))
-               (opts:missing-arg (condition)
-                 (format t "fatal: option ~s needs an argument!~%"
-                         (opts:option condition)))
-               (opts:arg-parser-failed (condition)
-                 (format t "fatal: cannot parse ~s as argument of ~s~%"
-                         (opts:raw-arg condition)
-                         (opts:option condition))))
+       ;; Split arguments at command boundary - global options before, command-specific after
+       (multiple-value-bind (global-args cmd cmd-args)
+           (split-args-at-command (rest (uiop:raw-command-line-arguments)))
+         (let ((workdir *default-pathname-defaults*))
+           (multiple-value-bind (options free-args)
+               (handler-case
+                   (handler-bind ((opts:unknown-option #'unknown-option))
+                     (opts:get-opts global-args))
+                 (opts:missing-arg (condition)
+                   (format t "fatal: option ~s needs an argument!~%"
+                           (opts:option condition)))
+                 (opts:arg-parser-failed (condition)
+                   (format t "fatal: cannot parse ~s as argument of ~s~%"
+                           (opts:raw-arg condition)
+                           (opts:option condition))))
+             (declare (ignore free-args)) ; We use cmd instead
+             ;; Only show global help if no command is specified
+             (when (and (getf options :help) (not cmd))
+               (usage)
+               (uiop:quit 0))
            (when-option (options :verbose)
                         (setf *verbose* t))
            (when-option (options :force)
@@ -1537,16 +1728,9 @@ Supports --fix and --dry-run flags for auto-remediation."
            (when (uiop:getenvp "OCICL_LOCAL_ONLY")
              (setf *local-only* t))
 
-           (let ((depth (getf options :depth)))
-             (setf *tree-depth* (if (eql depth :max)
-                                    nil
-                                    (or depth 1))))
-
            ;; Handle lint command separately - it doesn't need workdir or directory changes
-           (if (and (> (length free-args) 0)
-                    (string= (car free-args) "lint"))
-               ;; Combine captured lint options with free args after "lint"
-               (do-lint (append (nreverse *captured-lint-args*) (cdr free-args)))
+           (if (and cmd (string= cmd "lint"))
+               (do-lint cmd-args)
                (progn
                  (setf workdir (find-workdir workdir))
                  (locally (declare #+sbcl(sb-ext:muffle-conditions sb-kernel:redefinition-warning))
@@ -1565,42 +1749,43 @@ Supports --fix and --dry-run flags for auto-remediation."
                                (when (uiop:file-exists-p global-csv)
                                  (setq *global-ocicl-systems* (read-systems-csv global-csv))
                                  (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir)))))))
-                       (if (not (> (length free-args) 0))
+                       (if (not cmd)
                            (usage)
-                           (let ((cmd (car free-args)))
-                             (cond
+                           (cond
                                 ((string= cmd "help")
                                  (usage))
                                 ((string= cmd "libyear")
                                  (do-libyear))
                                 ((string= cmd "changes")
-                                 (do-changes (cdr free-args)))
+                                 (do-changes cmd-args))
                                 ((string= cmd "install")
-                                 (do-install (cdr free-args)))
+                                 (do-install cmd-args))
                                 ((string= cmd "remove")
-                                 (do-remove (cdr free-args)))
+                                 (do-remove cmd-args))
                                 ((string= cmd "latest")
-                                 (do-latest (cdr free-args)))
+                                 (do-latest cmd-args))
                                 ((string= cmd "list")
-                                 (do-list (cdr free-args)))
+                                 (do-list cmd-args))
                                 ((string= cmd "new")
-                                 (do-new (cdr free-args)))
+                                 (do-new cmd-args))
                                 ((string= cmd "tree")
-                                 (do-tree (cdr free-args)))
+                                 (do-tree cmd-args))
                                 ((string= cmd "templates")
-                                 (do-templates (cdr free-args)))
+                                 (do-templates cmd-args))
                                 ((string= cmd "diff")
-                                 (do-diff (cdr free-args)))
+                                 (do-diff cmd-args))
                                 ((string= cmd "clean")
-                                 (do-clean (cdr free-args)))
+                                 (do-clean cmd-args))
                                 ((string= cmd "collect-licenses")
-                                 (do-collect-licenses (cdr free-args)))
+                                 (do-collect-licenses cmd-args))
                                 ((string= cmd "create-sbom")
-                                 (do-create-sbom (cdr free-args)))
+                                 (do-create-sbom cmd-args))
                                 ((string= cmd "setup")
-                                 (do-setup (cdr free-args)))
+                                 (do-setup cmd-args))
+                                ((string= cmd "update")
+                                 (do-update cmd-args))
                                 ((string= cmd "version")
-                                 (do-version (cdr free-args)))
+                                 (do-version cmd-args))
                                 (t (usage)))))))))))))
     (with-user-abort:user-abort () (uiop:quit 130))
     (stream-error (e)
