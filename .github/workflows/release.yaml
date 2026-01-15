@@ -267,7 +267,7 @@ jobs:
           mkdir test-project && cd test-project
           ocicl install pure-tls
           echo "Successfully downloaded pure-tls"
-          ls -la systems/
+          ls -la ocicl/
 
   # ========================================
   # Test Windows build
@@ -305,7 +305,7 @@ jobs:
           mkdir test-project && cd test-project
           ocicl install pure-tls
           echo "Successfully downloaded pure-tls"
-          ls -la systems/
+          ls -la ocicl/
 
   # ========================================
   # Build Chocolatey package
