@@ -234,6 +234,80 @@ jobs:
             ./checksums-windows.txt
 
   # ========================================
+  # Test Linux build
+  # ========================================
+  test-linux:
+    needs: build-linux-tarball
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SBCL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sbcl
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-package
+          path: artifacts
+
+      - name: Extract and install ocicl
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          tar xzf artifacts/ocicl-${VERSION}-linux-amd64.tar.gz
+          chmod +x ocicl
+          sudo mv ocicl /usr/local/bin/
+
+      - name: Setup ocicl
+        run: |
+          ocicl setup > ~/.sbclrc
+
+      - name: Test downloading pure-tls
+        run: |
+          mkdir test-project && cd test-project
+          ocicl install pure-tls
+          echo "Successfully downloaded pure-tls"
+          ls -la systems/
+
+  # ========================================
+  # Test Windows build
+  # ========================================
+  test-windows:
+    needs: build-windows
+    runs-on: windows-latest
+    steps:
+      - name: Install SBCL
+        shell: powershell
+        run: |
+          choco install -y sbcl
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-package
+          path: artifacts
+
+      - name: Extract and install ocicl
+        shell: powershell
+        run: |
+          $VERSION = "${{ github.ref_name }}".TrimStart('v')
+          Expand-Archive -Path "artifacts\ocicl-${VERSION}-windows-amd64.zip" -DestinationPath "ocicl-bin"
+          Copy-Item "ocicl-bin\ocicl.exe" -Destination "C:\Windows\System32\"
+
+      - name: Setup ocicl
+        shell: bash
+        run: |
+          ocicl setup > ~/.sbclrc
+
+      - name: Test downloading pure-tls
+        shell: bash
+        run: |
+          mkdir test-project && cd test-project
+          ocicl install pure-tls
+          echo "Successfully downloaded pure-tls"
+          ls -la systems/
+
+  # ========================================
   # Build Chocolatey package
   # ========================================
   build-chocolatey:
@@ -287,7 +361,7 @@ jobs:
   # Create GitHub Release
   # ========================================
   release:
-    needs: [build-rpm, build-deb, build-linux-tarball, build-windows, build-chocolatey]
+    needs: [build-rpm, build-deb, build-linux-tarball, build-windows, build-chocolatey, test-linux, test-windows]
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
