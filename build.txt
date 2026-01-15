@@ -1,0 +1,136 @@
+This is SBCL 2.5.10, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+sbcl --dynamic-space-size 3072 --no-userinit --eval "(load \"runtime/asdf.lisp\")" --eval "(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))"
+This is SBCL 2.5.10, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+;;; Computing Hangul syllable names
+; compiling file "/home/green/git/ocicl/systems/cl-selfupdate-20260114-55669ca/src/selfupdate.lisp" (written 14 JAN 2026 06:57:01 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/systems/cl-selfupdate-20260114-55669ca/src/selfupdate-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.042
+; compiling file "/home/green/git/ocicl/systems/cl-selfupdate-20260114-55669ca/src/http-drakma.lisp" (written 14 JAN 2026 06:16:38 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/systems/cl-selfupdate-20260114-55669ca/src/http-drakma-tmpAAURSO1.fasl
+; compilation finished in 0:00:00.008
+; compiling file "/home/green/git/ocicl/src/http.lisp" (written 03 JAN 2026 09:01:52 AM):
+
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/src/http-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.027
+; compiling file "/home/green/git/ocicl/src/tree.lisp" (written 01 OCT 2025 11:00:13 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/src/tree-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.020
+; compiling file "/home/green/git/ocicl/src/package.lisp" (written 01 OCT 2025 03:38:41 PM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/src/package-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.001
+; compiling file "/home/green/git/ocicl/lint/package.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/package-tmp8V3J6PE9.fasl
+; compilation finished in 0:00:00.001
+; compiling file "/home/green/git/ocicl/lint/config.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/config-tmp9V47YWQF.fasl
+; compilation finished in 0:00:00.039
+; compiling file "/home/green/git/ocicl/lint/file-utils.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/file-utils-tmp9BN22RMA.fasl
+; compilation finished in 0:00:00.023
+; compiling file "/home/green/git/ocicl/lint/asd-support.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/asd-support-tmp1CXFJSK9.fasl
+; compilation finished in 0:00:00.003
+; compiling file "/home/green/git/ocicl/lint/parsing.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/parsing-tmpX4BRKI0R.fasl
+; compilation finished in 0:00:00.033
+; compiling file "/home/green/git/ocicl/lint/fixer.lisp" (written 03 JAN 2026 04:13:09 PM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/fixer-tmpQ371UGST.fasl
+; compilation finished in 0:00:00.021
+; compiling file "/home/green/git/ocicl/lint/rules/line-based.lisp" (written 01 JAN 2026 12:29:53 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/rules/line-based-tmp2OWI3Q7U.fasl
+; compilation finished in 0:00:00.016
+; compiling file "/home/green/git/ocicl/lint/rules/ast.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/rules/ast-tmp9KKTJMYV.fasl
+; compilation finished in 0:00:00.052
+; compiling file "/home/green/git/ocicl/lint/rules/single-pass.lisp" (written 03 JAN 2026 01:45:21 PM):
+
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/rules/single-pass-tmpJU0JWO19.fasl
+; compilation finished in 0:00:00.473
+; compiling file "/home/green/git/ocicl/lint/fixes/whitespace.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/fixes/whitespace-tmpZX2WN8N4.fasl
+; compilation finished in 0:00:00.014
+; compiling file "/home/green/git/ocicl/lint/fixes/style.lisp" (written 03 JAN 2026 03:17:21 PM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/fixes/style-tmpOU81XRV0.fasl
+; compilation finished in 0:00:00.123
+; compiling file "/home/green/git/ocicl/lint/linter.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/linter-tmpY2ML9CFA.fasl
+; compilation finished in 0:00:00.116
+; compiling file "/home/green/git/ocicl/lint/main.lisp" (written 01 JAN 2026 12:28:28 AM):
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/lint/main-tmpX2JYJDQE.fasl
+; compilation finished in 0:00:00.020
+; compiling file "/home/green/git/ocicl/src/licenses.lisp" (written 01 JAN 2026 12:28:04 AM):
+
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/src/licenses-tmpOPCILR65.fasl
+; compilation finished in 0:00:00.049
+; compiling file "/home/green/git/ocicl/src/sbom.lisp" (written 01 JAN 2026 12:28:04 AM):
+
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/src/sbom-tmpRV9F8A9A.fasl
+; compilation finished in 0:00:00.040
+; compiling file "/home/green/git/ocicl/src/ocicl.lisp" (written 14 JAN 2026 06:25:05 AM):
+
+
+; wrote /home/green/.cache/common-lisp/sbcl-2.5.10-linux-x64-s/home/green/git/ocicl/src/ocicl-tmpK2ZAJT4I.fasl
+; compilation finished in 0:00:00.616
+[undoing binding stack and other enclosing state... done]
+[performing final GC... done]
+[defragmenting immobile space... (inst,code,sym)=1900+34122+26272... done]
+[saving current Lisp image into /home/green/git/ocicl/ocicl:
+writing 98304 bytes from the linkage space at 0xb7ffb00000
+writing 1515520 bytes from the fixedobj space at 0x50000000
+compressed 1540096 bytes into 358271 at level 9
+writing 2752 bytes from the static space at 0x520000000000
+compressed 32768 bytes into 433 at level 9
+writing 45875200 bytes from the dynamic space at 0x1200000000
+compressed 45875200 bytes into 7545314 at level 9
+writing 26092032 bytes from the read-only space at 0x11fe718000
+compressed 26116096 bytes into 7872490 at level 9
+writing 21274624 bytes from the text space at 0xb800000000
+compressed 21299200 bytes into 4864751 at level 9
+done]
+;; Preserving existing /home/green/.local/share/ocicl/ocicl-registry.cfg
+;; Use setup's --force option to override.
+
+;; Present the following code to your LISP system at startup, either
+;; by adding it to your implementation's startup file
+;; (~/.sbclrc, ~/.eclrc, ~/.abclrc, ~/.clinit.cl, or ~/.roswell/init.lisp)
+;; or overriding it completely on the command line
+;; (eg. sbcl --userinit init.lisp)
+
+#-ocicl
+(when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
+  (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
+(asdf:initialize-source-registry
+  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))

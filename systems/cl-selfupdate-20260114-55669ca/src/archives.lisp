@@ -25,12 +25,19 @@ Returns one of :tar.gz, :tgz, :zip, :gz, :tar, or :unknown."
 
 ;;; Decompression
 
-(defun decompress-gzip (input-stream)
-  "Decompress gzip data from stream, return decompressed octets."
-  (let ((output (make-array 0 :element-type '(unsigned-byte 8)
-                              :adjustable t :fill-pointer 0)))
-    (chipz:decompress output 'chipz:gzip input-stream)
-    output))
+(defun decompress-gzip (input-data)
+  "Decompress gzip data from byte vector or stream, return decompressed octets.
+If INPUT-DATA is a stream, reads it entirely into memory first (chipz requires this)."
+  (let ((data (etypecase input-data
+                ((vector (unsigned-byte 8)) input-data)
+                (stream
+                 ;; chipz:decompress doesn't work reliably with streams,
+                 ;; so read the entire stream into a byte vector first
+                 (let* ((length (file-length input-data))
+                        (buffer (make-array length :element-type '(unsigned-byte 8))))
+                   (read-sequence buffer input-data)
+                   buffer)))))
+    (chipz:decompress nil 'chipz:gzip data)))
 
 (defun decompress-gzip-file (input-path output-path)
   "Decompress a gzip file to output path."

@@ -51,6 +51,17 @@ Testing
 - Manual testing: Run individual test applications in `*-test/` directories
 - Template testing: Each template in `templates/` has its own Makefile
 
+Testing Self-Update
+- The version string comes from `version-string` library which uses git tags if HEAD has one
+- To test `ocicl update` with an older version, delete the local git tag:
+  ```bash
+  git tag -d v2.15.1        # delete local tag
+  sbcl --load setup.lisp    # rebuild - version falls back to .asd + git hash
+  ./ocicl version           # shows e.g. "2.15.0-g07df634+dirty"
+  ./ocicl update --check    # now detects v2.15.1 as available
+  ```
+- After testing, restore the tag: `git fetch --tags`
+
 Key OCICL Commands for Development Testing
 - `ocicl install SYSTEM` - Install a system locally
 - `ocicl setup` - Configure runtime environment

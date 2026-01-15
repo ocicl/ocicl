@@ -58,7 +58,10 @@ GitLab uses 'owner/repo' as the project identifier."
   "Parse a GitLab release JSON object into a release struct."
   (let ((tag (jsown:val json "tag_name")))
     (make-release
-     :version (parse-semver-from-tag tag)
+     :version (handler-case
+                  (semver:read-version-from-string
+                   (cl-ppcre:regex-replace "^v" tag ""))
+                (error () nil))
      :tag tag
      :name (jsown:val json "name")
      :notes (jsown:val json "description")
@@ -125,14 +128,13 @@ Returns the release with the highest version number."
          (valid-releases
            (remove-if-not
             (lambda (rel)
-              (and (typep (release-version rel) 'semver:version)
+              (and (release-version rel)
                    (or include-prerelease
                        (not (release-prerelease-p rel)))))
             releases)))
     ;; Sort by version descending and return the highest
-    (when valid-releases
-      (first (sort valid-releases #'safe-semver>
-                   :key #'release-version)))))
+    (first (sort valid-releases #'semver:version>
+                 :key #'release-version))))
 
 (defmethod download-asset ((provider gitlab-provider) asset &key output-path)
   "Download a GitLab asset to the specified path or return as octets."

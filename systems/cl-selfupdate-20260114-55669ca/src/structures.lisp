@@ -31,24 +31,6 @@
   download-url ; browser download URL
   content-type)
 
-;;; Version parsing
-
-(defun parse-semver-from-tag (tag)
-  "Extract and parse a semver version from TAG.
-Returns a semver:version or NIL if no valid version is found."
-  (when (stringp tag)
-    (cl-ppcre:register-groups-bind (ver)
-        ("([0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?)" tag)
-      (ignore-errors (semver:read-version-from-string ver)))))
-
-(defun safe-semver> (a b)
-  "Return T if A > B, NIL on type mismatch or parsing error."
-  (handler-case
-      (and (typep a 'semver:version)
-           (typep b 'semver:version)
-           (semver:version> a b))
-    (error () nil)))
-
 ;;; Asset matching
 
 (defun checksum-asset-p (name)
