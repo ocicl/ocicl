@@ -181,7 +181,12 @@ wrap it in a stream. Otherwise return it as-is."
                            ((eql verify :optional) pure-tls:+verify-peer+)
                            ((eql verify :required) pure-tls:+verify-required+)
                            (t pure-tls:+verify-required+)))
-        (actual-stream (%ensure-stream socket)))
+        (actual-stream (%ensure-stream socket))
+        ;; Wrap close-callback: cl+ssl callbacks take no args, pure-tls passes the stream
+        (wrapped-callback (when close-callback
+                            (lambda (stream)
+                              (declare (ignore stream))
+                              (funcall close-callback)))))
     (ensure-initialized)
     (pure-tls:make-tls-client-stream
      actual-stream
@@ -189,7 +194,7 @@ wrap it in a stream. Otherwise return it as-is."
      :hostname hostname
      :verify tls-verify-mode
      :alpn-protocols alpn-protocols
-     :close-callback close-callback
+     :close-callback wrapped-callback
      :external-format external-format
      :buffer-size buffer-size)))
 
@@ -217,7 +222,12 @@ wrap it in a stream. Otherwise return it as-is."
                            ((null verify) pure-tls:+verify-none+)
                            ((eql verify :optional) pure-tls:+verify-peer+)
                            ((eql verify :required) pure-tls:+verify-required+)
-                           (t pure-tls:+verify-none+))))
+                           (t pure-tls:+verify-none+)))
+        ;; Wrap close-callback: cl+ssl callbacks take no args, pure-tls passes the stream
+        (wrapped-callback (when close-callback
+                            (lambda (stream)
+                              (declare (ignore stream))
+                              (funcall close-callback)))))
     (ensure-initialized)
     (pure-tls:make-tls-server-stream
      socket
@@ -226,7 +236,7 @@ wrap it in a stream. Otherwise return it as-is."
      :key key
      :verify tls-verify-mode
      :alpn-protocols alpn-protocols
-     :close-callback close-callback
+     :close-callback wrapped-callback
      :external-format external-format
      :buffer-size buffer-size)))
 
@@ -241,12 +251,18 @@ wrap it in a stream. Otherwise return it as-is."
   (pure-tls:tls-selected-alpn ssl-stream))
 
 (defgeneric stream-fd (stream)
-  (:documentation "Get the file descriptor for a stream.")
+  (:documentation "Get the file descriptor for a stream.
+For pure-tls compatibility, we return the stream itself rather than
+extracting the fd, since pure-tls works with streams not file descriptors.
+This avoids the dual-buffering problem that occurs when creating a new
+stream from an extracted fd.")
+  ;; Return stream as-is - make-ssl-client-stream will handle it via %ensure-stream
   (:method (stream) stream))
 
-#+sbcl
-(defmethod stream-fd ((stream sb-sys:fd-stream))
-  (sb-sys:fd-stream-fd stream))
+;; Note: We intentionally don't define a method for sb-sys:fd-stream that
+;; extracts the fd, because our pure-tls-based make-ssl-client-stream
+;; works better with the original stream than with a new stream created
+;; from the extracted fd.
 
 ;;;; Certificate Functions
 
