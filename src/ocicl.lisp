@@ -2046,6 +2046,9 @@ download the system unless a version is specified."
 
 (defun find-asdf-system-file (name)
   "Find ASDF system file for NAME, checking local systems, then global systems, then downloading."
+  ;; Return early if systems table isn't initialized (e.g., during loading)
+  (unless *ocicl-systems*
+    (return-from find-asdf-system-file nil))
   (let* ((mangled-name (mangle name))
          ;; Check local systems first
          (local-info (gethash mangled-name *ocicl-systems*))
