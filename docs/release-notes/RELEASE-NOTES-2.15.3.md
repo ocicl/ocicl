@@ -27,14 +27,3 @@ ocicl update
 
 # Or download from releases
 ```
-
-## Upgrade Notes
-
-Applications using cl+ssl should switch to pure-tls with its cl+ssl compatibility layer:
-
-```lisp
-;; In your .sbclrc or project setup
-(asdf:load-system :pure-tls/compat)
-```
-
-This provides API-compatible replacements for common cl+ssl functions.
