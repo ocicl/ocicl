@@ -522,11 +522,24 @@ Distributed under the terms of the MIT License"
   #+sbcl(format nil "configured with ~AGB memory" (ceiling (sb-ext:dynamic-space-size) (* 1024 1024 1024)))
   #-sbcl(format nil ""))
 
+(defvar *tls-library*
+  '#.(if (find-package "PURE-TLS")
+         (list :pure-tls
+               (ignore-errors (asdf:component-version (asdf:find-system :pure-tls))))
+         (list :cl+ssl
+               (ignore-errors (asdf:component-version (asdf:find-system :cl+ssl)))))
+  "TLS library info captured at compile time: (:library-name version-string)")
+
+(defun get-tls-info ()
+  "Return a string describing the TLS library in use and its version."
+  (format nil "~(~A~)~@[ ~A~]" (first *tls-library*) (second *tls-library*)))
+
 (defun do-version (args)
   (declare (ignore args))
   (format t "ocicl version:   ~A~%" +version+)
   (format t "Lisp runtime:    ~A ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version) (get-memory-in-gb))
-  (format t "ASDF version:    ~A~%" (asdf:asdf-version)))
+  (format t "ASDF version:    ~A~%" (asdf:asdf-version))
+  (format t "TLS support:     ~A~%" (get-tls-info)))
 
 (defparameter *update-option-specs*
   `(("dry-run" #\n :flag)

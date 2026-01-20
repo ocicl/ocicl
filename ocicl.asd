@@ -23,12 +23,14 @@
 ;;; SOFTWARE.
 ;;;
 
-;;; Use pure-tls instead of cl+ssl (OpenSSL FFI) for TLS on all platforms.
+;;; Use pure-tls instead of cl+ssl (OpenSSL FFI) for TLS on all platforms,
+;;; unless USE_LEGACY_OPENSSL is set (requires OpenSSL libraries installed).
 ;;; Load pure-tls/cl+ssl-compat first (provides cl+ssl-compatible API), then
 ;;; register "cl+ssl" as immutable so ASDF never tries to load the real cl+ssl.
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (asdf:load-system :pure-tls/cl+ssl-compat)
-  (asdf:register-immutable-system "cl+ssl"))
+  (unless (uiop:getenvp "USE_LEGACY_OPENSSL")
+    (asdf:load-system :pure-tls/cl+ssl-compat)
+    (asdf:register-immutable-system "cl+ssl")))
 
 (asdf:defsystem "ocicl"
   :description "Common Lisp system management"

@@ -143,6 +143,21 @@ dynamic memory space.  If you need a different amount, run it like so:
 sbcl --eval "(defconstant +dynamic-space-size+ 2048)" --load setup.lisp
 ```
 
+#### TLS Library Selection
+
+By default, `ocicl` is built with [pure-tls](https://github.com/atgreen/pure-tls),
+a pure Common Lisp TLS 1.3 implementation with no external dependencies.
+
+To build with OpenSSL (via cl+ssl) instead, set the `USE_LEGACY_OPENSSL`
+environment variable:
+```
+USE_LEGACY_OPENSSL=1 sbcl --load setup.lisp
+```
+
+This may be useful if you need TLS 1.2 support for older servers, or prefer
+OpenSSL for other reasons. Note that this requires OpenSSL libraries to be
+installed on your system.
+
 Setup
 -----
 
