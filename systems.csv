@@ -27,12 +27,14 @@ cl-json, ghcr.io/ocicl/cl-json@sha256:54c4d00901c2c5b0ea9da11eed8f0104fc5819e1ed
 cl-postgres_plus_local-time, ghcr.io/ocicl/local-time@sha256:15dc0e56d0ff55bd2a3c597e67be1c26bd0677c230a15ad5098c5207a9df5554, local-time-20250808-c28f38e/cl-postgres+local-time.asd
 cl-ppcre, ghcr.io/ocicl/cl-ppcre@sha256:bf073924cf4fd5957a4fd961a95d446ed0e53fa32a5002cbd2d52182874f45e5, cl-ppcre-20250606-a2ea581/cl-ppcre.asd
 cl-ppcre-unicode, ghcr.io/ocicl/cl-ppcre@sha256:bf073924cf4fd5957a4fd961a95d446ed0e53fa32a5002cbd2d52182874f45e5, cl-ppcre-20250606-a2ea581/cl-ppcre-unicode.asd
-cl-selfupdate, ghcr.io/ocicl/cl-selfupdate@sha256:522a090962a7bc5a380dc5e4c5873da71f6e356155c05ee4088f202bfc6b004d, cl-selfupdate-20260114-55669ca/cl-selfupdate.asd
+cl-selfupdate, ghcr.io/ocicl/cl-selfupdate@sha256:46927c847f3c22f18dee5583d2c647ddd323cae6bea7fab6981051b4c511320f, cl-selfupdate-20260115-fc86f5f/cl-selfupdate.asd
 cl-semver, ghcr.io/ocicl/cl-semver@sha256:519cd56427e124fddf732c284f391dfd22da99e1b01d1f2512cbf2e3465bad1f, cl-semver-20240503-b125d2c/cl-semver.asd
 cl-semver-test, ghcr.io/ocicl/cl-semver@sha256:519cd56427e124fddf732c284f391dfd22da99e1b01d1f2512cbf2e3465bad1f, cl-semver-20240503-b125d2c/cl-semver-test.asd
 cl-template, ghcr.io/ocicl/cl-template@sha256:77fe11d9e0a68bbc8333b94825145c8313dbeba422a71588f6d8e00e1d3807a4, cl-template-20240503-46193a9/cl-template.asd
 cl-unicode, ghcr.io/ocicl/cl-unicode@sha256:d98f12c1271fb3c1812a27d64dfbe95b0bc5bcfd545b71b8101874e61270b120, cl-unicode-20240503-07e7ff5/cl-unicode.asd
 cl-utilities, ghcr.io/ocicl/cl-utilities@sha256:e5e0676a4e0627332a0fe64d56ed4f1890f0466d715a11e8d95561b4c2baa38f, cl-utilities-20240503-6b4de39/cl-utilities.asd
+cl_plus_ssl, ghcr.io/ocicl/cl_plus_ssl@sha256:d50fbbba38827e835eec2415744e0fb05a2a0bf4d44940cdc23922f15036efe5, cl-plus-ssl-20251220-499b2f5/cl+ssl.asd
+cl_plus_ssl.test, ghcr.io/ocicl/cl_plus_ssl@sha256:d50fbbba38827e835eec2415744e0fb05a2a0bf4d44940cdc23922f15036efe5, cl-plus-ssl-20251220-499b2f5/cl+ssl.test.asd
 closer-mop, ghcr.io/ocicl/closer-mop@sha256:0e7b398e671d48a0a1cfb5c1a017d0c2b009311c943ee3330d74fa0561c88fb2, closer-mop-20251228-4809f69/closer-mop.asd
 copy-directory, ghcr.io/ocicl/copy-directory@sha256:a8fa40cd0d17c4652545361ca4adb2ba08ea1aa6a844f8adcfbdfb9bde591b42, copy-directory-20250106-6926cbb/copy-directory.asd
 copy-directory-test, ghcr.io/ocicl/copy-directory@sha256:a8fa40cd0d17c4652545361ca4adb2ba08ea1aa6a844f8adcfbdfb9bde591b42, copy-directory-20250106-6926cbb/copy-directory-test.asd
@@ -75,7 +77,7 @@ parse-declarations-1.0, ghcr.io/ocicl/parse-declarations-1.0@sha256:9305fa962420
 parse-number, ghcr.io/ocicl/parse-number@sha256:11f3f9f512871e1f96cea6b8260aa3610e34e8fd7272bbcdb210fd3c5dd8025c, parse-number-20240503-cb9e487/parse-number.asd
 path-parse, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse.asd
 path-parse-test, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse-test.asd
-pure-tls, ghcr.io/ocicl/pure-tls@sha256:5cee3266f8e4596b5f47e0bfb0c72f46a4b9e6eb83c6eca1ade93523877b563e, pure-tls-20260115-d74cc67/pure-tls.asd
+pure-tls, ghcr.io/ocicl/pure-tls@sha256:be66ddd876cc2c1902e585fa8703b496ff6b280f4d1856ab208783a3532c3204, pure-tls-20260118-d92ed12/pure-tls.asd
 puri, ghcr.io/ocicl/puri@sha256:f6aa091a4d8eb5bdc91466daddc90dadd5b0fcf247370df237a223dc0588f29d, puri-4bbab9/puri.asd
 pythonic-string-reader, ghcr.io/ocicl/pythonic-string-reader@sha256:6f0c22694e7d6b2143d116eec0f568e775343167d35c1ed36d624e485f54b3e3, pythonic-string-reader-20240503-47a70ba/pythonic-string-reader.asd
 quri, ghcr.io/ocicl/quri@sha256:e2559f91600e4895e115b42dde88fcaac3677f051335d73431888dcf7af99f95, quri-0.7.0/quri.asd
