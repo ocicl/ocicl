@@ -115,6 +115,12 @@
                           (let* ((txt (princ-to-string cond))
                                  (host (ignore-errors (puri:uri-host (puri:parse-uri url)))))
                             (cond
+                              ;; pure-tls specific errors
+                              ((and *verify-tls*
+                                    (or (search "certificate chain not anchored" txt :test #'char-equal)
+                                        (search "trust-anchor" txt :test #'char-equal)))
+                               (format nil "TLS verification failed: certificate not trusted for ~A. CA certificates may not be loaded. Try: 1) Install ca-certificates package, 2) Set OCICL_CA_FILE to your CA bundle path, or 3) Rebuild with USE_LEGACY_OPENSSL=1." (or host url))) ; lint:suppress max-line-length
+                              ;; Generic TLS verification errors
                               ((and *verify-tls*
                                     (or (search "certificate verify failed" txt :test #'char-equal)
                                         (search "unable to get local issuer certificate" txt :test #'char-equal)
@@ -140,11 +146,19 @@
                         (ca-file nil)
                         (ca-dir nil)
                         (timeout-env (uiop:getenv "OCICL_HTTP_TIMEOUT"))
-                        (conn-timeout (ignore-errors (and timeout-env (parse-integer timeout-env)))))
+                        (conn-timeout (ignore-errors (and timeout-env (parse-integer timeout-env))))
+                        (tls-debug (uiop:getenv "OCICL_TLS_DEBUG")))
                    (multiple-value-setq (ca-file ca-dir)
                      (%resolve-ca-locations))
                    (when verbose
                      (format verbose "; TLS verify=~A ca-file=~A ca-dir=~A~%"
+                             verify ca-file ca-dir))
+                   (when tls-debug
+                     (format t "; TLS implementation: ~A~%"
+                             #+pure-tls "pure-tls"
+                             #+cl+ssl "cl+ssl"
+                             #-(or pure-tls cl+ssl) "unknown")
+                     (format t "; TLS verify=~A ca-file=~A ca-dir=~A~%"
                              verify ca-file ca-dir))
                    (handler-case
                        (drakma:http-request url
@@ -160,6 +174,21 @@
                                             #+(or abcl clisp lispworks mcl openmcl sbcl)
                                             conn-timeout
                                             :proxy-basic-authorization *proxy-basic-auth*)
+                     #+pure-tls
+                     (pure-tls:tls-verification-error (e)
+                       (let* ((host (ignore-errors (puri:uri-host (puri:parse-uri url))))
+                              (msg (format nil "TLS verification failed for ~A: ~A. Ensure CA certificates are installed (e.g., 'sudo dnf install ca-certificates'). You can also set OCICL_CA_FILE or rebuild with USE_LEGACY_OPENSSL=1." ; lint:suppress max-line-length
+                                           (or host url) e)))
+                         (when verbose
+                           (format verbose "; underlying error: ~A~%" e))
+                         (error msg)))
+                     #+pure-tls
+                     (pure-tls:tls-error (e)
+                       (let* ((host (ignore-errors (puri:uri-host (puri:parse-uri url))))
+                              (msg (friendly-tls-message e)))
+                         (when verbose
+                           (format verbose "; underlying error: ~A~%" e))
+                         (error (or msg (format nil "TLS error for ~A: ~A" (or host url) e)))))
                      (error (e)
                        (let ((msg (friendly-tls-message e)))
                          (when verbose

@@ -369,29 +369,42 @@
 
 (defun load-unix-trust-store ()
   "Load trust store from Unix/macOS default locations."
-  ;; Try bundle files first
-  (let ((paths '("/etc/ssl/certs/ca-certificates.crt"      ; Debian/Ubuntu
-                 "/etc/pki/tls/certs/ca-bundle.crt"        ; RHEL/CentOS
-                 "/etc/ssl/ca-bundle.pem"                   ; OpenSUSE
-                 "/usr/local/share/certs/ca-root-nss.crt"  ; FreeBSD
-                 "/etc/ssl/cert.pem"                        ; macOS
-                 "/usr/local/etc/openssl/cert.pem"          ; Homebrew OpenSSL
-                 "/usr/local/etc/openssl@1.1/cert.pem"      ; Homebrew OpenSSL 1.1
-                 "/opt/homebrew/etc/openssl/cert.pem")))    ; Homebrew on Apple Silicon
-    (dolist (path paths)
-      (when (probe-file path)
-        (return-from load-unix-trust-store
-          (make-trust-store-from-sources path nil)))))
-  ;; Try directory-based stores
-  (let ((dirs '("/etc/ssl/certs"
-                "/etc/pki/tls/certs")))
-    (dolist (dir dirs)
-      (when (probe-file dir)
-        (return-from load-unix-trust-store
-          (make-trust-store-from-directory dir)))))
-  ;; No system store found
-  (warn "Could not find system CA certificates. Set SSL_CERT_FILE environment variable or use :ca-file parameter.")
-  (make-trust-store))
+  (let ((debug (get-environment-variable "OCICL_TLS_DEBUG")))
+    ;; Try bundle files first
+    (let ((paths '("/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"  ; Fedora/RHEL 9+
+                   "/etc/ssl/certs/ca-certificates.crt"      ; Debian/Ubuntu
+                   "/etc/pki/tls/certs/ca-bundle.crt"        ; RHEL/CentOS (older)
+                   "/etc/ssl/ca-bundle.pem"                   ; OpenSUSE
+                   "/usr/local/share/certs/ca-root-nss.crt"  ; FreeBSD
+                   "/etc/ssl/cert.pem"                        ; macOS
+                   "/usr/local/etc/openssl/cert.pem"          ; Homebrew OpenSSL
+                   "/usr/local/etc/openssl@1.1/cert.pem"      ; Homebrew OpenSSL 1.1
+                   "/opt/homebrew/etc/openssl/cert.pem")))    ; Homebrew on Apple Silicon
+      (dolist (path paths)
+        (when (probe-file path)
+          (when debug
+            (format t "; pure-tls: using CA bundle: ~A~%" path))
+          (let ((store (make-trust-store-from-sources path nil)))
+            (when debug
+              (format t "; pure-tls: trust store loaded with ~D certificate(s)~%"
+                      (if store (length store) 0)))
+            (return-from load-unix-trust-store store)))))
+    ;; Try directory-based stores
+    (let ((dirs '("/etc/ssl/certs"
+                  "/etc/pki/tls/certs")))
+      (dolist (dir dirs)
+        (when (probe-file dir)
+          (when debug
+            (format t "; pure-tls: using CA directory: ~A~%" dir))
+          (let ((store (make-trust-store-from-directory dir)))
+            (when debug
+              (format t "; pure-tls: trust store loaded with ~D certificate(s)~%"
+                      (if store (length store) 0)))
+            (return-from load-unix-trust-store store)))))
+    ;; No system store found
+    (warn "Could not find system CA certificates. Install ca-certificates package, ~
+           set SSL_CERT_FILE, or rebuild with USE_LEGACY_OPENSSL=1.")
+    (make-trust-store)))
 
 (defun load-windows-trust-store ()
   "Load trust store from common Windows CA bundle locations.

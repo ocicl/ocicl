@@ -26,6 +26,7 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
   - [Local-Only Mode (OCICL_LOCAL_ONLY)](#local-only-mode-ocicl_local_only)
 - [Proxy Configuration](#proxy-configuration)
 - [TLS Verification](#tls-verification)
+  - [Advanced TLS Troubleshooting](#advanced-tls-troubleshooting)
 - [AI-Generated Change Summaries](#ai-generated-change-summaries)
 - [Code Linting](#code-linting)
 - [Dependency Freshness](#dependency-freshness)
@@ -252,13 +253,67 @@ TLS Verification
   - `OCICL_HTTP_TIMEOUT`: connection timeout in seconds for HTTP requests
 
 Troubleshooting
-- CA not trusted: set `OCICL_CA_FILE`/`OCICL_CA_DIR` to include your organization’s CA bundle (common on corporate proxies), or temporarily use `-k` for testing.
+- CA not trusted: set `OCICL_CA_FILE`/`OCICL_CA_DIR` to include your organization's CA bundle (common on corporate proxies), or temporarily use `-k` for testing.
 - Hostname mismatch: verify the registry host (`--registry`) and proxy settings (`HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`).
 - Self-signed certificate: provide the signing CA via `OCICL_CA_FILE`/`OCICL_CA_DIR`, or use `-k` for testing only.
-- Expired/not yet valid: check your system clock and the server’s certificate validity.
+- Expired/not yet valid: check your system clock and the server's certificate validity.
 - Timeouts: check network/proxy reachability and consider increasing `OCICL_HTTP_TIMEOUT`.
 
 Disabling verification reduces security and should be used only for testing on trusted networks.
+
+### Advanced TLS Troubleshooting
+
+If you're experiencing TLS connection failures (especially with the default pure-tls backend), try these steps:
+
+**1. Enable TLS debugging:**
+```bash
+export OCICL_TLS_DEBUG=1
+ocicl install <package>
+```
+
+This will show:
+- Which TLS implementation is in use (pure-tls or cl+ssl)
+- Which CA certificate file/directory is being used
+- Number of CA certificates loaded
+
+**2. Verify CA certificates are installed:**
+
+The default pure-tls backend requires system CA certificates to be installed:
+
+- **Fedora/RHEL:** `sudo dnf install ca-certificates`
+- **Debian/Ubuntu:** `sudo apt-get install ca-certificates`
+- **macOS:** Certificates should be installed by default
+
+Expected CA bundle locations by platform:
+- Fedora/RHEL 9+: `/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem`
+- Debian/Ubuntu: `/etc/ssl/certs/ca-certificates.crt`
+- RHEL/CentOS (older): `/etc/pki/tls/certs/ca-bundle.crt`
+- macOS: `/etc/ssl/cert.pem`
+
+**3. Manually specify CA location:**
+
+If CA certificates are in a non-standard location:
+```bash
+export OCICL_CA_FILE=/path/to/ca-bundle.pem
+# or
+export OCICL_CA_DIR=/path/to/ca/directory
+```
+
+**4. Use the legacy OpenSSL backend:**
+
+If pure-tls continues to have issues, rebuild ocicl with the cl+ssl backend:
+```bash
+USE_LEGACY_OPENSSL=1 sbcl --load setup.lisp
+```
+
+**Common error messages and solutions:**
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Could not find system CA certificates" | CA certificates package not installed | Install ca-certificates package |
+| "TLS verification failed: certificate not trusted" | Empty or missing trust store | Verify CA certificates exist, set `OCICL_CA_FILE`, or install ca-certificates |
+| Silent installation failures | TLS error not being reported | Enable `OCICL_TLS_DEBUG=1` to see actual error |
+| "Certificate chain not anchored" | Trust store not loaded (pure-tls) | Install ca-certificates or rebuild with `USE_LEGACY_OPENSSL=1` |
 
 Command Line Tool
 -----------------

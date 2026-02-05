@@ -570,3 +570,22 @@ jobs:
         sbcl --eval "(asdf:load-system :trivial-garbage)" --eval "(uiop:quit 0)" || { echo "runtime auto-download failed"; exit 1; }
         [ -f ocicl.csv ] || { echo "ocicl.csv not created by runtime"; exit 1; }
         echo "✅ runtime auto-download works"
+
+    - name: Test pure-tls TLS connection
+      run: |
+        set -euo pipefail
+        export OCICL_TLS_DEBUG=1
+        # Test that pure-tls can make TLS connections
+        sbcl --eval "(asdf:load-system :ocicl)" \
+             --eval "(handler-case \
+                       (ocicl.http:http-get \"https://ghcr.io/v2/\" :force-string t :verbose t) \
+                       (error (e) (format t \"ERROR: ~A~%\" e) (uiop:quit 1)))" \
+             --eval "(uiop:quit 0)" || { echo "pure-tls TLS connection failed"; exit 1; }
+        echo "✅ pure-tls TLS connection works"
+
+    - name: Run pure-tls diagnostic test
+      run: |
+        set -euo pipefail
+        export OCICL_TLS_DEBUG=1
+        sbcl --load test/minimal-pure-tls-test.lisp || { echo "pure-tls diagnostic test failed"; exit 1; }
+        echo "✅ pure-tls diagnostic test passed"
