@@ -1,0 +1,84 @@
+<!DOCTYPE html> <html lang="EN"> <head> <meta charset="utf-8"> <title>Precise Time</title> <style>html body{margin:0 auto 0 auto;padding:20px;max-width:1024px;font-family:sans-serif;font-size:14pt;overflow-y:scroll;}html body a{text-decoration:none;}html body a[href]{color:#0055AA;}html body a[href]:hover{color:#0088EE;}html body pre{background:#FAFAFA;border:1px solid #DDDDDD;padding:0.75em;overflow-x:auto;}html body pre >code a[href]{color:#223388;}article.project h1{font-size:1.7em;}article.project h1,article.project h2,article.project h3,article.project h4,article.project h5,article.project h6{margin:0.2em 0 0.1em 0;text-indent:1em;}article.project >header{text-align:center;}article.project >header img.logo{display:block;margin:auto;max-height:170px;}article.project >header h1{display:inline-block;text-indent:0;font-size:2.5em;}article.project >header .version{vertical-align:bottom;}article.project >header .languages{margin-top:-0.5em;text-transform:capitalize;}article.project >header .description{margin:0;}article.project >header .pages{margin-top:0.5em;font-size:1.2em;text-transform:capitalize;}article.project >header .pages a{display:inline-block;padding:0 0.2em;}article.project >section{margin:1em 0 1em 0;}article.project >section img{max-width:100%;}article.project #index >ul{list-style:none;margin:0;padding:0;}article.project .row label{display:inline-block;min-width:8em;}article.project #system .row{display:flex;}article.project #system #dependencies{display:inline;margin:0;padding:0;}article.project #system #dependencies li{display:inline;padding:0 0.2em;}article.project #system #author label{vertical-align:top;}article.project #system #author ul{display:inline-block;margin:0;padding:0;list-style:none;}article.definition{margin:1em 0 0 0;}article.definition >header h1,article.definition >header h2,article.definition >header h3,article.definition >header h4,article.definition >header h5,article.definition >header h6{text-indent:0;display:inline-block;}article.definition >header ul{display:inline-block;list-style:none;margin:0;padding:0;}article.definition >header ul li{display:inline-block;padding:0 0.2em 0 0;}article.definition >header .visibility{display:none;}article.definition >header .visibility,article.definition >header .type{text-transform:lowercase;}article.definition >header .source-link{visibility:hidden;float:right;}article.definition >header .source-link:after{visibility:visible;content:"[SRC]";}article.definition .docstring{margin:0 0 0 1em;}article.definition .docstring pre{font-size:0.8em;white-space:pre-wrap;}.definition.package >header ul.nicknames{display:inline-block;list-style:none;margin:0;padding:0 0 0 1em;}.definition.package >header ul.nicknames li{display:inline;}.definition.package >header ul.nicknames:before{content:"(";}.definition.package >header ul.nicknames:after{content:")";}.definition.package ul.definitions{margin:0;list-style:none;padding:0 0 0 0.5em;}.definition.callable >header .name:before,.definition.type >header .name:before{content:"(";font-weight:normal;}.definition.callable >header .arguments:after,.definition.type >header .arguments:after{content:")";}.definition.callable >header .arguments .arguments:before,.definition.type >header .arguments .arguments:before{content:"(";}.definition.callable >header .arguments .argument,.definition.type >header .arguments .argument{padding:0;}.definition.callable >header .arguments .argument.lambda-list-keyword,.definition.type >header .arguments .argument.lambda-list-keyword{color:#991155;}.definition li>mark{background:none;border-left:0.3em solid #0088EE;padding-left:0.3em;display:block;}</style> </head> <body> <article class="project"> <header>   <h1>precise time</h1>   <span class="version">1.0.0</span>    <p class="description">Precise time measurements</p>   </header> <section id="documentation"><article><h1 id="about precise-time">About Precise-Time</h1><p>This is a small library hooking into the operating system to give more precise timing information than implementations usually provide via <code><a href="#FUNCTION%20ORG.SHIRAKUMO.PRECISE-TIME%3AGET-UNIVERSAL-TIME" class="xref">get-universal-time</a></code> or <code><a href="#FUNCTION%20ORG.SHIRAKUMO.PRECISE-TIME%3AGET-INTERNAL-REAL-TIME" class="xref">get-internal-real-time</a></code>.</p><h2 id="how to">How To</h2><p>The usage is straightforward:</p><p><code><a href="#FUNCTION%20ORG.SHIRAKUMO.PRECISE-TIME%3AGET-PRECISE-TIME" class="xref">get-precise-time</a></code> returns the precise system time as two values:</p><ul><li><p>A universal-time timestamp</p></li><li><p>Sub-seconds in <code><a href="#VARIABLE%20ORG.SHIRAKUMO.PRECISE-TIME%3APRECISE-TIME-UNITS-PER-SECOND" class="xref">PRECISE-TIME-UNITS-PER-SECOND</a></code></p></li></ul><p><code><a href="#FUNCTION%20ORG.SHIRAKUMO.PRECISE-TIME%3AGET-MONOTONIC-TIME" class="xref">get-monotonic-time</a></code> returns a precise monotonic clock as two values:</p><ul><li><p>Seconds since an arbitrary epoch</p></li><li><p>Sub-seconds in <code><a href="#VARIABLE%20ORG.SHIRAKUMO.PRECISE-TIME%3AMONOTONIC-TIME-UNITS-PER-SECOND" class="xref">MONOTONIC-TIME-UNITS-PER-SECOND</a></code></p></li></ul><p>And that's all!</p></article></section>   <section id="system"> <h2>System Information</h2>  <div class="row"> <label for="version">Version:</label> <a id="version">1.0.0</a> </div>   <div class="row"> <label for="dependencies">Dependencies:</label> <ul id="dependencies"><li><a class="external" href="https://Shinmera.github.io/documentation-utils/">documentation-utils</a></li><li><a class="external">trivial-features</a></li><li><a class="external">cffi</a></li></ul> </div>   <div class="row" id="author"> <label for="author">Author:</label> <a href="mailto:shinmera@tymoon.eu">Yukari Hafner</a> </div>   <div class="row"> <label for="license">License:</label> <a id="license" href="https://github.com/shinmera/precise-time/blob/be195674ff14c5f0388e89523d123f94c2b7d7e2/LICENSE">zlib</a> </div>   <div class="row"> <label for="homepage">Homepage:</label> <a id="homepage" href="https://shinmera.github.io/precise-time/">https://shinmera.github.io/precise-time/</a> </div>   <div class="row"> <label for="bug-tracker">Bug Tracker:</label> <a id="bug-tracker" href="https://github.com/shinmera/precise-time/issues">https://github.com/shinmera/precise-time/issues</a> </div>   <div class="row"> <label for="sources">Sources:</label> <a id="sources" href="https://github.com/shinmera/precise-time.git">https://github.com/shinmera/precise-time.git</a> </div>  </section>    <section id="index"> <h2>Definition Index</h2> <ul> <li> <article class="definition package" id="PACKAGE ORG.SHIRAKUMO.PRECISE-TIME"> <header> <h3> <a href="#PACKAGE%20ORG.SHIRAKUMO.PRECISE-TIME">ORG.SHIRAKUMO.PRECISE-TIME</a> </h3> <ul class="nicknames"></ul>  </header> <div class="docstring"><i>No documentation provided.</i></div> <ul class="definitions"> <li> <article class="definition symbol-macro" id="VARIABLE ORG.SHIRAKUMO.PRECISE-TIME:MONOTONIC-TIME-UNITS-PER-SECOND"> <header> <span class="visibility">EXTERNAL</span> <span class="type">SYMBOL-MACRO</span> <h4 class="name"> <a href="#VARIABLE%20ORG.SHIRAKUMO.PRECISE-TIME%3AMONOTONIC-TIME-UNITS-PER-SECOND">MONOTONIC-TIME-UNITS-PER-SECOND</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shinmera/precise-time/blob/be195674ff14c5f0388e89523d123f94c2b7d7e2/protocol.lisp#L40">Source</a>  </header> <div class="docstring"><pre>This is the number of units per second of the secondary return value of GET-MONOTONIC-TIME.
+
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.PRECISE-TIME%3AGET-MONOTONIC-TIME" class="xref">GET-MONOTONIC-TIME</a></pre></div> </article> </li>  <li> <article class="definition symbol-macro" id="VARIABLE ORG.SHIRAKUMO.PRECISE-TIME:PRECISE-TIME-UNITS-PER-SECOND"> <header> <span class="visibility">EXTERNAL</span> <span class="type">SYMBOL-MACRO</span> <h4 class="name"> <a href="#VARIABLE%20ORG.SHIRAKUMO.PRECISE-TIME%3APRECISE-TIME-UNITS-PER-SECOND">PRECISE-TIME-UNITS-PER-SECOND</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shinmera/precise-time/blob/be195674ff14c5f0388e89523d123f94c2b7d7e2/protocol.lisp#L37">Source</a>  </header> <div class="docstring"><pre>This is the number of units per second of the secondary return value of GET-PRECISE-TIME.
+
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.PRECISE-TIME%3AGET-PRECISE-TIME" class="xref">GET-PRECISE-TIME</a></pre></div> </article> </li>  <li> <article class="definition condition" id="CONDITION ORG.SHIRAKUMO.PRECISE-TIME:QUERY-FAILED"> <header> <span class="visibility">EXTERNAL</span> <span class="type">CONDITION</span> <h4 class="name"> <a href="#CONDITION%20ORG.SHIRAKUMO.PRECISE-TIME%3AQUERY-FAILED">QUERY-FAILED</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shinmera/precise-time/blob/be195674ff14c5f0388e89523d123f94c2b7d7e2/protocol.lisp#L3">Source</a>  </header> <div class="docstring"><pre>Error signalled if a timer couldn't be fetched.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.PRECISE-TIME:GET-MONOTONIC-TIME"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.PRECISE-TIME%3AGET-MONOTONIC-TIME">GET-MONOTONIC-TIME</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shinmera/precise-time/blob/be195674ff14c5f0388e89523d123f94c2b7d7e2/posix.lisp#L17">Source</a>  </header> <div class="docstring"><pre>Gets a monotonically increasing time with as much precision as possible.
+
+Returns two values:
+- A number of seconds since an arbitrary, but fixed epoch
+- The number of sub-seconds in units of MONOTONIC-TIME-UNITS-PER-SECOND
+
+The time returned does not jump forwards or backwards regardless of
+system clock and will always remain monotonically increasing.
+
+Signals an error of type QUERY-FAILED if the time could not be fetched
+for whatever reason.
+
+See <a href="#VARIABLE%20ORG.SHIRAKUMO.PRECISE-TIME%3AMONOTONIC-TIME-UNITS-PER-SECOND" class="xref">MONOTONIC-TIME-UNITS-PER-SECOND</a>
+See <a href="#CONDITION%20ORG.SHIRAKUMO.PRECISE-TIME%3AQUERY-FAILED" class="xref">QUERY-FAILED</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.PRECISE-TIME:GET-PRECISE-TIME"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.PRECISE-TIME%3AGET-PRECISE-TIME">GET-PRECISE-TIME</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shinmera/precise-time/blob/be195674ff14c5f0388e89523d123f94c2b7d7e2/posix.lisp#L10">Source</a>  </header> <div class="docstring"><pre>Gets the current time with as much precision as possible.
+
+Returns two values:
+- A universal-time timestamp
+- The number of sub-seconds in units of PRECISE-TIME-UNITS-PER-SECOND
+
+The time returned *may* jump forwards or backwards if the system clock
+is adjusted.
+
+Signals an error of type QUERY-FAILED if the time could not be fetched
+for whatever reason.
+
+See <a href="#VARIABLE%20ORG.SHIRAKUMO.PRECISE-TIME%3APRECISE-TIME-UNITS-PER-SECOND" class="xref">PRECISE-TIME-UNITS-PER-SECOND</a>
+See <a href="#CONDITION%20ORG.SHIRAKUMO.PRECISE-TIME%3AQUERY-FAILED" class="xref">QUERY-FAILED</a></pre></div> </article> </li> </ul> </article> </li> </ul> </section>  </article> <script>window.addEventListener("DOMContentLoaded", function(){
+    var unmarkElement = function(el){
+        if(el.tagName === "mark" || el.tagName === "MARK"){
+            [].forEach.call(el.childNodes, function(child){
+                el.parentNode.insertBefore(child, el);
+            });
+            el.parentNode.removeChild(el);
+        }else if(el.parentNode.tagName === "mark"){
+            return unmarkElement(el.parentNode);
+        }
+        return null;
+    }
+
+    var unmarkAll = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("mark"), unmarkElement);
+    }
+    
+    var markElement = function(el){
+        if(el.parentNode.tagName === "mark" || el.parentNode.tagName === "MARK"){
+            return el.parentNode;
+        } else {
+            unmarkAll();
+            var marked = document.createElement("mark");
+            el.parentNode.insertBefore(marked, el);
+            marked.appendChild(el);
+            return marked;
+        }
+    }
+
+    var markFragmented = function(){
+        if(window.location.hash){
+            var el = document.getElementById(decodeURIComponent(window.location.hash.substr(1)));
+            if(el) markElement(el);
+        }
+    }
+
+    var registerXrefLink = function(link){
+        var el = document.getElementById(decodeURIComponent(link.getAttribute("href").substr(1)));
+        if(el){
+            link.addEventListener("click", function(){
+                markElement(el);
+            });
+        }
+    }
+
+    var registerXrefLinks = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("a.xref"), registerXrefLink);
+    }
+
+    markFragmented();
+    registerXrefLinks();
+}); </script> </body> </html> 

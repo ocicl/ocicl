@@ -1,0 +1,27 @@
+## About Atomics
+This is a library for access to atomic operation primitives such as compare-and-swap. It aims to be a rather thin layer over what the implementations offer.
+
+## Currently Supported Implementations
+The following implementations are fully or partially supported:
+
+- Allegro
+- CCL
+- ECL
+- LispWorks
+- Mezzano
+- SBCL
+- CMUCL
+
+For a detailed report on the capabilities, please see the documentation of the respective operators. If you think that an implementation should be added, or better supported, please file an ''issue''(https://shinmera.com/project/atomics/issues) or a pull request with the necessary information.
+
+If an operation is unsupported, an error will be signalled on usage of the operator. You can conditionalise your code with the following features for automated support detection:
+
+- ``:atomics-cas-car`` for conses
+- ``:atomics-cas-svref`` for simple-vectors
+- ``:atomics-cas-symbol-plist`` for symbol-plists
+- ``:atomics-cas-symbol-value`` for the global symbol-value
+- ``:atomics-cas-slot-value`` for slot-value on standard objects
+- ``:atomics-cas-memref`` for foreign memory
+- ``:atomics-cas-struct-slot`` for structure slot accessors
+- ``:atomics-cas-special-var`` for dynamic variables
+- ``:atomics-cas-custom`` for support of custom CAS form definitions

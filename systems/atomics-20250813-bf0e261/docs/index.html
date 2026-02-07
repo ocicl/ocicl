@@ -1,0 +1,238 @@
+<!DOCTYPE html> <html lang="EN"> <head> <meta charset="utf-8"> <title>Atomics</title> <style>html body{margin:0 auto 0 auto;padding:20px;max-width:1024px;font-family:sans-serif;font-size:14pt;overflow-y:scroll;}html body a{text-decoration:none;}html body a[href]{color:#0055AA;}html body a[href]:hover{color:#0088EE;}html body pre{background:#FAFAFA;border:1px solid #DDDDDD;padding:0.75em;overflow-x:auto;}html body pre >code a[href]{color:#223388;}article.project h1{font-size:1.7em;}article.project h1,article.project h2,article.project h3,article.project h4,article.project h5,article.project h6{margin:0.2em 0 0.1em 0;text-indent:1em;}article.project >header{text-align:center;}article.project >header img.logo{display:block;margin:auto;max-height:170px;}article.project >header h1{display:inline-block;text-indent:0;font-size:2.5em;}article.project >header .version{vertical-align:bottom;}article.project >header .languages{margin-top:-0.5em;text-transform:capitalize;}article.project >header .description{margin:0;}article.project >header .pages{margin-top:0.5em;font-size:1.2em;text-transform:capitalize;}article.project >header .pages a{display:inline-block;padding:0 0.2em;}article.project >section{margin:1em 0 1em 0;}article.project #index >ul{list-style:none;margin:0;padding:0;}article.project .row label{display:inline-block;min-width:8em;}article.project #system .row{display:flex;}article.project #system #dependencies{display:inline;margin:0;padding:0;}article.project #system #dependencies li{display:inline;padding:0 0.2em;}article.project #system #author label{vertical-align:top;}article.project #system #author ul{display:inline-block;margin:0;padding:0;list-style:none;}article.definition{margin:1em 0 0 0;}article.definition >header h1,article.definition >header h2,article.definition >header h3,article.definition >header h4,article.definition >header h5,article.definition >header h6{text-indent:0;display:inline-block;}article.definition >header ul{display:inline-block;list-style:none;margin:0;padding:0;}article.definition >header ul li{display:inline-block;padding:0 0.2em 0 0;}article.definition >header .visibility{display:none;}article.definition >header .visibility,article.definition >header .type{text-transform:lowercase;}article.definition >header .source-link{visibility:hidden;float:right;}article.definition >header .source-link:after{visibility:visible;content:"[SRC]";}article.definition .docstring{margin:0 0 0 1em;}article.definition .docstring pre{font-size:0.8em;white-space:pre-wrap;}.definition.package >header ul.nicknames{display:inline-block;list-style:none;margin:0;padding:0 0 0 1em;}.definition.package >header ul.nicknames li{display:inline;}.definition.package >header ul.nicknames:before{content:"(";}.definition.package >header ul.nicknames:after{content:")";}.definition.package ul.definitions{margin:0;list-style:none;padding:0 0 0 0.5em;}.definition.callable >header .name:before,.definition.type >header .name:before{content:"(";font-weight:normal;}.definition.callable >header .arguments:after,.definition.type >header .arguments:after{content:")";}.definition.callable >header .arguments .arguments:before,.definition.type >header .arguments .arguments:before{content:"(";}.definition.callable >header .arguments .argument,.definition.type >header .arguments .argument{padding:0;}.definition.callable >header .arguments .argument.lambda-list-keyword,.definition.type >header .arguments .argument.lambda-list-keyword{color:#991155;}.definition li>mark{background:none;border-left:0.3em solid #0088EE;padding-left:0.3em;display:block;}</style> </head> <body> <article class="project"> <header>   <h1>atomics</h1>   <span class="version">1.0.0</span>    <p class="description">Portability layer for atomic operations like compare-and-swap (CAS).</p>   </header> <section id="documentation"><article><h2 id="about atomics">About Atomics</h2><p>This is a library for access to atomic operation primitives such as compare-and-swap. It aims to be a rather thin layer over what the implementations offer.</p><h2 id="currently supported implementations">Currently Supported Implementations</h2><p>The following implementations are fully or partially supported:</p><ul><li><p>Allegro</p></li><li><p>CCL</p></li><li><p>ECL</p></li><li><p>LispWorks</p></li><li><p>Mezzano</p></li><li><p>SBCL</p></li><li><p>CMUCL</p></li></ul><p>For a detailed report on the capabilities, please see the documentation of the respective operators. If you think that an implementation should be added, or better supported, please file an <a class="external-link" href="https://shinmera.com/project/atomics/issues">issue</a> or a pull request with the necessary information.</p><p>If an operation is unsupported, an error will be signalled on usage of the operator. You can conditionalise your code with the following features for automated support detection:</p><ul><li><p><code>:atomics-cas-car</code> for conses</p></li><li><p><code>:atomics-cas-svref</code> for simple-vectors</p></li><li><p><code>:atomics-cas-symbol-plist</code> for symbol-plists</p></li><li><p><code>:atomics-cas-symbol-value</code> for the global symbol-value</p></li><li><p><code>:atomics-cas-slot-value</code> for slot-value on standard objects</p></li><li><p><code>:atomics-cas-memref</code> for foreign memory</p></li><li><p><code>:atomics-cas-struct-slot</code> for structure slot accessors</p></li><li><p><code>:atomics-cas-special-var</code> for dynamic variables</p></li><li><p><code>:atomics-cas-custom</code> for support of custom CAS form definitions</p></li></ul></article></section>   <section id="system"> <h2>System Information</h2>  <div class="row"> <label for="version">Version:</label> <a id="version">1.0.0</a> </div>   <div class="row"> <label for="dependencies">Dependencies:</label> <ul id="dependencies"><li><a class="external" href="https://Shinmera.github.io/documentation-utils/">documentation-utils</a></li></ul> </div>   <div class="row" id="author"> <label for="author">Author:</label> <a href="mailto:shinmera@tymoon.eu">Yukari Hafner</a> </div>   <div class="row"> <label for="license">License:</label> <a id="license" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/LICENSE">zlib</a> </div>   <div class="row"> <label for="homepage">Homepage:</label> <a id="homepage" href="https://shinmera.github.io/atomics/">https://shinmera.github.io/atomics/</a> </div>   <div class="row"> <label for="bug-tracker">Bug Tracker:</label> <a id="bug-tracker" href="https://shinmera.com/project/atomics/issues">https://shinmera.com/project/atomics/issues</a> </div>   <div class="row"> <label for="sources">Sources:</label> <a id="sources" href="https://shinmera.com/project/atomics.git">https://shinmera.com/project/atomics.git</a> </div>  </section>    <section id="index"> <h2>Definition Index</h2> <ul> <li> <article class="definition package" id="PACKAGE ATOMICS"> <header> <h3> <a href="#PACKAGE%20ATOMICS">ATOMICS</a> </h3> <ul class="nicknames"> <li>ORG.SHIRAKUMO.ATOMICS</li> </ul>  </header> <div class="docstring"><i>No documentation provided.</i></div> <ul class="definitions"> <li> <article class="definition condition" id="CONDITION ATOMICS:IMPLEMENTATION-NOT-SUPPORTED"> <header> <span class="visibility">EXTERNAL</span> <span class="type">CONDITION</span> <h4 class="name"> <a href="#CONDITION%20ATOMICS%3AIMPLEMENTATION-NOT-SUPPORTED">IMPLEMENTATION-NOT-SUPPORTED</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/atomics.lisp#L36">Source</a>  </header> <div class="docstring"><pre>Error signalled on unsupported implementations.
+
+This error may be signalled when the library is loaded and the current
+implementation is entirely unsupported, or if the current operation is
+not supported by the implementation.
+
+See <a href="#GENERIC-FUNCTION%20ATOMICS%3AOPERATION" class="xref">OPERATION</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ATOMICS:OPERATION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ATOMICS%3AOPERATION">OPERATION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">CONDITION</li>  </ul>  </header> <div class="docstring"><pre>Returns the unsupported operation or NIL on entirely unsupported implementations.
+
+See <a href="#CONDITION%20ATOMICS%3AIMPLEMENTATION-NOT-SUPPORTED" class="xref">IMPLEMENTATION-NOT-SUPPORTED</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ATOMICS:ATOMIC-DECF"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ATOMICS%3AATOMIC-DECF">ATOMIC-DECF</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">PLACE</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">DELTA</li>  </ul>  <a class="source-link" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/atomics.lisp#L105">Source</a>  </header> <div class="docstring"><pre>Atomically decreases place by the specified delta.
+
+Returns the value the place has been set to.
+
+For restrictions, see ATOMIC-INCF.
+
+See <a href="#MACRO-FUNCTION%20ATOMICS%3AATOMIC-INCF" class="xref">ATOMIC-INCF</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ATOMICS:ATOMIC-INCF"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ATOMICS%3AATOMIC-INCF">ATOMIC-INCF</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">PLACE</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">DELTA</li>  </ul>  <a class="source-link" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/atomics.lisp#L85">Source</a>  </header> <div class="docstring"><pre>Atomically increases place by the specified delta.
+
+Returns the value the place has been set to.
+
+Restrictions apply to allowed PLACEs by implementation:
+
+             Allegro CCL Clasp ECL LispWorks Mezzano SBCL CMUCL
+CAR             X     X    X    X     X         X     X     X  
+CDR             X     X    X    X     X         X     X     X  
+FIRST                      X    X               X     X     X  
+REST                       X    X               X     X     X  
+SVREF           X     X    X    X     X         X           X  
+AREF                                            X     X     X  
+SYMBOL-VALUE    X          X    X     X         X           X  
+SLOT-VALUE      X*         X    X*    X*        X           X  
+MEMREF          X                                              
+MEMREF-INT      X                                              
+struct-slot     X     X*   X    X*    X         X     X*    X  
+special-var     X     X    X    X     X         X           X  
+custom                     X    X     X         X     X     X  
+global (SBCL)                                         X*       
+
+Further restrictions apply:
+
+# Allegro                                           (EXCL:ATOMIC-INCF)
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a>
+
+# Clasp                                               (MP:ATOMIC-INCF)
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a>
+
+# CCL                                           (CCL:ATOMIC-INCF-DECF)
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a>
+
+# ECL                                                 (MP:ATOMIC-INCF)
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a>
+- The places must store a FIXNUM.
+- The addition is performed with modular arithmetic, meaning over- or
+  underflows will wrap around.
+
+# LispWorks                                       (SYSTEM:ATOMIC-INCF)
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a>
+
+# Mezzano                             (MEZZANO.EXTENSIONS:ATOMIC-INCF)
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a>
+- The places must store a FIXNUM.
+- The addition is performed with modular arithmetic, meaning over- or
+  underflows will wrap around.
+
+# SBCL                                            (SB-EXT:ATOMIC-INCF)
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a>
+- struct-slots must be of type SB-EXT:WORD.
+- AREF only works on (SIMPLE-ARRAY SB-EXT:WORD (*)).
+- Other places must be a FIXNUM.
+- The addition is performed with modular arithmetic, meaning over- or
+  underflows will wrap around.
+
+# CMUCL
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ATOMICS:ATOMIC-POP"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ATOMICS%3AATOMIC-POP">ATOMIC-POP</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">PLACE</li>  </ul>  <a class="source-link" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/atomics.lisp#L125">Source</a>  </header> <div class="docstring"><pre>Atomically pops place, much like CL:POP.
+
+Returns the value which has been popped from place.
+
+For restrictions, see ATOMIC-PUSH.
+
+See <a href="#MACRO-FUNCTION%20ATOMICS%3AATOMIC-PUSH" class="xref">ATOMIC-PUSH</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ATOMICS:ATOMIC-PUSH"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ATOMICS%3AATOMIC-PUSH">ATOMIC-PUSH</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">VALUE</li>    <li class="argument">PLACE</li>  </ul>  <a class="source-link" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/atomics.lisp#L144">Source</a>  </header> <div class="docstring"><pre>Atomically pushes value into place, much like CL:PUSH.
+
+Returns the value the place has been set to.
+
+In Allegro, ECL, LispWorks, and SBCL, their native implementation of atomic pop and push are used.
+On implementations that do not provide such operations, a fallback based on ATOMIC-CAS is available for usage.
+
+Restrictions apply to allowed PLACEs by implementation, see CAS.
+
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ATOMICS:ATOMIC-UPDATE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ATOMICS%3AATOMIC-UPDATE">ATOMIC-UPDATE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">PLACE</li>    <li class="argument">UPDATE-FN</li>  </ul>  <a class="source-link" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/atomics.lisp#L164">Source</a>  </header> <div class="docstring"><pre>Updates the PLACE with the value retrieved from UPDATE-FN
+
+The UPDATE-FN is called with the old value of the PLACE and should
+return the new value to set the place to.
+The PLACE and UPDATE-FN may be evaluated multiple times.
+
+Restrictions apply to the PLACE, see CAS.
+
+See <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS" class="xref">CAS</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ATOMICS:CAS"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ATOMICS%3ACAS">CAS</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">PLACE</li>    <li class="argument">OLD</li>    <li class="argument">NEW</li>  </ul>  <a class="source-link" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/atomics.lisp#L53">Source</a>  </header> <div class="docstring"><pre>Perform a Compare-And-Swap.
+
+Returns non-NIL if successful, NIL if not.
+On success it is guaranteed that the PLACE has been set to the NEW
+value atomically, that is to say while the PLACE still had a value EQ
+to OLD. On failure the value of PLACE has most likely changed to one
+not EQ to OLD.
+
+Restrictions apply to allowed PLACEs by implementation:
+
+             Allegro CCL Clasp ECL LispWorks Mezzano SBCL CMUCL
+CAR             X          X    X     X         X     X     X  
+CDR             X          X    X     X         X     X     X  
+FIRST                      X    X               X     X     X  
+REST                       X    X               X     X     X  
+SVREF           X     X    X    X     X         X     X     X  
+SYMBOL-PLIST    X          X    X                     X     X  
+SYMBOL-VALUE    X          X    X     X         X     X     X  
+SLOT-VALUE      X*         X    X*    X*        X     X*    X  
+MEMREF          X                                              
+MEMREF-INT      X                                              
+struct-slot     X     X*   X    X*    X         X     X*    X  
+special-var     X     X    X    X     X         X     X     X  
+custom                     X    X     X         X     X     X  
+
+For each of the above feature flags are pushed when available:
+
+  :ATOMICS-CAS-CAR
+  :ATOMICS-CAS-SVREF
+  :ATOMICS-CAS-SYMBOL-PLIST
+  :ATOMICS-CAS-SYMBOL-VALUE
+  :ATOMICS-CAS-SLOT-VALUE
+  :ATOMICS-CAS-MEMREF
+  :ATOMICS-CAS-STRUCT-SLOT
+  :ATOMICS-CAS-SPECIAL-VAR
+  :ATOMICS-CAS-CUSTOM
+
+Further restrictions apply:
+
+# Allegro                               (EXCL:ATOMIC-CONDITIONAL-SETF)
+- SLOT-VALUE can only be used for :INSTANCE and :CLASS allocated slots
+  and the SLOT-VALUE-USING-CLASS protocol is ignored.
+- struct-slot definitions must be available at compile-time.
+- SYMBOL-VALUE accesses the dynamically bound value if it is
+  dynamically bound, rather than the global value.
+
+# CCL                                         (CCL::CONDITIONAL-STORE)
+- struct-slot accesses only seem to work quite right for T-typed
+  slots.
+
+# Clasp                                                       (MP:CAS)
+- SLOT-VALUE can only be used for :INSTANCE and :CLASS allocated
+  slots. Methods on SLOT-VALUE-USING-CLASS etc. are ignored. If the
+  slot is missing, SLOT-MISSING is called with operation = MP:CAS,
+  and new-value = a list of OLD and NEW. The slot must be bound.
+- SYMBOL-VALUE (and a special variable directly) accesses the
+  dynamically bound value if it is dynamically bound, rather than the
+  global value.
+
+# ECL                                            (MP:COMPARE-AND-SWAP)
+- If a slot is unbound, an error is signalled unless the OLD value is
+  SI:UNBOUND. If the slot has any methods defined on
+  SLOT-VALUE-USING-CLASS, the consequences are undefined.
+- struct-slots must be defined with the :atomic-accessors option.
+  See DEFSTRUCT for a portable wrapper.
+
+# LispWorks                                  (SYSTEM:COMPARE-AND-SWAP)
+- SLOT-VALUE can only be used for :INSTANCE and :CLASS allocated slots
+  and will not work with SLOT-VALUE-USING-CLASS.
+
+# Mezzano                        (MEZZANO.EXTENSIONS:COMPARE-AND-SWAP)
+- If a slot has methods defined on SLOT-VALUE-USING-CLASS or
+  SLOT-BOUNDP-USING-CLASS, then it must also have a method defined
+  on (MEZZANO.EXTENSIONS:CAS SLOT-VALUE-USING-CLASS) for CAS of
+  SLOT-VALUE to work. If the slot is missing, SLOT-MISSING is called
+  with operation = MEZZANO.EXTENSIONS:CAS, and new-value = a list of
+  OLD and NEW. If a slot is unbound, an error is signalled unless
+  the OLD value is MEZZANO.CLOS:+SLOT-UNBOUND+.
+
+# SBCL                                                    (SB-EXT:CAS)
+- If a slot is unbound, an error is signalled unless the OLD value is
+  SB-PCL:+SLOT-UNBOUND+. If the slot has methods defined on
+  SLOT-VALUE-USING-CLASS or SLOT-BOUNDP-USING-CLASS, the consequences
+  are undefined.
+- struct-slot types must be either FIXNUM or T.
+
+# CMUCL                               (based on MP:WITHOUT-SCHEDULING)
+- On CMUCL green threads are implemented on X86 ports only
+- Due to nature of threads atomic operations are blocking.</pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ATOMICS:DEFSTRUCT"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ATOMICS%3ADEFSTRUCT">DEFSTRUCT</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">NAME</li>    <li class="argument lambda-list-keyword">&amp;REST</li>    <li class="argument">SLOTS</li>  </ul>  <a class="source-link" href="https://shinmera.com/project/atomics/blob/b1ad960805f280ebd51452c80d1c7e1154795b00/atomics.lisp#L181">Source</a>  </header> <div class="docstring"><pre>Wrapper around CL:DEFSTRUCT to portably define atomically modifiable structures.
+
+See <a href="http://l1sp.org/cl/defstruct" class="xref">CL:DEFSTRUCT</a></pre></div> </article> </li> </ul> </article> </li> </ul> </section>  </article> <script>window.addEventListener("DOMContentLoaded", function(){
+    var unmarkElement = function(el){
+        if(el.tagName === "mark" || el.tagName === "MARK"){
+            [].forEach.call(el.childNodes, function(child){
+                el.parentNode.insertBefore(child, el);
+            });
+            el.parentNode.removeChild(el);
+        }else if(el.parentNode.tagName === "mark"){
+            return unmarkElement(el.parentNode);
+        }
+        return null;
+    }
+
+    var unmarkAll = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("mark"), unmarkElement);
+    }
+    
+    var markElement = function(el){
+        if(el.parentNode.tagName === "mark" || el.parentNode.tagName === "MARK"){
+            return el.parentNode;
+        } else {
+            unmarkAll();
+            var marked = document.createElement("mark");
+            el.parentNode.insertBefore(marked, el);
+            marked.appendChild(el);
+            return marked;
+        }
+    }
+
+    var markFragmented = function(){
+        if(window.location.hash){
+            var el = document.getElementById(decodeURIComponent(window.location.hash.substr(1)));
+            if(el) markElement(el);
+        }
+    }
+
+    var registerXrefLink = function(link){
+        var el = document.getElementById(decodeURIComponent(link.getAttribute("href").substr(1)));
+        if(el){
+            link.addEventListener("click", function(){
+                markElement(el);
+            });
+        }
+    }
+
+    var registerXrefLinks = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("a.xref"), registerXrefLink);
+    }
+
+    markFragmented();
+    registerXrefLinks();
+}); </script> </body> </html> 
