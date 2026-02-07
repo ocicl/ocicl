@@ -155,9 +155,9 @@
                              verify ca-file ca-dir))
                    (when tls-debug
                      (format t "; TLS implementation: ~A~%"
-                             #+pure-tls "pure-tls"
-                             #+cl+ssl "cl+ssl"
-                             #-(or pure-tls cl+ssl) "unknown")
+                             (cond ((find-package :pure-tls) "pure-tls")
+                                   ((find-package :cl+ssl) "cl+ssl")
+                                   (t "unknown")))
                      (format t "; TLS verify=~A ca-file=~A ca-dir=~A~%"
                              verify ca-file ca-dir))
                    (handler-case
