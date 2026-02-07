@@ -28,7 +28,7 @@
 (defun calculate-sha256 (file)
   "Calculate SHA-256 hash of FILE. Returns hex string."
   (let ((digest (ironclad:digest-file :sha256 file)))
-    (ironclad:byte-array-to-hex-string digest))))
+    (ironclad:byte-array-to-hex-string digest)))
 
 (defun extract-version-from-dirname (dirname)
   "Extract version from system directory name (e.g., 'alexandria-20240503-8514d8e' -> '20240503-8514d8e')."
