@@ -25,14 +25,10 @@
 
 (in-package #:ocicl)
 
-(defun calculate-md5 (file)
-  "Calculate MD5 hash of FILE. Returns hex string."
-  #+sbcl
-  (with-open-file (stream file :element-type '(unsigned-byte 8))
-    (let ((md5 (sb-md5:md5sum-stream stream)))
-      (format nil "~{~2,'0x~}" (coerce md5 'list))))
-  #-sbcl
-  ""))
+(defun calculate-sha256 (file)
+  "Calculate SHA-256 hash of FILE. Returns hex string."
+  (let ((digest (ironclad:digest-file :sha256 file)))
+    (ironclad:byte-array-to-hex-string digest))))
 
 (defun extract-version-from-dirname (dirname)
   "Extract version from system directory name (e.g., 'alexandria-20240503-8514d8e' -> '20240503-8514d8e')."
@@ -107,7 +103,7 @@
            (setf license-spdx (infer-license-from-text license-text))))))
 
     ;; Calculate hash of primary .asd file
-    (let ((checksum (when asd-file (calculate-md5 asd-file))))
+    (let ((checksum (when asd-file (calculate-sha256 asd-file))))
       (list :name pkg-name
             :full-name system-name
             :version (or version "unknown")
@@ -170,7 +166,7 @@
                (when (getf component :checksum)
                  (format out "      \"hashes\": [~%")
                  (format out "        {~%")
-                 (format out "          \"alg\": \"MD5\",~%")
+                 (format out "          \"alg\": \"SHA-256\",~%")
                  (format out "          \"content\": \"~a\"~%" (getf component :checksum))
                  (format out "        }~%")
                  (format out "      ],~%"))
@@ -225,7 +221,7 @@
                  (format out ",~%")
                  (format out "      \"checksums\": [~%")
                  (format out "        {~%")
-                 (format out "          \"algorithm\": \"MD5\",~%")
+                 (format out "          \"algorithm\": \"SHA-256\",~%")
                  (format out "          \"checksumValue\": \"~a\"~%" (getf component :checksum))
                  (format out "        }~%")
                  (format out "      ]"))

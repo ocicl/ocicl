@@ -69,7 +69,7 @@
   :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
                 :version-string :alexandria :serapeum :cl-selfupdate/drakma
-                :ecclesia :rewrite-cl
+                :ecclesia :rewrite-cl :ironclad
 
                 ;; sbcl internals
                 (:feature :sbcl :sb-posix)
@@ -78,8 +78,7 @@
                 (:feature :sbcl :sb-cltl2)
                 (:feature :sbcl :sb-introspect)
                 (:feature :sbcl :sb-concurrency)
-                (:feature :sbcl :sb-sprof)
-                (:feature :sbcl :sb-md5))
+                (:feature :sbcl :sb-sprof))
   :build-operation "program-op"
   :build-pathname "ocicl"
   :entry-point "ocicl:main")
