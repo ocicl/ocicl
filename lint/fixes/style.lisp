@@ -833,9 +833,11 @@
 
 
 ;;; Fix: redundant-progn - (PROGN form) -> form
+;;; BUT don't fix (progn ,@body) in macro templates
 
 (defun fix-redundant-progn (content issue)
-  "Remove redundant PROGN wrapper at ISSUE location."
+  "Remove redundant PROGN wrapper at ISSUE location.
+Skips (progn ,@body) patterns in macros as these are needed."
   (let* ((target-line (issue-line issue))
          (target-col (issue-column issue))
          (z (handler-case (rewrite-cl:of-string content)
@@ -843,13 +845,19 @@
     (when z
       (let ((target (find-list-at-position z target-line target-col)))
         (when target
-          (let ((form (rewrite-cl:zip-sexpr target)))
-            (when (and (consp form)
-                       (eq (first form) 'progn)
-                       (= (length form) 2))
-              (zip-root-content-string
-               (rewrite-cl:zip-replace target
-                 (coerce-to-node-downcase (second form)))))))))))
+          ;; Skip if we're in a backquoted context (macro template)
+          (unless (zip-in-backquote-p target)
+            (let ((form (rewrite-cl:zip-sexpr target)))
+              (when (and (consp form)
+                         (eq (first form) 'progn)
+                         (= (length form) 2))
+                ;; Also skip if the body is unquote-splicing (,@...)
+                (let ((body (second form)))
+                  (unless (and (consp body)
+                               (eq (first body) 'unquote-splicing))
+                    (zip-root-content-string
+                     (rewrite-cl:zip-replace target
+                       (coerce-to-node-downcase (second form))))))))))))))
 
 (register-fixer "redundant-progn" #'fix-redundant-progn)
 
@@ -1275,29 +1283,23 @@ Preserves original source text including package prefixes."
                          (else-is-progn (and (consp else-form) (eq (first else-form) 'progn))))
                     ;; Only transform if at least one branch has progn
                     (when (or then-is-progn else-is-progn)
-                      ;; Build COND using original source text
-                      (let* ((test-str (rewrite-cl:zip-string test-node))
-                             (then-body-str (if then-is-progn
-                                                (extract-progn-body-text then-node)
-                                                (rewrite-cl:zip-string then-node)))
-                             (else-body-str (when else-node
-                                              (if else-is-progn
-                                                  (extract-progn-body-text else-node)
-                                                  (rewrite-cl:zip-string else-node))))
-                             (cond-str (if else-body-str
-                                           (format nil "(cond (~A ~A)~%      (t ~A))"
-                                                   test-str then-body-str else-body-str)
-                                           (format nil "(cond (~A ~A))"
-                                                   test-str then-body-str))))
-                        (when (and then-body-str (or (not else-node) else-body-str))
-                          (handler-case
-                              (let* ((parsed (rewrite-cl:of-string cond-str))
-                                     ;; The parsed result IS the COND form (a LIST at root)
-                                     (new-node (when parsed
-                                                 (rewrite-cl:zip-node parsed))))
-                                (when new-node
-                                  (zip-root-content-string
-                                   (rewrite-cl:zip-replace target new-node))))
-                            (error () nil)))))))))))))))
+                      ;; Build COND form using AST nodes (cleaner than string formatting)
+                      (let* ((test-form (rewrite-cl:zip-sexpr test-node))
+                             ;; Extract body forms (unwrap progn if present)
+                             (then-forms (if then-is-progn
+                                           (rest then-form)  ; Skip 'progn
+                                           (list then-form)))
+                             (else-forms (when else-node
+                                          (if else-is-progn
+                                              (rest else-form)  ; Skip 'progn
+                                              (list else-form))))
+                             ;; Build COND as a proper form
+                             (cond-form (if else-forms
+                                            `(cond (,test-form ,@then-forms)
+                                                   (t ,@else-forms))
+                                            `(cond (,test-form ,@then-forms)))))
+                        (zip-root-content-string
+                         (rewrite-cl:zip-replace target
+                           (coerce-to-node-downcase cond-form)))))))))))))))
 
 (register-fixer "bare-progn-in-if" #'fix-bare-progn-in-if)

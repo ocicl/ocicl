@@ -486,9 +486,13 @@ Returns a list of issues."
                (push-iss ln col "quoted-nil" "Use NIL instead of 'NIL"))
 
              ;; PROGN single form -> redundant
+             ;; BUT not if it's (progn ,@body) in a macro template
              (when (and (eq head 'progn)
                         (= (length form) 2))
-               (push-iss ln col "redundant-progn" "PROGN with single form is redundant"))
+               (let ((body (second form)))
+                 ;; Skip if body is unquote-splicing (,@...)
+                 (unless (and (consp body) (eq (first body) 'unquote-splicing))
+                   (push-iss ln col "redundant-progn" "PROGN with single form is redundant"))))
 
              ;; Nested WHEN/UNLESS can be combined or flattened
              ;; Only flag if the nested form is the ONLY body form (no other expressions after it)
@@ -500,10 +504,24 @@ Returns a list of issues."
                          "Avoid nested WHEN/UNLESS; consider combining conditions"))
 
              ;; BLOCK with a single body form is often redundant
+             ;; BUT not if it contains RETURN or RETURN-FROM
              (when (and (eq head 'block)
                         (>= (length form) 2)
                         (= (length (cddr form)) 1))
-               (push-iss ln col "redundant-block" "BLOCK with a single form is redundant"))
+               (let ((body (third form)))
+                 ;; Check if body contains RETURN or RETURN-FROM
+                 (labels ((contains-return-p (expr)
+                            (cond
+                              ((null expr) nil)
+                              ((and (consp expr)
+                                    (member (first expr) '(return return-from)))
+                               t)
+                              ((consp expr)
+                               (or (contains-return-p (car expr))
+                                   (contains-return-p (cdr expr))))
+                              (t nil))))
+                   (unless (contains-return-p body)
+                     (push-iss ln col "redundant-block" "BLOCK with a single form is redundant")))))
 
              ;; AND/OR simplifications with constants (but avoid common idioms)
              (when (and (eq head 'and)

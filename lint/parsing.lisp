@@ -122,6 +122,17 @@ Detects both (quote ...) forms and 'x reader macro quotes."
                     ;; Explicit (quote ...) form
                     (and (zip-list-p parent) (eq (zip-head parent) 'quote)))))
 
+(defun zip-in-backquote-p (z)
+  "Check if zipper is inside a backquoted context (macro template).
+Detects backquote/quasiquote forms: `x becomes a syntax-quote node."
+  (loop for parent = (rewrite-cl:zip-up z) then (rewrite-cl:zip-up parent)
+        while parent
+        thereis (or ;; Backquote reader macro: `x becomes :syntax-quote
+                    (eql (rewrite-cl:zip-tag parent) :syntax-quote)
+                    ;; Explicit quasiquote form
+                    (and (zip-list-p parent)
+                         (member (zip-head parent) '(quasiquote backquote))))))
+
 (defun zip-in-lambda-list-p (z)
   "Check if zipper is in a lambda-list position."
   (when-let ((parent (rewrite-cl:zip-up z)))

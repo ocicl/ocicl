@@ -294,11 +294,12 @@ CTX is a lint-context."
                                             (format nil "~A binding must be symbol or list, got ~A"
                                                     operator (type-of binding)))
                                 issues)))))))))
-      ;; Walk all forms looking for let/let* (skip quoted contexts)
+      ;; Walk all forms looking for let/let* (skip quoted and backquoted contexts)
       (lint-walk ctx
         (lambda (z)
           (when (and (zip-list-p z)
-                     (not (zip-in-quote-p z)))
+                     (not (zip-in-quote-p z))
+                     (not (zip-in-backquote-p z)))
             (let ((form (zip-form z)))
               (when form
                 (let* ((pos (zip-pos z))
