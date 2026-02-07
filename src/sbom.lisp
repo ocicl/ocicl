@@ -25,17 +25,12 @@
 
 (in-package #:ocicl)
 
-(defun calculate-sha256 (file)
-  "Calculate SHA256 hash of FILE. Returns hex string."
+(defun calculate-md5 (file)
+  "Calculate MD5 hash of FILE. Returns hex string."
   #+sbcl
-  (let ((digest (make-array 32 :element-type '(unsigned-byte 8))))
-    (with-open-file (stream file :element-type '(unsigned-byte 8))
-      (sb-md5:md5sum-stream stream)  ; Warm up for better performance
-      (file-position stream 0)
-      ;; SBCL doesn't have built-in SHA256, so we'll use MD5 for now
-      ;; In production, you'd want to use ironclad or similar
-      (let ((md5 (sb-md5:md5sum-stream stream)))
-        (format nil "~{~2,'0x~}" (coerce md5 'list))))
+  (with-open-file (stream file :element-type '(unsigned-byte 8))
+    (let ((md5 (sb-md5:md5sum-stream stream)))
+      (format nil "~{~2,'0x~}" (coerce md5 'list))))
   #-sbcl
   ""))
 
@@ -112,7 +107,7 @@
            (setf license-spdx (infer-license-from-text license-text))))))
 
     ;; Calculate hash of primary .asd file
-    (let ((checksum (when asd-file (calculate-sha256 asd-file))))
+    (let ((checksum (when asd-file (calculate-md5 asd-file))))
       (list :name pkg-name
             :full-name system-name
             :version (or version "unknown")
