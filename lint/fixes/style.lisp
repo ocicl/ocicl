@@ -650,28 +650,30 @@
 
 
 ;;; Fix: if-or - (IF test T else) -> (OR test else)
+;;; DISABLED: Semantically incorrect transformation (see issue #164)
+;;; (if test T else) normalizes to T, (or test else) returns truthy value of test
 
-(defun fix-if-or (content issue)
-  "Transform (IF test T else) to (OR test else) at ISSUE location."
-  (let* ((target-line (issue-line issue))
-         (target-col (issue-column issue))
-         (z (handler-case (rewrite-cl:of-string content)
-              (error () nil))))
-    (when z
-      (let ((target (find-list-at-position z target-line target-col)))
-        (when target
-          (let ((form (rewrite-cl:zip-sexpr target)))
-            (when (and (consp form)
-                       (eq (first form) 'if)
-                       (= (length form) 4)
-                       (eq (third form) t))
-              (let ((test (second form))
-                    (else (fourth form)))
-                (zip-root-content-string
-                 (rewrite-cl:zip-replace target
-                   (coerce-to-node-downcase `(or ,test ,else))))))))))))
+;; (defun fix-if-or (content issue)
+;;   "Transform (IF test T else) to (OR test else) at ISSUE location."
+;;   (let* ((target-line (issue-line issue))
+;;          (target-col (issue-column issue))
+;;          (z (handler-case (rewrite-cl:of-string content)
+;;               (error () nil))))
+;;     (when z
+;;       (let ((target (find-list-at-position z target-line target-col)))
+;;         (when target
+;;           (let ((form (rewrite-cl:zip-sexpr target)))
+;;             (when (and (consp form)
+;;                        (eq (first form) 'if)
+;;                        (= (length form) 4)
+;;                        (eq (third form) t))
+;;               (let ((test (second form))
+;;                     (else (fourth form)))
+;;                 (zip-root-content-string
+;;                  (rewrite-cl:zip-replace target
+;;                    (coerce-to-node-downcase `(or ,test ,else))))))))))))
 
-(register-fixer "if-or" #'fix-if-or)
+;; (register-fixer "if-or" #'fix-if-or)
 
 
 ;;; Fix: needless-and-t - (AND ... T) -> (AND ...)

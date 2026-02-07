@@ -1020,20 +1020,24 @@ Returns a list of issues."
                          (format nil "No ~S needed with constant ~S" head (third form))))
 
              ;; IF->OR pattern: (IF test T else) -> (OR test else)
-             (when (and (eq head 'if)
-                        (= (length form) 4)
-                        (eq (third form) t))
-               (push-iss ln col "if-or"
-                         "Use (OR test else) instead of (IF test T else)"))
+             ;; DISABLED: Semantically incorrect - (if test T else) explicitly normalizes to T,
+             ;; while (or test else) returns the truthy value of test (which may not be T)
+             ;; See issue #164
+             ;; (when (and (eq head 'if)
+             ;;            (= (length form) 4)
+             ;;            (eq (third form) t))
+             ;;   (push-iss ln col "if-or"
+             ;;             "Use (OR test else) instead of (IF test T else)"))
 
              ;; COND->OR pattern
-             (when (and (eq head 'cond)
-                        (= (length form) 3)
-                        (equal (second form) '(t t))
-                        (consp (third form))
-                        (eq (first (third form)) t))
-               (push-iss ln col "cond-or"
-                         "Use (OR test else) instead of (COND (test T) (T else))"))
+             ;; DISABLED: Same semantic issue as if-or (see issue #165)
+             ;; (when (and (eq head 'cond)
+             ;;            (= (length form) 3)
+             ;;            (equal (second form) '(t t))
+             ;;            (consp (third form))
+             ;;            (eq (first (third form)) t))
+             ;;   (push-iss ln col "cond-or"
+             ;;             "Use (OR test else) instead of (COND (test T) (T else))"))
 
              ;; AND ending with T in conditional context
              ;; Only flag when used as a test in IF, WHEN, UNLESS, OR, COND
