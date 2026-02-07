@@ -591,7 +591,8 @@ Returns a list of issues."
              ;; DEFVAR without initial value
              (when (and (eq head 'defvar)
                         (= (length form) 2))
-               (push-iss ln col "defvar-without-value" "DEFVAR without initial value"))
+               (push-iss ln col "defvar-without-value"
+                         "DEFVAR without initial value - consider (DECLAIM (SPECIAL ...)) for forward declarations"))
 
              ;; OPEN/CLOSE in LET -> use WITH-OPEN-FILE
              (when (and (member head '(let let*))
