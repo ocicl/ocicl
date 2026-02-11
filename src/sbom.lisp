@@ -221,7 +221,7 @@
                  (format out ",~%")
                  (format out "      \"checksums\": [~%")
                  (format out "        {~%")
-                 (format out "          \"algorithm\": \"SHA-256\",~%")
+                 (format out "          \"algorithm\": \"SHA256\",~%")
                  (format out "          \"checksumValue\": \"~a\"~%" (getf component :checksum))
                  (format out "        }~%")
                  (format out "      ]"))
