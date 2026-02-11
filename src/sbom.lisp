@@ -26,9 +26,15 @@
 (in-package #:ocicl)
 
 (defun calculate-sha256 (file)
-  "Calculate SHA-256 hash of FILE. Returns hex string."
-  (let ((digest (ironclad:digest-file :sha256 file)))
-    (ironclad:byte-array-to-hex-string digest)))
+  "Calculate SHA-256 hash of FILE. Returns hex string or NIL on error."
+  (when (and file (probe-file file) (not (uiop:directory-exists-p file)))
+    (handler-case
+        (let ((digest (ironclad:digest-file :sha256 file)))
+          (ironclad:byte-array-to-hex-string digest))
+      (error (e)
+        (when *verbose*
+          (format *error-output* "Warning: Failed to calculate SHA-256 for ~A: ~A~%" file e))
+        nil))))
 
 (defun extract-version-from-dirname (dirname)
   "Extract version from system directory name (e.g., 'alexandria-20240503-8514d8e' -> '20240503-8514d8e')."
