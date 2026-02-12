@@ -91,7 +91,7 @@ jobs:
       - name: Install SBCL and build tools
         shell: powershell
         run: |
-          choco install -y sbcl nsis
+          choco install -y sbcl --version=2.6.0 nsis
 
       - name: Build
         run: sbcl --load setup.lisp

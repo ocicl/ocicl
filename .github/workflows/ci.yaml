@@ -45,7 +45,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        choco install -y sbcl openssl.light make
+        choco install -y sbcl --version=2.6.0 openssl.light make
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
 
     - name: Download squid.msi (Windows)
