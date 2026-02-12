@@ -45,7 +45,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        choco install -y sbcl --version 2.6.0
+        choco install -y sbcl --version 2.5.11
         choco install -y openssl.light make
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
 
@@ -491,16 +491,6 @@ jobs:
         chmod +x sbom-utility
         $SUDO mv sbom-utility /usr/local/bin/
 
-    - name: Test create-sbom cyclonedx command
-      if: runner.os != 'Windows'
-      run: |
-        set -euo pipefail
-        cd test-install
-        $OCICL_BIN create-sbom cyclonedx sbom-cdx.json
-        # Validate against CycloneDX schema
-        sbom-utility validate --input-file sbom-cdx.json || { echo "CycloneDX SBOM validation failed"; exit 1; }
-        echo "✅ create-sbom cyclonedx works and validates"
-
     - name: Test create-sbom spdx command
       if: runner.os != 'Windows'
       run: |
@@ -511,15 +501,25 @@ jobs:
         sbom-utility validate --input-file sbom-spdx.json || { echo "SPDX SBOM validation failed"; exit 1; }
         echo "✅ create-sbom spdx works and validates"
 
+    - name: Test create-sbom cyclonedx command
+      if: runner.os != 'Windows'
+      run: |
+        set -euo pipefail
+        cd test-install
+        $OCICL_BIN create-sbom cyclonedx sbom-cdx.json
+        # Validate against CycloneDX schema
+        sbom-utility validate --input-file sbom-cdx.json || { echo "CycloneDX SBOM validation failed"; exit 1; }
+        echo "✅ create-sbom cyclonedx works and validates"
+
     - name: Test create-sbom command (Windows - no validation)
       if: runner.os == 'Windows'
       run: |
         set -euo pipefail
         cd test-install
-        $OCICL_BIN create-sbom cyclonedx sbom-cdx.json
-        [ -f sbom-cdx.json ] || { echo "sbom-cdx.json not created"; exit 1; }
         $OCICL_BIN create-sbom spdx sbom-spdx.json
         [ -f sbom-spdx.json ] || { echo "sbom-spdx.json not created"; exit 1; }
+        $OCICL_BIN create-sbom cyclonedx sbom-cdx.json
+        [ -f sbom-cdx.json ] || { echo "sbom-cdx.json not created"; exit 1; }
         echo "✅ create-sbom works (no validation on Windows)"
 
     - name: Test create-sbom to file
