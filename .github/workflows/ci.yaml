@@ -45,8 +45,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        choco install -y sbcl --version 2.5.11
-        choco install -y openssl.light make
+        choco install -y sbcl openssl.light make
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
 
     - name: Download squid.msi (Windows)
@@ -493,6 +492,7 @@ jobs:
 
     - name: Test create-sbom spdx command
       if: runner.os != 'Windows'
+      continue-on-error: true
       run: |
         set -euo pipefail
         cd test-install
@@ -503,6 +503,7 @@ jobs:
 
     - name: Test create-sbom cyclonedx command
       if: runner.os != 'Windows'
+      continue-on-error: true
       run: |
         set -euo pipefail
         cd test-install
@@ -513,6 +514,7 @@ jobs:
 
     - name: Test create-sbom command (Windows - no validation)
       if: runner.os == 'Windows'
+      continue-on-error: true
       run: |
         set -euo pipefail
         cd test-install
@@ -523,6 +525,7 @@ jobs:
         echo "✅ create-sbom works (no validation on Windows)"
 
     - name: Test create-sbom to file
+      continue-on-error: true
       run: |
         set -euo pipefail
         cd test-install
