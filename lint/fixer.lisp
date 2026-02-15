@@ -210,6 +210,54 @@ just the children's content without the wrapper parens."
                  collect (coerce-to-node-downcase elem))))
     (otherwise (rewrite-cl:coerce-to-node form))))
 
+(defun coerce-to-node-formatted (form &optional (indent 0))
+  "Convert FORM to a rewrite-cl node with lowercase symbols and proper indentation.
+Special formatting for IF and PROGN forms."
+  (typecase form
+    (null (rewrite-cl:make-token-node nil "nil"))
+    (keyword (rewrite-cl:make-token-node form
+               (format nil ":~(~A~)" (symbol-name form))))
+    (symbol (rewrite-cl:make-token-node form
+               (string-downcase (symbol-name form))))
+    (cons
+     (let ((head (first form)))
+       (cond
+         ;; Special formatting for IF: (if test\n  then\n  else)
+         ((and (eq head 'if) (>= (length form) 3))
+          (rewrite-cl.node:make-list-node
+           (append
+            (list (rewrite-cl:make-token-node 'if "if")
+                  (rewrite-cl.node:spaces 1)
+                  (coerce-to-node-formatted (second form) (+ indent 2)))
+            ;; Then branch
+            (list (rewrite-cl.node:newlines 1)
+                  (rewrite-cl.node:spaces (+ indent 4))
+                  (coerce-to-node-formatted (third form) (+ indent 4)))
+            ;; Else branch if present
+            (when (>= (length form) 4)
+              (list (rewrite-cl.node:newlines 1)
+                    (rewrite-cl.node:spaces (+ indent 4))
+                    (coerce-to-node-formatted (fourth form) (+ indent 4)))))))
+
+         ;; Special formatting for PROGN: (progn\n  form1\n  form2)
+         ((and (eq head 'progn) (>= (length form) 2))
+          (rewrite-cl.node:make-list-node
+           (cons (rewrite-cl:make-token-node 'progn "progn")
+                 (loop for elem in (rest form)
+                       collect (rewrite-cl.node:newlines 1)
+                       collect (rewrite-cl.node:spaces (+ indent 2))
+                       collect (coerce-to-node-formatted elem (+ indent 2))))))
+
+         ;; Default: single line with spaces
+         (t
+          (rewrite-cl.node:make-list-node
+           (loop for (elem . rest) on form
+                 for first = t then nil
+                 unless first
+                   collect (rewrite-cl.node:spaces 1)
+                 collect (coerce-to-node-formatted elem indent)))))))
+    (otherwise (rewrite-cl:coerce-to-node form))))
+
 ;;; Position finding utilities for AST-based fixers
 
 (defun find-list-at-position (z target-line target-col)

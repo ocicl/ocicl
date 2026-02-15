@@ -794,8 +794,14 @@ If FORCE is NIL, skip files that already exist."
                        (uiop:read-file-string vfile)))
       (file-error (e)
         (declare (ignore e))
-        ;; If the tgz file doesn't include _00_OCICL_VERSION, the infer it from the directory name.
-        (subseq tld (1+ (position #\- tld :from-end t)))))))
+        ;; If the tgz file doesn't include _00_OCICL_VERSION, infer it from the directory name.
+        ;; Try date-based format first: name-YYYYMMDD-hash -> YYYYMMDD-hash
+        (let ((dpos (search "-20" tld :test #'string=)))
+          (if (and dpos
+                   (>= (length tld) (+ dpos 9))
+                   (every #'digit-char-p (subseq tld (1+ dpos) (+ dpos 9))))
+              (subseq tld (1+ dpos))
+              (subseq tld (1+ (position #\- tld :from-end t)))))))))
 
 (defun round-up-to-decimal (number decimal-places)
   (let* ((adjustment (expt 10 (- decimal-places)))
@@ -809,11 +815,11 @@ If FORCE is NIL, skip files that already exist."
                                                                  (uiop:merge-pathnames* *relative-systems-dir*
                                                                                         "_00_OCICL_VERSION")))
                               projects)
-                     (extract-between-slash-and-at (car value))))
+                     key))
              *ocicl-systems*)
     (let ((age 0))
       (maphash (lambda (skey value)
-                 (let* ((system-info (gethash (mangle value) *ocicl-systems*))
+                 (let* ((system-info (gethash value *ocicl-systems*))
                         (asd (cdr system-info))
                         (version (get-project-version asd)))
                    (let* ((newer-versions (get-versions-since value version))

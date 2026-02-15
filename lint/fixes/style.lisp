@@ -887,9 +887,11 @@ Skips (progn ,@body) patterns in macros as these are needed."
 
 
 ;;; Fix: cond-vs-if - (COND (test then)) -> (WHEN test then)
+;;;                    (COND (test then) (t else)) -> (IF test ... else...)
 
 (defun fix-cond-vs-if (content issue)
-  "Transform single-clause COND to WHEN at ISSUE location."
+  "Transform single-clause or two-clause COND to WHEN/IF at ISSUE location.
+For two-clause COND with (t ...) as second clause, converts to IF with proper formatting."
   (let* ((target-line (issue-line issue))
          (target-col (issue-column issue))
          (z (handler-case (rewrite-cl:of-string content)
@@ -898,20 +900,49 @@ Skips (progn ,@body) patterns in macros as these are needed."
       (let ((target (find-list-at-position z target-line target-col)))
         (when target
           (let ((form (rewrite-cl:zip-sexpr target)))
-            (when (and (consp form)
-                       (eq (first form) 'cond)
-                       (= (length form) 2)  ; Single clause
-                       (consp (second form))
-                       (>= (length (second form)) 2))
-              (let ((clause (second form)))
-                (let ((test (first clause))
-                      (body (rest clause)))
-                  (zip-root-content-string
-                   (rewrite-cl:zip-replace target
-                     (coerce-to-node-downcase
-                      (if (= (length body) 1)
-                          `(when ,test ,(first body))
-                          `(when ,test ,@body))))))))))))))
+            (cond
+              ;; Two clauses where second is (t ...): convert to IF
+              ((and (consp form)
+                    (eq (first form) 'cond)
+                    (= (length form) 3)
+                    (consp (second form))
+                    (>= (length (second form)) 2)
+                    (consp (third form))
+                    (eq (first (third form)) 't))
+               (let ((then-clause (second form))
+                     (else-clause (third form)))
+                 (let ((test (first then-clause))
+                       (then-body (rest then-clause))
+                       (else-body (rest else-clause)))
+                   ;; Use coerce-to-node-formatted for proper indentation
+                   (zip-root-content-string
+                    (rewrite-cl:zip-replace target
+                      (coerce-to-node-formatted
+                       (if (= (length then-body) 1)
+                           ;; Single then form: (if test then else...)
+                           (if (= (length else-body) 1)
+                               `(if ,test ,(first then-body) ,(first else-body))
+                               `(if ,test ,(first then-body) (progn ,@else-body)))
+                           ;; Multiple then forms: (if test (progn then...) else...)
+                           (if (= (length else-body) 1)
+                               `(if ,test (progn ,@then-body) ,(first else-body))
+                               `(if ,test (progn ,@then-body) (progn ,@else-body))))))))))
+
+              ;; Single clause: convert to WHEN
+              ((and (consp form)
+                    (eq (first form) 'cond)
+                    (= (length form) 2)
+                    (consp (second form))
+                    (>= (length (second form)) 2))
+               (let ((clause (second form)))
+                 (let ((test (first clause))
+                       (body (rest clause)))
+                   (zip-root-content-string
+                    (rewrite-cl:zip-replace target
+                      (coerce-to-node-formatted
+                       (if (= (length body) 1)
+                           `(when ,test ,(first body))
+                           `(when ,test ,@body)))))))))))))))
 
 (register-fixer "cond-vs-if" #'fix-cond-vs-if)
 
