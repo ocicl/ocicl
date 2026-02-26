@@ -395,8 +395,7 @@ Returns the token endpoint URL string, or NIL if not available."
                                  :verbose *verbose*)
           (declare (ignore body))
           (if (eql status-code 401)
-              (let ((params (parse-bearer-challenge (gethash :www-authenticate headers))))
-                (cdr (assoc "realm" params :test #'string=)))
+              (parse-bearer-challenge (gethash :www-authenticate headers))
               (progn
                 (format *error-output* "; Error getting authentication URL for ~A~%" registry)
                 nil))))
@@ -434,19 +433,50 @@ Returns the token endpoint URL string, or NIL if not available."
        (char= (char version 8) #\-)
        (every #'digit-char-p (take 8 version))))
 
+(defun encode-query-string (params)
+  "Encode PARAMS alist into a URL query string.
+
+PARAMS: Association list of (KEY . VALUE) string pairs.
+
+Returns a query string like \"key1=val1&key2=val2\" with values percent-encoded."
+  (format nil "~{~A~^&~}"
+          (loop :for (key . value) :in params
+                :collect (format nil "~A=~A"
+                                 (drakma:url-encode key :utf-8)
+                                 (drakma:url-encode value :utf-8)))))
+
 (defun get-bearer-token (registry system)
+  "Get a bearer token for SYSTEM from REGISTRY.
+
+REGISTRY: The OCI registry URL.
+SYSTEM: The system name to get a pull token for.
+
+Returns the bearer token string, or NIL on failure. Discovers the token
+endpoint via the WWW-Authenticate header and forwards all challenge
+parameters (service, scope, etc.) except realm to the token GET request."
   (handler-case
       (let* ((safe-system (validate-system-name system))
-             (realm (get-token-authentication-url registry))
+             (params (get-token-authentication-url registry))
+             (realm (cdr (assoc "realm" params :test #'string=)))
              (repository (get-repository-name registry)))
         (unless safe-system
           (error "Invalid system name: ~A" system))
         (when realm
-          (cdr (assoc :token
-                      (cl-json:decode-json-from-string
-                       (ocicl.http:http-get #?"${realm}?scope=repository:${repository}/${safe-system}:pull"
-                                            :force-string t
-                                            :verbose *verbose*))))))
+          (let* ((query-params
+                   (list* (cons "scope"
+                                (format nil "repository:~A/~A:pull"
+                                        repository safe-system))
+                          (loop :for (key . value) :in params
+                                :unless (member key '("realm" "scope")
+                                                :test #'string=)
+                                :collect (cons key value))))
+                 (query (encode-query-string query-params))
+                 (url (format nil "~A?~A" realm query)))
+            (cdr (assoc :token
+                        (cl-json:decode-json-from-string
+                         (ocicl.http:http-get url
+                                              :force-string t
+                                              :verbose *verbose*)))))))
     (error (e)
       (when *verbose*
         (format *error-output* "; Error getting bearer token for ~A: ~A~%" system e))
