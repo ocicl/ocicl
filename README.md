@@ -10,6 +10,7 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
 - [Installation](#installation)
   - [Linux Packages](#linux-packages)
   - [Homebrew](#homebrew)
+  - [MacPorts](#macports)
   - [From Source](#from-source)
 - [Setup](#setup)
 - [Lisp Usage](#lisp-usage)
@@ -129,6 +130,37 @@ green@fedora:~$ ocicl setup
   (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
 (asdf:initialize-source-registry
   (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
+```
+### MacPorts
+
+For [MacPorts](https://ports.macports.org/port/ocicl/) on macOS
+install and configure `ocicl` as follows:
+
+```
+$ sudo port install ocicl
+--->  Upgrading already installed dependencies of ocicl
+--->  Computing dependencies for ocicl
+--->  Fetching archive for ocicl
+Attempting to fetch https://fra.de.packages.macports.org/ocicl/ocicl-2.16.5_0.darwin_20.x86_64.tbz2
+Attempting to fetch https://fra.de.packages.macports.org/ocicl/ocicl-2.16.5_0.darwin_20.x86_64.tbz2.rmd160
+--->  Installing ocicl @2.16.5_0
+--->  Activating ocicl @2.16.5_0
+--->  Cleaning ocicl
+--->  Scanning binaries for linking errors
+--->  No broken files found.
+--->  No broken ports found.
+--->  Some of the ports you installed have notes:
+  ocicl has the following notes:
+    After installation run 'ocicl setup' to install the ocicl-runtime library:
+        $ ocicl setup
+        ;; Add the following to your lisp startup file
+        ;; (~/.sbclrc, ~/.eclrc, ~/.abclrc or ~/.roswell/init.lisp):
+
+        #-ocicl
+        (when (probe-file #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp")
+        (load #P"/home/green/.local/share/ocicl/ocicl-runtime.lisp"))
+        (asdf:initialize-source-registry
+         (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))
 ```
 
 ### From Source
