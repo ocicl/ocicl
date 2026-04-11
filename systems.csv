@@ -67,6 +67,7 @@ parse-declarations-1.0, ghcr.io/ocicl/parse-declarations-1.0@sha256:9305fa962420
 parse-number, ghcr.io/ocicl/parse-number@sha256:11f3f9f512871e1f96cea6b8260aa3610e34e8fd7272bbcdb210fd3c5dd8025c, parse-number-20240503-cb9e487/parse-number.asd
 path-parse, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse.asd
 path-parse-test, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse-test.asd
+precise-time, ghcr.io/ocicl/precise-time@sha256:0fa8039008f0635013d25c14d50c5743c64d6a1ef64bd0e62d1785a4b9d3a873, precise-time-20260218-93ea6ae/precise-time.asd
 pure-tls, ghcr.io/ocicl/pure-tls@sha256:e84195f68ab253c8ce34c84e5d62747a6152d2be2cc0e76d3f425c879f1941f7, pure-tls-20260403-7c0a399/pure-tls.asd
 puri, ghcr.io/ocicl/puri@sha256:b803fb9444eaf2c7053812e19d342d4ce6a05fd1880fa3a2a2f824769a6d58d2, puri-20260406-4bbab89/puri.asd
 pythonic-string-reader, ghcr.io/ocicl/pythonic-string-reader@sha256:6f0c22694e7d6b2143d116eec0f568e775343167d35c1ed36d624e485f54b3e3, pythonic-string-reader-20240503-47a70ba/pythonic-string-reader.asd
