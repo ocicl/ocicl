@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA 1.3 Map//EN" "technicalContent/dtd/map.dtd" [
+]>
+
+
+
+<map xmlns:ditaarch = "http://dita.oasis-open.org/architecture/2005/">
+<title>USOCKET Manual</title>
+<topicmeta><shortdesc>A cross-platform network library for Common
+Lisp</shortdesc>
+<author>Chun Tian</author>
+<copyright><copyryear year = "2003"/>
+<copyrholder>Erik Enge</copyrholder></copyright>
+<copyright><copyryear year = "2006"/><copyryear year = "2007"/>
+<copyrholder>Erik Huelsmann</copyrholder></copyright>
+<copyright><copyryear year = "2008 - 2023"/>
+<copyrholder>Hans Hueber and Chun Tian</copyrholder></copyright></topicmeta>
+<topicref href = "intro.dita" type = "concept"><topicmeta><navtitle>Introduction</navtitle></topicmeta></topicref>
+<topicref href = "reference.dita" type = "reference"><topicmeta>
+<navtitle>API References</navtitle></topicmeta></topicref></map>
