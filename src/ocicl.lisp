@@ -310,11 +310,35 @@ Distributed under the terms of the MIT License"
    :args     "command"))
 
 (defvar *systems-dir* "")
+(defvar *systems-dir-prefix* nil)
 
 (defun debug-log (s)
   "Log message S to stdout when verbose mode is enabled."
   (when *verbose*
     (format t "; ~A~%" s)))
+
+(defun apply-systems-dir-prefix (dir)
+  "If OCICL_SYSTEMS_DIR is set, overlay DIR under that prefix.
+E.g. prefix=/data/ocicl, dir=/home/user/proj/ocicl/
+  => /data/ocicl/home/user/proj/ocicl/"
+  (if *systems-dir-prefix*
+      (let* ((abs (namestring dir))
+             ;; Strip leading separator (/ on Unix, drive letter on Windows)
+             (stripped (cond
+                         ((and (> (length abs) 0)
+                               (char= (char abs 0) #\/))
+                          (subseq abs 1))
+                         ((and (uiop:os-windows-p)
+                               (> (length abs) 2)
+                               (alpha-char-p (char abs 0))
+                               (char= (char abs 1) #\:))
+                          (subseq abs 2))
+                         (t abs)))
+             (result (merge-pathnames stripped
+                                      (uiop:ensure-directory-pathname *systems-dir-prefix*))))
+        (uiop:ensure-all-directories-exist (list result))
+        result)
+      dir))
 
 (defun get-up-to-first-slash (str)
   "Extract the substring up to the first slash in STR, returning the substring and position."
@@ -1733,6 +1757,10 @@ Supports --fix and --dry-run flags for auto-remediation."
        (let ((creds-file (merge-pathnames (get-ocicl-dir) "ocicl-credentials.cfg")))
          (setf *ocicl-credentials* (load-credentials creds-file)))
 
+       (let ((prefix (uiop:getenv "OCICL_SYSTEMS_DIR")))
+         (when (and prefix (string/= prefix ""))
+           (setf *systems-dir-prefix* prefix)))
+
        ;; Split arguments at command boundary - global options before, command-specific after
        (multiple-value-bind (global-args cmd cmd-args)
            (split-args-at-command (rest (uiop:raw-command-line-arguments)))
@@ -1828,8 +1856,9 @@ Supports --fix and --dry-run flags for auto-remediation."
                    (handler-bind (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
                      (uiop:with-current-directory (workdir)
                        (setq *ocicl-systems* (read-systems-csv))
-                       (setq *systems-dir* (merge-pathnames *relative-systems-dir*
-                                                            (uiop:getcwd)))
+                       (setq *systems-dir* (apply-systems-dir-prefix
+                                            (merge-pathnames *relative-systems-dir*
+                                                             (uiop:getcwd))))
                        ;; Initialize global systems registry if configured and different from local
                        ;; (skip entirely in local-only mode)
                        (unless *local-only*
@@ -1839,7 +1868,8 @@ Supports --fix and --dry-run flags for auto-remediation."
                              (let ((global-csv (merge-pathnames (file-namestring *systems-csv*) globaldir)))
                                (when (uiop:file-exists-p global-csv)
                                  (setq *global-ocicl-systems* (read-systems-csv global-csv))
-                                 (setq *global-systems-dir* (merge-pathnames *relative-systems-dir* globaldir)))))))
+                                 (setq *global-systems-dir* (apply-systems-dir-prefix
+                                                             (merge-pathnames *relative-systems-dir* globaldir))))))))
                        (if (not cmd)
                            (usage)
                            (cond

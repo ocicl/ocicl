@@ -26,6 +26,7 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
   - [Local (default)](#local-default)
   - [Global (--global)](#global---global)
   - [Local-Only Mode (OCICL_LOCAL_ONLY)](#local-only-mode-ocicl_local_only)
+  - [Custom Systems Directory (OCICL_SYSTEMS_DIR)](#custom-systems-directory-ocicl_systems_dir)
 - [Proxy Configuration](#proxy-configuration)
 - [TLS Verification](#tls-verification)
   - [Advanced TLS Troubleshooting](#advanced-tls-troubleshooting)
@@ -585,6 +586,27 @@ This is particularly useful for:
 - **CI/CD pipelines**: Ensures builds are isolated and reproducible
 - **Testing**: Prevents interference from development environments
 - **Containerized builds**: Guarantees only explicitly declared dependencies are used
+
+### Custom Systems Directory (OCICL_SYSTEMS_DIR)
+
+If you want to store downloaded systems outside of your project
+directory, set the `OCICL_SYSTEMS_DIR` environment variable.  It acts
+as an overlay prefix: the project's absolute path is appended to it,
+so each project gets its own isolated storage.
+
+```bash
+export OCICL_SYSTEMS_DIR=/data/ocicl
+```
+
+With the example above, a project at `/home/user/.scripts/my-app/`
+would store its systems in
+`/data/ocicl/home/user/.scripts/my-app/ocicl/` instead of
+`/home/user/.scripts/my-app/ocicl/`.
+
+This is useful when you want to keep a project directory clean (e.g.
+for syncing with tools like Syncthing) while still using
+project-specific dependencies.  The `ocicl.csv` file remains in the
+project directory; only the downloaded systems are redirected.
 
 AI-Generated Change Summaries
 -----------------------------
