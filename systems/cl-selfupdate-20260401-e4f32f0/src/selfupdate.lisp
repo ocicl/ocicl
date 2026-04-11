@@ -56,10 +56,10 @@
 Uses mkdtemp on SBCL for secure creation, falls back to random suffix."
   (let ((template (format nil "~Acl-selfupdate-XXXXXX"
                           (uiop:native-namestring (uiop:temporary-directory)))))
-    #+sbcl
+    #+(and sbcl (not windows))
     (let ((path (sb-posix:mkdtemp template)))
       (uiop:ensure-directory-pathname path))
-    #-sbcl
+    #-(and sbcl (not windows))
     (let* ((random-suffix (format nil "~36R" (random (expt 36 12))))
            (path (format nil "~Acl-selfupdate-~A/"
                          (uiop:temporary-directory)
