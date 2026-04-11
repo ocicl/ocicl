@@ -21,6 +21,7 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
   - [Removing Systems](#removing-systems)
   - [Comparing Versions](#comparing-versions)
   - [Using an Alternate Registry](#using-an-alternate-registry)
+  - [Registry Authentication](#registry-authentication)
 - [ocicl Scope](#ocicl-scope)
   - [Local (default)](#local-default)
   - [Global (--global)](#global---global)
@@ -473,6 +474,31 @@ While the `ocicl` cli tool only supports setting a single alternate
 registry, it's possible to use multiple registries by adding multiple
 entries to the `ocicl-registry.cfg` file in your `${XDG_DATA_DIR}/ocicl`
 directory.
+
+### Registry Authentication
+
+To pull from private or authenticated registries, create a credentials
+file at `${XDG_DATA_HOME}/ocicl/ocicl-credentials.cfg` (typically
+`~/.local/share/ocicl/ocicl-credentials.cfg`).
+
+Each line contains a server, login, and password separated by whitespace.
+Lines starting with `#` are comments.
+
+```
+# Private registry credentials
+registry.example.com myuser mytoken
+gitlab.company.com deploy-token abc123
+```
+
+When credentials are configured for a registry server, `ocicl` will:
+
+1. Authenticate to the registry's token endpoint (Bearer token flow).
+2. If no token endpoint is available, fall back to HTTP Basic
+   authentication directly.
+
+This works with any OCI-compliant registry that supports Basic
+authentication, including GitHub Container Registry, GitLab Container
+Registry, and self-hosted registries.
 
 ocicl Scope
 -----------

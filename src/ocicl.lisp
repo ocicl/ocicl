@@ -31,6 +31,7 @@
 
 (defvar *ocicl-registries* (list "ghcr.io/ocicl"))
 (defvar *ocicl-globaldir* nil)
+(defvar *ocicl-credentials* nil)
 (defvar *verbose* nil)
 (defvar *force* nil)
 (defvar *color* nil)
@@ -344,22 +345,69 @@ Distributed under the terms of the MIT License"
        (char= (char version 8) #\-)
        (every #'digit-char-p (take 8 version))))
 
+(defun load-credentials (config-file)
+  "Load credentials from CONFIG-FILE.
+Each non-empty, non-comment line has the form: server login password"
+  (when (probe-file config-file)
+    (handler-case
+        (with-open-file (in config-file)
+          (loop for line = (read-line in nil nil)
+                while line
+                for trimmed = (string-trim '(#\Space #\Tab #\Newline #\Return) line)
+                unless (or (zerop (length trimmed))
+                           (char= #\# (aref trimmed 0)))
+                  collect (let ((parts (remove-if (lambda (s) (zerop (length s)))
+                                                   (uiop:split-string trimmed))))
+                            (unless (= (length parts) 3)
+                              (error "Bad credentials line (expected: server login password): ~A" trimmed))
+                            parts)))
+      (error (e)
+        (when *verbose*
+          (format *error-output* "; Error reading credentials config: ~A~%" e))
+        nil))))
+
+(defun find-credentials-for-server (server)
+  "Return (login password) for SERVER, or NIL."
+  (let ((entry (find server *ocicl-credentials* :key #'first :test #'string-equal)))
+    (when entry
+      (rest entry))))
+
 (defun get-bearer-token (registry system)
   (handler-case
       (let* ((safe-system (validate-system-name system))
              (server (get-up-to-first-slash registry))
-             (repository (get-repository-name registry)))
+             (repository (get-repository-name registry))
+             (creds (find-credentials-for-server server))
+             (cred-headers (when creds
+                             `(("Authorization" .
+                                ,(format nil "Basic ~A"
+                                         (cl-base64:string-to-base64-string
+                                          (format nil "~A:~A" (first creds) (second creds)))))))))
         (unless safe-system
           (error "Invalid system name: ~A" system))
         (cdr (assoc :token
                     (cl-json:decode-json-from-string
                      (ocicl.http:http-get #?"https://${server}/token?scope=repository:${repository}/${safe-system}:pull"
                                           :force-string t
-                                          :verbose *verbose*)))))
+                                          :verbose *verbose*
+                                          :headers cred-headers)))))
     (error (e)
       (when *verbose*
         (format *error-output* "; Error getting bearer token for ~A: ~A~%" system e))
       nil)))
+
+(defun get-registry-auth-headers (registry system)
+  "Return authentication headers for accessing SYSTEM on REGISTRY.
+Tries bearer token first, falls back to Basic auth if credentials are configured."
+  (let ((token (get-bearer-token registry system)))
+    (if token
+        `(("Authorization" . ,(format nil "Bearer ~A" token)))
+        (let ((creds (find-credentials-for-server (get-up-to-first-slash registry))))
+          (when creds
+            `(("Authorization" .
+               ,(format nil "Basic ~A"
+                         (cl-base64:string-to-base64-string
+                          (format nil "~A:~A" (first creds) (second creds)))))))))))
 
 (defun system-latest-version (system)
   (loop :for registry in *ocicl-registries*
@@ -373,9 +421,7 @@ Distributed under the terms of the MIT License"
              (repository (get-repository-name registry)))
         (unless safe-system
           (error "Invalid system name: ~A" system))
-        (let* ((token (get-bearer-token registry safe-system))
-               (headers (when token
-                         `(("Authorization" . ,#?"Bearer ${token}")))))
+        (let ((headers (get-registry-auth-headers registry safe-system)))
           (sort
            (cdr (assoc :tags
                        (cl-json:decode-json-from-string
@@ -442,15 +488,13 @@ Distributed under the terms of the MIT License"
   (loop for registry in *ocicl-registries*
         do (handler-case
                (progn
-                 (let* ((token (get-bearer-token registry system))
-                        (server (get-up-to-first-slash registry))
-                        (repository (get-repository-name registry)))
+                 (let* ((server (get-up-to-first-slash registry))
+                        (repository (get-repository-name registry))
+                        (headers (get-registry-auth-headers registry system)))
                    (multiple-value-bind (manifest manifest-digest)
                        (get-manifest registry #?"${system}-changes.txt" version)
                      (declare (ignore manifest-digest))
                      (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
-                            (headers (when token
-                                      `(("Authorization" . ,#?"Bearer ${token}"))))
                             (changes (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
                                               :force-string t
                                               :verbose *verbose*
@@ -694,9 +738,7 @@ If FORCE is NIL, skip files that already exist."
                (return-from get-versions-since
                  (let ((server (get-up-to-first-slash registry))
                        (repository (get-repository-name registry)))
-                   (let* ((token (get-bearer-token registry system))
-                          (headers (when token
-                                    `(("Authorization" . ,#?"Bearer ${token}"))))
+                   (let* ((headers (get-registry-auth-headers registry system))
                           (all-versions
                             (sort
                              (filter-strings
@@ -1688,6 +1730,9 @@ Supports --fix and --dry-run flags for auto-remediation."
                (when *verbose*
                  (format *error-output* "; Error reading global directory config: ~A~%" e))))))
 
+       (let ((creds-file (merge-pathnames (get-ocicl-dir) "ocicl-credentials.cfg")))
+         (setf *ocicl-credentials* (load-credentials creds-file)))
+
        ;; Split arguments at command boundary - global options before, command-specific after
        (multiple-value-bind (global-args cmd cmd-args)
            (split-args-at-command (rest (uiop:raw-command-line-arguments)))
@@ -1909,13 +1954,11 @@ Supports --fix and --dry-run flags for auto-remediation."
 (defun get-manifest (registry system tag)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
-         (token (get-bearer-token registry safe-system))
          (server (get-up-to-first-slash registry))
          (repository (get-repository-name registry)))
     (unless (and safe-system safe-tag)
       (error "Invalid system name or tag: ~A:~A" system tag))
-    (let ((headers (append (when token
-                             `(("Authorization" . ,#?"Bearer ${token}")))
+    (let ((headers (append (get-registry-auth-headers registry safe-system)
                            `(("Accept" . "application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json")))))
       (multiple-value-bind (body status response-headers)
           (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/manifests/${safe-tag}"
@@ -1942,7 +1985,6 @@ Supports --fix and --dry-run flags for auto-remediation."
 (defun get-blob (registry system tag dl-dir)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
-         (token (get-bearer-token registry safe-system))
          (server (get-up-to-first-slash registry))
          (repository (get-repository-name registry)))
     (unless (and safe-system safe-tag)
@@ -1950,8 +1992,7 @@ Supports --fix and --dry-run flags for auto-remediation."
     (multiple-value-bind (manifest manifest-digest)
         (get-manifest registry safe-system safe-tag)
       (let* ((layer-digest (%select-layer-digest manifest registry safe-system))
-             (headers (when token
-                        `(("Authorization" . ,#?"Bearer ${token}")))))
+             (headers (get-registry-auth-headers registry safe-system)))
         ;; If no layer digest could be determined, signal an error with context.
         (unless layer-digest
           (error "Unable to determine layer digest for ~A:~A from registry ~A" system tag registry))
