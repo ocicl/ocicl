@@ -19,7 +19,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          dnf install -y rpm-build rpmdevtools sbcl libfixposix-devel gcc make
+          dnf install -y rpm-build rpmdevtools rpm-sign sbcl libfixposix-devel gcc make
 
       - name: Setup rpmbuild directory
         run: |
@@ -44,6 +44,30 @@ jobs:
         run: |
           cd ~/rpmbuild/SPECS
           rpmbuild -ba ocicl.spec
+
+      - name: Sign RPMs
+        env:
+          RPM_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.RPM_GPG_PRIVATE_KEY != '' }}
+        run: |
+          # Configure gpg for non-interactive use BEFORE first gpg invocation
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback" > ~/.gnupg/gpg.conf
+          # Import signing key
+          echo "${RPM_GPG_PRIVATE_KEY}" | base64 -d | gpg --batch --import
+          GPG_NAME=$(gpg --list-secret-keys --with-colons | awk -F: '/^uid/{print $10; exit}')
+          echo "Signing as: ${GPG_NAME}"
+          # Configure rpm macros — only set key name, use default sign command
+          echo "%_signature gpg" > ~/.rpmmacros
+          echo "%_gpg_name ${GPG_NAME}" >> ~/.rpmmacros
+          # Sign packages
+          rpmsign --addsign ~/rpmbuild/RPMS/x86_64/*.rpm
+          rpmsign --addsign ~/rpmbuild/SRPMS/*.src.rpm || true
+          # Import public key into rpm db and verify
+          gpg --export --armor "${GPG_NAME}" | rpm --import -
+          rpm --checksig ~/rpmbuild/RPMS/x86_64/*.rpm
 
       - name: Copy RPM and SRPM to workspace
         run: |
@@ -369,6 +393,8 @@ jobs:
     needs: [build-rpm, build-deb, build-linux-tarball, build-windows, build-chocolatey, test-linux, test-windows]
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -403,3 +429,14 @@ jobs:
             artifacts/windows-package/*.msi
             artifacts/chocolatey-package/*.nupkg
           allowUpdates: true
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            artifacts/rpm-packages/*.rpm
+            artifacts/deb-packages/*.deb
+            artifacts/linux-package/*.tar.gz
+            artifacts/windows-package/*.zip
+            artifacts/windows-package/*-setup.exe
+            artifacts/windows-package/*.msi
