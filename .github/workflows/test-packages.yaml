@@ -47,6 +47,16 @@ jobs:
           echo "Source RPMs:"
           ls -lh ~/rpmbuild/SRPMS/
 
+      - name: Verify version is not dirty
+        run: |
+          OCICL_BIN=$(find ~/rpmbuild/BUILD -name ocicl -type f -executable | head -1)
+          VERSION=$("$OCICL_BIN" version 2>&1 || true)
+          echo "ocicl version: $VERSION"
+          if echo "$VERSION" | grep -qi dirty; then
+            echo "::error::Version string contains 'dirty': $VERSION"
+            exit 1
+          fi
+
       - name: Test installation
         run: |
           dnf install -y ~/rpmbuild/RPMS/x86_64/*.rpm
@@ -59,6 +69,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Remove .git to prevent dirty version detection
+        run: rm -rf .git
 
       - name: Install build dependencies
         run: |
@@ -77,6 +90,15 @@ jobs:
           echo "Source packages:"
           ls -lh ../*.dsc ../*.tar.* 2>/dev/null || true
 
+      - name: Verify version is not dirty
+        run: |
+          VERSION=$(./ocicl version 2>&1 || true)
+          echo "ocicl version: $VERSION"
+          if echo "$VERSION" | grep -qi dirty; then
+            echo "::error::Version string contains 'dirty': $VERSION"
+            exit 1
+          fi
+
       - name: Test installation
         run: |
           apt-get install -y ../*.deb
@@ -91,6 +113,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      - name: Remove .git to prevent dirty version detection
+        run: rm -rf .git
+
       - name: Install SBCL and build tools
         shell: powershell
         run: |
@@ -99,6 +124,15 @@ jobs:
 
       - name: Build
         run: sbcl --load setup.lisp
+
+      - name: Verify version is not dirty
+        run: |
+          VERSION=$(./ocicl.exe version 2>&1 || true)
+          echo "ocicl version: $VERSION"
+          if echo "$VERSION" | grep -qi dirty; then
+            echo "::error::Version string contains 'dirty': $VERSION"
+            exit 1
+          fi
 
       - name: Test binary
         run: |

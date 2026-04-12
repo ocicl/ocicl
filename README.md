@@ -102,13 +102,16 @@ ocicl setup
 
 The RPM packages are GPG-signed. The signing key is imported automatically by dnf on first install.
 
-**Debian/Ubuntu:**
+**Debian/Ubuntu (via apt repo):**
 ```bash
-# Download and install the latest version from GitHub Releases
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.16.9-1_amd64.deb
-sudo apt install ./ocicl_2.16.9-1_amd64.deb
+curl -fsSL https://ocicl.github.io/ocicl/deb-repo/ocicl-archive-keyring.gpg | sudo tee /usr/share/keyrings/ocicl-archive-keyring.asc > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/ocicl-archive-keyring.asc] https://ocicl.github.io/ocicl/deb-repo stable main" | sudo tee /etc/apt/sources.list.d/ocicl.list
+sudo apt update
+sudo apt install ocicl
 ocicl setup
 ```
+
+The DEB packages are GPG-signed. The signing key is imported in the first step above.
 
 ### Homebrew
 

@@ -25,13 +25,14 @@ jobs:
         run: |
           rpmdev-setuptree
 
+      - name: Remove .git to prevent dirty version detection
+        run: rm -rf .git
+
       - name: Create source tarball
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          # Create tarball excluding .git to prevent dirty version detection
           cd ..
           tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz \
-            --exclude='.git' \
             --transform "s,^ocicl,ocicl-${VERSION}," \
             ocicl
 
@@ -45,6 +46,16 @@ jobs:
         run: |
           cd ~/rpmbuild/SPECS
           rpmbuild -ba ocicl.spec
+
+      - name: Verify version is not dirty
+        run: |
+          OCICL_BIN=$(find ~/rpmbuild/BUILD -name ocicl -type f -executable | head -1)
+          VERSION=$("$OCICL_BIN" version 2>&1 || true)
+          echo "ocicl version: $VERSION"
+          if echo "$VERSION" | grep -qi dirty; then
+            echo "::error::Version string contains 'dirty': $VERSION"
+            exit 1
+          fi
 
       - name: Sign RPMs
         env:
@@ -89,10 +100,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      - name: Remove .git to prevent dirty version detection
+        run: rm -rf .git
+
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y debhelper devscripts sbcl libfixposix-dev gcc make
+          apt-get install -y debhelper devscripts sbcl libfixposix-dev gcc make gpg dpkg-sig
 
       - name: Update changelog version
         run: |
@@ -103,6 +117,34 @@ jobs:
         run: |
           ln -s releng/debian debian
           dpkg-buildpackage -uc -us
+
+      - name: Verify version is not dirty
+        run: |
+          VERSION=$(./ocicl version 2>&1 || true)
+          echo "ocicl version: $VERSION"
+          if echo "$VERSION" | grep -qi dirty; then
+            echo "::error::Version string contains 'dirty': $VERSION"
+            exit 1
+          fi
+
+      - name: Sign DEB packages
+        env:
+          DEB_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.DEB_GPG_PRIVATE_KEY != '' }}
+        run: |
+          # Configure gpg for non-interactive use
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback" > ~/.gnupg/gpg.conf
+          # Import signing key
+          echo "${DEB_GPG_PRIVATE_KEY}" | base64 -d | gpg --batch --import
+          GPG_NAME=$(gpg --list-secret-keys --with-colons | awk -F: '/^uid/{print $10; exit}')
+          echo "Signing as: ${GPG_NAME}"
+          # Sign .deb packages
+          dpkg-sig -k "${GPG_NAME}" --sign builder ../*.deb
+          # Verify signatures
+          dpkg-sig --verify ../*.deb
 
       - name: Copy DEB and source files to workspace
         run: |
@@ -134,6 +176,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      - name: Remove .git to prevent dirty version detection
+        run: rm -rf .git
+
       - name: Install build dependencies
         run: |
           apt-get update
@@ -141,6 +186,15 @@ jobs:
 
       - name: Build
         run: sbcl --load setup.lisp
+
+      - name: Verify version is not dirty
+        run: |
+          VERSION=$(./ocicl version 2>&1 || true)
+          echo "ocicl version: $VERSION"
+          if echo "$VERSION" | grep -qi dirty; then
+            echo "::error::Version string contains 'dirty': $VERSION"
+            exit 1
+          fi
 
       - name: Get version
         id: version
@@ -187,6 +241,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      - name: Remove .git to prevent dirty version detection
+        run: rm -rf .git
+
       - name: Install SBCL and build tools
         shell: powershell
         run: |
@@ -194,6 +251,15 @@ jobs:
 
       - name: Build
         run: sbcl --load setup.lisp
+
+      - name: Verify version is not dirty
+        run: |
+          VERSION=$(./ocicl.exe version 2>&1 || true)
+          echo "ocicl version: $VERSION"
+          if echo "$VERSION" | grep -qi dirty; then
+            echo "::error::Version string contains 'dirty': $VERSION"
+            exit 1
+          fi
 
       - name: Get version
         id: version

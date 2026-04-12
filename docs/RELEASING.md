@@ -229,7 +229,7 @@ releng/
 
 - [ ] Add Linux ARM64 builds
 - [ ] Automate Homebrew formula updates
-- [ ] Sign RPM packages with GPG
-- [ ] Sign DEB packages with GPG
+- [x] Sign RPM packages with GPG
+- [x] Sign DEB packages with GPG
 - [ ] Sign Windows packages
 - [ ] Publish Chocolatey package to community repository
