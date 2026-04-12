@@ -28,11 +28,12 @@ jobs:
       - name: Create source tarball
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          # Create tarball with proper directory prefix for rpmbuild
-          mkdir -p /tmp/ocicl-${VERSION}
-          cp -r . /tmp/ocicl-${VERSION}/
-          rm -rf /tmp/ocicl-${VERSION}/.git
-          tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz -C /tmp ocicl-${VERSION}
+          # Create tarball excluding .git to prevent dirty version detection
+          cd ..
+          tar czf ~/rpmbuild/SOURCES/ocicl-${VERSION}.tar.gz \
+            --exclude='.git' \
+            --transform "s,^ocicl,ocicl-${VERSION}," \
+            ocicl
 
       - name: Update spec file version
         run: |
