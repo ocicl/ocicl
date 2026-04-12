@@ -1,0 +1,32 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Origin: ocicl
+Label: ocicl
+Suite: stable
+Codename: stable
+Architectures: amd64
+Components: main
+Description: ocicl APT repository
+MD5Sum:
+ e7eebd33b9f57f2f88a8ae815d7196f2             1204 main/binary-amd64/Packages
+ 7e9cf1801a65d17122a6879755ec2b26              728 main/binary-amd64/Packages.gz
+SHA256:
+ ec01ac24ec5bf2666f118973023bf3a67d55a91ea2fbdf59d54174cf97fc3b02             1204 main/binary-amd64/Packages
+ adfb0c114e38839ab82b88db3308d29d04c8fa6f95a37a8dabdad0a0813d254b              728 main/binary-amd64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEkzjr6Nn+/13M75XkiG9Gz+6s6YgFAmnb9Y8ACgkQiG9Gz+6s
+6Ygu3BAAoXCRmYT+3nMGsKNXja9b/8P+A+OQof4DZ7s/Drow+iV7iZgPXENzu5Cp
+P0ndc9wwJHZhgyMe0vGtKcPuPJWFAx577Fo8SA9kQ+03Y0YvnIDYuH0Z3i0ABV7A
+IZhx01+1PG0wKR6SI4Bd5dq7TF1X1GSJ97Vwuv3jbesjSzSs9+PEy52iTL5gqO3E
+lUwp3KXAJLSE+pW9IXFvYPZkFlaltaom0bGFtFX8LTY7+bzVTXtq731aFPsJdYSX
+ARQGBlF6mj0N5J9CGqoIQiwHh6h0WzFjJVpA5C8OfidpC1osZL7rFzZ7Qha0hx77
+OAwPVSseug4T2Dfg6ZO2OiTyG13fMooBB9eu5caukNRsn7kkF927I2LCK8wALP2F
+V0xBcr8BOiIyXqf6+z8ZSBlxzPgHBwaScFdpp+hh98/jkf84bbZYMe6VY0YdOKHp
+Gq04L2twC9fJlh0y7qIULRwwmJzhsifGjVYAPPanbOiYAsJ20I9Cq3R6D2sUot07
+92++y3bVwTg0V9wTMPtuoHViJISz2Mx/sE2xrMiCSsUoQga8Sjk9Yhiv7Oi4LSpG
+17HHxNV6GMKLY5rsInjHeisUfk6mVGtgahLlOOTYkfaYjiaSsbeb11Wt55zDbBAO
+LNLULQW3tgM//g87DTnaSWWH3MIvnCFSQRSy/CX4LRd0t/9jW3o=
+=rovp
+-----END PGP SIGNATURE-----

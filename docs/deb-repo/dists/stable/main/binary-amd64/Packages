@@ -1,0 +1,28 @@
+Package: ocicl
+Version: 2.16.9-1
+Architecture: amd64
+Maintainer: Anthony Green <green@moxielogic.com>
+Installed-Size: 20435
+Depends: libc6 (>= 2.38), libzstd1 (>= 1.5.5)
+Filename: pool/main/ocicl_2.16.9-1_amd64.deb
+Size: 20192032
+MD5sum: 2738d60fe434c1ce455f026a3c62e49e
+SHA1: 90cef2e55b3102c0536691ac92e06da52d2601d4
+SHA256: 85c04a77c5dbf6ae5b2646221e3749e0294b5898458b383198836adaaf877905
+Section: devel
+Priority: optional
+Homepage: https://github.com/ocicl/ocicl
+Description: Modern ASDF system distribution and management tool for Common Lisp
+ ocicl is a modern tool for Common Lisp development that provides:
+  * Package management: A modern alternative to quicklisp for ASDF system
+    distribution and management
+  * Code linting: An integrated linter that checks your code for style issues,
+    common errors, and best practices
+  * Project scaffolding: Template-based project creation to quickly start new
+    applications
+ .
+ All software is packaged as OCI-compliant artifacts and distributed from
+ mirrored OCI-compliant registries. All software packages are securely
+ distributed over TLS connections and sigstore is used to ensure the integrity
+ and authenticity of all software packages.
+

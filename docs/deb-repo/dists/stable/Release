@@ -1,0 +1,13 @@
+Origin: ocicl
+Label: ocicl
+Suite: stable
+Codename: stable
+Architectures: amd64
+Components: main
+Description: ocicl APT repository
+MD5Sum:
+ e7eebd33b9f57f2f88a8ae815d7196f2             1204 main/binary-amd64/Packages
+ 7e9cf1801a65d17122a6879755ec2b26              728 main/binary-amd64/Packages.gz
+SHA256:
+ ec01ac24ec5bf2666f118973023bf3a67d55a91ea2fbdf59d54174cf97fc3b02             1204 main/binary-amd64/Packages
+ adfb0c114e38839ab82b88db3308d29d04c8fa6f95a37a8dabdad0a0813d254b              728 main/binary-amd64/Packages.gz
