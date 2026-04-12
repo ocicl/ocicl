@@ -93,19 +93,20 @@ You can install `ocicl` using native Linux packages, [homebrew](https://brew.sh)
 
 Native RPM and DEB packages are available for x86_64 systems.
 
-**Fedora/RHEL/CentOS:**
+**Fedora/RHEL/CentOS (via dnf repo):**
 ```bash
-# Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl-2.14.1-1.fc*.x86_64.rpm
-sudo dnf install ./ocicl-2.14.1-1.fc*.x86_64.rpm
+sudo dnf config-manager addrepo --from-repofile=https://ocicl.github.io/ocicl/rpm-repo/ocicl.repo
+sudo dnf install ocicl
 ocicl setup
 ```
 
+The RPM packages are GPG-signed. The signing key is imported automatically by dnf on first install.
+
 **Debian/Ubuntu:**
 ```bash
-# Download and install the latest version
-wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.14.1-1_amd64.deb
-sudo apt install ./ocicl_2.14.1-1_amd64.deb
+# Download and install the latest version from GitHub Releases
+wget https://github.com/ocicl/ocicl/releases/latest/download/ocicl_2.16.9-1_amd64.deb
+sudo apt install ./ocicl_2.16.9-1_amd64.deb
 ocicl setup
 ```
 
