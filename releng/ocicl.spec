@@ -45,17 +45,24 @@ sbcl --load setup.lisp --eval "(sb-ext:quit)" || true
 # Collect licenses from vendored dependencies
 ./ocicl collect-licenses >VENDORED-LICENSES.txt
 
+# Generate SBOM
+./ocicl create-sbom spdx ocicl-sbom.spdx.json
+
 # Install the binary
 install -D -m 0755 ocicl %{buildroot}%{_bindir}/ocicl
 
 # Install licenses
 install -D -m 0644 VENDORED-LICENSES.txt %{buildroot}%{_datadir}/licenses/%{name}/VENDORED-LICENSES.txt
 
+# Install SBOM
+install -D -m 0644 ocicl-sbom.spdx.json %{buildroot}%{_datadir}/sbom/ocicl-%{version}.spdx.json
+
 %files
 %license LICENSE
 %{_datadir}/licenses/%{name}/VENDORED-LICENSES.txt
 %doc README.md
 %{_bindir}/ocicl
+%{_datadir}/sbom/ocicl-%{version}.spdx.json
 
 %post
 # Run setup for system-wide installation (optional)
