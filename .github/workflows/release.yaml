@@ -754,6 +754,7 @@ jobs:
           Label: ocicl
           Suite: stable
           Codename: stable
+          Date: $(date -Ru)
           Architectures: amd64
           Components: main
           Description: ocicl APT repository
