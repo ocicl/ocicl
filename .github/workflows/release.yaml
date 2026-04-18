@@ -584,22 +584,15 @@ jobs:
             artifacts/windows-package/*.msi
 
   # ========================================
-  # Update RPM repository (GitHub Pages)
+  # Build RPM repository metadata
   # ========================================
-  update-rpm-repo:
+  build-rpm-repo:
     needs: [release, extract-version]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     env:
       VERSION: ${{ needs.extract-version.outputs.version }}
       TAG: v${{ needs.extract-version.outputs.version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          ref: main
-
       - name: Install createrepo_c
         run: sudo apt-get install -y createrepo-c
 
@@ -680,41 +673,30 @@ jobs:
           gpg --batch --detach-sign --armor /tmp/rpms/repodata/repomd.xml
           gpg --batch --export --armor > /tmp/rpms/RPM-GPG-KEY-ocicl
 
-      - name: Publish repodata to docs/
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
+      - name: Upload RPM repo artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rpm-repo
+          path: /tmp/rpms/repodata/
+          include-hidden-files: false
 
-          mkdir -p docs/rpm-repo/repodata
-          cp /tmp/rpms/repodata/* docs/rpm-repo/repodata/
-          # Publish public key if present
-          if [ -f /tmp/rpms/RPM-GPG-KEY-ocicl ]; then
-            cp /tmp/rpms/RPM-GPG-KEY-ocicl docs/rpm-repo/
-          fi
-
-          git add docs/rpm-repo/
-          git diff --cached --quiet && echo "No changes" && exit 0
-          git commit -m "Update RPM repo for ${TAG}"
-          git push
+      - name: Upload RPM GPG key
+        if: ${{ hashFiles('/tmp/rpms/RPM-GPG-KEY-ocicl') != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rpm-repo-key
+          path: /tmp/rpms/RPM-GPG-KEY-ocicl
 
   # ========================================
-  # Update DEB repository (GitHub Pages)
+  # Build DEB repository metadata
   # ========================================
-  update-deb-repo:
-    needs: [update-rpm-repo, extract-version]
+  build-deb-repo:
+    needs: [release, extract-version]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     env:
       VERSION: ${{ needs.extract-version.outputs.version }}
       TAG: v${{ needs.extract-version.outputs.version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          ref: main
-
       - name: Install APT repo tools
         run: sudo apt-get update && sudo apt-get install -y dpkg-dev gpg
 
@@ -797,23 +779,70 @@ jobs:
           gpg --batch --yes --armor --detach-sign -o Release.gpg Release
           gpg --batch --yes --armor --clearsign -o InRelease Release
 
-      - name: Publish APT repo to docs/
+      - name: Upload DEB repo artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: deb-repo
+          path: /tmp/apt-repo/
+
+      - name: Upload DEB keyring
+        if: ${{ hashFiles('/tmp/debs/ocicl-archive-keyring.gpg') != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: deb-repo-key
+          path: /tmp/debs/ocicl-archive-keyring.gpg
+
+  # ========================================
+  # Publish package repos to GitHub Pages
+  # ========================================
+  publish-repos:
+    needs: [build-rpm-repo, build-deb-repo, extract-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: v${{ needs.extract-version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: main
+
+      - name: Pull latest
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
 
-          # Clean and rebuild
-          rm -rf docs/deb-repo
-          mkdir -p docs/deb-repo
-          cp -r /tmp/apt-repo/* docs/deb-repo/
+      - name: Download RPM repo artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rpm-repo
+          path: docs/rpm-repo/repodata
 
-          # Copy public key if present
-          if [ -f /tmp/debs/ocicl-archive-keyring.gpg ]; then
-            cp /tmp/debs/ocicl-archive-keyring.gpg docs/deb-repo/
-          fi
+      - name: Download RPM GPG key
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rpm-repo-key
+          path: docs/rpm-repo
+        continue-on-error: true
 
-          git add docs/deb-repo/
+      - name: Download DEB repo artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: deb-repo
+          path: docs/deb-repo
+
+      - name: Download DEB keyring
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: deb-repo-key
+          path: docs/deb-repo
+        continue-on-error: true
+
+      - name: Commit and push
+        run: |
+          git add docs/rpm-repo/ docs/deb-repo/
           git diff --cached --quiet && echo "No changes" && exit 0
-          git commit -m "Update DEB repo for ${TAG}"
+          git commit -m "Update package repos for ${TAG}"
           git push
