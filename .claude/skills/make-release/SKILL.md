@@ -91,10 +91,20 @@ To decide what goes in the notes, diff against the most recent tag:
 git log $(git describe --tags --abbrev=0)..HEAD --oneline
 ```
 
+**Check updated dependencies for noteworthy changes:**
+
+```bash
+git diff $(git describe --tags --abbrev=0)..HEAD -- systems.csv
+```
+
+For each dependency that changed, especially security-critical ones like `pure-tls`, check the upstream changelog or commit history for user-facing changes (security fixes, new features, breaking changes). Surface important upstream changes in the release notes — particularly security fixes, which should get their own ## Security section with advisory IDs and descriptions.
+
 Include ONLY user-facing changes:
+- Security fixes (from dependencies or this project)
 - Bug fixes
 - New features
 - Breaking changes (if any)
+- Notable dependency updates (with version info)
 
 Do NOT include internal changes (refactors, lint fixes, doc updates, CI changes, directory reorganization). Those are visible in the git log for anyone who needs them.
 
@@ -103,19 +113,29 @@ Match the voice and format of previous release notes in `docs/release-notes/`. T
 ```markdown
 # ocicl VERSION Release Notes
 
+**Release Date:** Month YYYY
+
 ## Summary
 
 One-line summary of the release.
 
-## Changes (or Improvements)
+## New Features
 
 ### Feature Name
 
-Description of the feature or fix.
+Description of the feature.
+
+## Bug Fixes
+
+- Description of fix.
 
 ## Breaking Changes
 
 None (or list them).
+
+## Upgrade Notes
+
+Drop-in replacement for PREVIOUS_VERSION (or describe migration steps).
 
 ## Installation
 
