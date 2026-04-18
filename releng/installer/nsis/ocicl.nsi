@@ -80,7 +80,7 @@ Section "ocicl Core" SEC_CORE
   File "..\..\..\LICENSE"
   File "..\..\..\THIRD-PARTY-LICENSES.txt"
   File "..\..\..\README.md"
-  File "..\..\..\ocicl-sbom.cdx.json"
+  File /nonfatal "..\..\..\ocicl-sbom.cdx.json"
 
   ; Store installation folder
   WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallDir" "$INSTDIR"
