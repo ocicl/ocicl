@@ -1,0 +1,10 @@
+Source: <%= @ app-name %>
+Section: devel
+Priority: optional
+Maintainer: <%= (or (@ author) "Your Name") %> <your@email.com>
+Build-Depends: debhelper (>= 13), sbcl, libfixposix-dev, gcc, make
+
+Package: <%= @ app-name %>
+Architecture: amd64
+Description: <%= string-capitalize (@ app-name) %>
+ A Common Lisp application.

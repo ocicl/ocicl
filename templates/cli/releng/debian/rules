@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	make
+
+override_dh_auto_install:
+	mkdir -p debian/<%= @ app-name %>/usr/bin
+	mkdir -p debian/<%= @ app-name %>/usr/share/sbom
+	install -m 0755 <%= @ app-name %> debian/<%= @ app-name %>/usr/bin/
+	install -m 0644 <%= @ app-name %>-sbom.spdx.json debian/<%= @ app-name %>/usr/share/sbom/<%= @ app-name %>-$(shell dpkg-parsechangelog -S Version | sed 's/-.*//' ).spdx.json
+
+override_dh_strip:
+	# Do not strip SBCL-based binaries as it corrupts the embedded core
+
+override_dh_auto_clean:
+	rm -f <%= @ app-name %>
+	dh_auto_clean

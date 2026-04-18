@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL and ocicl
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sbcl
+          gh release download --repo ocicl/ocicl --pattern '*_amd64.deb' --dir /tmp
+          sudo dpkg -i /tmp/ocicl_*_amd64.deb
+          ocicl setup > ~/.sbclrc
+
+      - name: Install dependencies
+        run: ocicl install
+
+      - name: Build
+        run: make

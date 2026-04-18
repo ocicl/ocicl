@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: <%= @ app-name %>
+Upstream-Contact: <%= (or (@ author) "Your Name") %> <your@email.com>
+
+Files: *
+Copyright: <%= multiple-value-bind (second minute hour day month year) (decode-universal-time (get-universal-time)) (format nil "~A" year) %> <%= (or (@ author) "Your Name") %>
+License: <%= (or (@ license) "MIT") %>
