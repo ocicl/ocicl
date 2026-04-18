@@ -593,6 +593,9 @@ jobs:
       VERSION: ${{ needs.extract-version.outputs.version }}
       TAG: v${{ needs.extract-version.outputs.version }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
       - name: Install createrepo_c
         run: sudo apt-get install -y createrepo-c
 
@@ -697,6 +700,9 @@ jobs:
       VERSION: ${{ needs.extract-version.outputs.version }}
       TAG: v${{ needs.extract-version.outputs.version }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
       - name: Install APT repo tools
         run: sudo apt-get update && sudo apt-get install -y dpkg-dev gpg
 
