@@ -6,12 +6,15 @@
 override_dh_auto_build:
 	sbcl --load setup.lisp --eval "(sb-ext:quit)" || true
 	./ocicl collect-licenses >VENDORED-LICENSES.txt
+	./ocicl create-sbom spdx ocicl-sbom.spdx.json
 
 override_dh_auto_install:
 	mkdir -p debian/ocicl/usr/bin
 	mkdir -p debian/ocicl/usr/share/doc/ocicl
+	mkdir -p debian/ocicl/usr/share/sbom
 	install -m 0755 ocicl debian/ocicl/usr/bin/
 	cp VENDORED-LICENSES.txt debian/ocicl/usr/share/doc/ocicl/
+	install -m 0644 ocicl-sbom.spdx.json debian/ocicl/usr/share/sbom/ocicl-$(shell dpkg-parsechangelog -S Version | sed 's/-.*//' ).spdx.json
 
 override_dh_strip:
 	# Do not strip SBCL-based binaries as it corrupts the embedded core
