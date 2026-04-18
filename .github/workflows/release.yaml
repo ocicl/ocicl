@@ -582,3 +582,236 @@ jobs:
             artifacts/windows-package/*.zip
             artifacts/windows-package/*-setup.exe
             artifacts/windows-package/*.msi
+
+  # ========================================
+  # Update RPM repository (GitHub Pages)
+  # ========================================
+  update-rpm-repo:
+    needs: [release, extract-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.extract-version.outputs.version }}
+      TAG: v${{ needs.extract-version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: main
+
+      - name: Install createrepo_c
+        run: sudo apt-get install -y createrepo-c
+
+      - name: Download RPM assets from release
+        run: |
+          mkdir -p /tmp/rpms
+          gh release download "${TAG}" --pattern '*.rpm' --dir /tmp/rpms --skip-existing
+          echo "Downloaded RPMs:"
+          ls -lh /tmp/rpms/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build repodata
+        run: createrepo_c /tmp/rpms
+
+      - name: Rewrite package locations to release asset URLs
+        run: |
+          REPO="${{ github.repository }}"
+          BASE="https://github.com/${REPO}/releases/download/${TAG}"
+
+          cd /tmp/rpms/repodata
+
+          # Decompress primary.xml
+          gunzip -f *-primary.xml.gz
+          PRIMARY=$(ls *-primary.xml)
+
+          # Replace relative hrefs with absolute GitHub URLs
+          sed -i "s|<location href=\"\([^\"]*\.rpm\)\"|<location href=\"${BASE}/\1\"|g" "${PRIMARY}"
+
+          # Recompress
+          gzip -9 "${PRIMARY}"
+
+          # Rebuild repomd.xml with correct checksums
+          cd /tmp/rpms
+          REPODATA=repodata
+
+          cat > "${REPODATA}/repomd.xml" <<'XMLHEADER'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <repomd xmlns="http://linux.duke.edu/metadata/repo">
+          XMLHEADER
+
+          for gz in "${REPODATA}"/*.xml.gz; do
+            fname="$(basename "${gz}")"
+            # Type is e.g. "primary" from "abc123-primary.xml.gz"
+            type="$(echo "${fname}" | sed 's/.*-\([a-z_]*\)\.xml\.gz/\1/')"
+
+            checksum="$(sha256sum "${gz}" | awk '{print $1}')"
+            size="$(stat -c%s "${gz}")"
+
+            open_file="${gz%.gz}"
+            gunzip -k -f "${gz}"
+            open_checksum="$(sha256sum "${open_file}" | awk '{print $1}')"
+            open_size="$(stat -c%s "${open_file}")"
+            rm -f "${open_file}"
+
+            cat >> "${REPODATA}/repomd.xml" <<XMLDATA
+            <data type="${type}">
+              <checksum type="sha256">${checksum}</checksum>
+              <open-checksum type="sha256">${open_checksum}</open-checksum>
+              <location href="repodata/${fname}"/>
+              <size>${size}</size>
+              <open-size>${open_size}</open-size>
+            </data>
+          XMLDATA
+          done
+
+          echo "</repomd>" >> "${REPODATA}/repomd.xml"
+
+          # Clean up indentation from heredoc
+          sed -i 's/^          //' "${REPODATA}/repomd.xml"
+
+      - name: Sign repomd.xml and export public key
+        env:
+          RPM_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.RPM_GPG_PRIVATE_KEY != '' }}
+        run: |
+          echo "${RPM_GPG_PRIVATE_KEY}" | base64 -d | gpg --batch --import
+          gpg --batch --detach-sign --armor /tmp/rpms/repodata/repomd.xml
+          gpg --batch --export --armor > /tmp/rpms/RPM-GPG-KEY-ocicl
+
+      - name: Publish repodata to docs/
+        run: |
+          mkdir -p docs/rpm-repo/repodata
+          cp /tmp/rpms/repodata/* docs/rpm-repo/repodata/
+          # Publish public key if present
+          if [ -f /tmp/rpms/RPM-GPG-KEY-ocicl ]; then
+            cp /tmp/rpms/RPM-GPG-KEY-ocicl docs/rpm-repo/
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add docs/rpm-repo/
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Update RPM repo for ${TAG}"
+          git push
+
+  # ========================================
+  # Update DEB repository (GitHub Pages)
+  # ========================================
+  update-deb-repo:
+    needs: [update-rpm-repo, extract-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.extract-version.outputs.version }}
+      TAG: v${{ needs.extract-version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: main
+
+      - name: Install APT repo tools
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev gpg
+
+      - name: Download DEB assets from release
+        run: |
+          mkdir -p /tmp/debs
+          gh release download "${TAG}" --pattern '*.deb' --dir /tmp/debs --skip-existing
+          echo "Downloaded DEBs:"
+          ls -lh /tmp/debs/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Import GPG key
+        env:
+          DEB_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.DEB_GPG_PRIVATE_KEY != '' }}
+        run: |
+          echo "${DEB_GPG_PRIVATE_KEY}" | base64 -d | gpg --batch --import
+          GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')
+          echo "GPG_KEY_ID=${GPG_KEY_ID}" >> "$GITHUB_ENV"
+          # Export public key for the repo
+          gpg --batch --export --armor > /tmp/debs/ocicl-archive-keyring.gpg
+
+      - name: Build APT repository
+        run: |
+          REPO_DIR=/tmp/apt-repo
+          mkdir -p "${REPO_DIR}/pool/main"
+          mkdir -p "${REPO_DIR}/dists/stable/main/binary-amd64"
+
+          # Copy new .deb files to pool
+          cp /tmp/debs/*.deb "${REPO_DIR}/pool/main/"
+
+          # Keep only the latest .deb for each package name (avoid repo bloat)
+          cd "${REPO_DIR}/pool/main"
+          for pkg in $(ls *.deb | sed 's/_[0-9].*//' | sort -u); do
+            # Keep only the newest version of each package
+            ls -t ${pkg}_*.deb | tail -n +2 | xargs rm -f 2>/dev/null || true
+          done
+          cd "${REPO_DIR}"
+
+          # Generate Packages file
+          dpkg-scanpackages pool/main > dists/stable/main/binary-amd64/Packages
+          gzip -9c dists/stable/main/binary-amd64/Packages > dists/stable/main/binary-amd64/Packages.gz
+
+          # Generate Release file
+          cd dists/stable
+          cat > Release <<EOF
+          Origin: ocicl
+          Label: ocicl
+          Suite: stable
+          Codename: stable
+          Architectures: amd64
+          Components: main
+          Description: ocicl APT repository
+          EOF
+          sed -i 's/^          //' Release
+
+          # Add checksums to Release file
+          {
+            echo "MD5Sum:"
+            for f in main/binary-amd64/Packages main/binary-amd64/Packages.gz; do
+              SIZE=$(stat -c%s "$f")
+              MD5=$(md5sum "$f" | awk '{print $1}')
+              printf " %s %16d %s\n" "$MD5" "$SIZE" "$f"
+            done
+            echo "SHA256:"
+            for f in main/binary-amd64/Packages main/binary-amd64/Packages.gz; do
+              SIZE=$(stat -c%s "$f")
+              SHA=$(sha256sum "$f" | awk '{print $1}')
+              printf " %s %16d %s\n" "$SHA" "$SIZE" "$f"
+            done
+          } >> Release
+
+      - name: Sign Release file
+        env:
+          DEB_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.DEB_GPG_PRIVATE_KEY != '' }}
+        run: |
+          cd /tmp/apt-repo/dists/stable
+          gpg --batch --yes --armor --detach-sign -o Release.gpg Release
+          gpg --batch --yes --armor --clearsign -o InRelease Release
+
+      - name: Publish APT repo to docs/
+        run: |
+          # Clean and rebuild
+          rm -rf docs/deb-repo
+          mkdir -p docs/deb-repo
+          cp -r /tmp/apt-repo/* docs/deb-repo/
+
+          # Copy public key if present
+          if [ -f /tmp/debs/ocicl-archive-keyring.gpg ]; then
+            cp /tmp/debs/ocicl-archive-keyring.gpg docs/deb-repo/
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add docs/deb-repo/
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Update DEB repo for ${TAG}"
+          git push
