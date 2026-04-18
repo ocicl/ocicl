@@ -103,6 +103,10 @@ jobs:
 
       - name: Publish APT repo to docs/
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+
           # Clean and rebuild
           rm -rf docs/deb-repo
           mkdir -p docs/deb-repo
@@ -113,9 +117,6 @@ jobs:
             cp /tmp/debs/ocicl-archive-keyring.gpg docs/deb-repo/
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
           git add docs/deb-repo/
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "Update DEB repo for ${TAG}"
