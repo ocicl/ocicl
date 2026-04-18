@@ -1,14 +1,14 @@
 Package: ocicl
-Version: 2.16.9-1
+Version: 2.16.11-1
 Architecture: amd64
 Maintainer: Anthony Green <green@moxielogic.com>
-Installed-Size: 20435
+Installed-Size: 20467
 Depends: libc6 (>= 2.38), libzstd1 (>= 1.5.5)
-Filename: pool/main/ocicl_2.16.9-1_amd64.deb
-Size: 20192032
-MD5sum: 2738d60fe434c1ce455f026a3c62e49e
-SHA1: 90cef2e55b3102c0536691ac92e06da52d2601d4
-SHA256: 85c04a77c5dbf6ae5b2646221e3749e0294b5898458b383198836adaaf877905
+Filename: pool/main/ocicl_2.16.11-1_amd64.deb
+Size: 20194022
+MD5sum: 59097a84451f5aba778aa9cb37d3bcf4
+SHA1: a3db5f267ca76606db2c5b8d1bfdb2ea290c408a
+SHA256: 3822c34bf082c5b1330b127ccb7de61fffed92a894267dd501f5d53101b390df
 Section: devel
 Priority: optional
 Homepage: https://github.com/ocicl/ocicl
