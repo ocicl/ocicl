@@ -1,6 +1,6 @@
-40ants-doc, ghcr.io/ocicl/40ants-doc@sha256:ef1b48abde0808ff396379d0f9b08476bb6004dfac083344cec5dfed3ee38c19, doc-20250913-7fd42c2/40ants-doc.asd
-40ants-doc-full, ghcr.io/ocicl/40ants-doc@sha256:ef1b48abde0808ff396379d0f9b08476bb6004dfac083344cec5dfed3ee38c19, doc-20250913-7fd42c2/40ants-doc-full.asd
-40ants-doc-test, ghcr.io/ocicl/40ants-doc@sha256:ef1b48abde0808ff396379d0f9b08476bb6004dfac083344cec5dfed3ee38c19, doc-20250913-7fd42c2/40ants-doc-test.asd
+40ants-doc, ghcr.io/ocicl/40ants-doc@sha256:983e0e702e3c36732b5b1885eff606e18269d59a4b61ab1205c2a859aa259f93, doc-20260411-5b0d0ba/40ants-doc.asd
+40ants-doc-full, ghcr.io/ocicl/40ants-doc@sha256:983e0e702e3c36732b5b1885eff606e18269d59a4b61ab1205c2a859aa259f93, doc-20260411-5b0d0ba/40ants-doc-full.asd
+40ants-doc-test, ghcr.io/ocicl/40ants-doc@sha256:983e0e702e3c36732b5b1885eff606e18269d59a4b61ab1205c2a859aa259f93, doc-20260411-5b0d0ba/40ants-doc-test.asd
 acclimation, ghcr.io/ocicl/acclimation@sha256:f6f7b6782ea4fa53b86f23cf169f06f16a441000e5512955f0ef6ab065adbe4b, acclimation-20251218-9339b92/acclimation.asd
 acclimation-temperature, ghcr.io/ocicl/acclimation@sha256:f6f7b6782ea4fa53b86f23cf169f06f16a441000e5512955f0ef6ab065adbe4b, acclimation-20251218-9339b92/Temperature/acclimation-temperature.asd
 alexandria, ghcr.io/ocicl/alexandria@sha256:e433c2e076ed3bcf8641b97b00192680db2201d305efac9293539dee88c7fbf7, alexandria-20240503-8514d8e/alexandria.asd
@@ -30,7 +30,7 @@ cl-json, ghcr.io/ocicl/cl-json@sha256:54c4d00901c2c5b0ea9da11eed8f0104fc5819e1ed
 cl-postgres_plus_local-time, ghcr.io/ocicl/local-time@sha256:15dc0e56d0ff55bd2a3c597e67be1c26bd0677c230a15ad5098c5207a9df5554, local-time-20250808-c28f38e/cl-postgres+local-time.asd
 cl-ppcre, ghcr.io/ocicl/cl-ppcre@sha256:bf073924cf4fd5957a4fd961a95d446ed0e53fa32a5002cbd2d52182874f45e5, cl-ppcre-20250606-a2ea581/cl-ppcre.asd
 cl-ppcre-unicode, ghcr.io/ocicl/cl-ppcre@sha256:bf073924cf4fd5957a4fd961a95d446ed0e53fa32a5002cbd2d52182874f45e5, cl-ppcre-20250606-a2ea581/cl-ppcre-unicode.asd
-cl-selfupdate, ghcr.io/ocicl/cl-selfupdate@sha256:0b5b93f9721fd681dfc98825e79578900ec1f619b7235543e02f9ad882b38022, cl-selfupdate-20260401-e4f32f0/cl-selfupdate.asd
+cl-selfupdate, ghcr.io/ocicl/cl-selfupdate@sha256:d4c4cfb0aecde5f811e6614cc16b3c80587416f3a6e07858d85c891eee7c4f0e, cl-selfupdate-20260412-ee7dcdc/cl-selfupdate.asd
 cl-semver, ghcr.io/ocicl/cl-semver@sha256:519cd56427e124fddf732c284f391dfd22da99e1b01d1f2512cbf2e3465bad1f, cl-semver-20240503-b125d2c/cl-semver.asd
 cl-semver-test, ghcr.io/ocicl/cl-semver@sha256:519cd56427e124fddf732c284f391dfd22da99e1b01d1f2512cbf2e3465bad1f, cl-semver-20240503-b125d2c/cl-semver-test.asd
 cl-template, ghcr.io/ocicl/cl-template@sha256:77fe11d9e0a68bbc8333b94825145c8313dbeba422a71588f6d8e00e1d3807a4, cl-template-20240503-46193a9/cl-template.asd
@@ -41,8 +41,8 @@ copy-directory, ghcr.io/ocicl/copy-directory@sha256:a8fa40cd0d17c4652545361ca4ad
 copy-directory-test, ghcr.io/ocicl/copy-directory@sha256:a8fa40cd0d17c4652545361ca4adb2ba08ea1aa6a844f8adcfbdfb9bde591b42, copy-directory-20250106-6926cbb/copy-directory-test.asd
 diff, ghcr.io/ocicl/diff@sha256:6401bc1fbfa25888448d0eeeb71002c4c752bd8f30f9714bc6b2a0162a935d87, diff-20240503-9c84bef/diff.asd
 documentation-utils, ghcr.io/ocicl/documentation-utils@sha256:b2a1b3f3bcd1a738af85ae2b0168d408c177661eab6d6bbebb254e394d983f54, documentation-utils-20230511-98630dd/documentation-utils.asd
-drakma, ghcr.io/ocicl/drakma@sha256:fc646b37154ccae72aa5f629fdd365ffd4bebec6631c9f9b137ccb5c6dffc1cf, drakma-2.0.10/drakma.asd
-drakma-test, ghcr.io/ocicl/drakma@sha256:fc646b37154ccae72aa5f629fdd365ffd4bebec6631c9f9b137ccb5c6dffc1cf, drakma-2.0.10/drakma-test.asd
+drakma, ghcr.io/ocicl/drakma@sha256:15a11555dca6c2b58833307aeaa70d17ec4ef51ed27a488c664b8c3177bcb004, drakma-2.0.10/drakma.asd
+drakma-test, ghcr.io/ocicl/drakma@sha256:15a11555dca6c2b58833307aeaa70d17ec4ef51ed27a488c664b8c3177bcb004, drakma-2.0.10/drakma-test.asd
 dref, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:1c15644701ad5b8e441b2724c265c995437052beb52322c447816c3cc17c564a, mgl-pax-20260313-f7f9414/dref/dref.asd
 dref-test, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:1c15644701ad5b8e441b2724c265c995437052beb52322c447816c3cc17c564a, mgl-pax-20260313-f7f9414/dref/dref-test.asd
 dref-test-package-inferred, ghcr.io/ocicl/mgl-pax-bootstrap@sha256:1c15644701ad5b8e441b2724c265c995437052beb52322c447816c3cc17c564a, mgl-pax-20260313-f7f9414/dref/test/data/dref-test-package-inferred.asd
@@ -75,7 +75,7 @@ parse-number, ghcr.io/ocicl/parse-number@sha256:11f3f9f512871e1f96cea6b8260aa361
 path-parse, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse.asd
 path-parse-test, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse-test.asd
 precise-time, ghcr.io/ocicl/precise-time@sha256:0fa8039008f0635013d25c14d50c5743c64d6a1ef64bd0e62d1785a4b9d3a873, precise-time-20260218-93ea6ae/precise-time.asd
-pure-tls, ghcr.io/ocicl/pure-tls@sha256:e84195f68ab253c8ce34c84e5d62747a6152d2be2cc0e76d3f425c879f1941f7, pure-tls-20260403-7c0a399/pure-tls.asd
+pure-tls, ghcr.io/ocicl/pure-tls@sha256:dd60f6d4e7f8386277900a704b646b590d8ecf703e667b3e71e5267669927b9e, pure-tls-20260418-d83c3ad/pure-tls.asd
 puri, ghcr.io/ocicl/puri@sha256:b803fb9444eaf2c7053812e19d342d4ce6a05fd1880fa3a2a2f824769a6d58d2, puri-20260406-4bbab89/puri.asd
 pythonic-string-reader, ghcr.io/ocicl/pythonic-string-reader@sha256:6f0c22694e7d6b2143d116eec0f568e775343167d35c1ed36d624e485f54b3e3, pythonic-string-reader-20240503-47a70ba/pythonic-string-reader.asd
 quri, ghcr.io/ocicl/quri@sha256:e2559f91600e4895e115b42dde88fcaac3677f051335d73431888dcf7af99f95, quri-0.7.0/quri.asd
