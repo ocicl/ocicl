@@ -799,26 +799,20 @@ jobs:
           path: /tmp/debs/ocicl-archive-keyring.gpg
 
   # ========================================
-  # Publish package repos to GitHub Pages
+  # Deploy package repos + docs to GitHub Pages
   # ========================================
-  publish-repos:
+  deploy-pages:
     needs: [build-rpm-repo, build-deb-repo, extract-version]
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-    env:
-      TAG: v${{ needs.extract-version.outputs.version }}
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          ref: main
-
-      - name: Pull latest
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
 
       - name: Download RPM repo artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -846,9 +840,11 @@ jobs:
           path: docs/deb-repo
         continue-on-error: true
 
-      - name: Commit and push
-        run: |
-          git add docs/rpm-repo/ docs/deb-repo/
-          git diff --cached --quiet && echo "No changes" && exit 0
-          git commit -m "Update package repos for ${TAG}"
-          git push
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: docs/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac553fd0d31 # v4
