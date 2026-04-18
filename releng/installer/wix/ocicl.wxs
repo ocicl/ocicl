@@ -64,7 +64,7 @@
         <File Id="README.md" Source="$(SourceDir)\README.md" />
       </Component>
       <Component Id="SbomFile" Guid="5E6F7A8B-9C0D-1234-EFAB-345678901234">
-        <File Id="ocicl_sbom.spdx.json" Source="$(SourceDir)\ocicl-sbom.spdx.json" />
+        <File Id="ocicl_sbom.spdx.json" Source="$(SourceDir)\ocicl-sbom.cdx.json" />
       </Component>
     </ComponentGroup>
   </Fragment>

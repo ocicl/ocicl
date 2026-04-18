@@ -80,7 +80,7 @@ Section "ocicl Core" SEC_CORE
   File "..\..\..\LICENSE"
   File "..\..\..\THIRD-PARTY-LICENSES.txt"
   File "..\..\..\README.md"
-  File "..\..\..\ocicl-sbom.spdx.json"
+  File "..\..\..\ocicl-sbom.cdx.json"
 
   ; Store installation folder
   WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallDir" "$INSTDIR"
@@ -150,7 +150,7 @@ Section "Uninstall"
   Delete "$INSTDIR\LICENSE"
   Delete "$INSTDIR\THIRD-PARTY-LICENSES.txt"
   Delete "$INSTDIR\README.md"
-  Delete "$INSTDIR\ocicl-sbom.spdx.json"
+  Delete "$INSTDIR\ocicl-sbom.cdx.json"
   Delete "$INSTDIR\uninstall.exe"
 
   ; Remove shortcuts
