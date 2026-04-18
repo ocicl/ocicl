@@ -97,7 +97,15 @@ git log $(git describe --tags --abbrev=0)..HEAD --oneline
 git diff $(git describe --tags --abbrev=0)..HEAD -- systems.csv
 ```
 
-For each dependency that changed, especially security-critical ones like `pure-tls`, check the upstream changelog or commit history for user-facing changes (security fixes, new features, breaking changes). Surface important upstream changes in the release notes — particularly security fixes, which should get their own ## Security section with advisory IDs and descriptions.
+For each dependency that changed, especially security-critical ones like `pure-tls`, check the upstream changelog or commit history for user-facing changes (security fixes, new features, breaking changes). For example:
+
+```bash
+cd /home/green/git/pure-tls && git log --oneline OLD_COMMIT..NEW_COMMIT
+```
+
+(Extract the commit hashes from the systems.csv directory names, e.g. `pure-tls-20260403-7c0a399` → `7c0a399`.)
+
+Surface important upstream changes in the release notes — particularly security fixes, which should get their own ## Security section with advisory IDs and descriptions.
 
 Include ONLY user-facing changes:
 - Security fixes (from dependencies or this project)
