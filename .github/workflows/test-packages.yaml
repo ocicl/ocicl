@@ -9,15 +9,43 @@ permissions:
 jobs:
   test-rpm:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: el7
+            container: centos:7
+            pkg_manager: yum
+            epel_pkg: epel-release
+            install_cmd: yum install -y
+            extra_setup: |
+              sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo
+              sed -i 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*.repo
+          - target: el8
+            container: almalinux:8
+            pkg_manager: dnf
+            epel_pkg: epel-release
+            install_cmd: dnf install -y
+            extra_setup: ""
+          - target: el9
+            container: almalinux:9
+            pkg_manager: dnf
+            epel_pkg: epel-release
+            install_cmd: dnf install -y
+            extra_setup: ""
     container:
-      image: fedora:latest
+      image: ${{ matrix.container }}
     steps:
+      - name: Extra setup for container
+        if: matrix.extra_setup != ''
+        run: ${{ matrix.extra_setup }}
+
+      - name: Install EPEL and build dependencies
+        run: |
+          ${{ matrix.pkg_manager }} install -y ${{ matrix.epel_pkg }}
+          ${{ matrix.pkg_manager }} install -y rpm-build rpmdevtools sbcl libfixposix-devel gcc make grep git
+
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Install build dependencies
-        run: |
-          dnf install -y rpm-build rpmdevtools sbcl libfixposix-devel gcc make grep
 
       - name: Setup rpmbuild directory
         run: rpmdev-setuptree
@@ -42,7 +70,7 @@ jobs:
 
       - name: List built packages
         run: |
-          echo "Binary RPMs:"
+          echo "Binary RPMs (${{ matrix.target }}):"
           ls -lh ~/rpmbuild/RPMS/x86_64/
           echo "Source RPMs:"
           ls -lh ~/rpmbuild/SRPMS/
@@ -59,7 +87,7 @@ jobs:
 
       - name: Test installation
         run: |
-          dnf install -y ~/rpmbuild/RPMS/x86_64/*.rpm
+          ${{ matrix.install_cmd }} ~/rpmbuild/RPMS/x86_64/*.rpm
           ocicl version
 
   test-deb:

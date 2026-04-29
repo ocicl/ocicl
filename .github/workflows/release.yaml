@@ -26,17 +26,42 @@ jobs:
   build-rpm:
     needs: extract-version
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: el7
+            container: centos:7
+            pkg_manager: yum
+            epel_pkg: epel-release
+            extra_setup: |
+              sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo
+              sed -i 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*.repo
+          - target: el8
+            container: almalinux:8
+            pkg_manager: dnf
+            epel_pkg: epel-release
+            extra_setup: ""
+          - target: el9
+            container: almalinux:9
+            pkg_manager: dnf
+            epel_pkg: epel-release
+            extra_setup: ""
     container:
-      image: fedora:latest
+      image: ${{ matrix.container }}
     env:
       VERSION: ${{ needs.extract-version.outputs.version }}
     steps:
+      - name: Extra setup for container
+        if: matrix.extra_setup != ''
+        run: ${{ matrix.extra_setup }}
+
+      - name: Install EPEL and build dependencies
+        run: |
+          ${{ matrix.pkg_manager }} install -y ${{ matrix.epel_pkg }}
+          ${{ matrix.pkg_manager }} install -y rpm-build rpmdevtools rpm-sign sbcl libfixposix-devel gcc make git
+
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Install build dependencies
-        run: |
-          dnf install -y rpm-build rpmdevtools rpm-sign sbcl libfixposix-devel gcc make
 
       - name: Setup rpmbuild directory
         run: |
@@ -104,7 +129,7 @@ jobs:
       - name: Upload RPM artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: rpm-packages
+          name: rpm-packages-${{ matrix.target }}
           path: ./*.rpm
 
   build-deb:
@@ -561,7 +586,7 @@ jobs:
             windows-package/ocicl-${VERSION}-windows-amd64.zip \
             windows-package/ocicl-${VERSION}-setup.exe \
             windows-package/ocicl-${VERSION}.msi \
-            rpm-packages/*.rpm \
+            rpm-packages-*/*.rpm \
             deb-packages/*.deb \
             > checksums.sha256
           cat checksums.sha256
@@ -573,7 +598,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           bodyFile: docs/release-notes/RELEASE-NOTES-${{ env.VERSION }}.md
           artifacts: |
-            artifacts/rpm-packages/*.rpm
+            artifacts/rpm-packages-*/*.rpm
             artifacts/deb-packages/*.deb
             artifacts/deb-packages/*.dsc
             artifacts/deb-packages/*.tar.*
@@ -591,7 +616,7 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
-            artifacts/rpm-packages/*.rpm
+            artifacts/rpm-packages-*/*.rpm
             artifacts/deb-packages/*.deb
             artifacts/linux-package/*.tar.gz
             artifacts/windows-package/*.zip
