@@ -15,8 +15,6 @@ Source0:        ocicl-%{version}.tar.gz
 %global __brp_strip_comment_note %{nil}
 %global __brp_strip_static_archive %{nil}
 
-BuildRequires:  sbcl
-BuildRequires:  libfixposix-devel
 BuildRequires:  gcc
 BuildRequires:  make
 

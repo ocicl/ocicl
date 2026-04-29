@@ -4,7 +4,6 @@ Priority: optional
 Maintainer: Anthony Green <green@moxielogic.com>
 Build-Depends: debhelper-compat (= 13),
                sbcl,
-               libfixposix-dev,
                gcc
 Standards-Version: 4.6.2
 Homepage: https://github.com/ocicl/ocicl

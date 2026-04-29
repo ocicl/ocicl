@@ -120,7 +120,7 @@ jobs:
           path: .
 
       - name: Install build dependencies
-        run: dnf install -y rpm-build rpmdevtools rpm-sign sbcl libfixposix-devel gcc make
+        run: dnf install -y rpm-build rpmdevtools rpm-sign sbcl gcc make
 
       - name: Setup rpmbuild
         run: rpmdev-setuptree
@@ -194,7 +194,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y debhelper devscripts sbcl libfixposix-dev gcc make gpg debsigs
+          apt-get install -y debhelper devscripts sbcl gcc make gpg debsigs
 
       - name: Update changelog version
         run: |

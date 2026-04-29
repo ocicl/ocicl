@@ -32,19 +32,19 @@ jobs:
           - target: el7
             container: centos:7
             pkg_manager: yum
-            epel_pkg: epel-release
+            sbcl_bootstrap: "1.4.16"
             extra_setup: |
               sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo
               sed -i 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*.repo
           - target: el8
             container: almalinux:8
             pkg_manager: dnf
-            epel_pkg: epel-release
+            sbcl_bootstrap: "2.2.9"
             extra_setup: ""
           - target: el9
             container: almalinux:9
             pkg_manager: dnf
-            epel_pkg: epel-release
+            sbcl_bootstrap: "2.4.11"
             extra_setup: ""
     container:
       image: ${{ matrix.container }}
@@ -55,10 +55,25 @@ jobs:
         if: matrix.extra_setup != ''
         run: ${{ matrix.extra_setup }}
 
-      - name: Install EPEL and build dependencies
+      - name: Install build dependencies
         run: |
-          ${{ matrix.pkg_manager }} install -y ${{ matrix.epel_pkg }}
-          ${{ matrix.pkg_manager }} install -y rpm-build rpmdevtools rpm-sign sbcl libfixposix-devel gcc make git
+          ${{ matrix.pkg_manager }} install -y rpm-build rpmdevtools rpm-sign gcc make git wget bzip2 zlib-devel
+
+      - name: Build and install SBCL from source
+        env:
+          SBCL_VERSION: "2.6.3"
+          SBCL_BOOTSTRAP: ${{ matrix.sbcl_bootstrap }}
+        run: |
+          cd /tmp
+          wget -q https://downloads.sourceforge.net/project/sbcl/sbcl/${SBCL_BOOTSTRAP}/sbcl-${SBCL_BOOTSTRAP}-x86-64-linux-binary.tar.bz2
+          tar xjf sbcl-${SBCL_BOOTSTRAP}-x86-64-linux-binary.tar.bz2
+          cd sbcl-${SBCL_BOOTSTRAP}-x86-64-linux && INSTALL_ROOT=/usr/local sh install.sh && cd ..
+          wget -q https://downloads.sourceforge.net/project/sbcl/sbcl/${SBCL_VERSION}/sbcl-${SBCL_VERSION}-source.tar.bz2
+          tar xjf sbcl-${SBCL_VERSION}-source.tar.bz2
+          cd sbcl-${SBCL_VERSION}
+          sh make.sh --prefix=/usr/local
+          INSTALL_ROOT=/usr/local sh install.sh
+          sbcl --version
 
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -149,7 +164,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y debhelper devscripts sbcl libfixposix-dev gcc make gpg debsigs
+          apt-get install -y debhelper devscripts sbcl gcc make gpg debsigs
 
       - name: Update changelog version
         run: |
@@ -228,7 +243,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y sbcl libfixposix-dev gcc make
+          apt-get install -y sbcl gcc make
 
       - name: Build
         run: sbcl --load setup.lisp
