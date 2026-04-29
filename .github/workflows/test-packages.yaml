@@ -12,19 +12,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: el7
-            container: centos:7
-            pkg_manager: yum
-            sbcl_bootstrap: "1.4.16"
-            install_cmd: yum install -y
-            extra_setup: |
-              sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo
-              sed -i 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*.repo
-              yum install -y centos-release-scl
-              sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/*.repo
-              sed -i 's|^# *baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/*.repo
-              yum install -y devtoolset-11-gcc devtoolset-11-gcc-c++
-              echo "/opt/rh/devtoolset-11/root/usr/bin" >> $GITHUB_PATH
           - target: el8
             container: almalinux:8
             pkg_manager: dnf
