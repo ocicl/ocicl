@@ -415,7 +415,9 @@ jobs:
           path: /tmp/rpms/repodata/
 
       - name: Upload RPM GPG key
-        if: ${{ hashFiles('/tmp/rpms/RPM-GPG-KEY-<%= @ app-name %>') != '' }}
+        env:
+          RPM_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.RPM_GPG_PRIVATE_KEY != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: rpm-repo-key
@@ -496,7 +498,9 @@ jobs:
           path: /tmp/apt-repo/
 
       - name: Upload DEB keyring
-        if: ${{ hashFiles('/tmp/debs/<%= @ app-name %>-archive-keyring.gpg') != '' }}
+        env:
+          DEB_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.DEB_GPG_PRIVATE_KEY != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: deb-repo-key

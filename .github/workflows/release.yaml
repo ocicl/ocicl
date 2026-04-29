@@ -699,7 +699,9 @@ jobs:
           include-hidden-files: false
 
       - name: Upload RPM GPG key
-        if: ${{ hashFiles('/tmp/rpms/RPM-GPG-KEY-ocicl') != '' }}
+        env:
+          RPM_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.RPM_GPG_PRIVATE_KEY != '' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: rpm-repo-key
@@ -808,7 +810,9 @@ jobs:
           path: /tmp/apt-repo/
 
       - name: Upload DEB keyring
-        if: ${{ hashFiles('/tmp/debs/ocicl-archive-keyring.gpg') != '' }}
+        env:
+          DEB_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+        if: ${{ env.DEB_GPG_PRIVATE_KEY != '' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: deb-repo-key
