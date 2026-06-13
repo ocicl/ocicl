@@ -544,20 +544,47 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
           (asdf:find-system system errorp)
           (asdf:find-system system)))))
 
-(defun download-system-dependencies (name)
+(defun download-system-dependencies (name &optional (visited (make-hash-table :test #'equal)))
+  "Recursively download NAME's dependencies into the local systems directory.
+
+We can't rely on FIND-SYSTEM alone to pull dependencies in for us: ASDF will
+happily resolve a dependency from anywhere in its source registry (a sibling
+project, a globally installed system, an .asd file sitting in the current
+directory, ...).  When that happens the dependency is never downloaded into the
+local systems directory.  So we use FIND-SYSTEM to read the dependency graph,
+but explicitly DOWNLOAD-SYSTEM any dependency that doesn't already live in an
+ocicl-managed systems directory (the local *SYSTEMS-DIR* or the shared global
+*GLOBAL-SYSTEMS-DIR*)."
   (let* ((s (quiet-find-system name))
          (deps (when s (asdf:system-depends-on s))))
     (dolist (d deps)
-      (let ((dep (resolve-dependency-name d)))
-        (handler-case
-            (download-system-dependencies dep)
-          (asdf/find-component:missing-component (e)
-            (declare (ignore e))
-            (when *verbose*
-              (format t "; can't download ASDF dependency ~A~%" d)))
-          (error (e)
-            (when *verbose*
-              (format t "; error processing ~A: ~A~%" d e))))))))
+      (let* ((dep (resolve-dependency-name d))
+             (depname (when dep (ignore-errors (asdf:coerce-name dep)))))
+        (when (and depname (not (gethash (mangle depname) visited)))
+          (setf (gethash (mangle depname) visited) t)
+          (handler-case
+              (let* ((dep-system (quiet-find-system depname nil))
+                     (source-file (and dep-system
+                                       (asdf:system-source-file dep-system))))
+                ;; Vendor the dependency unless it's a builtin/require module
+                ;; (no source file) or it already lives in an ocicl-managed
+                ;; systems directory.  The latter covers the local systems dir
+                ;; (including a parent project's, since FIND-WORKDIR points
+                ;; *SYSTEMS-DIR* there) as well as the shared global dir, so we
+                ;; don't re-download something that's already cached globally.
+                (when (and source-file
+                           (not (subpath-p source-file *systems-dir*))
+                           (not (and *global-systems-dir*
+                                     (subpath-p source-file *global-systems-dir*))))
+                  (download-system depname))
+                (download-system-dependencies depname visited))
+            (asdf/find-component:missing-component (e)
+              (declare (ignore e))
+              (when *verbose*
+                (format t "; can't download ASDF dependency ~A~%" d)))
+            (error (e)
+              (when *verbose*
+                (format t "; error processing ~A: ~A~%" d e)))))))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
