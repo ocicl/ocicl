@@ -125,8 +125,16 @@ jobs:
           # Sign packages
           rpmsign --addsign ~/rpmbuild/RPMS/x86_64/*.rpm
           rpmsign --addsign ~/rpmbuild/SRPMS/*.src.rpm || true
-          # Import public key into rpm db and verify
-          gpg --export --armor "${GPG_NAME}" | rpm --import -
+          # Export public key (single imported key) to a file and import into the
+          # rpm db, then verify. Exporting without a uid selector mirrors the
+          # working pattern in build-rpm-repo; passing the free-text uid here
+          # matched nothing and produced an empty key, failing rpm --import.
+          gpg --batch --export --armor > /tmp/RPM-GPG-KEY-ocicl
+          if [ ! -s /tmp/RPM-GPG-KEY-ocicl ]; then
+            echo "::error::gpg public key export produced no output"
+            exit 1
+          fi
+          rpm --import /tmp/RPM-GPG-KEY-ocicl
           rpm --checksig ~/rpmbuild/RPMS/x86_64/*.rpm
 
       - name: Copy RPM and SRPM to workspace
