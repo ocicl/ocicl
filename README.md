@@ -968,7 +968,7 @@ The generated SBOM includes:
   - Package name and version
   - SPDX license identifier
   - MD5 checksum of .asd file
-  - OCI package URL (purl)
+  - ocicl package URL (purl)
   - Distribution URL (OCI registry)
 
 ### Use Cases
