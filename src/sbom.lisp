@@ -158,7 +158,7 @@
                (format out "      \"name\": \"~a\",~%" (getf component :name))
                (format out "      \"version\": \"~a\",~%" (getf component :version))
                (when (getf component :oci-url)
-                 (format out "      \"purl\": \"pkg:oci/~a@~a\",~%"
+                 (format out "      \"purl\": \"pkg:ocicl/~a@~a\",~%"
                          (getf component :name)
                          (getf component :version)))
                (unless (string= (getf component :license) "NOASSERTION")
