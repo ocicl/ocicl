@@ -309,6 +309,87 @@ Distributed under the terms of the MIT License"
    :usage-of "ocicl"
    :args     "command"))
 
+;;; Command-specific help text
+;;;
+;;; The tree, update, and lint commands parse their own options and
+;;; render their own help.  Every other command consumes positional
+;;; arguments directly, so a bare "--help" would otherwise be treated as
+;;; data (e.g. "ocicl new --help" creating a directory named --help).  The
+;;; table below provides per-command help that is shown before such a
+;;; command runs whenever a --help/-h flag is present in its arguments.
+
+(defparameter *command-help*
+  `(("help" . ,(format nil "Usage: ocicl help~%~%~
+                            Print the list of available ocicl commands.~%"))
+    ("changes" . ,(format nil "Usage: ocicl changes [SYSTEM[:VERSION]]...~%~%~
+                               Show changelog entries for newer versions of the given systems.~%~
+                               With no arguments, report changes for every installed system.~%"))
+    ("clean" . ,(format nil "Usage: ocicl clean~%~%~
+                             Remove system directories under the systems directory that are not~%~
+                             listed in the project's systems.csv / ocicl.csv.~%"))
+    ("collect-licenses" . ,(format nil "Usage: ocicl collect-licenses~%~%~
+                                        Collect license texts from all vendored dependencies and print~%~
+                                        them to standard output.~%"))
+    ("create-sbom" . ,(format nil "Usage: ocicl create-sbom [FORMAT] [OUTPUT]~%~%~
+                                   Create a Software Bill of Materials for the project and its~%~
+                                   vendored dependencies.~%~%~
+                                   Arguments:~%~
+                                   ~2TFORMAT  SBOM format: cyclonedx (default) or spdx~%~
+                                   ~2TOUTPUT  Output file (defaults to standard output)~%"))
+    ("diff" . ,(format nil "Usage: ocicl diff SYSTEM [VERSION1] [VERSION2]~%~%~
+                            Show differences between installed and/or available versions of a system.~%~%~
+                            ~2Tdiff SYSTEM                    Diff the installed version against the latest~%~
+                            ~2Tdiff SYSTEM VERSION            Diff the installed version against VERSION~%~
+                            ~2Tdiff SYSTEM VERSION1 VERSION2  Diff VERSION1 against VERSION2~%"))
+    ("install" . ,(format nil "Usage: ocicl install [SYSTEM[:VERSION]]...~%~%~
+                               Download and install systems and their dependencies.~%~
+                               With no arguments, install every system recorded in the project's~%~
+                               systems.csv / ocicl.csv.~%"))
+    ("latest" . ,(format nil "Usage: ocicl latest [SYSTEM]...~%~%~
+                              Install the latest version of the given systems and their dependencies.~%~
+                              With no arguments, update every installed system to its latest version.~%"))
+    ("libyear" . ,(format nil "Usage: ocicl libyear~%~%~
+                               Calculate the libyear dependency-freshness metric for all installed~%~
+                               systems.~%"))
+    ("list" . ,(format nil "Usage: ocicl list [SYSTEM]...~%~%~
+                            List the versions available in the registry for each SYSTEM.~%"))
+    ("new" . ,(format nil "Usage: ocicl new APP-NAME [TEMPLATE] [KEY=VALUE]...~%~%~
+                           Create a new project named APP-NAME from a template.~%~%~
+                           Arguments:~%~
+                           ~2TTEMPLATE   Template to use (defaults to \"user\" if available,~%~
+                           ~13Totherwise \"basic\")~%~
+                           ~2TKEY=VALUE  Template parameter substituted while rendering~%"))
+    ("remove" . ,(format nil "Usage: ocicl remove [SYSTEM]...~%~%~
+                              Remove the given systems from the project, along with any~%~
+                              dependencies that are no longer needed.~%"))
+    ("setup" . ,(format nil "Usage: ocicl setup [GLOBALDIR]~%~%~
+                             Perform mandatory ocicl configuration, writing the runtime files and~%~
+                             default registry configuration.~%~%~
+                             Arguments:~%~
+                             ~2TGLOBALDIR  Optional directory to use as the shared global systems~%~
+                             ~13Tdirectory~%"))
+    ("templates" . ,(format nil "Usage: ocicl templates [list|dirs]~%~%~
+                                 List available project templates, or show the template search path.~%~%~
+                                 ~2Tlist  List available templates (default)~%~
+                                 ~2Tdirs  Show the template search path~%"))
+    ("version" . ,(format nil "Usage: ocicl version~%~%~
+                               Show ocicl version, Lisp runtime, ASDF, and TLS library information.~%")))
+  "Alist mapping command name to its help text, for commands that do not
+parse their own options.")
+
+(defun command-help-requested-p (args)
+  "Return T if ARGS contains a --help or -h flag."
+  (and (member-if (lambda (a) (or (string= a "--help") (string= a "-h"))) args)
+       t))
+
+(defun maybe-show-command-help (cmd args)
+  "When ARGS request help for CMD and CMD has help text, print it and exit."
+  (when (and cmd (command-help-requested-p args))
+    (let ((help (assoc cmd *command-help* :test #'string=)))
+      (when help
+        (write-string (cdr help))
+        (uiop:quit 0)))))
+
 (defvar *systems-dir* "")
 (defvar *systems-dir-prefix* nil)
 
@@ -1808,6 +1889,11 @@ Supports --fix and --dry-run flags for auto-remediation."
              (when (and (getf options :help) (not cmd))
                (usage)
                (uiop:quit 0))
+           ;; Command-specific help: 'ocicl COMMAND --help'.  Handled here,
+           ;; before any workdir setup or side effects, for the commands that
+           ;; consume positional arguments directly.  The tree, update, and
+           ;; lint commands render their own help and are absent from the table.
+           (maybe-show-command-help cmd cmd-args)
            (when-option (options :verbose)
                         (setf *verbose* t))
            (when-option (options :force)
