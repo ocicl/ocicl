@@ -75,14 +75,14 @@ parse-number, ghcr.io/ocicl/parse-number@sha256:11f3f9f512871e1f96cea6b8260aa361
 path-parse, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse.asd
 path-parse-test, ghcr.io/ocicl/path-parse@sha256:169e04ad862c3044848a73461b18920c3c31000c92e41b8b67015ad4f43581e0, path-parse-20240503-86183f3/path-parse-test.asd
 precise-time, ghcr.io/ocicl/precise-time@sha256:0fa8039008f0635013d25c14d50c5743c64d6a1ef64bd0e62d1785a4b9d3a873, precise-time-20260218-93ea6ae/precise-time.asd
-pure-tls, ghcr.io/ocicl/pure-tls@sha256:dd60f6d4e7f8386277900a704b646b590d8ecf703e667b3e71e5267669927b9e, pure-tls-20260418-d83c3ad/pure-tls.asd
+pure-tls, ghcr.io/ocicl/pure-tls@sha256:27617c5501e65d8a9374c1d35ddc69900b25c9349600d5a32ae442ccfdf36549, pure-tls-20260706-662ae5c/pure-tls.asd
 puri, ghcr.io/ocicl/puri@sha256:b803fb9444eaf2c7053812e19d342d4ce6a05fd1880fa3a2a2f824769a6d58d2, puri-20260406-4bbab89/puri.asd
 pythonic-string-reader, ghcr.io/ocicl/pythonic-string-reader@sha256:6f0c22694e7d6b2143d116eec0f568e775343167d35c1ed36d624e485f54b3e3, pythonic-string-reader-20240503-47a70ba/pythonic-string-reader.asd
 quri, ghcr.io/ocicl/quri@sha256:e2559f91600e4895e115b42dde88fcaac3677f051335d73431888dcf7af99f95, quri-0.7.0/quri.asd
 quri-test, ghcr.io/ocicl/quri@sha256:e2559f91600e4895e115b42dde88fcaac3677f051335d73431888dcf7af99f95, quri-0.7.0/quri-test.asd
 rewrite-cl, ghcr.io/ocicl/rewrite-cl@sha256:ca7e1aecbc5f0d9f5ce75350765033a07b2e8fe6032022bdf30a93d0de375228, rewrite-cl-20251231-5832ac0/rewrite-cl.asd
 salza2, ghcr.io/ocicl/salza2@sha256:0f9d930524b469e1442372a6e12b26742d9e6a1144e6a455006943190d1ea71e, salza2-2.1/salza2.asd
-serapeum, ghcr.io/ocicl/serapeum@sha256:31bccc85079addd0cb5583b484b121e54fab8cb156e8919f5e7ff2ae9b1de076, serapeum-20260213-71f35c9/serapeum.asd
+serapeum, ghcr.io/ocicl/serapeum@sha256:b41c8fb5e471e20bcd92f5aa41169da3a4da8de742ed9c428fcc4518ffa6d809, serapeum-20260526-f82a451/serapeum.asd
 split-sequence, ghcr.io/ocicl/split-sequence@sha256:3a37662eedd99c42995587b9d443c4631f25c4c523091bcca31a27b880585b8e, split-sequence-2.0.1/split-sequence.asd
 string-case, ghcr.io/ocicl/string-case@sha256:9db2d4160b76ce1ed9f754d12f679c665593a9a436177d36380a1a8a176ec16a, string-case-20240503-718c761/string-case.asd
 tar, ghcr.io/ocicl/tar@sha256:66dfa78c17d2cc74973e6232f2687e9c9e5d16a479e5278257ad58f0ac6f8955, cl-tar-20240503-7c6e07a/tar.asd
