@@ -483,8 +483,15 @@ $ gh api orgs/ocicl/repos --paginate -q '.[].name' | while read repo; do
         echo "$s"
       done
     fi
-  done | sort -u > /tmp/all-systems-generated.txt
+  done | LC_ALL=C sort -u > /tmp/all-systems-generated.txt
 ```
+
+**Always sort with `LC_ALL=C`.** `all-ocicl-systems.txt` is maintained
+in C (byte) collation. A plain `sort` inherits the shell locale (often
+`en_US.UTF-8`), which ignores punctuation like `-` and produces a
+different order — re-sorting the whole file under the wrong locale
+churns hundreds of lines instead of inserting one. Use `LC_ALL=C sort`
+for every operation on this file.
 
 ### Checking for drift
 
@@ -493,7 +500,7 @@ Compare the published list against what the org actually provides:
 ```bash
 # Download the current published list
 $ curl -sL https://raw.githubusercontent.com/ocicl/request-system-additions-here/main/all-ocicl-systems.txt \
-    | sort > /tmp/published.txt
+    | LC_ALL=C sort > /tmp/published.txt
 
 # Compare (assuming you generated /tmp/all-systems-generated.txt above)
 $ diff /tmp/published.txt /tmp/all-systems-generated.txt
@@ -523,7 +530,7 @@ $ gh repo clone ocicl/request-system-additions-here
 $ cd request-system-additions-here
 # Add the new system name in sorted position
 $ echo "my-new-system" >> all-ocicl-systems.txt
-$ sort -o all-ocicl-systems.txt all-ocicl-systems.txt
+$ LC_ALL=C sort -o all-ocicl-systems.txt all-ocicl-systems.txt
 $ git add all-ocicl-systems.txt
 $ git commit -m "New systems"
 $ git push
