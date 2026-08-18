@@ -526,11 +526,14 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
              (repository (get-repository-name registry)))
         (unless safe-system
           (error "Invalid system name: ~A" system))
-        (let ((headers (get-registry-auth-headers registry safe-system)))
+        ;; OCI repository names can't contain '+', so systems like
+        ;; cl+ssl are stored mangled (cl+ssl -> cl_plus_ssl).
+        (let* ((mangled-system (mangle safe-system))
+               (headers (get-registry-auth-headers registry mangled-system)))
           (sort
            (cdr (assoc :tags
                        (cl-json:decode-json-from-string
-                        (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/tags/list?n=1024"
+                        (ocicl.http:http-get #?"https://${server}/v2/${repository}/${mangled-system}/tags/list?n=1024"
                                              :force-string t
                                              :verbose *verbose*
                                              :headers headers))))
