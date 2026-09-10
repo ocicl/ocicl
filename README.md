@@ -22,6 +22,7 @@ NOTE: To request additions to the ``ocicl`` repo, create an Issue
   - [Comparing Versions](#comparing-versions)
   - [Using an Alternate Registry](#using-an-alternate-registry)
   - [Registry Authentication](#registry-authentication)
+  - [Installing Systems from Git](#installing-systems-from-git)
 - [ocicl Scope](#ocicl-scope)
   - [Local (default)](#local-default)
   - [Global (--global)](#global---global)
@@ -378,12 +379,12 @@ Choose from the following ocicl commands:
    help                                   Print this help text
    changes [SYSTEM[:VERSION]]...          Display changes
    clean                                  Remove system directories not listed in ocicl.csv
-   collect-licenses                       Collect licenses from vendored dependencies
+   collect-licenses                       Collect licenses from installed dependencies
    create-sbom [FORMAT] [OUTPUT]          Create SBOM (cyclonedx/spdx, default: cyclonedx)
    diff SYSTEM                            Diff between the installed and latest versions
    diff SYSTEM VERSION                    Diff between the installed version and VERSION
    diff SYSTEM VERSION1 VERSION2          Diff between files in different system versions
-   install [SYSTEM[:VERSION]]...          Install systems
+   install [SYSTEM[:VERSION]|git+URL]...  Install systems
    latest [SYSTEM]...                     Install latest version of systems
    libyear                                Calculate the libyear dependency freshness metric
    lint [OPTIONS] PATH...                 Lint Common Lisp files
@@ -504,6 +505,57 @@ When credentials are configured for a registry server, `ocicl` will:
 This works with any OCI-compliant registry that supports Basic
 authentication, including GitHub Container Registry, GitLab Container
 Registry, and self-hosted registries.
+
+### Installing Systems from Git
+
+Some dependencies can't come from the registry: personal or private
+projects that will never be published, or systems whose registry entry
+is temporarily broken.  For these, ``ocicl install`` also accepts
+``git+`` sources, which fetch a system directly from a git repository
+and wire it into your project exactly like a registry-managed system —
+no changes to your ``.sbclrc`` or ASDF source-registry configuration
+are needed.
+
+```
+ocicl install git+https://github.com/me/my-lib
+ocicl install git+https://github.com/crategus/cl-cffi-gtk4@main
+ocicl install git+https://github.com/logoraz/sojrn#subdirectory=libraries/sojrn-asdf-system
+```
+
+A source has the form ``git+URL[@REF][#PARAMS]``:
+
+* ``@REF`` — a branch, tag, or commit SHA to install (default: the
+  remote's default branch).
+* ``#PARAMS`` — ``&``-separated parameters: ``ref=REF`` (an
+  alternative spelling of ``@REF``) and ``subdirectory=PATH`` (install
+  one subdirectory of a monorepo).
+
+This clones the repository (a cheap blobless clone), places the
+requested tree under ``ocicl/`` as a sibling of registry-managed
+systems, and registers its ``.asd`` files in ``ocicl.csv`` with a
+``git+URL@SHA`` origin pinned at the resolved commit:
+
+```
+tuition, git+https://github.com/atgreen/cl-tuition@6f69592...#ref=main, cl-tuition-6f69592/tuition.asd
+```
+
+Commit ``ocicl.csv`` to your repository, but not the fetched tree: on
+a fresh clone, ``ocicl install`` re-fetches every git-sourced system
+from its pinned commit, giving you reproducible builds without
+third-party source in your history.
+
+Git-sourced systems then behave like any other ocicl system:
+
+* ``ocicl latest`` advances them along their recorded ref (or the
+  remote's default branch when no ref was given), re-pinning the new
+  commit.  A system installed at a commit SHA stays pinned.
+* ``ocicl remove`` removes them, along with unused dependencies.
+* **Switching back to the registry** (e.g. after a broken registry
+  entry is fixed): ``ocicl remove`` the system, then ``ocicl install``
+  it by name.
+* They are included in ``ocicl collect-licenses`` and SBOM output like
+  any other installed dependency, and their registry dependencies are
+  downloaded as usual.
 
 ocicl Scope
 -----------
@@ -863,7 +915,7 @@ TOTAL libyears: 0.09 (30.06 days)
 License Collection
 ------------------
 
-The `ocicl collect-licenses` command collects license information from all vendored dependencies in your project's `ocicl/` (or `systems/`) directory.
+The `ocicl collect-licenses` command collects license information from all installed dependencies in your project's `ocicl/` (or `systems/`) directory.
 
 ### Usage
 
@@ -875,7 +927,7 @@ The command outputs a comprehensive license report to stdout, including:
 - **Table of contents**: Lists all dependencies with their license sources
 - **Full license text**: Complete license information for each dependency
 - **Source attribution**: Shows which file provided the license (LICENSE file, README, .asd file, etc.)
-- **OCI URLs**: Container registry URLs for each vendored system
+- **OCI URLs**: Container registry URLs for each installed system
 - **Missing systems**: Lists any systems without detectable license information
 
 ### License Detection
@@ -888,7 +940,7 @@ The command uses intelligent heuristics to find license information from multipl
 4. **.asd :license field**: The `:license` field from system definitions
 5. **Source file footers**: Last ~50 lines of main source files
 
-In testing on a project with 78 vendored dependencies, this approach successfully found licenses for 77 systems (98.7% success rate).
+In testing on a project with 78 installed dependencies, this approach successfully found licenses for 77 systems (98.7% success rate).
 
 ### Example Output
 
@@ -924,7 +976,7 @@ Table of Contents:
 SBOM Generation
 ---------------
 
-The `ocicl create-sbom` command generates Software Bill of Materials (SBOM) documents for your project, cataloging all vendored dependencies.
+The `ocicl create-sbom` command generates Software Bill of Materials (SBOM) documents for your project, cataloging all installed dependencies.
 
 ### Usage
 
@@ -964,7 +1016,7 @@ ocicl create-sbom cdx my-sbom.json
 
 The generated SBOM includes:
 - **Project metadata**: Name, timestamp, tool information
-- **Component list**: All vendored dependencies with:
+- **Component list**: All installed dependencies with:
   - Package name and version
   - SPDX license identifier
   - MD5 checksum of .asd file

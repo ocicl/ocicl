@@ -64,7 +64,8 @@
                                            (:file "main")))
                              (:file "licenses" :depends-on ("package"))
                              (:file "sbom" :depends-on ("package" "licenses"))
-                             (:file "ocicl" :depends-on ("http" "package" "tree" "lint" "licenses" "sbom")))))
+                             (:file "git" :depends-on ("package"))
+                             (:file "ocicl" :depends-on ("http" "package" "tree" "lint" "licenses" "sbom" "git")))))
 
   :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template

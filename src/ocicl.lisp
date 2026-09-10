@@ -284,12 +284,12 @@ If CSV-PATH is provided, read from that file; otherwise read from current direct
    help                                   Print this help text
    changes [SYSTEM[:VERSION]]...          Display changes
    clean                                  Remove system directories not listed in ocicl.csv
-   collect-licenses                       Collect licenses from vendored dependencies
+   collect-licenses                       Collect licenses from installed dependencies
    create-sbom [FORMAT] [OUTPUT]          Create SBOM (cyclonedx/spdx, default: cyclonedx)
    diff SYSTEM                            Diff between the installed and latest versions
    diff SYSTEM VERSION                    Diff between the installed version and VERSION
    diff SYSTEM VERSION1 VERSION2          Diff between files in different system versions
-   install [SYSTEM[:VERSION]]...          Install systems
+   install [SYSTEM[:VERSION]|git+URL]...  Install systems
    latest [SYSTEM]...                     Install latest version of systems
    libyear                                Calculate the libyear dependency freshness metric
    lint [OPTIONS] PATH...                 Lint Common Lisp files
@@ -311,8 +311,8 @@ Distributed under the terms of the MIT License"
 
 ;;; Command-specific help text
 ;;;
-;;; The tree, update, and lint commands parse their own options and
-;;; render their own help.  Every other command consumes positional
+;;; The tree, update, and lint commands parse their own options
+;;; and render their own help.  Every other command consumes positional
 ;;; arguments directly, so a bare "--help" would otherwise be treated as
 ;;; data (e.g. "ocicl new --help" creating a directory named --help).  The
 ;;; table below provides per-command help that is shown before such a
@@ -328,11 +328,11 @@ Distributed under the terms of the MIT License"
                              Remove system directories under the systems directory that are not~%~
                              listed in the project's systems.csv / ocicl.csv.~%"))
     ("collect-licenses" . ,(format nil "Usage: ocicl collect-licenses~%~%~
-                                        Collect license texts from all vendored dependencies and print~%~
+                                        Collect license texts from all installed dependencies and print~%~
                                         them to standard output.~%"))
     ("create-sbom" . ,(format nil "Usage: ocicl create-sbom [FORMAT] [OUTPUT]~%~%~
                                    Create a Software Bill of Materials for the project and its~%~
-                                   vendored dependencies.~%~%~
+                                   installed dependencies.~%~%~
                                    Arguments:~%~
                                    ~2TFORMAT  SBOM format: cyclonedx (default) or spdx~%~
                                    ~2TOUTPUT  Output file (defaults to standard output)~%"))
@@ -341,13 +341,25 @@ Distributed under the terms of the MIT License"
                             ~2Tdiff SYSTEM                    Diff the installed version against the latest~%~
                             ~2Tdiff SYSTEM VERSION            Diff the installed version against VERSION~%~
                             ~2Tdiff SYSTEM VERSION1 VERSION2  Diff VERSION1 against VERSION2~%"))
-    ("install" . ,(format nil "Usage: ocicl install [SYSTEM[:VERSION]]...~%~%~
+    ("install" . ,(format nil "Usage: ocicl install [SYSTEM[:VERSION] | git+URL[@REF][#PARAMS]]...~%~%~
                                Download and install systems and their dependencies.~%~
                                With no arguments, install every system recorded in the project's~%~
-                               systems.csv / ocicl.csv.~%"))
+                               systems.csv / ocicl.csv.~%~%~
+                               A git+ source installs systems from a git repository instead of a~%~
+                               registry, pinned in the systems CSV at the resolved commit:~%~%~
+                               ~2Tocicl install git+https://github.com/me/my-lib~%~
+                               ~2Tocicl install git+https://github.com/me/my-lib@main~%~
+                               ~2Tocicl install git+https://github.com/me/mono#subdirectory=libs/my-lib~%~%~
+                               REF is a branch, tag, or commit SHA (default: the remote's default~%~
+                               branch).  PARAMS are &-separated ref= and subdirectory= pairs.~%~
+                               'ocicl latest' advances git-sourced systems along their REF; a~%~
+                               commit-SHA REF stays pinned.  Do not commit the fetched trees:~%~
+                               'ocicl install' re-fetches them from the pinned commit.~%"))
     ("latest" . ,(format nil "Usage: ocicl latest [SYSTEM]...~%~%~
                               Install the latest version of the given systems and their dependencies.~%~
-                              With no arguments, update every installed system to its latest version.~%"))
+                              With no arguments, update every installed system to its latest version.~%~
+                              Git-sourced systems advance along their recorded ref; systems pinned~%~
+                              to a commit SHA are left alone.~%"))
     ("libyear" . ,(format nil "Usage: ocicl libyear~%~%~
                                Calculate the libyear dependency-freshness metric for all installed~%~
                                systems.~%"))
@@ -676,26 +688,38 @@ ocicl-managed systems directory (the local *SYSTEMS-DIR* or the shared global
    (list *systems-dir*))
   (if args
       ;; Download latest systems provided on the command line.
-      (dolist (system args)
-        (if (position #\: system)
-            (progn
-              (format uiop:*stderr* "Error: version tag specified for system ~A.~%" system)
-              (uiop:quit)))
-        (unless (download-system (concatenate 'string system ":latest"))
-            (progn
-              (format uiop:*stderr* "Error: system ~A not found.~%" system)
-              (uiop:quit))
-            (download-system-dependencies system)))
+      (let ((csv-changed nil))
+        (dolist (system args)
+          (if (position #\: system)
+              (progn
+                (format uiop:*stderr* "Error: version tag specified for system ~A.~%" system)
+                (uiop:quit)))
+          (let ((info (gethash (mangle system) *ocicl-systems*)))
+            (if (and info (git-source-p (car info)))
+                (when (latest-git-tree (second (pathname-directory (pathname (cdr info))))
+                                       (car info))
+                  (setf csv-changed t))
+                (unless (download-system (concatenate 'string system ":latest"))
+                  (progn
+                    (format uiop:*stderr* "Error: system ~A not found.~%" system)
+                    (uiop:quit))
+                  (download-system-dependencies system)))))
+        (when csv-changed
+          (write-systems-csv)))
       ;; Download latest versions of all systems.
-      (let ((blobs (make-hash-table :test #'equal)))
-        (maphash (lambda (key value)
-                   (setf (gethash (car value) blobs) key))
-                 *ocicl-systems*)
-        (maphash (lambda (key value)
-                   (declare (ignore value))
-                   (let ((system (extract-between-slash-and-at key)))
-                     (download-system (concatenate 'string system ":latest"))))
-             blobs))))
+      (progn
+        (when (latest-git-rows)
+          (write-systems-csv))
+        (let ((blobs (make-hash-table :test #'equal)))
+          (maphash (lambda (key value)
+                     (unless (git-source-p (car value))
+                       (setf (gethash (car value) blobs) key)))
+                   *ocicl-systems*)
+          (maphash (lambda (key value)
+                     (declare (ignore value))
+                     (let ((system (extract-between-slash-and-at key)))
+                       (download-system (concatenate 'string system ":latest"))))
+               blobs)))))
 
 (defun get-memory-in-gb ()
   #+sbcl(format nil "configured with ~AGB memory" (ceiling (sb-ext:dynamic-space-size) (* 1024 1024 1024)))
@@ -988,11 +1012,12 @@ If FORCE is NIL, skip files that already exist."
 (defun do-libyear ()
   (let ((projects (make-hash-table :test #'equal)))
     (maphash (lambda (key value)
-               (setf (gethash (namestring (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
-                                                                 (uiop:merge-pathnames* *relative-systems-dir*
-                                                                                        "_00_OCICL_VERSION")))
-                              projects)
-                     key))
+               (unless (git-source-p (car value))
+                 (setf (gethash (namestring (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
+                                                                   (uiop:merge-pathnames* *relative-systems-dir*
+                                                                                          "_00_OCICL_VERSION")))
+                                projects)
+                       key)))
              *ocicl-systems*)
     (let ((age 0))
       (maphash (lambda (skey value)
@@ -1045,11 +1070,12 @@ If FORCE is NIL, skip files that already exist."
                       (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle system) v)))))))))
       (let ((projects (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
-                   (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
-                                                         (uiop:merge-pathnames* *relative-systems-dir*
-                                                                                "_00_OCICL_VERSION"))
-                                  projects)
-                         key))
+                   (unless (git-source-p (car value))
+                     (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
+                                                           (uiop:merge-pathnames* *relative-systems-dir*
+                                                                                  "_00_OCICL_VERSION"))
+                                    projects)
+                           key)))
                  *ocicl-systems*)
         (maphash (lambda (skey value)
                    (let ((key (subseq (namestring skey) 8)))
@@ -1074,25 +1100,49 @@ If FORCE is NIL, skip files that already exist."
   (if args
       ;; Download the systems provided on the command line.
       (dolist (system args)
-        (if (position #\@ system)
-            (progn
-              (unless (download-and-install system)
-                (progn
-                  (format uiop:*stderr* "Error: can't download ~A.~%" system)
-                  (uiop:quit))))
-          (let* ((slist (split-on-delimiter system #\:))
-                 (name (car slist)))
-            (when (download-system system)
-              (download-system-dependencies name)))))
+        (cond
+          ((git-source-p system)
+           (handler-case
+               (install-git-source system)
+             (error (e)
+               (format uiop:*stderr* "Error: can't install ~A: ~A~%" system e)
+               (uiop:quit))))
+          ((position #\@ system)
+           (unless (download-and-install system)
+             (progn
+               (format uiop:*stderr* "Error: can't download ~A.~%" system)
+               (uiop:quit))))
+          (t
+           (let* ((slist (split-on-delimiter system #\:))
+                  (name (car slist))
+                  (info (gethash (mangle name) *ocicl-systems*)))
+             (cond
+               ((and info (git-source-p (car info)))
+                (when (second slist)
+                  (format uiop:*stderr* "Error: ~A is git-sourced; reinstall it with 'ocicl install git+URL[@REF]' to change its pin.~%"
+                          name)
+                  (uiop:quit))
+                (unless (probe-file (merge-pathnames (cdr info) *systems-dir*))
+                  (refetch-git-row (car info) (cdr info)))
+                (download-system-dependencies name))
+               ((download-system system)
+                (download-system-dependencies name)))))))
       ;; Download all systems in systems.csv.
       (maphash (lambda (key value)
-                 (when (not (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value))))
-                   (download-and-install (car value))
-                   (if *color*
-                       (format t #?"${*color-dim*};${*color-reset*} downloaded ~
-                                    ${*color-bold*}${*color-bright-green*}${(unmangle key)}${*color-reset*} ~
-                                    from ${*color-dim*}${(car value)}${*color-reset*}~%")
-                       (format t "; downloaded ~A from ~A~%" (unmangle key) (car value)))))
+                 (unless (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value)))
+                   (if (git-source-p (car value))
+                       (handler-case
+                           (refetch-git-row (car value) (cdr value))
+                         (error (e)
+                           (format *error-output* "; error fetching ~A: ~A~%"
+                                   (car value) e)))
+                       (progn
+                         (download-and-install (car value))
+                         (if *color*
+                             (format t #?"${*color-dim*};${*color-reset*} downloaded ~
+                                          ${*color-bold*}${*color-bright-green*}${(unmangle key)}${*color-reset*} ~
+                                          from ${*color-dim*}${(car value)}${*color-reset*}~%")
+                             (format t "; downloaded ~A from ~A~%" (unmangle key) (car value)))))))
                *ocicl-systems*)))
 
 (defun subpath-p (path1 path2)
@@ -1168,12 +1218,14 @@ If FORCE is NIL, skip files that already exist."
          (name (car slist))
          (mangled-name (mangle name))
          (system-info (gethash mangled-name *ocicl-systems*)))
-    (if (null system-info)
+    (cond
+      ((null system-info)
         (if *color*
             (format t #?"${*color-dim*};${*color-reset*} ~
                          no system to remove: ~
                          ${*color-bold*}${*color-bright-red*}${name}${*color-reset*}~%")
-            (format t "; no system to remove: ~A~%" name)) ;return here, fixes type warnings to merge-pathnames
+            (format t "; no system to remove: ~A~%" name))) ;return here, fixes type warnings to merge-pathnames
+      (t
         (let* ((fullname (car system-info))
                (relative-asd-path (cdr system-info))
                (absolute-asd-path (merge-pathnames relative-asd-path *systems-dir*))
@@ -1195,15 +1247,21 @@ If FORCE is NIL, skip files that already exist."
              :validate (lambda (path)
                          ;; ensure directory being deleted is a subdirectory of *systems-dir*
                          (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
-            (let* ((full-namestring (file-namestring fullname))
-                   (at (position #\@ full-namestring))
-                   (name (subseq full-namestring 0 at))
-                   (version-sha (subseq full-namestring at)))
+            (multiple-value-bind (name version-sha)
+                (if (git-source-p fullname)
+                    (multiple-value-bind (url sha ref subdir) (parse-git-fullname fullname)
+                      (declare (ignore ref))
+                      (values (git-repo-basename url subdir)
+                              (format nil "@~A" (take 7 sha))))
+                    (let* ((full-namestring (file-namestring fullname))
+                           (at (position #\@ full-namestring)))
+                      (values (subseq full-namestring 0 at)
+                              (subseq full-namestring at))))
               (if *color*
                   (format t #?"${*color-dim*};${*color-reset*} removed ~
                                ${*color-bold*}${*color-bright-green*}${(unmangle name)}${*color-reset*}~
                                ${*color-dim*}${version-sha}${*color-reset*}~%")
-                  (format t "; removed ~A@~A~%" (unmangle name) version-sha))))))))
+                  (format t "; removed ~A~A~%" (unmangle name) version-sha)))))))))
 
 (defun resolve-dependency-name (dependency)
   "Resolve ASDF dependency name."
@@ -1493,7 +1551,7 @@ If FORCE is NIL, skip files that already exist."
                                :name :wild :type :wild
                                :defaults *systems-dir*)))
          (registered-directories
-           (let ((directories))
+           (let ((directories nil))
              (maphash (lambda (system values)
                         (declare (ignore system))
                         (destructuring-bind (version . asd) values
