@@ -1068,20 +1068,21 @@ If FORCE is NIL, skip files that already exist."
                   (let ((nth-change 0))
                     (dolist (v versions)
                       (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle system) v)))))))))
+      ;; One entry per project (top-level directory), carrying a system
+      ;; name and its systems-dir-relative .asd path, which is what
+      ;; GET-PROJECT-VERSION and GET-PROJECT-NAME expect.
       (let ((projects (make-hash-table :test #'equal)))
         (maphash (lambda (key value)
                    (unless (git-source-p (car value))
-                     (setf (gethash (uiop:merge-pathnames* (make-pathname :directory `(:relative ,(top-level-directory (cdr value))))
-                                                           (uiop:merge-pathnames* *relative-systems-dir*
-                                                                                  "_00_OCICL_VERSION"))
-                                    projects)
-                           key)))
+                     (setf (gethash (top-level-directory (cdr value)) projects)
+                           (cons key (cdr value)))))
                  *ocicl-systems*)
-        (maphash (lambda (skey value)
-                   (let ((key (subseq (namestring skey) 8)))
+        (maphash (lambda (tld entry)
+                   (declare (ignore tld))
+                   (destructuring-bind (value . asd) entry
                      (handler-case
-                         (let ((version (get-project-version key))
-                               (project-name (get-project-name key)))
+                         (let ((version (get-project-version asd))
+                               (project-name (get-project-name asd)))
                            (let ((versions (get-versions-since value version)))
                              (if versions
                                  (let ((nth-change 0))
