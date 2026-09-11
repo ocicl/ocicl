@@ -1,0 +1,69 @@
+<!DOCTYPE html> <html lang="EN"> <head> <meta charset="utf-8"> <title>Trivial Indent</title> <style>html body{margin:0 auto 0 auto;padding:20px;max-width:1024px;font-family:sans-serif;font-size:14pt;overflow-y:scroll;}html body a{text-decoration:none;}html body a[href]{color:#0055AA;}html body a[href]:hover{color:#0088EE;}html body pre{background:#FAFAFA;border:1px solid #DDDDDD;padding:0.75em;overflow-x:auto;}html body pre >code a[href]{color:#223388;}article.project h1{font-size:1.7em;}article.project h1,article.project h2,article.project h3,article.project h4,article.project h5,article.project h6{margin:0.2em 0 0.1em 0;text-indent:1em;}article.project >header{text-align:center;}article.project >header img.logo{display:block;margin:auto;max-height:170px;}article.project >header h1{display:inline-block;text-indent:0;font-size:2.5em;}article.project >header .version{vertical-align:bottom;}article.project >header .languages{margin-top:-0.5em;text-transform:capitalize;}article.project >header .description{margin:0;}article.project >header .pages{margin-top:0.5em;font-size:1.2em;text-transform:capitalize;}article.project >header .pages a{display:inline-block;padding:0 0.2em;}article.project >section{margin:1em 0 1em 0;}article.project >section img{max-width:100%;}article.project #index >ul{list-style:none;margin:0;padding:0;}article.project .row label{display:inline-block;min-width:8em;}article.project #system .row{display:flex;}article.project #system #dependencies{display:inline;margin:0;padding:0;}article.project #system #dependencies li{display:inline;padding:0 0.2em;}article.project #system #author label{vertical-align:top;}article.project #system #author ul{display:inline-block;margin:0;padding:0;list-style:none;}article.project #toc nav>*{margin-left:1em;display:block;}article.definition{margin:1em 0 0 0;}article.definition >header h1,article.definition >header h2,article.definition >header h3,article.definition >header h4,article.definition >header h5,article.definition >header h6{text-indent:0;display:inline-block;}article.definition >header ul{display:inline-block;list-style:none;margin:0;padding:0;}article.definition >header ul li{display:inline-block;padding:0 0.2em 0 0;}article.definition >header .visibility{display:none;}article.definition >header .visibility,article.definition >header .type{text-transform:lowercase;}article.definition >header .source-link{visibility:hidden;float:right;}article.definition >header .source-link:after{visibility:visible;content:"[SRC]";}article.definition .docstring{margin:0 0 0 1em;}article.definition .docstring pre{font-size:0.8em;white-space:pre-wrap;}.definition.package >header ul.nicknames{display:inline-block;list-style:none;margin:0;padding:0 0 0 1em;}.definition.package >header ul.nicknames li{display:inline;}.definition.package >header ul.nicknames:before{content:"(";}.definition.package >header ul.nicknames:after{content:")";}.definition.package ul.definitions{margin:0;list-style:none;padding:0 0 0 0.5em;}.definition.callable >header .name:before,.definition.type >header .name:before{content:"(";font-weight:normal;}.definition.callable >header .arguments:after,.definition.type >header .arguments:after{content:")";}.definition.callable >header .arguments .arguments:before,.definition.type >header .arguments .arguments:before{content:"(";}.definition.callable >header .arguments .argument,.definition.type >header .arguments .argument{padding:0;}.definition.callable >header .arguments .argument.lambda-list-keyword,.definition.type >header .arguments .argument.lambda-list-keyword{color:#991155;}.definition li>mark{background:none;border-left:0.3em solid #0088EE;padding-left:0.3em;display:block;}@media (min-width: 1300px){html body{padding-left:16em;}article.project #toc{margin:0;position:fixed;left:0;top:0;bottom:0;width:15em;overflow-y:auto;background:#F0F0F0;border-right:1px solid #A0A0A0;}}</style> </head> <body> <article class="project"> <header>   <h1>trivial indent</h1>   <span class="version">1.0.0</span>    <p class="description">A very simple library to allow indentation hints for SWANK.</p>   </header> <section id="toc"> <h2>Table of Contents</h2> <nav> <a href="#project">Top</a>  <a href="#documentation">Documentation</a> <nav> <a href="#about_trivial-indent">About Trivial-Indent</a>  <a href="#how_to">How To</a> </nav>  <a href="#system">System</a>  <a href="#system">Packages</a> <nav> <a href="#PACKAGE%20TRIVIAL-INDENT">TRIVIAL-INDENT</a> </nav>  </nav> </section>  <section id="documentation"><h2 id="about_trivial-indent">About Trivial-Indent</h2> <p>This allows you to define custom indentation hints for your macros if the one recognised by Slime automatically produces unwanted results.</p> <h2 id="how_to">How To</h2> <p>The only feature of this that you will really need to use is <code><a href="#MACRO-FUNCTION%20TRIVIAL-INDENT%3ADEFINE-INDENTATION" class="xref">DEFINE-INDENTATION</a></code>.</p> <pre><code><a href="#FUNCTION%20TRIVIAL-INDENT%3A%28SETF%20INDENTATION%29" class="xref">(</a><a href="#MACRO-FUNCTION%20TRIVIAL-INDENT%3ADEFINE-INDENTATION" class="xref">define-indentation</a> defmacro (4 &amp;lambda &amp;body))
+<a href="#FUNCTION%20TRIVIAL-INDENT%3A%28SETF%20INDENTATION%29" class="xref">(</a><a href="#MACRO-FUNCTION%20TRIVIAL-INDENT%3ADEFINE-INDENTATION" class="xref">define-indentation</a> something-more-complex (4 &amp;rest (&amp;whole 2 0 4 &amp;body)))</code></pre> <p>For more information on how the indentation rule forms work, please refer to the Slime source and documentation.
+Otherwise just faffing about until it produces the indentation you need works well too.</p> </section>    <section id="system"> <h2>System Information</h2>  <div class="row"> <label for="version">Version:</label> <a id="version">1.0.0</a> </div>    <div class="row" id="author"> <label for="author">Author:</label> <a href="mailto:shinmera@tymoon.eu">Yukari Hafner</a> </div>   <div class="row"> <label for="license">License:</label> <a id="license" href="file:///run/media/data/Projects/cl/trivial-indent/LICENSE">zlib</a> </div>   <div class="row"> <label for="homepage">Homepage:</label> <a id="homepage" href="https://shinmera.com/docs/trivial-indent/">https://shinmera.com/docs/trivial-indent/</a> </div>   <div class="row"> <label for="bug-tracker">Bug Tracker:</label> <a id="bug-tracker" href="https://shinmera.com/project/trivial-indent/issues">https://shinmera.com/project/trivial-indent/issues</a> </div>   <div class="row"> <label for="sources">Sources:</label> <a id="sources" href="https://shinmera.com/project/trivial-indent.git">https://shinmera.com/project/trivial-indent.git</a> </div>  </section>    <section id="index"> <h2>Definition Index</h2> <ul> <li> <article class="definition package" id="PACKAGE TRIVIAL-INDENT"> <header> <h3> <a href="#PACKAGE%20TRIVIAL-INDENT">TRIVIAL-INDENT</a> </h3> <ul class="nicknames"> <li>ORG.TYMOONNEXT.RADIANCE.LIB.TRIVIAL-INDENT</li>  <li>INDENT</li> </ul>  </header> <div class="docstring"><i>No documentation provided.</i></div> <ul class="definitions"> <li> <article class="definition function callable" id="FUNCTION TRIVIAL-INDENT:INDENTATION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-INDENT%3AINDENTATION">INDENTATION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">SYMBOL</li>  </ul>  <a class="source-link" href="file:///run/media/data/Projects/cl/trivial-indent/indent.lisp#24:0">Source</a>  </header> <div class="docstring"><pre>Returns the custom defined indentation of a symbol if there is any. SETF-able.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-INDENT:(SETF INDENTATION)"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-INDENT%3A%28SETF%20INDENTATION%29">(SETF INDENTATION)</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">RULE-FORM</li>    <li class="argument">SYMBOL</li>  </ul>  <a class="source-link" href="file:///run/media/data/Projects/cl/trivial-indent/indent.lisp#28:0">Source</a>  </header> <div class="docstring"><pre>Sets the indentation hint for a symbol.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-INDENT:INITIALIZE-SLIME"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-INDENT%3AINITIALIZE-SLIME">INITIALIZE-SLIME</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="file:///run/media/data/Projects/cl/trivial-indent/indent.lisp#59:0">Source</a>  </header> <div class="docstring"><pre>Attempts to initialize slime with our indentation table.
+If SWANK-INDENTATION is not loaded, this does nothing.
+It should be safe to call this function regardless of whether
+SWANK is loaded at all or not.
+
+This is automatically called when TRIVIAL-INDENT is loaded.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-INDENT:INITIALIZE-SLY"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-INDENT%3AINITIALIZE-SLY">INITIALIZE-SLY</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="file:///run/media/data/Projects/cl/trivial-indent/indent.lisp#70:0">Source</a>  </header> <div class="docstring"><pre>Attempts to initialize sly with our indentation table.
+If SLYNK/INDENTATION is not loaded, this does nothing.
+It should be safe to call this function regardless of whether
+SLYNK is loaded at all or not.
+
+This is automatically called when TRIVIAL-INDENT is loaded.</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION TRIVIAL-INDENT:REMOVE-INDENTATION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20TRIVIAL-INDENT%3AREMOVE-INDENTATION">REMOVE-INDENTATION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">SYMBOL</li>  </ul>  <a class="source-link" href="file:///run/media/data/Projects/cl/trivial-indent/indent.lisp#48:0">Source</a>  </header> <div class="docstring"><pre>Remove the indentation hint for a symbol.</pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION TRIVIAL-INDENT:DEFINE-INDENTATION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20TRIVIAL-INDENT%3ADEFINE-INDENTATION">DEFINE-INDENTATION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">SYMBOL</li>    <li class="argument">RULE-FORM</li>  </ul>  <a class="source-link" href="file:///run/media/data/Projects/cl/trivial-indent/indent.lisp#39:0">Source</a>  </header> <div class="docstring"><pre>Define an indentation hint for a symbol.
+
+See the SLIME/SWANK documentation for more information on the rules.
+Example: (define-indentation defmacro (4 &amp;lambda &amp;body))</pre></div> </article> </li> </ul> </article> </li> </ul> </section>  </article> <script>window.addEventListener("DOMContentLoaded", function(){
+    var unmarkElement = function(el){
+        if(el.tagName === "mark" || el.tagName === "MARK"){
+            [].forEach.call(el.childNodes, function(child){
+                el.parentNode.insertBefore(child, el);
+            });
+            el.parentNode.removeChild(el);
+        }else if(el.parentNode.tagName === "mark"){
+            return unmarkElement(el.parentNode);
+        }
+        return null;
+    }
+
+    var unmarkAll = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("mark"), unmarkElement);
+    }
+    
+    var markElement = function(el){
+        if(el.parentNode.tagName === "mark" || el.parentNode.tagName === "MARK"){
+            return el.parentNode;
+        } else {
+            unmarkAll();
+            var marked = document.createElement("mark");
+            el.parentNode.insertBefore(marked, el);
+            marked.appendChild(el);
+            return marked;
+        }
+    }
+
+    var markFragmented = function(){
+        if(window.location.hash){
+            var el = document.getElementById(decodeURIComponent(window.location.hash.substr(1)));
+            if(el) markElement(el);
+        }
+    }
+
+    var registerXrefLink = function(link){
+        var el = document.getElementById(decodeURIComponent(link.getAttribute("href").substr(1)));
+        if(el){
+            link.addEventListener("click", function(){
+                markElement(el);
+            });
+        }
+    }
+
+    var registerXrefLinks = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("a.xref"), registerXrefLink);
+    }
+
+    markFragmented();
+    registerXrefLinks();
+}); </script> </body> </html> 

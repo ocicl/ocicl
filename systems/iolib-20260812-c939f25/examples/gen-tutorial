@@ -1,0 +1,123 @@
+#! /usr/bin/env perl
+
+# This file was originally written by Peter Keller (psilord@cs.wisc.edu)
+# and this code is released under the same license as IOLib.
+
+# The purpose of this program is to parse out the ex-NNNb / ex-NNNe sections
+# from all of the ex*.lisp files, and then shove them into the template
+# tutorial file at <example location:example> lines. This greatly simplifies
+# changing the codes and keeping it current to the tutorial.
+
+# This script is a simple hack and can be fooled by incorrect sentinel markers
+# in the codebase or by out of bounds example numbers in the tutorial.tmpl
+# file. My advice is: don't do that.
+
+use strict;
+use warnings;
+
+sub main
+{
+	my $exref;
+
+	$exref = load_examples();
+	gen_tutorial($exref);
+
+	return 0;
+}
+
+sub load_examples
+{
+	my @files = `ls ex*.lisp`;
+	my $file;
+	my ($line, $location, $example, $edge);
+	my $recording;
+	my %ex;
+
+	map {chomp $_;} @files;
+
+	foreach $file (@files) {
+		# print "Processing file: $file\n";
+
+		# open each file in turn, each file's prefix is the key to a hash of
+		# examples found in the file, and each example is keyed by ex-NNN as
+		# dictated in the file.
+
+		open(FIN, "<$file") or die "Can't open file $file: $!";
+		($location) = ($file =~ m/^(.*)\.lisp$/);
+
+		# read the examples out of the source itself.
+		$recording = 0;
+		while(defined($line = <FIN>)) {
+			chomp $line;
+			if ($line =~ /;\s*ex-/) {
+				# we either start recording an example, or are just finishing
+				# one.
+				($example, $edge) = ($line =~ /(ex-\d+)(.)/);
+				if ($edge =~ /b/) {
+					$recording = 1;
+					die "Premature EOF!" if (!defined($line = <FIN>));
+					chomp $line;
+				} else {
+					$recording = 0;
+				}
+			}
+
+			if ($recording == 1) {
+				push @{$ex{$location}{$example}}, $line;
+				# print "Recorded: $location:$example <- $line\n";
+			}
+		}
+
+		close(FIN);
+	}
+
+	return \%ex;
+}
+
+sub gen_tutorial
+{
+	my ($exref) = @_;
+	my $tmpl = "tutorial.tmpl";
+	my $out = "tutorial";
+	my $line;
+	my ($location, $example);
+	my $exline;
+
+	open(FIN, "<$tmpl") or die "Can't open tutorial template $tmpl: $!";
+	open(FOUT, ">$out") or die "Can't open generated tutorial $out: $!";
+
+	# read each line of the template, and if I see the magical
+	# <example location:example> format, then shove in the example code lines
+	# from the hash table.
+	while(defined($line = <FIN>)) {
+		if ($line =~ m/<example\s+.*>/) {
+			$line =~ s/^\s+//;
+			$line =~ s/\s+$//;
+			# if I asked for an example, then shove the block into the tutorial
+			# right here.
+			($location, $example) = ($line =~ m/<example\s*(.*):(.*)>/);
+			if (!exists($exref->{$location}{$example})) {
+				close(FOUT);
+				unlink $out;
+				die "Tried to include nonexistant example: $location:$example";
+			}
+			print FOUT "+" . "-" x 78 . "+\n";
+			print FOUT "|" . " " x 78 . "|\n";
+			foreach $exline (@{$exref->{$location}{$example}}) {
+				print FOUT "$exline\n";
+			}
+			print FOUT "|" . " " x 78 . "|\n";
+			print FOUT "+" . "-" x 78 . "+\n";
+		} else {
+			# otherwise just copy the line over.
+			print FOUT $line;
+		}
+	}
+
+	close(FOUT);
+	close(FIN);
+}
+
+exit main();
+
+

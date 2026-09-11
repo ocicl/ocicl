@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lint Common Lisp"
+  short_description: "Check Common Lisp projects with Mallet"
+  default_prompt: "Use $lint-common-lisp to lint this Common Lisp repository and report actionable findings."

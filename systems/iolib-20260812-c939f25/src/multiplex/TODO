@@ -1,0 +1,5 @@
+-*- text -*-
+
+* Add Solaris /dev/poll suport
+* handle EINTR
+* handle EACCESS(kqueue) et caetera...

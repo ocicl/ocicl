@@ -1,0 +1,16 @@
+-*- outline -*-
+
+* High priority
+- add read/write timeouts to sockets
+- add proper NETWORK-MASK class and rewrite address-arithmetic.lisp
+
+* Medium priority
+- make it possible to re-open sockets
+- add/fix socket options
+
+* Low priority
+- make it possible to send credentials over unix sockets
+- unlink socket file when closing a passive local socket
+
+* Very low priority
+- implement SCTP sockets

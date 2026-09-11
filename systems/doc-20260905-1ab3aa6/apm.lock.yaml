@@ -1,0 +1,610 @@
+lockfile_version: '1'
+generated_at: '2026-09-03T12:29:03.316687+00:00'
+apm_version: 0.28.0
+dependencies:
+- repo_url: 40ants/ai
+  name: common-lisp-skills
+  host: github.com
+  resolved_commit: 7b47a97a0cc2a1341548955668ac99ef45c5610c
+  version: 0.1.1
+  virtual_path: plugins/common-lisp-skills
+  is_virtual: true
+  package_type: marketplace_plugin
+  deployed_files:
+  - .agents/skills/avoiding-common-lisp-pitfalls
+  - .agents/skills/avoiding-common-lisp-pitfalls/SKILL.md
+  - .agents/skills/avoiding-common-lisp-pitfalls/check-paren-balance.lisp
+  - .agents/skills/clearing-asdf-fasl-cache
+  - .agents/skills/clearing-asdf-fasl-cache/SKILL.md
+  - .agents/skills/clearing-asdf-fasl-cache/clear-fasl-cache.sh
+  - .agents/skills/defining-clos-classes
+  - .agents/skills/defining-clos-classes/SKILL.md
+  - .agents/skills/handling-json-in-common-lisp
+  - .agents/skills/handling-json-in-common-lisp/SKILL.md
+  - .agents/skills/lint-common-lisp
+  - .agents/skills/lint-common-lisp/SKILL.md
+  - .agents/skills/lint-common-lisp/agents/openai.yaml
+  - .agents/skills/logging-with-log4cl
+  - .agents/skills/logging-with-log4cl/SKILL.md
+  - .agents/skills/testing-with-rove
+  - .agents/skills/testing-with-rove/SKILL.md
+  - .agents/skills/using-common-lisp-repl
+  - .agents/skills/using-common-lisp-repl/SKILL.md
+  - .agents/skills/writing-40ants-doc-documentation
+  - .agents/skills/writing-40ants-doc-documentation/SKILL.md
+  - .agents/skills/writing-common-lisp
+  - .agents/skills/writing-common-lisp/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/avoiding-common-lisp-pitfalls/SKILL.md: sha256:ed8cbf3acb2f4cc41e64200a4abc48e70937cdd3264fdff808d1793c70da13af
+    .agents/skills/avoiding-common-lisp-pitfalls/check-paren-balance.lisp: sha256:fc0037a2bc9bf48a4a339042ba6f0d47235efa4815288502ac4babe380595069
+    .agents/skills/clearing-asdf-fasl-cache/SKILL.md: sha256:7f303ee779b8e189deb5b2bf42f22a3f58ed5702ce0c48070714e136ea969e05
+    .agents/skills/clearing-asdf-fasl-cache/clear-fasl-cache.sh: sha256:9c990ad85e8c559f75d0d4435736b317b9486307b2830ec58abb253efd922173
+    .agents/skills/defining-clos-classes/SKILL.md: sha256:a1aad29d97afe52542df293eaf2ad1ffcadf0fc735c86183a40515acaf2f1405
+    .agents/skills/handling-json-in-common-lisp/SKILL.md: sha256:d30a07e0fe19a246a6f3a6f94ef39d555af7c40ff688310615a7bfc45bcb402f
+    .agents/skills/lint-common-lisp/SKILL.md: sha256:5a5c40278cb2d282b74b9db6f7f5a60962ad5e094a11fb3268caf844939dcd3c
+    .agents/skills/lint-common-lisp/agents/openai.yaml: sha256:69cfdbd3aead2f1a3ba737d1665b446fc6c17ecd6e90194c1d2413f76ee106d6
+    .agents/skills/logging-with-log4cl/SKILL.md: sha256:eeb92fd4105be0b20e74532e2cfd1d267541d0c43124753d4e2d7e727b61b9d3
+    .agents/skills/testing-with-rove/SKILL.md: sha256:b0accb237471a61d2b93203ee46ce9f7241b679e3b1e09360e4823e6b9ee6ea7
+    .agents/skills/using-common-lisp-repl/SKILL.md: sha256:168050347e954b4846cfc7678e1f0aed8ded2456406e93997fc98416eb6272e5
+    .agents/skills/writing-40ants-doc-documentation/SKILL.md: sha256:abf7a08a1795d1cefd9daf290582c0d95ecb3c0bfa9b19bdf567a67ecee236d8
+    .agents/skills/writing-common-lisp/SKILL.md: sha256:23885e7aa810373c95bc1ecedcf00799b46adc000373556a3762ecf4e48dd06f
+  content_hash: sha256:2cc37479f4964db3c15236021837e5e4bf25f482fd4cb013b6a952d0f863eb76
+  declared_license: MIT
+- repo_url: dab512/atomic-spec
+  name: atomic-spec
+  host: github.com
+  resolved_commit: 594a44f0f8c8916faf96a3c13e3247e83b7ae2d3
+  version: 0.1.0
+  package_type: marketplace_plugin
+  deployed_files:
+  - .agents/skills/atomic-spec-orchestrator
+  - .agents/skills/atomic-spec-orchestrator/README.md
+  - .agents/skills/atomic-spec-orchestrator/SKILL.md
+  - .agents/skills/atomic-spec-orchestrator/assets/atom-template.spec.md
+  - .agents/skills/atomic-spec-orchestrator/references/analyst.md
+  - .agents/skills/atomic-spec-orchestrator/references/developer.md
+  - .agents/skills/atomic-spec-orchestrator/references/tester.md
+  deployed_file_hashes:
+    .agents/skills/atomic-spec-orchestrator/README.md: sha256:35dd28f3c6bdbe273c39bf9c86c173ccf54a264683cad00fa5a5be36823c17bd
+    .agents/skills/atomic-spec-orchestrator/SKILL.md: sha256:ee9cc0f49d8d7d6e3cf67c59fe2d7832d3200b030cb745ed2080c6310373daba
+    .agents/skills/atomic-spec-orchestrator/assets/atom-template.spec.md: sha256:420e739dda91d42803f5df3efeb431fc1493fef391bac85e907449ddc42d337e
+    .agents/skills/atomic-spec-orchestrator/references/analyst.md: sha256:34b24ec89a10bae26b2ab037fe0b8fbd5352114eb4944000a3a0a5f02ee47d1b
+    .agents/skills/atomic-spec-orchestrator/references/developer.md: sha256:51cf4e0308ff4ff483565c5bcd7cce093460304286cb4069bd8e73e13e7b0a92
+    .agents/skills/atomic-spec-orchestrator/references/tester.md: sha256:1d82e54b974ba0839a04a8d9b95d57daf75fb710df67df9988431318676ca065
+  content_hash: sha256:298d0e29c1132096393ee3aca044d22add32c107827c7d8912fe595fe3357f9f
+  declared_license: MIT
+- repo_url: obra/superpowers
+  name: superpowers
+  host: github.com
+  resolved_commit: b36e0829c6d0140e93cfef2ca599b1b07d4a7797
+  version: 6.3.0
+  package_type: marketplace_plugin
+  deployed_files:
+  - .agents/skills/brainstorming
+  - .agents/skills/brainstorming/SKILL.md
+  - .agents/skills/brainstorming/scripts/frame-template.html
+  - .agents/skills/brainstorming/scripts/helper.js
+  - .agents/skills/brainstorming/scripts/server.cjs
+  - .agents/skills/brainstorming/scripts/start-server.sh
+  - .agents/skills/brainstorming/scripts/stop-server.sh
+  - .agents/skills/brainstorming/spec-document-reviewer-prompt.md
+  - .agents/skills/brainstorming/visual-companion.md
+  - .agents/skills/dispatching-parallel-agents
+  - .agents/skills/dispatching-parallel-agents/SKILL.md
+  - .agents/skills/systematic-debugging
+  - .agents/skills/systematic-debugging/CREATION-LOG.md
+  - .agents/skills/systematic-debugging/SKILL.md
+  - .agents/skills/systematic-debugging/condition-based-waiting-example.ts
+  - .agents/skills/systematic-debugging/condition-based-waiting.md
+  - .agents/skills/systematic-debugging/defense-in-depth.md
+  - .agents/skills/systematic-debugging/find-polluter.sh
+  - .agents/skills/systematic-debugging/root-cause-tracing.md
+  - .agents/skills/systematic-debugging/test-academic.md
+  - .agents/skills/systematic-debugging/test-pressure-1.md
+  - .agents/skills/systematic-debugging/test-pressure-2.md
+  - .agents/skills/systematic-debugging/test-pressure-3.md
+  deployed_file_hashes:
+    .agents/skills/brainstorming/SKILL.md: sha256:74edf03ea6d24ef53db48677b93558d14a979bdf052ca3f57ecdca0c66791608
+    .agents/skills/brainstorming/scripts/frame-template.html: sha256:6a8a4e58bd6a44b904e2e3c57de774481d909204597e1498de53f1b2fecc4c4e
+    .agents/skills/brainstorming/scripts/helper.js: sha256:43c6d69954a46ec34a2a262bcc62a9a7e83e839c739f199cb72646d397c686e3
+    .agents/skills/brainstorming/scripts/server.cjs: sha256:2d2961ea8d11f56c5f4c3a1a68d22709efa5d7601a2246d8c880774e7e9e8412
+    .agents/skills/brainstorming/scripts/start-server.sh: sha256:a4e5ae84275bcaacd2f84345afeabe59cf7b00ba080e123da7cc1fb226f12847
+    .agents/skills/brainstorming/scripts/stop-server.sh: sha256:0b5ccbbd57f62d3ed88993f7940b5ee0e5c0fc9b21c550c623da4f6292e47daf
+    .agents/skills/brainstorming/spec-document-reviewer-prompt.md: sha256:95a0a195de9d984be2fffa95bab16fc8c563bc296a9cfc5e9c29cb3ece0d7457
+    .agents/skills/brainstorming/visual-companion.md: sha256:77eb44a4ec3408bb3dafb872288ecd94beb8cf21da4f2bafa54fd08255d7808b
+    .agents/skills/dispatching-parallel-agents/SKILL.md: sha256:1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c
+    .agents/skills/systematic-debugging/CREATION-LOG.md: sha256:c24733a5b1821bd6bed1fc950261f0b9f4e90097e0bbb96459d8179713730789
+    .agents/skills/systematic-debugging/SKILL.md: sha256:808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787
+    .agents/skills/systematic-debugging/condition-based-waiting-example.ts: sha256:40ae5ebe497fdf310200e43fe986552546d0a22837c0d39e855db1cfd33eb88e
+    .agents/skills/systematic-debugging/condition-based-waiting.md: sha256:e89fec8400d6cd50f43407cec9fab50976ba4d55d0ec2eb51c0bd68036b54c26
+    .agents/skills/systematic-debugging/defense-in-depth.md: sha256:1e175fb86fc357e58c6aebf5441e481e1b7868b4380c0456b63a17eefbd18ba7
+    .agents/skills/systematic-debugging/find-polluter.sh: sha256:dd7b8f13c4cc2a24b33ff87b18da9248f3e1c80a085c3316224f69ff0fa5c43c
+    .agents/skills/systematic-debugging/root-cause-tracing.md: sha256:6b0622269e098ca1399e123e553fd385f0b6412d88ef0e9c4f5a8ea9cf1cec7b
+    .agents/skills/systematic-debugging/test-academic.md: sha256:fe2ba480d78ac0d686dc025f41c2a32a43d642bf533f91b0c6053a04d35d6486
+    .agents/skills/systematic-debugging/test-pressure-1.md: sha256:0b6a915db0054577819834c79be9eb614e97bddba10d73768e1fbe91cfed048a
+    .agents/skills/systematic-debugging/test-pressure-2.md: sha256:b2030aeffba07050e8ad573ddf87486457c4a016a786bb326235bebd856f2016
+    .agents/skills/systematic-debugging/test-pressure-3.md: sha256:96b50a52e2c7989c9cf20fb752c47c1e9a3a70dc362f8f7989f8f5b64dac7708
+  content_hash: sha256:5f5d6db39d5b1c18aa738777f5e34aeae62ae7024d74fb788e8ad56334780241
+  skill_subset:
+  - brainstorming
+  - dispatching-parallel-agents
+  - systematic-debugging
+  declared_license: MIT
+deployments:
+- kind: project-relative
+  target: agents
+  value: .agents/skills/atomic-spec-orchestrator
+  runtime: null
+  scope: project
+  owners:
+  - dab512/atomic-spec
+  active_owner: dab512/atomic-spec
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/atomic-spec-orchestrator/README.md
+  runtime: null
+  scope: project
+  owners:
+  - dab512/atomic-spec
+  active_owner: dab512/atomic-spec
+  content_hash: sha256:35dd28f3c6bdbe273c39bf9c86c173ccf54a264683cad00fa5a5be36823c17bd
+- kind: project-relative
+  target: agents
+  value: .agents/skills/atomic-spec-orchestrator/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - dab512/atomic-spec
+  active_owner: dab512/atomic-spec
+  content_hash: sha256:ee9cc0f49d8d7d6e3cf67c59fe2d7832d3200b030cb745ed2080c6310373daba
+- kind: project-relative
+  target: agents
+  value: .agents/skills/atomic-spec-orchestrator/assets/atom-template.spec.md
+  runtime: null
+  scope: project
+  owners:
+  - dab512/atomic-spec
+  active_owner: dab512/atomic-spec
+  content_hash: sha256:420e739dda91d42803f5df3efeb431fc1493fef391bac85e907449ddc42d337e
+- kind: project-relative
+  target: agents
+  value: .agents/skills/atomic-spec-orchestrator/references/analyst.md
+  runtime: null
+  scope: project
+  owners:
+  - dab512/atomic-spec
+  active_owner: dab512/atomic-spec
+  content_hash: sha256:34b24ec89a10bae26b2ab037fe0b8fbd5352114eb4944000a3a0a5f02ee47d1b
+- kind: project-relative
+  target: agents
+  value: .agents/skills/atomic-spec-orchestrator/references/developer.md
+  runtime: null
+  scope: project
+  owners:
+  - dab512/atomic-spec
+  active_owner: dab512/atomic-spec
+  content_hash: sha256:51cf4e0308ff4ff483565c5bcd7cce093460304286cb4069bd8e73e13e7b0a92
+- kind: project-relative
+  target: agents
+  value: .agents/skills/atomic-spec-orchestrator/references/tester.md
+  runtime: null
+  scope: project
+  owners:
+  - dab512/atomic-spec
+  active_owner: dab512/atomic-spec
+  content_hash: sha256:1d82e54b974ba0839a04a8d9b95d57daf75fb710df67df9988431318676ca065
+- kind: project-relative
+  target: agents
+  value: .agents/skills/avoiding-common-lisp-pitfalls
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/avoiding-common-lisp-pitfalls/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:ed8cbf3acb2f4cc41e64200a4abc48e70937cdd3264fdff808d1793c70da13af
+- kind: project-relative
+  target: agents
+  value: .agents/skills/avoiding-common-lisp-pitfalls/check-paren-balance.lisp
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:fc0037a2bc9bf48a4a339042ba6f0d47235efa4815288502ac4babe380595069
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:74edf03ea6d24ef53db48677b93558d14a979bdf052ca3f57ecdca0c66791608
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming/scripts/frame-template.html
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:6a8a4e58bd6a44b904e2e3c57de774481d909204597e1498de53f1b2fecc4c4e
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming/scripts/helper.js
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:43c6d69954a46ec34a2a262bcc62a9a7e83e839c739f199cb72646d397c686e3
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming/scripts/server.cjs
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:2d2961ea8d11f56c5f4c3a1a68d22709efa5d7601a2246d8c880774e7e9e8412
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming/scripts/start-server.sh
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:a4e5ae84275bcaacd2f84345afeabe59cf7b00ba080e123da7cc1fb226f12847
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming/scripts/stop-server.sh
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:0b5ccbbd57f62d3ed88993f7940b5ee0e5c0fc9b21c550c623da4f6292e47daf
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming/spec-document-reviewer-prompt.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:95a0a195de9d984be2fffa95bab16fc8c563bc296a9cfc5e9c29cb3ece0d7457
+- kind: project-relative
+  target: agents
+  value: .agents/skills/brainstorming/visual-companion.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:77eb44a4ec3408bb3dafb872288ecd94beb8cf21da4f2bafa54fd08255d7808b
+- kind: project-relative
+  target: agents
+  value: .agents/skills/clearing-asdf-fasl-cache
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/clearing-asdf-fasl-cache/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:7f303ee779b8e189deb5b2bf42f22a3f58ed5702ce0c48070714e136ea969e05
+- kind: project-relative
+  target: agents
+  value: .agents/skills/clearing-asdf-fasl-cache/clear-fasl-cache.sh
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:9c990ad85e8c559f75d0d4435736b317b9486307b2830ec58abb253efd922173
+- kind: project-relative
+  target: agents
+  value: .agents/skills/defining-clos-classes
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/defining-clos-classes/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:a1aad29d97afe52542df293eaf2ad1ffcadf0fc735c86183a40515acaf2f1405
+- kind: project-relative
+  target: agents
+  value: .agents/skills/dispatching-parallel-agents
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/dispatching-parallel-agents/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c
+- kind: project-relative
+  target: agents
+  value: .agents/skills/handling-json-in-common-lisp
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/handling-json-in-common-lisp/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:d30a07e0fe19a246a6f3a6f94ef39d555af7c40ff688310615a7bfc45bcb402f
+- kind: project-relative
+  target: agents
+  value: .agents/skills/lint-common-lisp
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/lint-common-lisp/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:5a5c40278cb2d282b74b9db6f7f5a60962ad5e094a11fb3268caf844939dcd3c
+- kind: project-relative
+  target: agents
+  value: .agents/skills/lint-common-lisp/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:69cfdbd3aead2f1a3ba737d1665b446fc6c17ecd6e90194c1d2413f76ee106d6
+- kind: project-relative
+  target: agents
+  value: .agents/skills/logging-with-log4cl
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/logging-with-log4cl/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:eeb92fd4105be0b20e74532e2cfd1d267541d0c43124753d4e2d7e727b61b9d3
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/CREATION-LOG.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:c24733a5b1821bd6bed1fc950261f0b9f4e90097e0bbb96459d8179713730789
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/condition-based-waiting-example.ts
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:40ae5ebe497fdf310200e43fe986552546d0a22837c0d39e855db1cfd33eb88e
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/condition-based-waiting.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:e89fec8400d6cd50f43407cec9fab50976ba4d55d0ec2eb51c0bd68036b54c26
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/defense-in-depth.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:1e175fb86fc357e58c6aebf5441e481e1b7868b4380c0456b63a17eefbd18ba7
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/find-polluter.sh
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:dd7b8f13c4cc2a24b33ff87b18da9248f3e1c80a085c3316224f69ff0fa5c43c
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/root-cause-tracing.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:6b0622269e098ca1399e123e553fd385f0b6412d88ef0e9c4f5a8ea9cf1cec7b
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/test-academic.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:fe2ba480d78ac0d686dc025f41c2a32a43d642bf533f91b0c6053a04d35d6486
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/test-pressure-1.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:0b6a915db0054577819834c79be9eb614e97bddba10d73768e1fbe91cfed048a
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/test-pressure-2.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:b2030aeffba07050e8ad573ddf87486457c4a016a786bb326235bebd856f2016
+- kind: project-relative
+  target: agents
+  value: .agents/skills/systematic-debugging/test-pressure-3.md
+  runtime: null
+  scope: project
+  owners:
+  - obra/superpowers
+  active_owner: obra/superpowers
+  content_hash: sha256:96b50a52e2c7989c9cf20fb752c47c1e9a3a70dc362f8f7989f8f5b64dac7708
+- kind: project-relative
+  target: agents
+  value: .agents/skills/testing-with-rove
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/testing-with-rove/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:b0accb237471a61d2b93203ee46ce9f7241b679e3b1e09360e4823e6b9ee6ea7
+- kind: project-relative
+  target: agents
+  value: .agents/skills/using-common-lisp-repl
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/using-common-lisp-repl/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:168050347e954b4846cfc7678e1f0aed8ded2456406e93997fc98416eb6272e5
+- kind: project-relative
+  target: agents
+  value: .agents/skills/writing-40ants-doc-documentation
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/writing-40ants-doc-documentation/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:abf7a08a1795d1cefd9daf290582c0d95ecb3c0bfa9b19bdf567a67ecee236d8
+- kind: project-relative
+  target: agents
+  value: .agents/skills/writing-common-lisp
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/writing-common-lisp/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - 40ants/ai/plugins/common-lisp-skills
+  active_owner: 40ants/ai/plugins/common-lisp-skills
+  content_hash: sha256:23885e7aa810373c95bc1ecedcf00799b46adc000373556a3762ecf4e48dd06f

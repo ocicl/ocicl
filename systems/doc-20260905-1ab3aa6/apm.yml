@@ -1,0 +1,21 @@
+name: 40ants-doc
+version: 1.0.0
+description: APM project for 40ants-doc
+author: Alexander Artemenko
+# Which agent platforms to deploy to.
+# Resolution order: --target flag > this field > auto-detect from filesystem.
+# Accepted values: agent-skills, antigravity, claude, codex, copilot, cursor, gemini, grok-build, kiro, opencode, windsurf
+targets:
+  - agent-skills
+dependencies:
+  apm:
+    - 40ants/ai/plugins/common-lisp-skills
+    - git: obra/superpowers
+      skills:
+        - brainstorming
+        - dispatching-parallel-agents
+        - systematic-debugging
+    - dab512/atomic-spec
+  mcp: []
+includes: auto
+scripts: {}
