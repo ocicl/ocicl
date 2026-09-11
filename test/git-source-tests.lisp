@@ -93,6 +93,27 @@
                   (ocicl::parse-git-source "git+https://github.com/me/my-lib#egg=foo"))
     (check-errors "non-git source is rejected"
                   (ocicl::parse-git-source "https://github.com/me/my-lib"))
+    ;; Argument & transport injection guards (ocicl-j83)
+    (check-errors "ext:: transport is rejected"
+                  (ocicl::parse-git-source "git+ext::sh"))
+    (check-errors "fd:: transport is rejected"
+                  (ocicl::parse-git-source "git+fd::7"))
+    (check-errors "URL beginning with '-' is rejected"
+                  (ocicl::parse-git-source "git+-upload-pack=touch"))
+    (check-errors "unsupported URL scheme is rejected"
+                  (ocicl::parse-git-source "git+javascript://evil"))
+    (check-errors "ref beginning with '-' is rejected"
+                  (ocicl::parse-git-source "git+https://github.com/me/my-lib#ref=-x"))
+    (check-errors "bare local path (no scheme) is rejected"
+                  (ocicl::parse-git-source "git+/etc/passwd"))
+    (check "https scheme accepted by validate-git-url"
+           (ocicl::validate-git-url "https://github.com/me/my-lib"))
+    (check "ssh scheme accepted by validate-git-url"
+           (ocicl::validate-git-url "ssh://git@github.com/me/my-lib"))
+    (check "file scheme accepted by validate-git-url"
+           (ocicl::validate-git-url "file:///home/me/my-lib"))
+    (check "scp-style accepted by validate-git-url"
+           (ocicl::validate-git-url "git@github.com:me/my-lib"))
 
     ;; make-git-fullname / parse-git-fullname round trips
     (let ((sha "6f6959222b65a3d44a818b12b3a104cf822fcd91"))

@@ -87,8 +87,58 @@
   (and (stringp subdir)
        (> (length subdir) 0)
        (not (uiop:string-prefix-p "/" subdir))
+       (not (uiop:string-prefix-p "-" subdir))
        (not (search ".." subdir))
        subdir))
+
+(defparameter *allowed-git-url-schemes* '("https" "http" "ssh" "git" "file")
+  "URL schemes ocicl will hand to git.  Anything else — notably the ext::
+and fd:: transports, which let a repository run arbitrary commands — is
+refused before git ever sees it.")
+
+(defun control-char-p (c)
+  (or (char< c #\Space) (char= c #\Rubout)))
+
+(defun validate-git-url (url)
+  "Signal an error unless URL is a git URL ocicl is willing to run.  Guards
+against argument injection (a leading '-' git would read as an option),
+control characters (CSV corruption), and dangerous transports."
+  (unless (stringp url)
+    (error "git URL must be a string"))
+  (when (zerop (length url))
+    (error "empty git URL"))
+  (when (uiop:string-prefix-p "-" url)
+    (error "git URL may not begin with '-': ~A" url))
+  (when (some #'control-char-p url)
+    (error "git URL may not contain control characters: ~A" url))
+  (let ((scheme-pos (search "://" url)))
+    (cond
+      (scheme-pos
+       (let ((scheme (string-downcase (subseq url 0 scheme-pos))))
+         (unless (member scheme *allowed-git-url-schemes* :test #'string=)
+           (error "unsupported git URL scheme ~S (allowed: ~{~A~^, ~})"
+                  scheme *allowed-git-url-schemes*))))
+      ((search "::" url)
+       ;; e.g. ext::sh -c ... or fd::  -- a git transport helper invocation.
+       (error "unsupported git transport in ~A" url))
+      ((find #\: url)
+       ;; scp-style [user@]host:path.  Accept, having ruled out "::" above.
+       t)
+      (t
+       (error "git URL must have a scheme (https://, ssh://, file://, ...) ~
+               or be scp-style host:path: ~A" url))))
+  url)
+
+(defun validate-git-ref (ref)
+  "Signal an error if REF (branch/tag/SHA) is unsafe to hand to git.  A
+leading '-' would be parsed as an option; control characters corrupt the
+CSV.  NIL (no ref) is allowed."
+  (when ref
+    (when (uiop:string-prefix-p "-" ref)
+      (error "git ref may not begin with '-': ~A" ref))
+    (when (some #'control-char-p ref)
+      (error "git ref may not contain control characters: ~A" ref)))
+  ref)
 
 (defun parse-git-parts (source)
   "Split a git+ SOURCE into its raw pieces.  Returns (values URL AT-PART
@@ -133,6 +183,11 @@ fragment parameters."
       (error "empty git URL in ~A" source))
     (when (and subdir (not (validate-git-subdir subdir)))
       (error "invalid subdirectory ~S in ~A" subdir source))
+    ;; Validate everything that will reach git, at the single chokepoint
+    ;; both user sources and CSV-stored fullnames pass through.
+    (validate-git-url base)
+    (validate-git-ref at-part)
+    (validate-git-ref ref-param)
     (values base at-part ref-param subdir)))
 
 (defun parse-git-source (source)
@@ -202,11 +257,16 @@ source, so two sources can never silently clobber each other's tree."
            *ocicl-systems*))
 
 (defun run-git (args &key (error-p t))
-  "Run git with ARGS.  Returns (values trimmed-stdout exit-code)."
+  "Run git with ARGS.  Returns (values trimmed-stdout exit-code).  The
+ext:: and fd:: transports (which execute arbitrary commands) are disabled
+on every invocation as defence in depth behind VALIDATE-GIT-URL."
   (debug-log (format nil "running: git~{ ~A~}" args))
   (multiple-value-bind (out err code)
       (handler-case
-          (uiop:run-program (cons "git" args)
+          (uiop:run-program (list* "git"
+                                   "-c" "protocol.ext.allow=never"
+                                   "-c" "protocol.fd.allow=never"
+                                   args)
                             :output '(:string :stripped t)
                             :error-output (if *verbose* *error-output* '(:string))
                             :ignore-error-status t)
@@ -225,7 +285,7 @@ commit SHA via ls-remote, without cloning.  Annotated tags are peeled."
       (let* ((patterns (if ref
                            (list ref #?"${ref}^{}")
                            (list "HEAD")))
-             (out (run-git (append (list "ls-remote" url) patterns)))
+             (out (run-git (append (list "ls-remote" "--" url) patterns)))
              (sha nil))
         ;; Each line is "SHA<tab>refname"; a peeled "^{}" line, when
         ;; present, names the commit an annotated tag points at and wins.
@@ -256,11 +316,11 @@ RELATIVE-DIRNAME)."
              ;; without partial-clone support.
              (multiple-value-bind (out code)
                  (run-git (list "clone" "--quiet" "--filter=blob:none"
-                                "--no-checkout" url tmp)
+                                "--no-checkout" "--" url tmp)
                           :error-p nil)
                (declare (ignore out))
                (unless (zerop code)
-                 (run-git (list "clone" "--quiet" "--no-checkout" url tmp))))
+                 (run-git (list "clone" "--quiet" "--no-checkout" "--" url tmp))))
              (when subdir
                (run-git (list "-C" tmp "sparse-checkout" "set" subdir)))
              ;; A plain checkout handles branches (via git's remote-branch

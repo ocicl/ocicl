@@ -132,5 +132,16 @@ $OCICL install >/dev/null 2>&1 || true
 [ -d "$TMP/victim" ] || fail "install: project dir was deleted (traversal!)"
 pass "install refuses a '..' path in ocicl.csv"
 
+# Security: dangerous transports / injection-shaped sources are refused
+# by the CLI before git runs (ocicl-j83).
+cd "$TMP/victim"
+rm -f ocicl.csv; touch ocicl.csv
+$OCICL install "git+ext::sh -c touch${IFS}/tmp/ocicl-pwned" >/dev/null 2>&1 || true
+[ ! -e /tmp/ocicl-pwned ] || { rm -f /tmp/ocicl-pwned; fail "ext:: transport executed a command!"; }
+if $OCICL install "git+ext::sh" >/dev/null 2>&1; then fail "ext:: source was accepted"; fi
+pass "install refuses ext:: transport source"
+if $OCICL install "git+-upload-pack=touch" >/dev/null 2>&1; then fail "'-'-prefixed URL was accepted"; fi
+pass "install refuses '-'-prefixed URL"
+
 echo ""
 echo "All git+ source tests passed."

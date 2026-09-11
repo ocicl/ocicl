@@ -1107,7 +1107,7 @@ If FORCE is NIL, skip files that already exist."
                (install-git-source system)
              (error (e)
                (format uiop:*stderr* "Error: can't install ~A: ~A~%" system e)
-               (uiop:quit))))
+               (uiop:quit 1))))
           ((position #\@ system)
            (unless (download-and-install system)
              (progn
