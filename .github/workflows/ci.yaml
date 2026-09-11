@@ -53,11 +53,21 @@ jobs:
         echo "C:\Program Files\OpenSSL\bin" | Out-File $env:GITHUB_PATH -Append
 
     - name: Download squid.msi (Windows)
+      id: download-squid-windows
       if: runner.os == 'Windows'
-      run: curl --output squid.msi https://packages.diladele.com/squid/4.14/squid.msi
+      # packages.diladele.com is the de-facto Windows squid build, but it is
+      # an external host that has had outages. Don't let one fail CI: retry,
+      # and if it's still unreachable the Windows proxy steps below skip
+      # (Linux/macOS still exercise the proxy). continue-on-error lets later
+      # steps branch on steps.download-squid-windows.outcome.
+      continue-on-error: true
+      run: |
+        curl --fail --show-error --location --retry 5 --retry-all-errors \
+             --connect-timeout 15 --output squid.msi \
+             https://packages.diladele.com/squid/4.14/squid.msi
 
     - name: Install squid.msi (Windows)
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && steps.download-squid-windows.outcome == 'success'
       shell: powershell
       run: |
         $file = "squid.msi"
@@ -112,7 +122,7 @@ jobs:
         EOF
 
     - name: Launch Squid (Windows)
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && steps.download-squid-windows.outcome == 'success'
       shell: pwsh
       run: |
         $exe  = 'D:\Squid\bin\squid.exe'
@@ -195,6 +205,9 @@ jobs:
           echo "cl-ppcre* not found"; exit 1; }
 
     - name: Run ocicl through squid proxy
+      # On Windows this depends on the squid MSI download above; skip if that
+      # external host was unreachable. Linux/macOS always run (squid via brew).
+      if: runner.os != 'Windows' || steps.download-squid-windows.outcome == 'success'
       shell: bash
       run: |
         set -euo pipefail
@@ -210,6 +223,8 @@ jobs:
         $SUDO cat "$SQUID_LOGS"
 
     - name: Check squid log for ocicl traffic
+      # Skip on Windows if the squid MSI host was unreachable (see above).
+      if: runner.os != 'Windows' || steps.download-squid-windows.outcome == 'success'
       # macOS proxy test has known issues - allow failure on macOS only
       continue-on-error: ${{ runner.os == 'macOS' }}
       run: |
