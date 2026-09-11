@@ -1137,13 +1137,14 @@ If FORCE is NIL, skip files that already exist."
                          (error (e)
                            (format *error-output* "; error fetching ~A: ~A~%"
                                    (car value) e)))
-                       (progn
-                         (download-and-install (car value))
-                         (if *color*
-                             (format t #?"${*color-dim*};${*color-reset*} downloaded ~
-                                          ${*color-bold*}${*color-bright-green*}${(unmangle key)}${*color-reset*} ~
-                                          from ${*color-dim*}${(car value)}${*color-reset*}~%")
-                             (format t "; downloaded ~A from ~A~%" (unmangle key) (car value)))))))
+                       (if (download-and-install (car value))
+                           (if *color*
+                               (format t #?"${*color-dim*};${*color-reset*} downloaded ~
+                                            ${*color-bold*}${*color-bright-green*}${(unmangle key)}${*color-reset*} ~
+                                            from ${*color-dim*}${(car value)}${*color-reset*}~%")
+                               (format t "; downloaded ~A from ~A~%" (unmangle key) (car value)))
+                           (format *error-output* "; failed to install ~A from ~A~%"
+                                   (unmangle key) (car value))))))
                *ocicl-systems*)))
 
 (defun subpath-p (path1 path2)
@@ -2165,6 +2166,21 @@ Supports --fix and --dry-run flags for auto-remediation."
         (rename-with-retry tmp target)))
     (debug-log (format nil "wrote new ~a" *systems-csv*))))
 
+(defun parse-oci-digest (string)
+  "Return the lowercase 64-char hex body of a well-formed 'sha256:HEX'
+digest STRING, or NIL if STRING is not such a digest."
+  (when (and (stringp string) (uiop:string-prefix-p "sha256:" string))
+    (let ((hex (string-downcase (subseq string 7))))
+      (when (and (= (length hex) 64)
+                 (every (lambda (c) (digit-char-p c 16)) hex))
+        hex))))
+
+(defun sha256-hex-of-octets (octets)
+  (ironclad:byte-array-to-hex-string (ironclad:digest-sequence :sha256 octets)))
+
+(defun sha256-hex-of-file (file)
+  (ironclad:byte-array-to-hex-string (ironclad:digest-file :sha256 file)))
+
 (defun get-manifest (registry system tag)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
@@ -2180,6 +2196,17 @@ Supports --fix and --dry-run flags for auto-remediation."
                    :verbose *verbose*
                    :headers headers)
         (declare (ignore status))
+        ;; When the manifest is requested by digest (the pinned case), the
+        ;; registry is untrusted: verify the bytes we received actually
+        ;; hash to the digest we asked for.  This anchors the trust chain —
+        ;; a verified manifest lets us trust the layer digest inside it.
+        (let ((requested (parse-oci-digest safe-tag)))
+          (when requested
+            (let ((actual (sha256-hex-of-octets
+                           (babel:string-to-octets body :encoding :utf-8))))
+              (unless (string= actual requested)
+                (error "manifest digest mismatch for ~A@sha256:~A: server returned sha256:~A"
+                       system requested actual)))))
         (values (json:decode-json-from-string body) (gethash "docker-content-digest" response-headers))))))
 
 ;; Helper: pick first layer digest from a manifest, or from first child if given an index
@@ -2210,18 +2237,36 @@ Supports --fix and --dry-run flags for auto-remediation."
         ;; If no layer digest could be determined, signal an error with context.
         (unless layer-digest
           (error "Unable to determine layer digest for ~A:~A from registry ~A" system tag registry))
-        (let* ((input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/blobs/${layer-digest}"
-                                           :force-binary t
-                                           :want-stream t
-                                           :verbose *verbose*
-                                           :headers headers)))
-          (handler-bind
-              ((tar-simple-extract:broken-or-circular-links-error
-                (lambda (condition)
-                  (declare (ignore condition))
-                  (invoke-restart 'continue))))
-            (tar:with-open-archive (a input)
-              (tar-simple-extract:simple-extract-archive a :directory dl-dir)))
+        (let ((expected (parse-oci-digest layer-digest)))
+          (unless expected
+            (error "layer digest ~A for ~A:~A is not a sha256 digest" layer-digest system tag))
+          ;; Download the blob to a temp file OUTSIDE dl-dir (so it is not
+          ;; itself copied into the systems dir), verify its bytes hash to
+          ;; the layer digest from the verified manifest, and only then
+          ;; extract.  This is the supply-chain integrity check: a
+          ;; compromised registry/CDN cannot substitute tarball contents.
+          (uiop:with-temporary-file (:pathname blob-file :type "blob")
+            (let ((input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/blobs/${layer-digest}"
+                                              :force-binary t
+                                              :want-stream t
+                                              :verbose *verbose*
+                                              :headers headers)))
+              (with-open-file (out blob-file :direction :output
+                                             :element-type '(unsigned-byte 8)
+                                             :if-exists :supersede)
+                (uiop:copy-stream-to-stream input out :element-type '(unsigned-byte 8))))
+            (let ((actual (sha256-hex-of-file blob-file)))
+              (unless (string= actual expected)
+                (error "blob digest mismatch for ~A:~A: expected sha256:~A, got sha256:~A"
+                       system tag expected actual)))
+            (with-open-file (in blob-file :element-type '(unsigned-byte 8))
+              (handler-bind
+                  ((tar-simple-extract:broken-or-circular-links-error
+                    (lambda (condition)
+                      (declare (ignore condition))
+                      (invoke-restart 'continue))))
+                (tar:with-open-archive (a in)
+                  (tar-simple-extract:simple-extract-archive a :directory dl-dir)))))
           manifest-digest)))))
 
 (defun download-and-install (fullname)

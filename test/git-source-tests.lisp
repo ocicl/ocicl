@@ -174,5 +174,37 @@
       (check "guard rejects an absolute path outside"
              (not (ocicl::strictly-under-systems-dir-p #p"/etc/"))))
 
+    ;; Registry digest verification helpers (ocicl-01j)
+    (check "sha256 of \"abc\" matches the known vector"
+           (string= (ocicl::sha256-hex-of-octets
+                     (babel:string-to-octets "abc" :encoding :utf-8))
+                    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"))
+    (check "sha256-hex-of-file matches sha256-hex-of-octets"
+           (uiop:with-temporary-file (:pathname p :type "bin")
+             (with-open-file (out p :direction :output :element-type '(unsigned-byte 8)
+                                    :if-exists :supersede)
+               (write-sequence (babel:string-to-octets "hello ocicl" :encoding :utf-8) out))
+             (string= (ocicl::sha256-hex-of-file p)
+                      (ocicl::sha256-hex-of-octets
+                       (babel:string-to-octets "hello ocicl" :encoding :utf-8)))))
+    (check "parse-oci-digest accepts a well-formed digest"
+           (equal (ocicl::parse-oci-digest
+                   "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+                  "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"))
+    (check "parse-oci-digest uppercases-normalizes"
+           (equal (ocicl::parse-oci-digest
+                   "sha256:BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD")
+                  "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"))
+    (check "parse-oci-digest rejects wrong length"
+           (null (ocicl::parse-oci-digest "sha256:abcd")))
+    (check "parse-oci-digest rejects non-hex"
+           (null (ocicl::parse-oci-digest
+                  "sha256:zzzz16bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")))
+    (check "parse-oci-digest rejects a mutable tag"
+           (null (ocicl::parse-oci-digest "latest")))
+    (check "a one-byte change is detected"
+           (not (string= (ocicl::sha256-hex-of-octets (babel:string-to-octets "abc" :encoding :utf-8))
+                         (ocicl::sha256-hex-of-octets (babel:string-to-octets "abd" :encoding :utf-8)))))
+
     (format t "~%~D passed, ~D failed~%" *test-passed* *test-failed*)
     *test-failed*))

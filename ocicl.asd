@@ -70,7 +70,7 @@
   :depends-on (:with-user-abort :unix-opts :drakma :cl-json :cl-interpol :tar
                 :tar/simple-extract :copy-directory :diff :cl-template
                 :version-string :alexandria :serapeum :cl-selfupdate/drakma
-                :ecclesia :rewrite-cl :ironclad
+                :ecclesia :rewrite-cl :ironclad :babel
 
                 ;; sbcl internals
                 (:feature :sbcl :sb-posix)
