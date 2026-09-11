@@ -518,8 +518,8 @@ are needed.
 
 ```
 ocicl install git+https://github.com/me/my-lib
-ocicl install git+https://github.com/crategus/cl-cffi-gtk4@main
-ocicl install git+https://github.com/logoraz/sojrn#subdirectory=libraries/sojrn-asdf-system
+ocicl install git+https://github.com/crategus/cl-cffi-gtk4@master
+ocicl install git+https://github.com/logoraz/sojrn#subdirectory=contrib/learn-cl
 ```
 
 A source has the form ``git+URL[@REF][#PARAMS]``:
