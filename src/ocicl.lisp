@@ -1154,6 +1154,18 @@ If FORCE is NIL, skip files that already exist."
     (or (not enough-directory)
         (eql :relative (first enough-directory)))))
 
+(defun strictly-under-systems-dir-p (path)
+  "Return T only if PATH is genuinely contained within *SYSTEMS-DIR*.
+Unlike a bare :relative check, this rejects upward escapes: a path such
+as <systems-dir>/../ has an enough-namestring of \"../\", whose
+directory list is (:relative :up) — still :relative, but not contained.
+Used as the deletion guard so a crafted ocicl.csv path column cannot
+steer delete-directory-tree outside the systems directory."
+  (let ((dirs (pathname-directory (enough-namestring path *systems-dir*))))
+    (and (eql (first dirs) :relative)
+         (not (member :up dirs))
+         (not (member :back dirs)))))
+
 (declaim (inline find-asd-files))
 (defun find-asd-files (dir)
   "Return every .asd file found under DIR, except those that reside in a
@@ -1242,12 +1254,11 @@ If FORCE is NIL, skip files that already exist."
           (when (and modify-ocicl-systems system-info)
             (dolist (system system-group)
               (remhash (mangle system) *ocicl-systems*)))
-          (when (uiop:directory-exists-p system-directory)
+          (when (and (strictly-under-systems-dir-p system-directory)
+                     (uiop:directory-exists-p system-directory))
             (uiop:delete-directory-tree
              system-directory
-             :validate (lambda (path)
-                         ;; ensure directory being deleted is a subdirectory of *systems-dir*
-                         (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*))))))
+             :validate #'strictly-under-systems-dir-p)
             (multiple-value-bind (name version-sha)
                 (if (git-source-p fullname)
                     (multiple-value-bind (url sha ref subdir) (parse-git-fullname fullname)
@@ -1571,12 +1582,10 @@ If FORCE is NIL, skip files that already exist."
                            :test #'equal)))
     (mapc
      (lambda (directory)
-       (uiop:delete-directory-tree
-        directory
-        :validate
-        (lambda (path)
-          ;; ensure directory being deleted is a subdirectory of *systems-dir*
-          (equal :relative (car (pathname-directory (enough-namestring path *systems-dir*)))))))
+       (when (strictly-under-systems-dir-p directory)
+         (uiop:delete-directory-tree
+          directory
+          :validate #'strictly-under-systems-dir-p)))
      directories-to-clean)))
 
 (defstruct tree-not-found name)

@@ -106,5 +106,31 @@ grep -q "innerlib, git+file://$TMP/upstream@$SHA1#ref=$SHA1" ocicl.csv \
 [ -d "ocicl/inner-${SHA1:0:7}" ] || fail "sha pin: tree untouched"
 pass "commit-SHA pins survive latest"
 
+# Security: a malicious ocicl.csv path column must not let a delete escape
+# the systems directory (ocicl-hih).
+mkdir -p "$TMP/victim/ocicl"
+cd "$TMP/victim"
+touch canary.txt              # lives in the project root, one level above ocicl/
+cat > ocicl.csv <<EOF
+evil, ghcr.io/ocicl/evil@sha256:0000000000000000000000000000000000000000000000000000000000000000, ../evil.asd
+EOF
+# 'ocicl remove' on the crafted row would resolve to <project>/../ under the
+# old guard; it must refuse and leave the project (and its parent) intact.
+$OCICL remove evil >/dev/null 2>&1 || true
+[ -f canary.txt ] || fail "remove: canary above ocicl/ was deleted (traversal!)"
+[ -d "$TMP/victim" ] || fail "remove: project dir was deleted (traversal!)"
+[ -d "$TMP" ] || fail "remove: temp root was deleted (traversal!)"
+pass "remove refuses a '..' path in ocicl.csv"
+
+# Same crafted row via the git+ refetch path ('ocicl install' with no args).
+cd "$TMP/victim"
+cat > ocicl.csv <<EOF
+evil, git+file://$TMP/upstream@$SHA1, ../evil.asd
+EOF
+$OCICL install >/dev/null 2>&1 || true
+[ -f canary.txt ] || fail "install: canary above ocicl/ was deleted (traversal!)"
+[ -d "$TMP/victim" ] || fail "install: project dir was deleted (traversal!)"
+pass "install refuses a '..' path in ocicl.csv"
+
 echo ""
 echo "All git+ source tests passed."

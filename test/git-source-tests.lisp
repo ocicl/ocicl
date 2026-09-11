@@ -142,5 +142,16 @@
                                            "6f6959222b65a3d44a818b12b3a104cf822fcd91")
                   "my-lib-6f69592"))
 
+    ;; strictly-under-systems-dir-p: the deletion guard (ocicl-hih)
+    (let ((ocicl::*systems-dir* #p"/home/u/proj/ocicl/"))
+      (check "guard accepts a real subdirectory"
+             (ocicl::strictly-under-systems-dir-p #p"/home/u/proj/ocicl/foo-abc1234/"))
+      (check "guard rejects the parent via .."
+             (not (ocicl::strictly-under-systems-dir-p #p"/home/u/proj/ocicl/../")))
+      (check "guard rejects a deeper .. escape"
+             (not (ocicl::strictly-under-systems-dir-p #p"/home/u/proj/ocicl/../../etc/")))
+      (check "guard rejects an absolute path outside"
+             (not (ocicl::strictly-under-systems-dir-p #p"/etc/"))))
+
     (format t "~%~D passed, ~D failed~%" *test-passed* *test-failed*)
     *test-failed*))

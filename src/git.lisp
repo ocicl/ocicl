@@ -287,13 +287,13 @@ RELATIVE-DIRNAME)."
                  (let ((git-meta (merge-pathnames ".git/" tmp-dir)))
                    (when (uiop:directory-exists-p git-meta)
                      (uiop:delete-directory-tree git-meta :validate t))))
+               (unless (strictly-under-systems-dir-p target-dir)
+                 (error "refusing to write tree outside the systems directory: ~A"
+                        rel-dirname))
                (when (uiop:directory-exists-p target-dir)
                  (uiop:delete-directory-tree
                   target-dir
-                  :validate (lambda (path)
-                              (equal :relative
-                                     (car (pathname-directory
-                                           (enough-namestring path *systems-dir*)))))))
+                  :validate #'strictly-under-systems-dir-p))
                (uiop:ensure-all-directories-exist (list target-dir))
                (copy-directory:copy source-dir target-dir)
                (values resolved rel-dirname))))
@@ -411,13 +411,11 @@ re-fetched files land exactly where the CSV says they are."
                      (let ((old-dir (merge-pathnames
                                      (make-pathname :directory `(:relative ,rel-dirname))
                                      *systems-dir*)))
-                       (when (uiop:directory-exists-p old-dir)
+                       (when (and (strictly-under-systems-dir-p old-dir)
+                                  (uiop:directory-exists-p old-dir))
                          (uiop:delete-directory-tree
                           old-dir
-                          :validate (lambda (path)
-                                      (equal :relative
-                                             (car (pathname-directory
-                                                   (enough-namestring path *systems-dir*)))))))))
+                          :validate #'strictly-under-systems-dir-p))))
                    (let* ((new-fullname (make-git-fullname url resolved
                                                            :ref ref :subdir subdir))
                           (registered (register-git-tree new-fullname new-dirname)))
