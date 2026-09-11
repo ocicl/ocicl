@@ -455,6 +455,30 @@ E.g. prefix=/data/ocicl, dir=/home/user/proj/ocicl/
              (not (search ".." name)))
     name))
 
+(defun parse-oci-digest (string)
+  "Return the lowercase 64-char hex body of a well-formed 'sha256:HEX'
+digest STRING, or NIL if STRING is not such a digest."
+  (when (and (stringp string) (uiop:string-prefix-p "sha256:" string))
+    (let ((hex (string-downcase (subseq string 7))))
+      (when (and (= (length hex) 64)
+                 (every (lambda (c) (digit-char-p c 16)) hex))
+        hex))))
+
+(defun require-oci-digest (string what)
+  "Return a canonical 'sha256:HEX' string for STRING, or signal an error
+naming WHAT.  Guards against unvalidated server-supplied digests reaching
+URLs or the systems CSV (where a stray comma would corrupt rows)."
+  (let ((hex (parse-oci-digest string)))
+    (unless hex
+      (error "~A is not a valid sha256 digest: ~S" what string))
+    (concatenate 'string "sha256:" hex)))
+
+(defun sha256-hex-of-octets (octets)
+  (ironclad:byte-array-to-hex-string (ironclad:digest-sequence :sha256 octets)))
+
+(defun sha256-hex-of-file (file)
+  (ironclad:byte-array-to-hex-string (ironclad:digest-file :sha256 file)))
+
 (defun looks-like-dated-version-p (version)
   "Check if VERSION looks like a dated version format (YYYYMMDD-githash)."
   (and (stringp version)
@@ -614,7 +638,9 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
                    (multiple-value-bind (manifest manifest-digest)
                        (get-manifest registry #?"${system}-changes.txt" version)
                      (declare (ignore manifest-digest))
-                     (let* ((digest (cdr (assoc :digest (cadr (assoc :layers manifest)))))
+                     (let* ((digest (require-oci-digest
+                                     (cdr (assoc :digest (cadr (assoc :layers manifest))))
+                                     "changes-blob layer digest"))
                             (changes (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
                                               :force-string t
                                               :verbose *verbose*
@@ -2166,21 +2192,6 @@ Supports --fix and --dry-run flags for auto-remediation."
         (rename-with-retry tmp target)))
     (debug-log (format nil "wrote new ~a" *systems-csv*))))
 
-(defun parse-oci-digest (string)
-  "Return the lowercase 64-char hex body of a well-formed 'sha256:HEX'
-digest STRING, or NIL if STRING is not such a digest."
-  (when (and (stringp string) (uiop:string-prefix-p "sha256:" string))
-    (let ((hex (string-downcase (subseq string 7))))
-      (when (and (= (length hex) 64)
-                 (every (lambda (c) (digit-char-p c 16)) hex))
-        hex))))
-
-(defun sha256-hex-of-octets (octets)
-  (ironclad:byte-array-to-hex-string (ironclad:digest-sequence :sha256 octets)))
-
-(defun sha256-hex-of-file (file)
-  (ironclad:byte-array-to-hex-string (ironclad:digest-file :sha256 file)))
-
 (defun get-manifest (registry system tag)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
@@ -2346,12 +2357,13 @@ download the system unless a version is specified."
                                                (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
                                                       (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
                                                                                          (uiop:split-string (namestring abs-dirname)
-                                                                                                            :separator (list (uiop:directory-separator-for-host))))))))
+                                                                                                            :separator (list (uiop:directory-separator-for-host)))))))
+                                                      (safe-digest (require-oci-digest manifest-digest "registry manifest digest")))
                                                  (copy-directory:copy dl-dir *systems-dir*)
                                                  (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
                                                    (debug-log #?"registering ${s}")
                                                    (setf (gethash (mangle (pathname-name s)) *ocicl-systems*)
-                                                         (cons #?"${registry}/${mangled-name}@${manifest-digest}"
+                                                         (cons #?"${registry}/${mangled-name}@${safe-digest}"
                                                                (enough-namestring (namestring s) *systems-dir*))))))
                                              t)
                                          (error (e)

@@ -202,6 +202,14 @@
                   "sha256:zzzz16bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")))
     (check "parse-oci-digest rejects a mutable tag"
            (null (ocicl::parse-oci-digest "latest")))
+    (check "require-oci-digest canonicalizes a valid digest"
+           (equal (ocicl::require-oci-digest
+                   "sha256:BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD" "x")
+                  "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"))
+    (check-errors "require-oci-digest rejects a digest with a comma"
+                  (ocicl::require-oci-digest "sha256:ab,cd" "x"))
+    (check-errors "require-oci-digest rejects a non-digest"
+                  (ocicl::require-oci-digest "latest" "x"))
     (check "a one-byte change is detected"
            (not (string= (ocicl::sha256-hex-of-octets (babel:string-to-octets "abc" :encoding :utf-8))
                          (ocicl::sha256-hex-of-octets (babel:string-to-octets "abd" :encoding :utf-8)))))
