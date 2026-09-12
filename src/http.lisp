@@ -98,11 +98,20 @@
       (destructuring-bind (name . value) h
         (setf (gethash name ht) value)))))
 
-(defun http-get (url &key headers force-string force-binary want-stream verbose)
-  "Roughly emulates the subset of DEXADOR:GET used by ocicl.
+(define-condition http-fetch-error (error)
+  ((message :initarg :message :reader http-fetch-error-message))
+  (:report (lambda (condition stream)
+             (write-string (http-fetch-error-message condition) stream))))
 
-  Returns BODY  STATUS  HEADERS just like DEXADOR:GET did.
-  - BODY is a string unless WANT-STREAM is T.
+(define-condition tls-verification-failure (http-fetch-error)
+  ())
+
+(define-condition http-status-error (http-fetch-error)
+  ((status :initarg :status :reader http-status-error-status)))
+
+(defun %http-get-once (url &key headers force-string force-binary want-stream verbose)
+  "Perform one HTTP GET of URL.  Returns BODY STATUS HEADERS.
+  - BODY is a string unless WANT-STREAM is T (and only when STATUS < 400).
   - STATUS is the numeric HTTP status code.
   - HEADERS is a hash-table whose keys are *string* header names."
   (let ((old-header-stream drakma:*header-stream*))
@@ -181,23 +190,80 @@
                                            (or host url) e)))
                          (when verbose
                            (format verbose "; underlying error: ~A~%" e))
-                         (error msg)))
+                         (error 'tls-verification-failure :message msg)))
                      #+pure-tls
                      (pure-tls:tls-error (e)
                        (let* ((host (ignore-errors (puri:uri-host (puri:parse-uri url))))
                               (msg (friendly-tls-message e)))
                          (when verbose
                            (format verbose "; underlying error: ~A~%" e))
-                         (error (or msg (format nil "TLS error for ~A: ~A" (or host url) e)))))
+                         (error 'http-fetch-error
+                                :message (or msg (format nil "TLS error for ~A: ~A" (or host url) e)))))
                      (error (e)
                        (let ((msg (friendly-tls-message e)))
                          (when verbose
                            (format verbose "; underlying error: ~A~%" e))
-                         (error (or msg (princ-to-string e))))))))
+                         (if (and msg (uiop:string-prefix-p "TLS verification failed" msg))
+                             (error 'tls-verification-failure :message msg)
+                             (error 'http-fetch-error :message (or msg (princ-to-string e)))))))))
              ;; Convert Drakma’s header alist to the hash-table expected elsewhere.
-             (let ((body (if (and force-string (not want-stream))
+             (let ((body (if (and force-string (not want-stream) (< status-code 400))
                              ;; ensure body is a Lisp string; leave it untouched otherwise
+                             ;; (error bodies are discarded, so don't risk decoding them)
                              (babel:octets-to-string body :encoding :utf-8)
                              body)))
                (values body status-code (header-alist->hash-table response-headers)))))
       (setf drakma:*header-stream* old-header-stream))))
+
+(defvar *http-max-retries* 3
+  "How many times to retry a transient HTTP failure, beyond the first attempt.")
+
+(defun %transient-http-status-p (status)
+  (member status '(408 429 500 502 503 504)))
+
+(defun %sleep-before-retry (what url attempt)
+  (let ((delay (expt 2 attempt)))
+    (format *error-output* "; ~A for ~A; retrying in ~As~%" what url delay)
+    (sleep delay)))
+
+(defun http-get (url &key headers force-string force-binary want-stream verbose)
+  "Roughly emulates the subset of DEXADOR:GET used by ocicl.
+
+  Returns BODY  STATUS  HEADERS just like DEXADOR:GET did.
+  - BODY is a string unless WANT-STREAM is T.
+  - STATUS is the numeric HTTP status code.
+  - HEADERS is a hash-table whose keys are *string* header names.
+
+  A response status of 400 or greater signals HTTP-STATUS-ERROR.
+  Transient failures (connection errors, HTTP 408/429/5xx) are retried
+  up to *HTTP-MAX-RETRIES* times with exponential backoff; TLS
+  verification failures are never retried."
+  (loop for attempt from 0 upto *http-max-retries*
+        do (block try
+             (multiple-value-bind (body status response-headers)
+                 (handler-case
+                     (%http-get-once url :headers headers
+                                         :force-string force-string
+                                         :force-binary force-binary
+                                         :want-stream want-stream
+                                         :verbose verbose)
+                   (tls-verification-failure (e)
+                     (error e))
+                   (error (e)
+                     (when (>= attempt *http-max-retries*)
+                       (error e))
+                     (%sleep-before-retry e url attempt)
+                     (return-from try)))
+               (cond
+                 ((< status 400)
+                  (return-from http-get (values body status response-headers)))
+                 (t
+                  (when (and want-stream (streamp body))
+                    (ignore-errors (close body)))
+                  (when (and (%transient-http-status-p status)
+                             (< attempt *http-max-retries*))
+                    (%sleep-before-retry (format nil "HTTP ~A" status) url attempt)
+                    (return-from try))
+                  (error 'http-status-error
+                         :status status
+                         :message (format nil "HTTP ~A for ~A" status url))))))))

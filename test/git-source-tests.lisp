@@ -214,5 +214,63 @@
            (not (string= (ocicl::sha256-hex-of-octets (babel:string-to-octets "abc" :encoding :utf-8))
                          (ocicl::sha256-hex-of-octets (babel:string-to-octets "abd" :encoding :utf-8)))))
 
+    ;; http-get retry behavior (stub the single-attempt fetch and the sleep)
+    (let ((real-once (fdefinition 'ocicl.http::%http-get-once))
+          (real-sleep (fdefinition 'ocicl.http::%sleep-before-retry))
+          (calls 0))
+      (unwind-protect
+           (progn
+             (setf (fdefinition 'ocicl.http::%sleep-before-retry)
+                   (lambda (what url attempt)
+                     (declare (ignore what url attempt))))
+
+             (setf calls 0
+                   (fdefinition 'ocicl.http::%http-get-once)
+                   (lambda (url &key &allow-other-keys)
+                     (declare (ignore url))
+                     (incf calls)
+                     (if (< calls 2)
+                         (error 'ocicl.http::http-fetch-error :message "boom")
+                         (values "ok" 200 (make-hash-table)))))
+             (check "http-get retries a transient connection error"
+                    (and (equal (ocicl.http:http-get "https://x/y") "ok")
+                         (= calls 2)))
+
+             (setf calls 0
+                   (fdefinition 'ocicl.http::%http-get-once)
+                   (lambda (url &key &allow-other-keys)
+                     (declare (ignore url))
+                     (incf calls)
+                     (if (< calls 3)
+                         (values "err" 503 (make-hash-table))
+                         (values "ok" 200 (make-hash-table)))))
+             (check "http-get retries HTTP 503"
+                    (and (equal (ocicl.http:http-get "https://x/y") "ok")
+                         (= calls 3)))
+
+             (setf calls 0
+                   (fdefinition 'ocicl.http::%http-get-once)
+                   (lambda (url &key &allow-other-keys)
+                     (declare (ignore url))
+                     (incf calls)
+                     (values "nope" 404 (make-hash-table))))
+             (check-errors "http-get signals on HTTP 404"
+                           (ocicl.http:http-get "https://x/y"))
+             (check "http-get does not retry HTTP 404"
+                    (= calls 1))
+
+             (setf calls 0
+                   (fdefinition 'ocicl.http::%http-get-once)
+                   (lambda (url &key &allow-other-keys)
+                     (declare (ignore url))
+                     (incf calls)
+                     (error 'ocicl.http::tls-verification-failure :message "bad cert")))
+             (check-errors "http-get signals on TLS verification failure"
+                           (ocicl.http:http-get "https://x/y"))
+             (check "http-get does not retry a TLS verification failure"
+                    (= calls 1)))
+        (setf (fdefinition 'ocicl.http::%http-get-once) real-once
+              (fdefinition 'ocicl.http::%sleep-before-retry) real-sleep)))
+
     (format t "~%~D passed, ~D failed~%" *test-passed* *test-failed*)
     *test-failed*))
