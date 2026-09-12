@@ -1884,6 +1884,157 @@ The caller must ensure OUT-PATH's directory exists."
        (format t "~A~%" d)))
     (t (usage))))
 
+(defun load-ocicl-config ()
+  "Load registry, global-directory, and credential configuration, and
+honor OCICL_SYSTEMS_DIR.  Runs before option parsing, so errors are
+only reported when *verbose* was set by an earlier caller."
+  (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
+    (when (probe-file config-file)
+      (handler-case
+          (setf *ocicl-registries*
+                (or (with-open-file (in config-file)
+                                    (loop for line = (read-line in nil nil)
+                                          while line
+                                          ;; skip comments and empty lines
+                                          unless (or (zerop (length line))
+                                                    (char= #\# (aref line 0)))
+                                          collect (string-trim '(#\Space #\Tab #\Newline #\Return) line)))
+                    *ocicl-registries*))
+        (error (e)
+          (when *verbose*
+            (format *error-output* "; Error reading registry config: ~A~%" e))))))
+  (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
+    (when (probe-file config-file)
+      (handler-case
+          (setf *ocicl-globaldir* (uiop:ensure-absolute-pathname (uiop:read-file-line config-file)))
+        (error (e)
+          (when *verbose*
+            (format *error-output* "; Error reading global directory config: ~A~%" e))))))
+  (setf *ocicl-credentials*
+        (load-credentials (merge-pathnames (get-ocicl-dir) "ocicl-credentials.cfg")))
+  (let ((prefix (uiop:getenv "OCICL_SYSTEMS_DIR")))
+    (when (and prefix (string/= prefix ""))
+      (setf *systems-dir-prefix* prefix))))
+
+(defun parse-global-options (global-args)
+  "Parse GLOBAL-ARGS, returning the options plist.  Prints a fatal
+message and returns NIL options on a malformed option."
+  (handler-case
+      (handler-bind ((opts:unknown-option #'unknown-option))
+        (opts:get-opts global-args))
+    (opts:missing-arg (condition)
+      (format t "fatal: option ~s needs an argument!~%"
+              (opts:option condition)))
+    (opts:arg-parser-failed (condition)
+      (format t "fatal: cannot parse ~s as argument of ~s~%"
+              (opts:raw-arg condition)
+              (opts:option condition)))))
+
+(defun finalize-template-dirs ()
+  "Assemble *template-dirs* in precedence order."
+  ;; 1.  --template-dir options (the arg-parser pushes, so
+  ;;     reverse to let earlier instances win)
+  (setf *template-dirs* (reverse *template-dirs*))
+  ;; 2.  environment variable
+  (when (uiop:getenvp "OCICL_TEMPLATE_PATH")
+    (alexandria:appendf *template-dirs*
+             (uiop:split-string (uiop:getenv "OCICL_TEMPLATE_PATH")
+                                :separator (string #\:))))
+  ;; 3.  config-file
+  (let ((cfg (merge-pathnames (get-ocicl-dir) "ocicl-templates.cfg")))
+    (when (probe-file cfg)
+      (handler-case
+          (alexandria:appendf *template-dirs*
+                   (uiop:read-file-lines cfg))
+        (error (e)
+          (when *verbose*
+            (format *error-output* "; Error reading template config ~A: ~A~%" cfg e))))))
+  ;; 4.  hard defaults (user dir first, then built-in share dir)
+  (alexandria:appendf *template-dirs*
+           (list (merge-pathnames "templates/" (get-ocicl-dir))))
+  (setf *template-dirs* (remove-duplicates *template-dirs* :test #'equal)))
+
+(defun color-output-p (color-option)
+  "Decide whether to colorize output, honoring COLOR-OPTION (\"auto\",
+\"always\", \"never\", or NIL), NO_COLOR, and whether stdout is a tty."
+  (flet ((output-stream ()
+           (if (typep *standard-output* 'synonym-stream)
+               (symbol-value (synonym-stream-symbol *standard-output*))
+               *standard-output*)))
+    (let ((color-allowed?
+            (or (string= color-option "auto")
+                (and (not color-option)
+                     (not (uiop:getenvp "NO_COLOR")))))
+          (tty?
+            (handler-case
+                #+sbcl
+                (/= 0 (sb-unix:unix-isatty
+                        (sb-sys:fd-stream-fd
+                          (output-stream))))
+                #-sbcl
+                (interactive-stream-p (output-stream))
+              (error () nil))))
+      (or (string= color-option "always")
+          (and tty? color-allowed?)))))
+
+(defun init-systems-tables (workdir)
+  "Read the local (and, unless local-only, global) systems tables and
+set the corresponding systems directories.  The current directory must
+be WORKDIR."
+  (setq *ocicl-systems* (read-systems-csv))
+  (setq *systems-dir* (apply-systems-dir-prefix
+                       (merge-pathnames *relative-systems-dir*
+                                        (uiop:getcwd))))
+  ;; Initialize global systems registry if configured and different from local
+  ;; (skip entirely in local-only mode)
+  (unless *local-only*
+    (let ((globaldir (or *ocicl-globaldir* (get-ocicl-dir))))
+      (unless (uiop:pathname-equal globaldir workdir)
+        ;; Use just the filename, not full path (which find-workdir may have set)
+        (let ((global-csv (merge-pathnames (file-namestring *systems-csv*) globaldir)))
+          (when (uiop:file-exists-p global-csv)
+            (setq *global-ocicl-systems* (read-systems-csv global-csv))
+            (setq *global-systems-dir* (apply-systems-dir-prefix
+                                        (merge-pathnames *relative-systems-dir* globaldir)))))))))
+
+(defun dispatch-command (cmd cmd-args)
+  (cond
+    ((string= cmd "help")
+     (usage))
+    ((string= cmd "libyear")
+     (do-libyear))
+    ((string= cmd "changes")
+     (do-changes cmd-args))
+    ((string= cmd "install")
+     (do-install cmd-args))
+    ((string= cmd "remove")
+     (do-remove cmd-args))
+    ((string= cmd "latest")
+     (do-latest cmd-args))
+    ((string= cmd "list")
+     (do-list cmd-args))
+    ((string= cmd "new")
+     (do-new cmd-args))
+    ((string= cmd "tree")
+     (do-tree cmd-args))
+    ((string= cmd "templates")
+     (do-templates cmd-args))
+    ((string= cmd "diff")
+     (do-diff cmd-args))
+    ((string= cmd "clean")
+     (do-clean cmd-args))
+    ((string= cmd "collect-licenses")
+     (do-collect-licenses cmd-args))
+    ((string= cmd "create-sbom")
+     (do-create-sbom cmd-args))
+    ((string= cmd "setup")
+     (do-setup cmd-args))
+    ((string= cmd "update")
+     (do-update cmd-args))
+    ((string= cmd "version")
+     (do-version cmd-args))
+    (t (usage))))
+
 (defun main ()
   ;; Update *default-pathname-defaults* to reflect the actual current directory
   ;; when running from a saved core image, since it may be stale
@@ -1893,58 +2044,17 @@ The caller must ensure OUT-PATH's directory exists."
 
   (handler-case
       (with-user-abort:with-user-abort
-
-       (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-registry.cfg")))
-         (when (probe-file config-file)
-           (handler-case
-               (setf *ocicl-registries*
-                     (or (with-open-file (in config-file)
-                                         (loop for line = (read-line in nil nil)
-                                               while line
-                                               ;; skip comments and empty lines
-                                               unless (or (zerop (length line))
-                                                         (char= #\# (aref line 0)))
-                                               collect (string-trim '(#\Space #\Tab #\Newline #\Return) line)))
-                         *ocicl-registries*))
-             (error (e)
-               (when *verbose*
-                 (format *error-output* "; Error reading registry config: ~A~%" e))))))
-
-       (let ((config-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))
-         (when (probe-file config-file)
-           (handler-case
-               (setf *ocicl-globaldir* (uiop:ensure-absolute-pathname (uiop:read-file-line config-file)))
-             (error (e)
-               (when *verbose*
-                 (format *error-output* "; Error reading global directory config: ~A~%" e))))))
-
-       (let ((creds-file (merge-pathnames (get-ocicl-dir) "ocicl-credentials.cfg")))
-         (setf *ocicl-credentials* (load-credentials creds-file)))
-
-       (let ((prefix (uiop:getenv "OCICL_SYSTEMS_DIR")))
-         (when (and prefix (string/= prefix ""))
-           (setf *systems-dir-prefix* prefix)))
+       (load-ocicl-config)
 
        ;; Split arguments at command boundary - global options before, command-specific after
        (multiple-value-bind (global-args cmd cmd-args)
            (split-args-at-command (rest (uiop:raw-command-line-arguments)))
-         (let ((workdir *default-pathname-defaults*))
-           (multiple-value-bind (options free-args)
-               (handler-case
-                   (handler-bind ((opts:unknown-option #'unknown-option))
-                     (opts:get-opts global-args))
-                 (opts:missing-arg (condition)
-                   (format t "fatal: option ~s needs an argument!~%"
-                           (opts:option condition)))
-                 (opts:arg-parser-failed (condition)
-                   (format t "fatal: cannot parse ~s as argument of ~s~%"
-                           (opts:raw-arg condition)
-                           (opts:option condition))))
-             (declare (ignore free-args)) ; We use cmd instead
-             ;; Only show global help if no command is specified
-             (when (and (getf options :help) (not cmd))
-               (usage)
-               (uiop:quit 0))
+         (let ((workdir *default-pathname-defaults*)
+               (options (parse-global-options global-args)))
+           ;; Only show global help if no command is specified
+           (when (and (getf options :help) (not cmd))
+             (usage)
+             (uiop:quit 0))
            ;; Command-specific help: 'ocicl COMMAND --help'.  Handled here,
            ;; before any workdir setup or side effects, for the commands that
            ;; consume positional arguments directly.  The tree, update, and
@@ -1956,52 +2066,8 @@ The caller must ensure OUT-PATH's directory exists."
                         (setf *force* t))
            (when-option (options :global)
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
-           ;; 1.  --template-dir options (the arg-parser pushes, so
-           ;;     reverse to let earlier instances win)
-           (setf *template-dirs* (reverse *template-dirs*))
-
-           ;; 2.  environment variable
-           (when (uiop:getenvp "OCICL_TEMPLATE_PATH")
-             (alexandria:appendf *template-dirs*
-                      (uiop:split-string (uiop:getenv "OCICL_TEMPLATE_PATH")
-                                         :separator (string #\:))))
-
-           ;; 3.  config-file
-           (let ((cfg (merge-pathnames (get-ocicl-dir) "ocicl-templates.cfg")))
-             (when (probe-file cfg)
-               (handler-case
-                   (alexandria:appendf *template-dirs*
-                            (uiop:read-file-lines cfg))
-                 (error (e)
-                   (when *verbose*
-                     (format *error-output* "; Error reading template config ~A: ~A~%" cfg e))))))
-
-           ;; 4.  hard defaults (user dir first, then built-in share dir)
-           (alexandria:appendf *template-dirs*
-                    (list (merge-pathnames "templates/" (get-ocicl-dir))))
-
-           (setf *template-dirs* (remove-duplicates *template-dirs* :test #'equal))
-
-           (flet ((get-output-stream ()
-                    (if (typep *standard-output* 'synonym-stream)
-                        (symbol-value (synonym-stream-symbol *standard-output*))
-                        *standard-output*)))
-           (let* ((color (getf options :color))
-                    (color-allowed?
-                      (or (string= color "auto")
-                          (and (not color)
-                               (not (uiop:getenvp "NO_COLOR")))))
-                    (tty?
-                      (handler-case
-                          #+sbcl
-                          (/= 0 (sb-unix:unix-isatty
-                                  (sb-sys:fd-stream-fd
-                                    (get-output-stream))))
-                          #-sbcl
-                          (interactive-stream-p (get-output-stream))
-                        (error () nil))))
-               (setf *color* (or (string= color "always")
-                                 (and tty? color-allowed?)))))
+           (finalize-template-dirs)
+           (setf *color* (color-output-p (getf options :color)))
 
            ;; TLS verification (default depends on platform); allow --insecure or OCICL_INSECURE
            (when (or (getf options :insecure)
@@ -2016,7 +2082,7 @@ The caller must ensure OUT-PATH's directory exists."
            (when (uiop:getenvp "OCICL_LOCAL_ONLY")
              (setf *local-only* t))
 
-           ;; Handle lint command separately - it doesn't need workdir or directory changes
+           ;; The lint command needs no workdir or directory changes
            (if (and cmd (string= cmd "lint"))
                (do-lint cmd-args)
                (progn
@@ -2024,65 +2090,17 @@ The caller must ensure OUT-PATH's directory exists."
                  (locally (declare #+sbcl(sb-ext:muffle-conditions sb-kernel:redefinition-warning))
                    (handler-bind (#+sbcl(sb-kernel:redefinition-warning #'muffle-warning))
                      (uiop:with-current-directory (workdir)
-                       (setq *ocicl-systems* (read-systems-csv))
-                       (setq *systems-dir* (apply-systems-dir-prefix
-                                            (merge-pathnames *relative-systems-dir*
-                                                             (uiop:getcwd))))
-                       ;; Initialize global systems registry if configured and different from local
-                       ;; (skip entirely in local-only mode)
-                       (unless *local-only*
-                         (let ((globaldir (or *ocicl-globaldir* (get-ocicl-dir))))
-                           (unless (uiop:pathname-equal globaldir workdir)
-                             ;; Use just the filename, not full path (which find-workdir may have set)
-                             (let ((global-csv (merge-pathnames (file-namestring *systems-csv*) globaldir)))
-                               (when (uiop:file-exists-p global-csv)
-                                 (setq *global-ocicl-systems* (read-systems-csv global-csv))
-                                 (setq *global-systems-dir* (apply-systems-dir-prefix
-                                                             (merge-pathnames *relative-systems-dir* globaldir))))))))
-                       (if (not cmd)
-                           (usage)
-                           (cond
-                                ((string= cmd "help")
-                                 (usage))
-                                ((string= cmd "libyear")
-                                 (do-libyear))
-                                ((string= cmd "changes")
-                                 (do-changes cmd-args))
-                                ((string= cmd "install")
-                                 (do-install cmd-args))
-                                ((string= cmd "remove")
-                                 (do-remove cmd-args))
-                                ((string= cmd "latest")
-                                 (do-latest cmd-args))
-                                ((string= cmd "list")
-                                 (do-list cmd-args))
-                                ((string= cmd "new")
-                                 (do-new cmd-args))
-                                ((string= cmd "tree")
-                                 (do-tree cmd-args))
-                                ((string= cmd "templates")
-                                 (do-templates cmd-args))
-                                ((string= cmd "diff")
-                                 (do-diff cmd-args))
-                                ((string= cmd "clean")
-                                 (do-clean cmd-args))
-                                ((string= cmd "collect-licenses")
-                                 (do-collect-licenses cmd-args))
-                                ((string= cmd "create-sbom")
-                                 (do-create-sbom cmd-args))
-                                ((string= cmd "setup")
-                                 (do-setup cmd-args))
-                                ((string= cmd "update")
-                                 (do-update cmd-args))
-                                ((string= cmd "version")
-                                 (do-version cmd-args))
-                                (t (usage)))))))))))))
+                       (init-systems-tables workdir)
+                       (if cmd
+                           (dispatch-command cmd cmd-args)
+                           (usage))))))))))
     (with-user-abort:user-abort () (uiop:quit 130))
     (stream-error (e)
       (format *error-output* "ocicl: stream error during output~%")
       (when *verbose*
         (format *error-output* "~a~&" e))
       (uiop:quit 1))))
+
 
 (defun replace-plus-with-string (str)
   (let ((mangled (with-output-to-string (s)
