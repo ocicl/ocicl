@@ -410,24 +410,24 @@ parse their own options.")
   "If OCICL_SYSTEMS_DIR is set, overlay DIR under that prefix.
 E.g. prefix=/data/ocicl, dir=/home/user/proj/ocicl/
   => /data/ocicl/home/user/proj/ocicl/"
-  (if *systems-dir-prefix*
-      (let* ((abs (namestring dir))
-             ;; Strip leading separator (/ on Unix, drive letter on Windows)
-             (stripped (cond
-                         ((and (> (length abs) 0)
-                               (char= (char abs 0) #\/))
-                          (subseq abs 1))
-                         ((and (uiop:os-windows-p)
-                               (> (length abs) 2)
-                               (alpha-char-p (char abs 0))
-                               (char= (char abs 1) #\:))
-                          (subseq abs 2))
-                         (t abs)))
-             (result (merge-pathnames stripped
-                                      (uiop:ensure-directory-pathname *systems-dir-prefix*))))
-        (uiop:ensure-all-directories-exist (list result))
-        result)
-      dir))
+  (unless *systems-dir-prefix*
+    (return-from apply-systems-dir-prefix dir))
+  (let* ((abs (namestring dir))
+         ;; Strip leading separator (/ on Unix, drive letter on Windows)
+         (rootless (cond
+                     ((and (> (length abs) 0)
+                           (char= (char abs 0) #\/))
+                      (subseq abs 1))
+                     ((and (uiop:os-windows-p)
+                           (> (length abs) 2)
+                           (alpha-char-p (char abs 0))
+                           (char= (char abs 1) #\:))
+                      (subseq abs 2))
+                     (t abs)))
+         (prefixed-dir (merge-pathnames rootless
+                                        (uiop:ensure-directory-pathname *systems-dir-prefix*))))
+    (uiop:ensure-all-directories-exist (list prefixed-dir))
+    prefixed-dir))
 
 (defun registry-server (registry)
   "Return the server part of REGISTRY (the text before the first slash),
@@ -1058,6 +1058,13 @@ Returns (values check-only dry-run include-prerelease)."
               (round-up-to-decimal age 2)
               (round-up-to-decimal (* age 365.25) 2)))))
 
+(defun report-changes (project-name system versions)
+  (let ((nth-change 0))
+    (dolist (v versions)
+      (format t "~&~A~%~%~A~%~%"
+              (changes-banner project-name (incf nth-change) v)
+              (get-changes (mangle system) v)))))
+
 (defun do-changes (args)
   ;; Make sure the systems directory exists
   (uiop:ensure-all-directories-exist
@@ -1065,16 +1072,13 @@ Returns (values check-only dry-run include-prerelease)."
   (if args
       ;; Report on all the systems provided on the command line.
       (dolist (system-maybe-version args)
-        (let ((system (car (split-on-delimiter system-maybe-version #\:)))
-              (version (cadr (split-on-delimiter system-maybe-version #\:))))
-          (let ((asd (cdr (gethash system *ocicl-systems*))))
-            (let ((version (or version
-                               (and asd (get-project-version asd))))
-                  (project-name (or (and asd (get-project-name asd)) system)))
-                (let ((versions (get-versions-since system version)))
-                  (let ((nth-change 0))
-                    (dolist (v versions)
-                      (format t "~&~A~%~%~A~%~%" (changes-banner project-name (incf nth-change) v) (get-changes (mangle system) v)))))))))
+        (let* ((name-and-version (split-on-delimiter system-maybe-version #\:))
+               (system (car name-and-version))
+               (asd (cdr (gethash system *ocicl-systems*)))
+               (version (or (cadr name-and-version)
+                            (and asd (get-project-version asd))))
+               (project-name (or (and asd (get-project-name asd)) system)))
+          (report-changes project-name system (get-versions-since system version))))
       ;; One entry per project (top-level directory), carrying a system
       ;; name and its systems-dir-relative .asd path, which is what
       ;; GET-PROJECT-VERSION and GET-PROJECT-NAME expect.
@@ -1088,14 +1092,12 @@ Returns (values check-only dry-run include-prerelease)."
                    (declare (ignore tld))
                    (destructuring-bind (value . asd) entry
                      (handler-case
-                         (let ((version (get-project-version asd))
-                               (project-name (get-project-name asd)))
-                           (let ((versions (get-versions-since value version)))
-                             (if versions
-                                 (let ((nth-change 0))
-                                   (dolist (v versions)
-                                     (format t "~&~A~%~%~A~%~%" (changes-banner project-name (incf nth-change) v) (get-changes (mangle value) v))))
-                                 (when *verbose* (format t "~A~%" (changes-banner project-name nil nil))))))
+                         (let* ((version (get-project-version asd))
+                                (project-name (get-project-name asd))
+                                (versions (get-versions-since value version)))
+                           (if versions
+                               (report-changes project-name value versions)
+                               (when *verbose* (format t "~A~%" (changes-banner project-name nil nil)))))
                        (error (e)
                          (declare (ignore e))
                          ()))))
@@ -1200,6 +1202,13 @@ steer delete-directory-tree outside the systems directory."
                rest)))
      all)))
 
+(defun system-root-directory (relative-asd-path)
+  "Return the top-level directory under *systems-dir* that holds
+RELATIVE-ASD-PATH (a systems-dir-relative .asd path)."
+  (merge-pathnames
+   (make-pathname :directory (subseq (pathname-directory (pathname relative-asd-path)) 0 2))
+   *systems-dir*))
+
 (defun system-group (system)
   "Return systems that are known to ocicl and in the same directory tree as SYSTEM"
   (let* ((*inhibit-download-during-search* t))
@@ -1216,12 +1225,8 @@ steer delete-directory-tree outside the systems directory."
         (let ((top-systems (mapcar
                             #'pathname-name
                             (find-asd-files
-                             (merge-pathnames
-                              (make-pathname :directory
-                                             (subseq (pathname-directory
-                                                      (enough-namestring source-file *systems-dir*))
-                                                     0 2))
-                              *systems-dir*)))))
+                             (system-root-directory
+                              (enough-namestring source-file *systems-dir*))))))
           (append
            top-systems
            (let ((slash-systems))
@@ -1250,15 +1255,7 @@ steer delete-directory-tree outside the systems directory."
       (t
         (let* ((fullname (car system-info))
                (relative-asd-path (cdr system-info))
-               (absolute-asd-path (merge-pathnames relative-asd-path *systems-dir*))
-               (system-directory (merge-pathnames
-                                  (make-pathname
-                                   :directory
-                                   `(:relative
-                                     ,(second
-                                       (pathname-directory
-                                        (enough-namestring absolute-asd-path *systems-dir*)))))
-                                  *systems-dir*))
+               (system-directory (system-root-directory relative-asd-path))
                (system-group (system-group system)))
           (when modify-ocicl-systems
             (dolist (system system-group)
@@ -1451,6 +1448,11 @@ steer delete-directory-tree outside the systems directory."
                                     :directory '(:relative :wild-inferiors))
                      directory))))
 
+(defun relative-file-list (directory)
+  "List every file under DIRECTORY as a directory-relative namestring."
+  (mapcar (lambda (file) (enough-namestring file directory))
+          (list-all-files directory)))
+
 (defun binary-file-p (pathname)
   (declare (optimize (speed 3) (safety 1)))
   (let ((buffer (make-array 3000 :element-type '(unsigned-byte 8))))
@@ -1474,91 +1476,74 @@ steer delete-directory-tree outside the systems directory."
 
 (defun do-diff (args)
   (declare (optimize (speed 3) (safety 1)))
-  (if (fourth args)
-      (progn (usage) (uiop:quit 1))
-      (let* ((system-name (first args))
-             (given-v1 (second args))
-             (given-v2 (third args))
-             (latest-version (when (or (equal given-v1 "latest")
-                                       (equal given-v2 "latest")
-                                       (and (null given-v1) (null given-v2)))
-                               (system-latest-version system-name)))
-             (version1 (cond ((not given-v2) nil)
-                             ((string= given-v1 "latest")
-                              latest-version)
-                             (t given-v1)))
-             (version2 (cond ((not given-v2) (or version1 latest-version))
-                             ((string= given-v2 "latest")
-                              latest-version)
-                             (t given-v2)))
-             (system-fullname-1 (concatenate 'string system-name (when version1 ":") version1))
-             (system-fullname-2 (concatenate 'string system-name ":" version2)))
-        (declare (type string system-name)
-                 (type (or null string) given-v1 given-v2 version1 version2))
-        (when (and version1 (equal version1 version2))
-          (return-from do-diff))
-        (let* ((version1-system-info (if version1
-                                         (download-system system-fullname-1
-                                                          :update-csv nil
-                                                          :print-error t)
-                                         (gethash (mangle system-name) *ocicl-systems*)))
-               (version2-system-info (when version1-system-info
-                                       (download-system system-fullname-2
-                                                        :update-csv nil
-                                                        :print-error t))))
-          (when (not (or version1 version1-system-info))
-            (format *error-output* "; Error: system ~A not installed. Install it or specify two versions to diff.~%" system-name)
-            (uiop:quit 1))
-          (if (and version1-system-info version2-system-info)
-              (let* ((version1-dir (merge-pathnames
-                                    (make-pathname
-                                     :directory `(:relative
-                                                  ,(second
-                                                    (pathname-directory
-                                                     (the string (cdr version1-system-info))))))
-                                    *systems-dir*))
-                     (version1-files (mapcar
-                                      (lambda (file)
-                                        (enough-namestring file version1-dir))
-                                      (list-all-files version1-dir)))
-                     (version2-dir (merge-pathnames
-                                    (make-pathname
-                                     :directory `(:relative
-                                                  ,(second
-                                                    (pathname-directory
-                                                     (the string (cdr version2-system-info))))))
-                                    *systems-dir*))
-                     (version2-files (mapcar
-                                      (lambda (file)
-                                        (enough-namestring file version2-dir))
-                                      (list-all-files version2-dir)))
-                     (files-only-in-1  (set-difference version1-files version2-files :test #'equal))
-                     (files-only-in-2 (set-difference version2-files version1-files :test #'equal))
-                     (files-in-both (intersection version1-files version2-files :test #'equal))
-                     (files (sort
-                             (append
-                              (mapcar (lambda (file) (cons file version1)) files-only-in-1)
-                              (mapcar (lambda (file) (cons file version2)) files-only-in-2)
-                              (mapcar (lambda (file) (cons file :both)) files-in-both))
-                             #'string<
-                             :key #'car)))
-                (dolist (file files)
-                  (if (eql :both (cdr file))
-                      (let ((pathname-1 (merge-pathnames (car file) version1-dir))
-                            (pathname-2 (merge-pathnames (car file) version2-dir)))
-                        (if (or (binary-file-p pathname-1)
-                                (binary-file-p pathname-2))
+  (when (fourth args)
+    (usage)
+    (uiop:quit 1))
+  (let* ((system-name (first args))
+         (given-v1 (second args))
+         (given-v2 (third args))
+         (latest-version (when (or (equal given-v1 "latest")
+                                   (equal given-v2 "latest")
+                                   (and (null given-v1) (null given-v2)))
+                           (system-latest-version system-name)))
+         (version1 (cond ((not given-v2) nil)
+                         ((string= given-v1 "latest")
+                          latest-version)
+                         (t given-v1)))
+         (version2 (cond ((not given-v2) (or version1 latest-version))
+                         ((string= given-v2 "latest")
+                          latest-version)
+                         (t given-v2)))
+         (system-fullname-1 (concatenate 'string system-name (when version1 ":") version1))
+         (system-fullname-2 (concatenate 'string system-name ":" version2)))
+    (declare (type string system-name)
+             (type (or null string) given-v1 given-v2 version1 version2))
+    (when (and version1 (equal version1 version2))
+      (return-from do-diff))
+    (let* ((version1-system-info (if version1
+                                     (download-system system-fullname-1
+                                                      :update-csv nil
+                                                      :print-error t)
+                                     (gethash (mangle system-name) *ocicl-systems*)))
+           (version2-system-info (when version1-system-info
+                                   (download-system system-fullname-2
+                                                    :update-csv nil
+                                                    :print-error t))))
+      (when (not (or version1 version1-system-info))
+        (format *error-output* "; Error: system ~A not installed. Install it or specify two versions to diff.~%" system-name)
+        (uiop:quit 1))
+      (if (and version1-system-info version2-system-info)
+          (let* ((version1-dir (system-root-directory (cdr version1-system-info)))
+                 (version1-files (relative-file-list version1-dir))
+                 (version2-dir (system-root-directory (cdr version2-system-info)))
+                 (version2-files (relative-file-list version2-dir))
+                 (files-only-in-1  (set-difference version1-files version2-files :test #'equal))
+                 (files-only-in-2 (set-difference version2-files version1-files :test #'equal))
+                 (files-in-both (intersection version1-files version2-files :test #'equal))
+                 (files (sort
+                         (append
+                          (mapcar (lambda (file) (cons file version1)) files-only-in-1)
+                          (mapcar (lambda (file) (cons file version2)) files-only-in-2)
+                          (mapcar (lambda (file) (cons file :both)) files-in-both))
+                         #'string<
+                         :key #'car)))
+            (dolist (file files)
+              (if (eql :both (cdr file))
+                  (let ((pathname-1 (merge-pathnames (car file) version1-dir))
+                        (pathname-2 (merge-pathnames (car file) version2-dir)))
+                    (if (or (binary-file-p pathname-1)
+                            (binary-file-p pathname-2))
+                        (when (binary-files-differ-p pathname-1 pathname-2)
+                          (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))
+                        (handler-case
+                            (let ((diff (diff:generate-diff 'colorful-unified-diff pathname-1 pathname-2)))
+                              (when (diff:diff-windows diff)
+                                (diff:render-diff diff *standard-output*)))
+                          (stream-error ()
                             (when (binary-files-differ-p pathname-1 pathname-2)
-                              (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))
-                            (handler-case
-                                (let ((diff (diff:generate-diff 'colorful-unified-diff pathname-1 pathname-2)))
-                                  (when (diff:diff-windows diff)
-                                    (diff:render-diff diff *standard-output*)))
-                              (stream-error ()
-                                (when (binary-files-differ-p pathname-1 pathname-2)
-                                  (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))))))
-                      (format t "~&Only in ~a: ~a~%" (cdr file) (car file)))))
-              (uiop:quit 1))))))
+                              (format t "~&Binary files ~a and ~a differ~%" pathname-1 pathname-2))))))
+                  (format t "~&Only in ~a: ~a~%" (cdr file) (car file)))))
+          (uiop:quit 1)))))
 
 (defun do-clean (args)
   (when args
@@ -1574,13 +1559,7 @@ steer delete-directory-tree outside the systems directory."
                         (declare (ignore system))
                         (destructuring-bind (version . asd) values
                           (declare (ignore version))
-                          ;; get just the top directory
-                          (push
-                           (merge-pathnames
-                            (make-pathname
-                             :directory (subseq (pathname-directory asd) 0 2))
-                            *systems-dir*)
-                           directories)))
+                          (push (system-root-directory asd) directories)))
                       *ocicl-systems*)
              (remove-duplicates directories :test #'equal)))
          (directories-to-clean
@@ -2111,9 +2090,15 @@ The caller must ensure OUT-PATH's directory exists."
 (defun mangle (str)
   (replace-plus-with-string (car (split-on-delimiter str #\/))))
 
+(defun last-directory-component (directory)
+  "Return the last directory component of DIRECTORY as a string."
+  (car (last (remove-if (lambda (s) (string= s ""))
+                        (uiop:split-string (namestring directory)
+                                           :separator (list (uiop:directory-separator-for-host)))))))
+
 (defun get-temp-ocicl-dl-pathname ()
-  (let ((rdir (format nil "ocicl-~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*))))
-    (merge-pathnames (eval `(make-pathname :directory '(:relative ,rdir)))
+  (let ((random-dirname (format nil "ocicl-~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*))))
+    (merge-pathnames (make-pathname :directory (list :relative random-dirname))
                      (uiop:default-temporary-directory))))
 
 
@@ -2281,59 +2266,56 @@ download the system unless a version is specified."
                                #?"sha256:${digest}")))
          (version (or requested-version existing-version "latest"))
          (asd-file (when relative-asd-path (merge-pathnames relative-asd-path *systems-dir*))))
-    (if (and (not requested-version)
-             system-info
-             asd-file
-             (probe-file asd-file)
-             (not *force*))
-        (progn
-          (if *color*
-              (format t #?"${*color-dim*};~
-                           ${*color-reset*}${*color-bold*}${*color-bright-green*} ${system}~
-                           ${*color-reset*}${*color-dim*}:${(get-project-version relative-asd-path)}~
-                           ${*color-reset*} already exists~%")
-              (write-string #?"; ${system}:${(get-project-version relative-asd-path)} already exists\n"))
-          (gethash mangled-name *ocicl-systems*))
-        (let ((dl-dir (get-temp-ocicl-dl-pathname)))
-          (unwind-protect
-               (progn
-                 (uiop:ensure-all-directories-exist (list dl-dir))
-                 (when (uiop:with-current-directory (dl-dir)
-                         (loop for registry in *ocicl-registries*
-                               thereis (handler-case
-                                           (progn
-                                             (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
-                                             (let ((manifest-digest (fetch-and-extract-layer registry mangled-name version dl-dir)))
-                                               (let ((version-display (if (looks-like-dated-version-p version) version "latest")))
-                                                 (if *color*
-                                                     (format t #?"${*color-dim*};~
-                                                                  ${*color-reset*} downloaded~
-                                                                  ${*color-bold*}${*color-bright-green*} ${name}:${version-display}~
-                                                                  ${*color-reset*}${*color-dim*}${(if *verbose* (format nil " @~A" manifest-digest) "")}~%")
-                                                     (format t "; downloaded ~A:~A~A~%"
-                                                             name
-                                                             version-display
-                                                             (if *verbose* (format nil " @~A" manifest-digest) ""))))
-                                               (let* ((abs-dirname (car (uiop:subdirectories dl-dir)))
-                                                      (rel-dirname (car (last (remove-if #'(lambda (s) (string= s ""))
-                                                                                         (uiop:split-string (namestring abs-dirname)
-                                                                                                            :separator (list (uiop:directory-separator-for-host)))))))
-                                                      (safe-digest (require-oci-digest manifest-digest "registry manifest digest")))
-                                                 (copy-directory:copy dl-dir *systems-dir*)
-                                                 (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
-                                                   (debug-log #?"registering ${s}")
-                                                   (setf (gethash (mangle (pathname-name s)) *ocicl-systems*)
-                                                         (cons #?"${registry}/${mangled-name}@${safe-digest}"
-                                                               (enough-namestring (namestring s) *systems-dir*))))))
-                                             t)
-                                         (error (e)
-                                           (when (or *verbose* print-error)
-                                             (format *error-output* "; error downloading ~A from registry ~A~%" system registry))
-                                           (debug-log e)))))
-                   (when update-csv
-                     (write-systems-csv))
-                   (gethash mangled-name *ocicl-systems*)))
-            (uiop:delete-directory-tree dl-dir :validate t))))))
+    (when (and (not requested-version)
+               system-info
+               asd-file
+               (probe-file asd-file)
+               (not *force*))
+      (if *color*
+          (format t #?"${*color-dim*};~
+                       ${*color-reset*}${*color-bold*}${*color-bright-green*} ${system}~
+                       ${*color-reset*}${*color-dim*}:${(get-project-version relative-asd-path)}~
+                       ${*color-reset*} already exists~%")
+          (write-string #?"; ${system}:${(get-project-version relative-asd-path)} already exists\n"))
+      (return-from download-system (gethash mangled-name *ocicl-systems*)))
+    (let ((dl-dir (get-temp-ocicl-dl-pathname)))
+      (unwind-protect
+           (progn
+             (uiop:ensure-all-directories-exist (list dl-dir))
+             (when (uiop:with-current-directory (dl-dir)
+                     (loop for registry in *ocicl-registries*
+                           thereis (handler-case
+                                       (progn
+                                         (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
+                                         (let ((manifest-digest (fetch-and-extract-layer registry mangled-name version dl-dir)))
+                                           (let ((version-display (if (looks-like-dated-version-p version) version "latest")))
+                                             (if *color*
+                                                 (format t #?"${*color-dim*};~
+                                                              ${*color-reset*} downloaded~
+                                                              ${*color-bold*}${*color-bright-green*} ${name}:${version-display}~
+                                                              ${*color-reset*}${*color-dim*}${(if *verbose* (format nil " @~A" manifest-digest) "")}~%")
+                                                 (format t "; downloaded ~A:~A~A~%"
+                                                         name
+                                                         version-display
+                                                         (if *verbose* (format nil " @~A" manifest-digest) ""))))
+                                           (let* ((rel-dirname (last-directory-component
+                                                                (car (uiop:subdirectories dl-dir))))
+                                                  (safe-digest (require-oci-digest manifest-digest "registry manifest digest")))
+                                             (copy-directory:copy dl-dir *systems-dir*)
+                                             (dolist (s (find-asd-files (merge-pathnames rel-dirname *systems-dir*)))
+                                               (debug-log #?"registering ${s}")
+                                               (setf (gethash (mangle (pathname-name s)) *ocicl-systems*)
+                                                     (cons #?"${registry}/${mangled-name}@${safe-digest}"
+                                                           (enough-namestring (namestring s) *systems-dir*))))))
+                                         t)
+                                     (error (e)
+                                       (when (or *verbose* print-error)
+                                         (format *error-output* "; error downloading ~A from registry ~A~%" system registry))
+                                       (debug-log e)))))
+               (when update-csv
+                 (write-systems-csv))
+               (gethash mangled-name *ocicl-systems*)))
+        (uiop:delete-directory-tree dl-dir :validate t)))))
 
 (defun find-asdf-system-file (name)
   "Find ASDF system file for NAME, checking local systems, then global systems, then downloading."
