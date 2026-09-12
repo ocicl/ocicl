@@ -41,7 +41,7 @@
            last-node-prefix)
        stream))
     (print-node node stream)
-    (terpri)
+    (terpri stream)
     (unless (and max-depth (>= depth max-depth))
       (maplist (lambda (node)
                  (%print-tree node stream

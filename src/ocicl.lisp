@@ -1587,10 +1587,10 @@ RELATIVE-ASD-PATH (a systems-dir-relative .asd path)."
 
 (defmethod tree:print-node ((system tree-top) stream)
   (when *color*
-    (write-string *color-reset*))
-  (princ *systems-csv*)
+    (write-string *color-reset* stream))
+  (princ *systems-csv* stream)
   (when *color*
-    (write-string *color-dim*)))
+    (write-string *color-dim* stream)))
 
 (defmethod tree:node-children ((system asdf:system))
   (let ((*inhibit-download-during-search* t))
@@ -1609,27 +1609,27 @@ RELATIVE-ASD-PATH (a systems-dir-relative .asd path)."
 
 (defmethod tree:print-node ((system tree-not-found) stream)
   (when *color*
-    (write-string *color-reset*)
-    (write-string *color-bold*)
-    (write-string *color-bright-red*))
-  (princ (tree-not-found-name system))
-  (princ "!")
+    (write-string *color-reset* stream)
+    (write-string *color-bold* stream)
+    (write-string *color-bright-red* stream))
+  (princ (tree-not-found-name system) stream)
+  (princ "!" stream)
   (when *color*
-    (write-string *color-reset*)
-    (write-string *color-dim*)))
+    (write-string *color-reset* stream)
+    (write-string *color-dim* stream)))
 
 (defmethod tree:print-node ((system asdf:system) stream)
   (let ((seen (gethash system *tree-seen*)))
     (when (and *color* (not seen))
-      (write-string *color-reset*)
-      (write-string *color-bold*)
-      (write-string *color-bright-green*))
-    (princ (asdf:component-name system))
+      (write-string *color-reset* stream)
+      (write-string *color-bold* stream)
+      (write-string *color-bright-green* stream))
+    (princ (asdf:component-name system) stream)
     (when (and (eql seen :expanded) (asdf:system-depends-on system))
-      (princ "*"))
+      (princ "*" stream))
     (when (and *color* (not seen))
-      (write-string *color-reset*)
-      (write-string *color-dim*))
+      (write-string *color-reset* stream)
+      (write-string *color-dim* stream))
     (unless seen
       (setf (gethash system *tree-seen*) :printed))))
 
