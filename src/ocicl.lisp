@@ -712,11 +712,11 @@ ocicl-managed systems directory (the local *SYSTEMS-DIR* or the shared global
                 (when (latest-git-tree (second (pathname-directory (pathname (cdr info))))
                                        (car info))
                   (setf csv-changed t))
-                (unless (download-system (concatenate 'string system ":latest"))
-                  (progn
-                    (format uiop:*stderr* "Error: system ~A not found.~%" system)
-                    (uiop:quit))
-                  (download-system-dependencies system)))))
+                (if (download-system (concatenate 'string system ":latest"))
+                    (download-system-dependencies system)
+                    (progn
+                      (format uiop:*stderr* "Error: system ~A not found.~%" system)
+                      (uiop:quit))))))
         (when csv-changed
           (write-systems-csv)))
       ;; Download latest versions of all systems.
