@@ -491,7 +491,7 @@ Returns a list of issues."
                         (= (length form) 2))
                (let ((body (second form)))
                  ;; Skip if body is unquote-splicing (,@...)
-                 (unless (and (consp body) (eq (first body) 'unquote-splicing))
+                 (unless (unquote-splicing-form-p body)
                    (push-iss ln col "redundant-progn" "PROGN with single form is redundant"))))
 
              ;; Nested WHEN/UNLESS can be combined or flattened

@@ -855,8 +855,7 @@ Skips (progn ,@body) patterns in macros as these are needed."
                          (= (length form) 2))
                 ;; Also skip if the body is unquote-splicing (,@...)
                 (let ((body (second form)))
-                  (unless (and (consp body)
-                               (eq (first body) 'unquote-splicing))
+                  (unless (unquote-splicing-form-p body)
                     (zip-root-content-string
                      (rewrite-cl:zip-replace target
                        (coerce-to-node-downcase (second form))))))))))))))
@@ -1272,20 +1271,20 @@ For two-clause COND with (t ...) as second clause, converts to IF with proper fo
 ;;; Fix: bare-progn-in-if - (IF test (PROGN ...) (PROGN ...)) -> (COND ...)
 ;;; This fixer works by extracting original source text to preserve package prefixes.
 
-(defun extract-progn-body-text (node)
-  "Extract the body of a PROGN form as text (everything after 'progn')."
-  (let* ((node-str (rewrite-cl:zip-string node))
-         ;; Find 'progn' and skip past it
-         (progn-end (search "progn" node-str :test #'char-equal)))
-    (when progn-end
-      ;; Skip 'progn' and get the rest (but not the final paren)
-      (let* ((after-progn (subseq node-str (+ progn-end 5)))
-             ;; Trim leading whitespace but not too aggressively
-             (trimmed (string-left-trim '(#\Space #\Tab) after-progn)))
-        ;; Remove the trailing )
-        (when (and (> (length trimmed) 0)
-                   (char= (char trimmed (1- (length trimmed))) #\)))
-          (subseq trimmed 0 (1- (length trimmed))))))))
+(defun member-form-texts (list-node)
+  "Original source text of each member form of LIST-NODE, skipping
+whitespace and comments."
+  (loop for c = (rewrite-cl:zip-down list-node) then (rewrite-cl:zip-right c)
+        while c
+        unless (member (rewrite-cl:zip-tag c) '(:whitespace :newline :comment))
+          collect (rewrite-cl:zip-string c)))
+
+(defun branch-form-texts (node is-progn)
+  "Source texts of the forms a branch contributes to a COND clause:
+the PROGN body forms when IS-PROGN, otherwise the branch itself."
+  (if is-progn
+      (rest (member-form-texts node))   ; drop the PROGN symbol itself
+      (list (rewrite-cl:zip-string node))))
 
 (defun fix-bare-progn-in-if (content issue)
   "Transform IF with bare PROGN to COND at ISSUE location.
@@ -1316,23 +1315,32 @@ Preserves original source text including package prefixes."
                          (else-is-progn (and (consp else-form) (eq (first else-form) 'progn))))
                     ;; Only transform if at least one branch has progn
                     (when (or then-is-progn else-is-progn)
-                      ;; Build COND form using AST nodes (cleaner than string formatting)
-                      (let* ((test-form (rewrite-cl:zip-sexpr test-node))
-                             ;; Extract body forms (unwrap progn if present)
-                             (then-forms (if then-is-progn
-                                           (rest then-form)  ; Skip 'progn
-                                           (list then-form)))
-                             (else-forms (when else-node
-                                          (if else-is-progn
-                                              (rest else-form)  ; Skip 'progn
-                                              (list else-form))))
-                             ;; Build COND as a proper form
-                             (cond-form (if else-forms
-                                            `(cond (,test-form ,@then-forms)
-                                                   (t ,@else-forms))
-                                            `(cond (,test-form ,@then-forms)))))
+                      ;; Splice the original source text of every subform so
+                      ;; package prefixes, strings, and comments-in-forms
+                      ;; survive the rewrite.
+                      (let* ((indent (1- (zip-column target)))
+                             (clause-indent
+                               (make-string (+ indent 6) :initial-element #\Space))
+                             (body-indent
+                               (make-string (+ indent 7) :initial-element #\Space))
+                             (test-text (rewrite-cl:zip-string test-node))
+                             (then-texts (branch-form-texts then-node then-is-progn))
+                             (else-texts (when else-node
+                                           (branch-form-texts else-node else-is-progn)))
+                             (cond-text
+                               (with-output-to-string (out)
+                                 (format out "(cond (~A" test-text)
+                                 (dolist (text then-texts)
+                                   (format out "~%~A~A" body-indent text))
+                                 (write-string ")" out)
+                                 (when else-texts
+                                   (format out "~%~A(t" clause-indent)
+                                   (dolist (text else-texts)
+                                     (format out "~%~A~A" body-indent text))
+                                   (write-string ")" out))
+                                 (write-string ")" out))))
                         (zip-root-content-string
                          (rewrite-cl:zip-replace target
-                           (coerce-to-node-downcase cond-form)))))))))))))))
+                           (rewrite-cl:make-token-node :cond-rewrite cond-text)))))))))))))))
 
 (register-fixer "bare-progn-in-if" #'fix-bare-progn-in-if)

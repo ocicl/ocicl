@@ -234,8 +234,7 @@ CTX is a lint-context."
     (labels ((effective-symbol-p (form)
                "Check if FORM is effectively a symbol, including unquoted symbols."
                (or (symbolp form)
-                   (and (consp form)
-                        (eq (first form) 'unquote)
+                   (and (unquote-form-p form)
                         (= (length form) 2)
                         (symbolp (second form)))))
              (check-let-form (form ln col)

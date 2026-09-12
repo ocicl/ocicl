@@ -13,7 +13,7 @@ sbcl --non-interactive \
   --eval "(load \"test/lint-tests.lisp\")" \
   --eval "(in-package :ocicl-lint-tests)" \
   --eval "(run-all-tests)" \
-  --eval "(quit :unix-status (if (= *test-failed* 0) 0 1))"
+  --eval "(uiop:quit (if (= *test-failed* 0) 0 1))"
 
 exit_code=$?
 

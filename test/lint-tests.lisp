@@ -169,7 +169,8 @@
                         "Should not flag (progn ,@body) as redundant")
            ;; If there were an issue, applying fixes should not break the code
            (when (has-issue-p issues "redundant-progn")
-             (let ((fixed-content (apply-fixes-to-file path issues)))
+             (apply-fixes-to-file path issues)
+             (let ((fixed-content (uiop:read-file-string path)))
                (assert-false (search "unquote-splicing" fixed-content)
                            "Fixed code should not contain 'unquote-splicing'"))))
       (cleanup-test-file path))))
@@ -217,7 +218,8 @@
          (issues (lint-file path)))
     (unwind-protect
          (when (has-issue-p issues "bare-progn-in-if")
-           (let ((fixed-content (apply-fixes-to-file path issues)))
+           (apply-fixes-to-file path issues)
+           (let ((fixed-content (uiop:read-file-string path)))
              ;; Check that (t is properly indented after (cond
              (assert-false (search "
 (t" fixed-content)

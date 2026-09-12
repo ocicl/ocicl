@@ -122,6 +122,21 @@ Detects both (quote ...) forms and 'x reader macro quotes."
                     ;; Explicit (quote ...) form
                     (and (zip-list-p parent) (eq (zip-head parent) 'quote)))))
 
+(defun unquote-splicing-form-p (form)
+  "True if FORM is an unquote-splicing template node, e.g. ,@body.
+rewrite-cl materializes these with symbols in its own package, so
+compare by name rather than symbol identity."
+  (and (consp form)
+       (symbolp (first form))
+       (string= (symbol-name (first form)) "UNQUOTE-SPLICING")))
+
+(defun unquote-form-p (form)
+  "True if FORM is an unquote template node, e.g. ,var.  See
+UNQUOTE-SPLICING-FORM-P for why this compares by name."
+  (and (consp form)
+       (symbolp (first form))
+       (string= (symbol-name (first form)) "UNQUOTE")))
+
 (defun zip-in-backquote-p (z)
   "Check if zipper is inside a backquoted context (macro template).
 Detects backquote/quasiquote forms: `x becomes a syntax-quote node."
