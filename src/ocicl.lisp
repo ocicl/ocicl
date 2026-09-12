@@ -1997,7 +1997,11 @@ The caller must ensure OUT-PATH's directory exists."
            ;; TLS verification (default depends on platform); allow --insecure or OCICL_INSECURE
            (when (or (getf options :insecure)
                      (uiop:getenvp "OCICL_INSECURE"))
-             (setf ocicl.http:*verify-tls* nil))
+             (setf ocicl.http:*verify-tls* nil)
+             (format uiop:*stderr*
+                     "WARNING: TLS certificate verification is DISABLED (~A).~%~
+                      WARNING: All registry traffic, including credentials, can be intercepted.~%"
+                     (if (getf options :insecure) "--insecure" "OCICL_INSECURE")))
 
            ;; Local-only mode: disable parent dir traversal and global lookups
            (when (uiop:getenvp "OCICL_LOCAL_ONLY")
