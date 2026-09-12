@@ -429,18 +429,19 @@ E.g. prefix=/data/ocicl, dir=/home/user/proj/ocicl/
         result)
       dir))
 
-(defun get-up-to-first-slash (str)
-  "Extract the substring up to the first slash in STR, returning the substring and position."
-  (if-let ((pos (position #\/ str)))
-      (values (take pos str) pos)
-    (values str -1)))
+(defun registry-server (registry)
+  "Return the server part of REGISTRY (the text before the first slash),
+and as a second value the slash position (-1 if there is none)."
+  (if-let ((pos (position #\/ registry)))
+      (values (take pos registry) pos)
+    (values registry -1)))
 
-(defun get-repository-name (url)
-  "Extract the repository name from a registry URL."
-  (let* ((first-slash-pos (nth-value 1 (get-up-to-first-slash url)))
+(defun registry-namespace (registry)
+  "Return the namespace segment of REGISTRY, e.g. \"ocicl\" for \"ghcr.io/ocicl\"."
+  (let* ((first-slash-pos (nth-value 1 (registry-server registry)))
          (start-pos (1+ first-slash-pos))
-         (pos (position #\/ url :start start-pos)))
-    (subseq url start-pos pos)))
+         (pos (position #\/ registry :start start-pos)))
+    (subseq registry start-pos pos)))
 
 (defun validate-system-name (name)
   "Validate system name to prevent injection attacks."
@@ -520,8 +521,8 @@ Each non-empty, non-comment line has the form: server login password"
 (defun get-bearer-token (registry system)
   (handler-case
       (let* ((safe-system (validate-system-name system))
-             (server (get-up-to-first-slash registry))
-             (repository (get-repository-name registry))
+             (server (registry-server registry))
+             (repository (registry-namespace registry))
              (cred-headers (basic-auth-headers (find-credentials-for-server server))))
         (unless safe-system
           (error "Invalid system name: ~A" system))
@@ -543,7 +544,7 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
     (if token
         `(("Authorization" . ,(format nil "Bearer ~A" token)))
         (basic-auth-headers
-         (find-credentials-for-server (get-up-to-first-slash registry))))))
+         (find-credentials-for-server (registry-server registry))))))
 
 (defun system-latest-version (system)
   (loop :for registry in *ocicl-registries*
@@ -553,8 +554,8 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
 (defun system-version-list (system registry)
   (handler-case
       (let* ((safe-system (validate-system-name system))
-             (server (get-up-to-first-slash registry))
-             (repository (get-repository-name registry)))
+             (server (registry-server registry))
+             (repository (registry-namespace registry)))
         (unless safe-system
           (error "Invalid system name: ~A" system))
         ;; OCI repository names can't contain '+', so systems like
@@ -623,8 +624,8 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
   (loop for registry in *ocicl-registries*
         do (handler-case
                (progn
-                 (let* ((server (get-up-to-first-slash registry))
-                        (repository (get-repository-name registry))
+                 (let* ((server (registry-server registry))
+                        (repository (registry-namespace registry))
                         (headers (get-registry-auth-headers registry system)))
                    (multiple-value-bind (manifest manifest-digest)
                        (get-manifest registry #?"${system}-changes.txt" version)
@@ -725,18 +726,19 @@ ocicl-managed systems directory (the local *SYSTEMS-DIR* or the shared global
       (progn
         (when (latest-git-rows)
           (write-systems-csv))
-        (let ((blobs (make-hash-table :test #'equal)))
+        (let ((distinct-fullnames (make-hash-table :test #'equal)))
           (maphash (lambda (key value)
+                     (declare (ignore key))
                      (unless (git-source-p (car value))
-                       (setf (gethash (car value) blobs) key)))
+                       (setf (gethash (car value) distinct-fullnames) t)))
                    *ocicl-systems*)
-          (maphash (lambda (key value)
+          (maphash (lambda (fullname value)
                      (declare (ignore value))
-                     (let ((system (extract-between-slash-and-at key)))
+                     (let ((system (system-name-from-fullname fullname)))
                        (download-system (concatenate 'string system ":latest"))))
-               blobs)))))
+                   distinct-fullnames)))))
 
-(defun get-memory-in-gb ()
+(defun memory-description ()
   #+sbcl(format nil "configured with ~AGB memory" (ceiling (sb-ext:dynamic-space-size) (* 1024 1024 1024)))
   #-sbcl(format nil ""))
 
@@ -755,7 +757,7 @@ ocicl-managed systems directory (the local *SYSTEMS-DIR* or the shared global
 (defun do-version (args)
   (declare (ignore args))
   (format t "ocicl version:   ~A~%" +version+)
-  (format t "Lisp runtime:    ~A ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version) (get-memory-in-gb))
+  (format t "Lisp runtime:    ~A ~A ~A~%" (lisp-implementation-type) (lisp-implementation-version) (memory-description))
   (format t "ASDF version:    ~A~%" (asdf:asdf-version))
   (format t "TLS support:     ~A~%" (get-tls-info)))
 
@@ -887,9 +889,9 @@ Returns (values check-only dry-run include-prerelease)."
 
   (install-builtin-templates)
 
-  (let* ((odir (get-ocicl-dir))
-         (runtime-source (merge-pathnames odir "ocicl-runtime.lisp"))
-         (asdf-source (merge-pathnames odir "asdf.lisp")))
+  (let* ((ocicl-dir (get-ocicl-dir))
+         (runtime-source (merge-pathnames ocicl-dir "ocicl-runtime.lisp"))
+         (asdf-source (merge-pathnames ocicl-dir "asdf.lisp")))
     (with-open-file (stream asdf-source
                             :direction :output
                             :if-exists :supersede)
@@ -900,26 +902,23 @@ Returns (values check-only dry-run include-prerelease)."
       (write-string *runtime* stream)
       (format t ";; Present the following code to your LISP system at startup, either~%;; by adding it to your implementation's startup file~%;;~T(~~/.sbclrc, ~~/.eclrc, ~~/.abclrc, ~~/.clinit.cl, or ~~/.roswell/init.lisp)~%;; or overriding it completely on the command line~%;;~T(eg. sbcl --userinit init.lisp)~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%(asdf:initialize-source-registry~%  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))~%" runtime-source runtime-source)))) ; lint:suppress max-line-length
 
-(defun filter-strings (strings)
-  (remove-if (lambda (s) (string= s "latest"))
-             strings))
-
 (defun get-versions-since (system version)
   (loop for registry in *ocicl-registries*
         do (handler-case
                (return-from get-versions-since
-                 (let ((server (get-up-to-first-slash registry))
-                       (repository (get-repository-name registry)))
+                 (let ((server (registry-server registry))
+                       (repository (registry-namespace registry)))
                    (let* ((headers (get-registry-auth-headers registry system))
                           (all-versions
                             (sort
-                             (filter-strings
-                              (cdr (assoc :tags
-                                          (cl-json:decode-json-from-string
-                                           (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
-                                                                :force-string t
-                                                                :verbose *verbose*
-                                                                :headers headers)))))
+                             (remove "latest"
+                                     (cdr (assoc :tags
+                                                 (cl-json:decode-json-from-string
+                                                  (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
+                                                                       :force-string t
+                                                                       :verbose *verbose*
+                                                                       :headers headers))))
+                                     :test #'string=)
                              #'string<))
                           (p (position version all-versions :test #'string=)))
                      (when p (cdr (nthcdr p all-versions))))))
@@ -934,7 +933,7 @@ Returns (values check-only dry-run include-prerelease)."
         ((= (mod n 10) 3) (format nil "~Drd" n))
         (t (format nil "~Dth" n))))
 
-(defun format-line (project-name nth-change version)
+(defun changes-banner (project-name nth-change version)
   (let* ((base (format nil "~&==== ~A~A "
                        project-name
                        (if nth-change
@@ -963,10 +962,10 @@ Returns (values check-only dry-run include-prerelease)."
         (day (parse-integer date-string :start 6 :end 8)))
     (encode-universal-time 0 0 0 day month year 0)))
 
-(defun get-project-date (key-file)
-  (let ((dpos (search "-20" key-file :test #'string=)))
+(defun get-project-date (version-file-path)
+  (let ((dpos (search "-20" version-file-path :test #'string=)))
     (if dpos
-        (parse-date-to-universal-time (subseq key-file (1+ dpos) (+ dpos 9))))))
+        (parse-date-to-universal-time (subseq version-file-path (1+ dpos) (+ dpos 9))))))
 
 (defun difference-in-years (time1 time2)
   "Calculate the difference in years between two universal times."
@@ -974,8 +973,8 @@ Returns (values check-only dry-run include-prerelease)."
    (let ((seconds-per-year 31557600)) ; 365.25 days per year * 24 hours/day * 60 minutes/hour * 60 seconds/minute
      (/ (abs (- time1 time2)) seconds-per-year))))
 
-(defun get-project-name (key-file)
-  (let ((tld (top-level-directory key-file)))
+(defun get-project-name (relative-asd-path)
+  (let ((tld (top-level-directory relative-asd-path)))
     (handler-case
         (let ((pfile (uiop:merge-pathnames* (make-pathname :directory `(:relative ,tld))
                                             (uiop:merge-pathnames* *relative-systems-dir*
@@ -993,8 +992,8 @@ Returns (values check-only dry-run include-prerelease)."
              (subseq tld 0 (position #\- (subseq tld 0 last-dash-position)
                                      :from-end t)))))))))
 
-(defun get-project-version (key-file)
-  (let ((tld (top-level-directory key-file)))
+(defun get-project-version (relative-asd-path)
+  (let ((tld (top-level-directory relative-asd-path)))
     (handler-case
         (let ((vfile (uiop:merge-pathnames* (make-pathname :directory `(:relative ,tld))
                                             (uiop:merge-pathnames* *relative-systems-dir*
@@ -1075,7 +1074,7 @@ Returns (values check-only dry-run include-prerelease)."
                 (let ((versions (get-versions-since system version)))
                   (let ((nth-change 0))
                     (dolist (v versions)
-                      (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle system) v)))))))))
+                      (format t "~&~A~%~%~A~%~%" (changes-banner project-name (incf nth-change) v) (get-changes (mangle system) v)))))))))
       ;; One entry per project (top-level directory), carrying a system
       ;; name and its systems-dir-relative .asd path, which is what
       ;; GET-PROJECT-VERSION and GET-PROJECT-NAME expect.
@@ -1095,8 +1094,8 @@ Returns (values check-only dry-run include-prerelease)."
                              (if versions
                                  (let ((nth-change 0))
                                    (dolist (v versions)
-                                     (format t "~&~A~%~%~A~%~%" (format-line project-name (incf nth-change) v) (get-changes (mangle value) v))))
-                                 (when *verbose* (format t "~A~%" (format-line project-name nil nil))))))
+                                     (format t "~&~A~%~%~A~%~%" (changes-banner project-name (incf nth-change) v) (get-changes (mangle value) v))))
+                                 (when *verbose* (format t "~A~%" (changes-banner project-name nil nil))))))
                        (error (e)
                          (declare (ignore e))
                          ()))))
@@ -1117,17 +1116,17 @@ Returns (values check-only dry-run include-prerelease)."
                (format uiop:*stderr* "Error: can't install ~A: ~A~%" system e)
                (uiop:quit 1))))
           ((position #\@ system)
-           (unless (download-and-install system)
+           (unless (install-pinned-fullname system)
              (progn
                (format uiop:*stderr* "Error: can't download ~A.~%" system)
                (uiop:quit))))
           (t
-           (let* ((slist (split-on-delimiter system #\:))
-                  (name (car slist))
+           (let* ((name-and-version (split-on-delimiter system #\:))
+                  (name (car name-and-version))
                   (info (gethash (mangle name) *ocicl-systems*)))
              (cond
                ((and info (git-source-p (car info)))
-                (when (second slist)
+                (when (second name-and-version)
                   (format uiop:*stderr* "Error: ~A is git-sourced; reinstall it with 'ocicl install git+URL[@REF]' to change its pin.~%"
                           name)
                   (uiop:quit))
@@ -1145,7 +1144,7 @@ Returns (values check-only dry-run include-prerelease)."
                          (error (e)
                            (format *error-output* "; error fetching ~A: ~A~%"
                                    (car value) e)))
-                       (if (download-and-install (car value))
+                       (if (install-pinned-fullname (car value))
                            (if *color*
                                (format t #?"${*color-dim*};${*color-reset*} downloaded ~
                                             ${*color-bold*}${*color-bright-green*}${(unmangle key)}${*color-reset*} ~
@@ -1155,11 +1154,12 @@ Returns (values check-only dry-run include-prerelease)."
                                    (unmangle key) (car value))))))
                *ocicl-systems*)))
 
-(defun subpath-p (path1 path2)
+(defun subpath-p (path root)
+  "Return T if PATH lies under ROOT."
   (let ((enough-directory
           (pathname-directory
-           (enough-namestring (merge-pathnames path1)
-                              (merge-pathnames path2)))))
+           (enough-namestring (merge-pathnames path)
+                              (merge-pathnames root)))))
     (or (not enough-directory)
         (eql :relative (first enough-directory)))))
 
@@ -1236,8 +1236,8 @@ steer delete-directory-tree outside the systems directory."
              slash-systems)))))))
 
 (defun remove-system (system &key (modify-ocicl-systems t))
-  (let* ((slist (split-on-delimiter system #\:))
-         (name (car slist))
+  (let* ((name-and-version (split-on-delimiter system #\:))
+         (name (car name-and-version))
          (mangled-name (mangle name))
          (system-info (gethash mangled-name *ocicl-systems*)))
     (cond
@@ -1268,7 +1268,7 @@ steer delete-directory-tree outside the systems directory."
             (uiop:delete-directory-tree
              system-directory
              :validate #'strictly-under-systems-dir-p)
-            (multiple-value-bind (name version-sha)
+            (multiple-value-bind (removed-name version-sha)
                 (if (git-source-p fullname)
                     (multiple-value-bind (url sha ref subdir) (parse-git-fullname fullname)
                       (declare (ignore ref))
@@ -1280,9 +1280,9 @@ steer delete-directory-tree outside the systems directory."
                               (subseq full-namestring at))))
               (if *color*
                   (format t #?"${*color-dim*};${*color-reset*} removed ~
-                               ${*color-bold*}${*color-bright-green*}${(unmangle name)}${*color-reset*}~
+                               ${*color-bold*}${*color-bright-green*}${(unmangle removed-name)}${*color-reset*}~
                                ${*color-dim*}${version-sha}${*color-reset*}~%")
-                  (format t "; removed ~A~A~%" (unmangle name) version-sha)))))))))
+                  (format t "; removed ~A~A~%" (unmangle removed-name) version-sha)))))))))
 
 (defun resolve-dependency-name (dependency)
   "Resolve ASDF dependency name."
@@ -1499,12 +1499,12 @@ steer delete-directory-tree outside the systems directory."
           (return-from do-diff))
         (let* ((version1-system-info (if version1
                                          (download-system system-fullname-1
-                                                          :write-systems-csv nil
+                                                          :update-csv nil
                                                           :print-error t)
                                          (gethash (mangle system-name) *ocicl-systems*)))
                (version2-system-info (when version1-system-info
                                        (download-system system-fullname-2
-                                                        :write-systems-csv nil
+                                                        :update-csv nil
                                                         :print-error t))))
           (when (not (or version1 version1-system-info))
             (format *error-output* "; Error: system ~A not installed. Install it or specify two versions to diff.~%" system-name)
@@ -1745,22 +1745,22 @@ The caller must ensure OUT-PATH's directory exists."
           (format out "~A" (funcall fn env))))))
   out-path)
 
-(defun string-replace-ci (hay token replacement)
-  "Case-insensitive TOKEN → REPLACEMENT in HAY.  Returns a fresh string."
-  (loop with out   = (make-array 0 :element-type 'character
-                                 :adjustable t :fill-pointer 0)
-        with len-h = (length hay)
-        with len-t = (length token)
-        for i from 0 below len-h
-        do (if (and (<= (+ i len-t) len-h)
-                    (string-equal hay token :start1 i :end1 (+ i len-t)))
+(defun string-replace-ci (text token replacement)
+  "Case-insensitive TOKEN → REPLACEMENT in TEXT.  Returns a fresh string."
+  (loop with out      = (make-array 0 :element-type 'character
+                                    :adjustable t :fill-pointer 0)
+        with text-len  = (length text)
+        with token-len = (length token)
+        for i from 0 below text-len
+        do (if (and (<= (+ i token-len) text-len)
+                    (string-equal text token :start1 i :end1 (+ i token-len)))
                ;; Copy the replacement and jump ahead
                (progn
                  (loop for ch across replacement
                        do (vector-push-extend ch out))
-                 (incf i (1- len-t)))           ; loop will incf once more
+                 (incf i (1- token-len)))       ; loop will incf once more
                ;; Normal character
-               (vector-push-extend (char hay i) out))
+               (vector-push-extend (char text i) out))
         finally (return out)))
 
 (defun expand-appname (path app-name)
@@ -1804,19 +1804,20 @@ The caller must ensure OUT-PATH's directory exists."
   (unless args (usage) (uiop:quit 1))
 
   (let* ((app-name (first args))
-         (rest     (rest  args))
+         (remaining-args (rest args))
          ;; TEMPLATE is explicit if the next token lacks "="
          (template
            (cond
              ;; explicit on CLI
-             ((and rest (not (search "=" (first rest))))
-              (prog1 (first rest) (setf rest (rest rest))))
+             ((and remaining-args (not (search "=" (first remaining-args))))
+              (prog1 (first remaining-args)
+                (setf remaining-args (rest remaining-args))))
              ;; implicit "user" in any search directory
              ((assoc "user" (discover-templates) :test #'string=) "user")
              ;; final fall-back
              (t "basic")))
          (user-plist
-           (loop for s in rest
+           (loop for s in remaining-args
                  append
                  (destructuring-bind (k v)
                      (uiop:split-string s :separator "=")
@@ -2116,17 +2117,18 @@ The caller must ensure OUT-PATH's directory exists."
                      (uiop:default-temporary-directory))))
 
 
-(defun extract-between-slash-and-at (input)
-  (let* ((reversed (reverse input))
+(defun system-name-from-fullname (fullname)
+  "Return the system name from FULLNAME, e.g. \"cffi\" from \"ghcr.io/ocicl/cffi@sha256:...\"."
+  (let* ((reversed (reverse fullname))
          (pos-at (position #\@ reversed))
          (pos-slash (position #\/ reversed :start pos-at)))
-    (subseq input (- (length input) pos-slash) (- (length input) (1+ pos-at)))))
+    (subseq fullname (- (length fullname) pos-slash) (- (length fullname) (1+ pos-at)))))
 
 (defun write-systems-csv ()
   (let* ((target (merge-pathnames (uiop:getcwd) *systems-csv*))
          (dir (uiop:pathname-directory-pathname target)))
     (uiop:ensure-all-directories-exist (list dir))
-    (uiop:with-temporary-file (:stream stream :pathname tmp :keep t
+    (uiop:with-temporary-file (:stream stream :pathname temp-csv :keep t
                                       :directory dir :prefix ".ocicl-tmp-" :type "csv")
       (let ((systems-list (sort (alexandria:hash-table-alist *ocicl-systems*)
                                 #'string<
@@ -2148,14 +2150,14 @@ The caller must ensure OUT-PATH's directory exists."
                              (if (< i attempts)
                                  (sleep delay)
                                  (error e)))))))
-        (rename-with-retry tmp target)))
+        (rename-with-retry temp-csv target)))
     (debug-log (format nil "wrote new ~a" *systems-csv*))))
 
 (defun get-manifest (registry system tag)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
-         (server (get-up-to-first-slash registry))
-         (repository (get-repository-name registry)))
+         (server (registry-server registry))
+         (repository (registry-namespace registry)))
     (unless (and safe-system safe-tag)
       (error "Invalid system name or tag: ~A:~A" system tag))
     (let ((headers (append (get-registry-auth-headers registry safe-system)
@@ -2193,11 +2195,11 @@ The caller must ensure OUT-PATH's directory exists."
            (let ((child-manifest (get-manifest registry system child-digest)))
              (%select-layer-digest child-manifest registry system))))))))
 
-(defun get-blob (registry system tag dl-dir)
+(defun fetch-and-extract-layer (registry system tag dl-dir)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
-         (server (get-up-to-first-slash registry))
-         (repository (get-repository-name registry)))
+         (server (registry-server registry))
+         (repository (registry-namespace registry)))
     (unless (and safe-system safe-tag)
       (error "Invalid system name or tag: ~A:~A" system tag))
     (multiple-value-bind (manifest manifest-digest)
@@ -2239,7 +2241,7 @@ The caller must ensure OUT-PATH's directory exists."
                   (tar-simple-extract:simple-extract-archive a :directory dl-dir)))))
           manifest-digest)))))
 
-(defun download-and-install (fullname)
+(defun install-pinned-fullname (fullname)
   (let ((dl-dir (get-temp-ocicl-dl-pathname)))
     (unwind-protect
          (progn
@@ -2250,7 +2252,7 @@ The caller must ensure OUT-PATH's directory exists."
                    (debug-log #?"attempting to pull ${fullname}")
                    (cl-ppcre:register-groups-bind (registry name digest)
                        ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
-                     (get-blob registry name #?"sha256:${digest}" dl-dir)
+                     (fetch-and-extract-layer registry name #?"sha256:${digest}" dl-dir)
                      (copy-directory:copy dl-dir *systems-dir*)))
                (error (e)
                  (format t "; error downloading and installing ~A~%" fullname)
@@ -2259,15 +2261,15 @@ The caller must ensure OUT-PATH's directory exists."
       (uiop:delete-directory-tree dl-dir :validate t))))
 
 (defun download-system (system &key
-                                 (write-systems-csv t)
+                                 (update-csv t)
                                  print-error)
   "Downloads SYSTEM, which may be specified as NAME[:VERSION].
 
 If SYSTEM exists in the systems csv file and the asd file exists, does not
 download the system unless a version is specified."
-  (let* ((slist (split-on-delimiter system #\:))
-         (name (first slist))
-         (requested-version (second slist))
+  (let* ((name-and-version (split-on-delimiter system #\:))
+         (name (first name-and-version))
+         (requested-version (second name-and-version))
          (mangled-name (mangle name))
          (system-info (gethash mangled-name *ocicl-systems*))
          (fullname (car system-info))
@@ -2301,7 +2303,7 @@ download the system unless a version is specified."
                                thereis (handler-case
                                            (progn
                                              (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
-                                             (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
+                                             (let ((manifest-digest (fetch-and-extract-layer registry mangled-name version dl-dir)))
                                                (let ((version-display (if (looks-like-dated-version-p version) version "latest")))
                                                  (if *color*
                                                      (format t #?"${*color-dim*};~
@@ -2328,7 +2330,7 @@ download the system unless a version is specified."
                                            (when (or *verbose* print-error)
                                              (format *error-output* "; error downloading ~A from registry ~A~%" system registry))
                                            (debug-log e)))))
-                   (when write-systems-csv
+                   (when update-csv
                      (write-systems-csv))
                    (gethash mangled-name *ocicl-systems*)))
             (uiop:delete-directory-tree dl-dir :validate t))))))
