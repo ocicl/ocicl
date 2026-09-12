@@ -1229,7 +1229,7 @@ Templates are searched in the following order (first match wins):
 
 1. **Command line option**: `--template-dir DIR` (can be used multiple times)
 2. **Environment variable**: `$OCICL_TEMPLATE_PATH` (colon-separated list of directories)
-3. **Configuration file**: `~/.local/share/ocicl/config/ocicl/ocicl-template-path.cfg` (one directory per line)
+3. **Configuration file**: `~/.local/share/ocicl/ocicl-templates.cfg` (one directory per line)
 4. **Default location**: `~/.local/share/ocicl/templates/` (installed by `ocicl setup`)
 
 #### Template Management Commands

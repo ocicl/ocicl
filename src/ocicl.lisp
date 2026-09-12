@@ -126,7 +126,12 @@
   (:name :insecure
    :description "allow insecure TLS (skip certificate verification)"
    :short #\k
-   :long "insecure"))
+   :long "insecure")
+  (:name :template-dir
+   :description "add DIR to the template search path (repeatable)"
+   :long "template-dir"
+   :arg-parser (lambda (arg) (push arg *template-dirs*) arg)
+   :meta-var "DIR"))
 
 (defun unknown-option (condition)
   "Handler for unknown command-line options - error and exit."
@@ -136,7 +141,7 @@
 
 ;; Global options that take an argument (used to find command boundary)
 (defparameter *global-options-with-args*
-  '("-r" "--registry" "-c" "--color")
+  '("-r" "--registry" "-c" "--color" "--template-dir")
   "Global options that consume the next argument.")
 
 (defun split-args-at-command (args)
@@ -1951,7 +1956,17 @@ The caller must ensure OUT-PATH's directory exists."
                         (setf *force* t))
            (when-option (options :global)
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
-           ;; 1.  config-file
+           ;; 1.  --template-dir options (the arg-parser pushes, so
+           ;;     reverse to let earlier instances win)
+           (setf *template-dirs* (reverse *template-dirs*))
+
+           ;; 2.  environment variable
+           (when (uiop:getenvp "OCICL_TEMPLATE_PATH")
+             (alexandria:appendf *template-dirs*
+                      (uiop:split-string (uiop:getenv "OCICL_TEMPLATE_PATH")
+                                         :separator (string #\:))))
+
+           ;; 3.  config-file
            (let ((cfg (merge-pathnames (get-ocicl-dir) "ocicl-templates.cfg")))
              (when (probe-file cfg)
                (handler-case
@@ -1961,13 +1976,7 @@ The caller must ensure OUT-PATH's directory exists."
                    (when *verbose*
                      (format *error-output* "; Error reading template config ~A: ~A~%" cfg e))))))
 
-           ;; 2.  environment variable
-           (when (uiop:getenvp "OCICL_TEMPLATE_PATH")
-             (alexandria:appendf *template-dirs*
-                      (uiop:split-string (uiop:getenv "OCICL_TEMPLATE_PATH")
-                                         :separator (string #\:))))
-
-           ;; 3.  hard defaults (user dir first, then built-in share dir)
+           ;; 4.  hard defaults (user dir first, then built-in share dir)
            (alexandria:appendf *template-dirs*
                     (list (merge-pathnames "templates/" (get-ocicl-dir))))
 
