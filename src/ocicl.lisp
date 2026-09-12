@@ -2107,10 +2107,24 @@ The caller must ensure OUT-PATH's directory exists."
                         (uiop:split-string (namestring directory)
                                            :separator (list (uiop:directory-separator-for-host)))))))
 
-(defun get-temp-ocicl-dl-pathname ()
-  (let ((random-dirname (format nil "ocicl-~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*))))
-    (merge-pathnames (make-pathname :directory (list :relative random-dirname))
-                     (uiop:default-temporary-directory))))
+(defun make-temp-ocicl-dl-directory ()
+  "Create and return a fresh download directory under the system
+temporary directory.  Requires actually creating the directory (a
+pre-existing one is rejected and a new name tried), so another local
+user cannot pre-create the path and plant files in it."
+  (loop repeat 100
+        for dir = (merge-pathnames
+                   (make-pathname
+                    :directory (list :relative
+                                     (format nil "ocicl-~:@(~36,8,'0R~)"
+                                             (random (expt 36 8) *random-state*))))
+                   (uiop:default-temporary-directory))
+        do (multiple-value-bind (path created) (ensure-directories-exist dir)
+             (declare (ignore path))
+             (when created
+               (return dir)))
+        finally (error "could not create a private temporary directory under ~A"
+                       (uiop:default-temporary-directory))))
 
 
 (defun system-name-from-fullname (fullname)
@@ -2238,10 +2252,9 @@ The caller must ensure OUT-PATH's directory exists."
           manifest-digest)))))
 
 (defun install-pinned-fullname (fullname)
-  (let ((dl-dir (get-temp-ocicl-dl-pathname)))
+  (let ((dl-dir (make-temp-ocicl-dl-directory)))
     (unwind-protect
          (progn
-           (uiop:ensure-all-directories-exist (list dl-dir))
            (uiop:with-current-directory (dl-dir)
              (handler-case
                  (progn
@@ -2289,10 +2302,9 @@ download the system unless a version is specified."
                        ${*color-reset*} already exists~%")
           (write-string #?"; ${system}:${(get-project-version relative-asd-path)} already exists\n"))
       (return-from download-system (gethash mangled-name *ocicl-systems*)))
-    (let ((dl-dir (get-temp-ocicl-dl-pathname)))
+    (let ((dl-dir (make-temp-ocicl-dl-directory)))
       (unwind-protect
            (progn
-             (uiop:ensure-all-directories-exist (list dl-dir))
              (when (uiop:with-current-directory (dl-dir)
                      (loop for registry in *ocicl-registries*
                            thereis (handler-case

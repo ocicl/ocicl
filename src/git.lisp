@@ -306,10 +306,10 @@ default branch when NIL), and place the requested tree (SUBDIR when
 given) at <systems-dir>/DIRNAME/, replacing any existing tree there.
 DIRNAME defaults to <basename>-<shortsha>.  Returns (values RESOLVED-SHA
 RELATIVE-DIRNAME)."
-  (let ((tmp-dir (get-temp-ocicl-dl-pathname)))
+  (let ((tmp-dir (make-temp-ocicl-dl-directory)))
     (unwind-protect
          (progn
-           (uiop:ensure-all-directories-exist (list tmp-dir *systems-dir*))
+           (uiop:ensure-all-directories-exist (list *systems-dir*))
            (let ((tmp (uiop:native-namestring tmp-dir)))
              ;; A blobless clone is cheap and still lets us check out any
              ;; pinned commit; fall back to a full clone for servers

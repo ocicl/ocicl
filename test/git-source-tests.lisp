@@ -214,6 +214,18 @@
            (not (string= (ocicl::sha256-hex-of-octets (babel:string-to-octets "abc" :encoding :utf-8))
                          (ocicl::sha256-hex-of-octets (babel:string-to-octets "abd" :encoding :utf-8)))))
 
+    ;; temp download directories are created exclusively
+    (let ((dir-1 (ocicl::make-temp-ocicl-dl-directory))
+          (dir-2 (ocicl::make-temp-ocicl-dl-directory)))
+      (unwind-protect
+           (progn
+             (check "temp download dir is created on the spot"
+                    (uiop:directory-exists-p dir-1))
+             (check "temp download dirs are distinct"
+                    (not (equal dir-1 dir-2))))
+        (uiop:delete-empty-directory dir-1)
+        (uiop:delete-empty-directory dir-2)))
+
     ;; http-get retry behavior (stub the single-attempt fetch and the sleep)
     (let ((real-once (fdefinition 'ocicl.http::%http-get-once))
           (real-sleep (fdefinition 'ocicl.http::%sleep-before-retry))
