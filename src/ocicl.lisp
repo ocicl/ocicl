@@ -623,21 +623,18 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
 (defun get-changes (system version)
   (loop for registry in *ocicl-registries*
         do (handler-case
-               (progn
-                 (let* ((server (registry-server registry))
-                        (repository (registry-namespace registry))
-                        (headers (get-registry-auth-headers registry system)))
-                   (multiple-value-bind (manifest manifest-digest)
-                       (get-manifest registry #?"${system}-changes.txt" version)
-                     (declare (ignore manifest-digest))
-                     (let* ((digest (require-oci-digest
-                                     (cdr (assoc :digest (cadr (assoc :layers manifest))))
-                                     "changes-blob layer digest"))
-                            (changes (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
-                                              :force-string t
-                                              :verbose *verbose*
-                                              :headers headers)))
-                       (return-from get-changes changes)))))
+               (let* ((server (registry-server registry))
+                      (repository (registry-namespace registry))
+                      (headers (get-registry-auth-headers registry system))
+                      (manifest (get-manifest registry #?"${system}-changes.txt" version))
+                      (digest (require-oci-digest
+                               (cdr (assoc :digest (cadr (assoc :layers manifest))))
+                               "changes-blob layer digest"))
+                      (changes (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}-changes.txt/blobs/${digest}"
+                                                    :force-string t
+                                                    :verbose *verbose*
+                                                    :headers headers)))
+                 (return-from get-changes changes))
              (error (e)
                (declare (ignore e)))))
   (format nil "No documented changes for ~A:~A" system version))
@@ -906,22 +903,23 @@ Returns (values check-only dry-run include-prerelease)."
   (loop for registry in *ocicl-registries*
         do (handler-case
                (return-from get-versions-since
-                 (let ((server (registry-server registry))
-                       (repository (registry-namespace registry)))
-                   (let* ((headers (get-registry-auth-headers registry system))
-                          (all-versions
-                            (sort
-                             (remove "latest"
-                                     (cdr (assoc :tags
-                                                 (cl-json:decode-json-from-string
-                                                  (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
-                                                                       :force-string t
-                                                                       :verbose *verbose*
-                                                                       :headers headers))))
-                                     :test #'string=)
-                             #'string<))
-                          (p (position version all-versions :test #'string=)))
-                     (when p (cdr (nthcdr p all-versions))))))
+                 (let* ((server (registry-server registry))
+                        (repository (registry-namespace registry))
+                        (headers (get-registry-auth-headers registry system))
+                        (all-versions
+                          (sort
+                           (remove "latest"
+                                   (cdr (assoc :tags
+                                               (cl-json:decode-json-from-string
+                                                (ocicl.http:http-get #?"https://${server}/v2/${repository}/${system}/tags/list?n=1024"
+                                                                     :force-string t
+                                                                     :verbose *verbose*
+                                                                     :headers headers))))
+                                   :test #'string=)
+                           #'string<))
+                        (installed-position (position version all-versions :test #'string=)))
+                   (when installed-position
+                     (cdr (nthcdr installed-position all-versions)))))
              (error (e)
                (declare (ignore e))))))
 
@@ -1090,13 +1088,13 @@ Returns (values check-only dry-run include-prerelease)."
                  *ocicl-systems*)
         (maphash (lambda (tld entry)
                    (declare (ignore tld))
-                   (destructuring-bind (value . asd) entry
+                   (destructuring-bind (system . asd) entry
                      (handler-case
                          (let* ((version (get-project-version asd))
                                 (project-name (get-project-name asd))
-                                (versions (get-versions-since value version)))
+                                (versions (get-versions-since system version)))
                            (if versions
-                               (report-changes project-name value versions)
+                               (report-changes project-name system versions)
                                (when *verbose* (format t "~A~%" (changes-banner project-name nil nil)))))
                        (error (e)
                          (declare (ignore e))
