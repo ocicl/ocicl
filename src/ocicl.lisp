@@ -440,7 +440,7 @@ E.g. prefix=/data/ocicl, dir=/home/user/proj/ocicl/
   (let* ((first-slash-pos (nth-value 1 (get-up-to-first-slash url)))
          (start-pos (1+ first-slash-pos))
          (pos (position #\/ url :start start-pos)))
-    (subseq url start-pos (when pos pos))))
+    (subseq url start-pos pos)))
 
 (defun validate-system-name (name)
   "Validate system name to prevent injection attacks."
@@ -509,17 +509,20 @@ Each non-empty, non-comment line has the form: server login password"
     (when entry
       (rest entry))))
 
+(defun basic-auth-headers (creds)
+  "Return Basic-auth headers for CREDS, a (login password) list, or NIL."
+  (when creds
+    `(("Authorization" .
+       ,(format nil "Basic ~A"
+                (cl-base64:string-to-base64-string
+                 (format nil "~A:~A" (first creds) (second creds))))))))
+
 (defun get-bearer-token (registry system)
   (handler-case
       (let* ((safe-system (validate-system-name system))
              (server (get-up-to-first-slash registry))
              (repository (get-repository-name registry))
-             (creds (find-credentials-for-server server))
-             (cred-headers (when creds
-                             `(("Authorization" .
-                                ,(format nil "Basic ~A"
-                                         (cl-base64:string-to-base64-string
-                                          (format nil "~A:~A" (first creds) (second creds)))))))))
+             (cred-headers (basic-auth-headers (find-credentials-for-server server))))
         (unless safe-system
           (error "Invalid system name: ~A" system))
         (cdr (assoc :token
@@ -539,12 +542,8 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
   (let ((token (get-bearer-token registry system)))
     (if token
         `(("Authorization" . ,(format nil "Bearer ~A" token)))
-        (let ((creds (find-credentials-for-server (get-up-to-first-slash registry))))
-          (when creds
-            `(("Authorization" .
-               ,(format nil "Basic ~A"
-                         (cl-base64:string-to-base64-string
-                          (format nil "~A:~A" (first creds) (second creds)))))))))))
+        (basic-auth-headers
+         (find-credentials-for-server (get-up-to-first-slash registry))))))
 
 (defun system-latest-version (system)
   (loop :for registry in *ocicl-registries*
@@ -643,7 +642,7 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
   (format nil "No documented changes for ~A:~A" system version))
 
 (declaim (inline quiet-find-system))
-(defun quiet-find-system (system &optional (errorp nil errorp-given))
+(defun quiet-find-system (system &optional (errorp t))
   (let ((*load-verbose* *verbose*)
         (*compile-verbose* *verbose*)
         (*error-output* (if *verbose*
@@ -654,9 +653,7 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
                      (lambda (w)
                        (unless *verbose*
                          (muffle-warning w)))))
-      (if errorp-given
-          (asdf:find-system system errorp)
-          (asdf:find-system system)))))
+      (asdf:find-system system errorp))))
 
 (defun download-system-dependencies (name &optional (visited (make-hash-table :test #'equal)))
   "Recursively download NAME's dependencies into the local systems directory.
@@ -850,10 +847,8 @@ Returns (values check-only dry-run include-prerelease)."
         (format *error-output* "ocicl update failed: ~A~%" e)
         (uiop:quit 1)))))
 
-(defun install-builtin-templates (&key (force nil))
-  "Write the embedded templates to ~/.local/share/ocicl/templates/ .
-If FORCE is NIL, skip files that already exist."
-  (declare (ignore force))
+(defun install-builtin-templates ()
+  "Write the embedded templates to ~/.local/share/ocicl/templates/ ."
   (let* ((base (merge-pathnames "templates/" (get-ocicl-dir))))
     (dolist (tpl *builtin-templates*)
       (destructuring-bind (rel . data) tpl
@@ -890,7 +885,7 @@ If FORCE is NIL, skip files that already exist."
         (when (probe-file old-config-file)
           (delete-file (merge-pathnames (get-ocicl-dir) "ocicl-globaldir.cfg")))))
 
-  (install-builtin-templates :force *force*)
+  (install-builtin-templates)
 
   (let* ((odir (get-ocicl-dir))
          (runtime-source (merge-pathnames odir "ocicl-runtime.lisp"))
@@ -966,7 +961,7 @@ If FORCE is NIL, skip files that already exist."
   (let ((year (parse-integer date-string :start 0 :end 4))
         (month (parse-integer date-string :start 4 :end 6))
         (day (parse-integer date-string :start 6 :end 8)))
-    (encode-universal-time 0 0 0 day month year 0))) ; Assumes time at 00:00:00
+    (encode-universal-time 0 0 0 day month year 0)))
 
 (defun get-project-date (key-file)
   (let ((dpos (search "-20" key-file :test #'string=)))
@@ -1251,7 +1246,7 @@ steer delete-directory-tree outside the systems directory."
             (format t #?"${*color-dim*};${*color-reset*} ~
                          no system to remove: ~
                          ${*color-bold*}${*color-bright-red*}${name}${*color-reset*}~%")
-            (format t "; no system to remove: ~A~%" name))) ;return here, fixes type warnings to merge-pathnames
+            (format t "; no system to remove: ~A~%" name)))
       (t
         (let* ((fullname (car system-info))
                (relative-asd-path (cdr system-info))
@@ -1265,7 +1260,7 @@ steer delete-directory-tree outside the systems directory."
                                         (enough-namestring absolute-asd-path *systems-dir*)))))
                                   *systems-dir*))
                (system-group (system-group system)))
-          (when (and modify-ocicl-systems system-info)
+          (when modify-ocicl-systems
             (dolist (system system-group)
               (remhash (mangle system) *ocicl-systems*)))
           (when (and (strictly-under-systems-dir-p system-directory)
@@ -1299,9 +1294,7 @@ steer delete-directory-tree outside the systems directory."
                                  (:require (second dependency))))
       dependency))
 
-(defun full-dependency-table (system
-                              &optional
-                                (dependency-table (make-hash-table :test #'equal)))
+(defun full-dependency-table (system dependency-table)
   (declare (optimize (speed 3) (safety 1)))
   (let ((*inhibit-download-during-search* t))
     (labels ((recurse-deps (system)
@@ -1490,8 +1483,7 @@ steer delete-directory-tree outside the systems directory."
                                        (equal given-v2 "latest")
                                        (and (null given-v1) (null given-v2)))
                                (system-latest-version system-name)))
-             (version1 (cond ((not given-v1) nil)
-                             ((not given-v2) nil)
+             (version1 (cond ((not given-v2) nil)
                              ((string= given-v1 "latest")
                               latest-version)
                              (t given-v1)))
@@ -1744,9 +1736,8 @@ Supports --fix and --dry-run flags for auto-remediation."
             (uiop:quit 1))))))
 
 (defun render-template-file (in-path out-path env)
-  "Read template text from IN-PATH, render with ENV, write to OUT-PATH."
-  (uiop:ensure-all-directories-exist
-   (list (uiop:pathname-directory-pathname out-path)))
+  "Read template text from IN-PATH, render with ENV, write to OUT-PATH.
+The caller must ensure OUT-PATH's directory exists."
   (let ((template-text (uiop:read-file-string in-path)))
     (handler-bind ((style-warning #'muffle-warning))
       (let ((fn (cl-template:compile-template template-text)))
@@ -1791,10 +1782,7 @@ Supports --fix and --dry-run flags for auto-remediation."
                                 :type      :wild)
                  src)))
 
-      ;; ── skip anything in a .git directory ──
       (unless (member ".git" (pathname-directory p) :test #'string=)
-
-        ;; decide destination name
         (let* ((rel       (enough-namestring p src))
                (rendered  (expand-appname rel app-name))
                (out-path  (merge-pathnames rendered dst)))
@@ -1985,14 +1973,7 @@ Supports --fix and --dry-run flags for auto-remediation."
                         (setf *force* t))
            (when-option (options :global)
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
-           ;; FIXME: required because ocicl's version of unix-opts does not
-           ;; yet have :default
-
-           ;; 1.  dirs given on the CLI (earlier option instances should win → reverse)
-           (setf *template-dirs*
-                 (reverse (getf options :template-dir)))
-
-           ;; 2.  config-file
+           ;; 1.  config-file
            (let ((cfg (merge-pathnames (get-ocicl-dir) "ocicl-templates.cfg")))
              (when (probe-file cfg)
                (handler-case
@@ -2002,17 +1983,16 @@ Supports --fix and --dry-run flags for auto-remediation."
                    (when *verbose*
                      (format *error-output* "; Error reading template config ~A: ~A~%" cfg e))))))
 
-           ;; 3.  environment variable
+           ;; 2.  environment variable
            (when (uiop:getenvp "OCICL_TEMPLATE_PATH")
              (alexandria:appendf *template-dirs*
                       (uiop:split-string (uiop:getenv "OCICL_TEMPLATE_PATH")
                                          :separator (string #\:))))
 
-           ;; 4.  hard defaults (user dir first, then built-in share dir)
+           ;; 3.  hard defaults (user dir first, then built-in share dir)
            (alexandria:appendf *template-dirs*
                     (list (merge-pathnames "templates/" (get-ocicl-dir))))
 
-           ;; collapse duplicates while preserving order
            (setf *template-dirs* (remove-duplicates *template-dirs* :test #'equal))
 
            (flet ((get-output-stream ()
@@ -2142,8 +2122,6 @@ Supports --fix and --dry-run flags for auto-remediation."
          (pos-slash (position #\/ reversed :start pos-at)))
     (subseq input (- (length input) pos-slash) (- (length input) (1+ pos-at)))))
 
-(defvar *ocicl-systems* nil)
-
 (defun write-systems-csv ()
   (let* ((target (merge-pathnames (uiop:getcwd) *systems-csv*))
          (dir (uiop:pathname-directory-pathname target)))
@@ -2212,7 +2190,7 @@ Supports --fix and --dry-run flags for auto-remediation."
               (child (first children))
               (child-digest (and child (cdr (assoc :digest child)))))
          (when child-digest
-           (let ((child-manifest (car (multiple-value-list (get-manifest registry system child-digest)))))
+           (let ((child-manifest (get-manifest registry system child-digest)))
              (%select-layer-digest child-manifest registry system))))))))
 
 (defun get-blob (registry system tag dl-dir)
@@ -2272,9 +2250,8 @@ Supports --fix and --dry-run flags for auto-remediation."
                    (debug-log #?"attempting to pull ${fullname}")
                    (cl-ppcre:register-groups-bind (registry name digest)
                        ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
-                     (let ((manifest-digest (get-blob registry name #?"sha256:${digest}" dl-dir)))
-                       (declare (ignore manifest-digest))
-                       (copy-directory:copy dl-dir *systems-dir*))))
+                     (get-blob registry name #?"sha256:${digest}" dl-dir)
+                     (copy-directory:copy dl-dir *systems-dir*)))
                (error (e)
                  (format t "; error downloading and installing ~A~%" fullname)
                  (debug-log e)
@@ -2325,7 +2302,7 @@ download the system unless a version is specified."
                                            (progn
                                              (debug-log (format nil "attempting to pull ~A/~A:~A" registry mangled-name version))
                                              (let ((manifest-digest (get-blob registry mangled-name version dl-dir)))
-                                               (let ((version-display (if (and (stringp version) (looks-like-dated-version-p version)) version "latest")))
+                                               (let ((version-display (if (looks-like-dated-version-p version) version "latest")))
                                                  (if *color*
                                                      (format t #?"${*color-dim*};~
                                                                   ${*color-reset*} downloaded~
