@@ -313,7 +313,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          find . -type f \( -name '*.rpm' -o -name '*.deb' -o -name '*.tar.gz' -o -name '*.json' \) -exec sha256sum {} \; | sed 's|  \./[^/]*/|  |' > ../checksums.sha256
+          find . -type f \( -name '*.rpm' -o -name '*.deb' -o -name '*.tar.gz' -o -name '*.json' \) -exec sha256sum {} \; | sed 's|  \./[^/]*/|  |' > ../SHA256SUMS
 
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
@@ -327,7 +327,7 @@ jobs:
             artifacts/linux-package/*.tar.gz
             artifacts/sbom/*
             artifacts/signed-package/*.bundle
-            checksums.sha256
+            SHA256SUMS
           allowUpdates: true
 
       - name: Attest build provenance

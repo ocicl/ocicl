@@ -596,6 +596,10 @@ jobs:
       - name: Generate consolidated checksums
         run: |
           cd artifacts
+          # File must be named SHA256SUMS and entries must be bare asset
+          # names: that is what cl-selfupdate's find-checksum-asset and
+          # get-expected-hash recognize, and what 'ocicl update' verifies
+          # downloads against.
           sha256sum \
             linux-package/ocicl-${VERSION}-linux-amd64.tar.gz \
             linux-package/ocicl-sbom.json \
@@ -604,8 +608,8 @@ jobs:
             windows-package/ocicl-${VERSION}.msi \
             rpm-packages-*/*.rpm \
             deb-packages/*.deb \
-            > checksums.sha256
-          cat checksums.sha256
+            | sed 's|  .*/|  |' > SHA256SUMS
+          cat SHA256SUMS
 
       - name: Create GitHub release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
@@ -625,7 +629,7 @@ jobs:
             artifacts/windows-package/*-setup.exe
             artifacts/windows-package/*.msi
             artifacts/chocolatey-package/*.nupkg
-            artifacts/checksums.sha256
+            artifacts/SHA256SUMS
           allowUpdates: true
 
       - name: Attest build provenance
