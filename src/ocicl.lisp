@@ -254,10 +254,6 @@ Returns (values option-plist remaining-args)."
   "Split LINE on commas."
   (split-on-delimiter line #\,))
 
-(defun split-lines (line)
-  "Split LINE on newline characters."
-  (split-on-delimiter line #\Newline))
-
 (defun read-systems-csv (&optional csv-path)
   "Read the systems CSV file and return a hash table of system names to (registry . path) pairs.
 If CSV-PATH is provided, read from that file; otherwise read from current directory's CSV."
@@ -624,10 +620,6 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
 (eval-when (:load-toplevel :execute)
   (setf *random-state* (make-random-state t)))
 
-(defun random-base36-string ()
-  "Return a random base36 (0-9A-Z) string of 8 characters."
-  (format nil "~:@(~36,8,'0R~)" (random (expt 36 8) *random-state*)))
-
 (defun get-changes (system version)
   (loop for registry in *ocicl-registries*
         do (handler-case
@@ -968,11 +960,6 @@ If FORCE is NIL, skip files that already exist."
     (if (and directory-list (> (length directory-list) 1))
         (second directory-list)
         nil)))
-
-(defun read-file-from-directory (directory filename)
-  "Reads a file from the specified directory and filename, returning the content as a string."
-  (let ((full-path (uiop:merge-pathnames* filename directory)))
-    (uiop:read-file-string full-path)))
 
 (defun parse-date-to-universal-time (date-string)
   "Converts a date string in the format YYYYMMDD to universal time."
@@ -2148,12 +2135,6 @@ Supports --fix and --dry-run flags for auto-remediation."
     (merge-pathnames (eval `(make-pathname :directory '(:relative ,rdir)))
                      (uiop:default-temporary-directory))))
 
-
-(defun extract-sha256 (str)
-  (let* ((start (search "sha256:" str))
-         (end (+ start 71))) ;; 7 for "sha256:" and 64 for the hash
-    (when start
-      (subseq str (+ start 7) end))))
 
 (defun extract-between-slash-and-at (input)
   (let* ((reversed (reverse input))
