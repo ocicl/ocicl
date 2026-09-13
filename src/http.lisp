@@ -92,11 +92,17 @@
           (uiop:split-string raw :separator ","))))
 
 (defun header-alist->hash-table (alist)
-  "Convert an association list of HTTP headers to a hash table."
+  "Convert HTTP header ALIST to a lowercase string-keyed hash table."
   (let ((ht (make-hash-table :test #'equalp)))
     (dolist (h alist ht)
       (destructuring-bind (name . value) h
-        (setf (gethash name ht) value)))))
+        (setf (gethash
+               (string-downcase
+                (etypecase name
+                  (string name)
+                  (symbol (symbol-name name))))
+               ht)
+              value)))))
 
 (define-condition http-fetch-error (error)
   ((message :initarg :message :reader http-fetch-error-message))
@@ -114,12 +120,8 @@
   - BODY is a string unless WANT-STREAM is T (and only when STATUS < 400).
   - STATUS is the numeric HTTP status code.
   - HEADERS is a hash-table whose keys are *string* header names."
-  (let ((old-header-stream drakma:*header-stream*))
-    (unwind-protect
-         (progn
-           (when verbose
-             (setf drakma:*header-stream* verbose))
-           (multiple-value-bind (body status-code response-headers _uri _stream)
+  (let ((drakma:*header-stream* (or verbose drakma:*header-stream*)))
+    (multiple-value-bind (body status-code response-headers _uri _stream)
                (labels ((friendly-tls-message (cond)
                           (let* ((txt (princ-to-string cond))
                                  (host (ignore-errors (puri:uri-host (puri:parse-uri url)))))
@@ -212,18 +214,30 @@
                              ;; (error bodies are discarded, so don't risk decoding them)
                              (babel:octets-to-string body :encoding :utf-8)
                              body)))
-               (values body status-code (header-alist->hash-table response-headers)))))
-      (setf drakma:*header-stream* old-header-stream))))
+               (values body status-code (header-alist->hash-table response-headers))))))
 
 (defvar *http-max-retries* 3
   "How many times to retry a transient HTTP failure, beyond the first attempt.")
+
+(defvar *retry-output* *error-output*
+  "Stream for retry diagnostics, or NIL to suppress them during live UI use.")
+
+(defvar *retry-output-lock* (bt:make-lock "ocicl HTTP retry output"))
+
+(defun %write-retry-diagnostic (what url delay)
+  "Write one indivisible retry diagnostic when retry output is enabled."
+  (when *retry-output*
+    (bt:with-lock-held (*retry-output-lock*)
+      (format *retry-output* "; ~A for ~A; retrying in ~As~%"
+              what url delay)
+      (finish-output *retry-output*))))
 
 (defun %transient-http-status-p (status)
   (member status '(408 429 500 502 503 504)))
 
 (defun %sleep-before-retry (what url attempt)
   (let ((delay (expt 2 attempt)))
-    (format *error-output* "; ~A for ~A; retrying in ~As~%" what url delay)
+    (%write-retry-diagnostic what url delay)
     (sleep delay)))
 
 (defun http-get (url &key headers force-string force-binary want-stream verbose)

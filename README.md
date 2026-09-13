@@ -421,6 +421,13 @@ $ ocicl install trivial-garbage
 ; downloaded ghcr.io/ocicl/trivial-garbage@sha256:...
 ```
 
+Registry downloads performed by ``ocicl install`` run in parallel.  On an
+interactive terminal, ocicl displays colored, terminal-width progress bars and
+uses up to 75% of the visible rows, without exceeding twice the online processor
+count.  When output is redirected, it uses the processor-based limit and emits
+ordinary log lines.  Set ``OCICL_DOWNLOAD_CONCURRENCY`` to a positive integer to
+lower the automatic limit; use ``1`` for serial downloads.
+
 This downloads the latest version of trivial-garbage, which is the OCI
 image with the ``latest`` tag, and is equivalent to ``ocicl install
 trivial-garbage:latest``.

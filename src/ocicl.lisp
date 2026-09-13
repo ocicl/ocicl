@@ -35,6 +35,7 @@
 (defvar *verbose* nil)
 (defvar *force* nil)
 (defvar *color* nil)
+(defvar *progress-color* nil)
 (defvar *ocicl-systems* nil)
 (defvar *global-ocicl-systems* nil)
 (defvar *global-systems-dir* nil)
@@ -49,6 +50,404 @@
 (defvar *color-bright-red* #.(format nil "~c[91m" (code-char 27)))
 (defvar *color-bright-green* #.(format nil "~c[92m" (code-char 27)))
 (defvar *color-bright-cyan* #.(format nil "~c[96m" (code-char 27)))
+
+(defun select-download-concurrency (processor-count terminal-rows override)
+  "Choose install download concurrency from CPU, terminal rows, and OVERRIDE.
+
+The hard ceiling is twice PROCESSOR-COUNT.  Interactive displays additionally
+reserve one quarter of the terminal for surrounding output.  OVERRIDE is an
+optional positive integer string which can lower, but never raise, the
+automatically selected value."
+  (let* ((processor-limit (* 2 (max 1 (or processor-count 1))))
+         (terminal-limit (and terminal-rows
+                              (max 1 (floor (* terminal-rows 3) 4))))
+         (automatic (if terminal-limit
+                        (min processor-limit terminal-limit)
+                        processor-limit)))
+    (if override
+        (let ((requested
+                (handler-case
+                    (parse-integer override :junk-allowed nil)
+                  (error ()
+                    (error "OCICL_DOWNLOAD_CONCURRENCY must be a positive integer, not ~S"
+                           override)))))
+          (unless (plusp requested)
+            (error "OCICL_DOWNLOAD_CONCURRENCY must be a positive integer, not ~S"
+                   override))
+          (min requested automatic))
+        automatic)))
+
+(defstruct download-progress
+  "A renderer-friendly snapshot of one install download."
+  name
+  (downloaded 0)
+  total
+  (state :waiting)
+  (lock (bt:make-lock "ocicl download progress")))
+
+(defun update-download-progress (progress state downloaded total)
+  "Atomically update a download PROGRESS snapshot."
+  (bt:with-lock-held ((download-progress-lock progress))
+    (setf (download-progress-state progress) state)
+    (when downloaded
+      (setf (download-progress-downloaded progress) downloaded))
+    (when (or total (eq state :downloading))
+      (setf (download-progress-total progress) total))))
+
+(defun snapshot-download-progress (progress)
+  "Copy mutable PROGRESS while holding its lock for the renderer."
+  (bt:with-lock-held ((download-progress-lock progress))
+    (make-download-progress :name (download-progress-name progress)
+                            :downloaded (download-progress-downloaded progress)
+                            :total (download-progress-total progress)
+                            :state (download-progress-state progress))))
+
+(defun parse-terminal-size (output)
+  "Parse stty-style ROWS COLUMNS OUTPUT, returning columns and rows."
+  (handler-case
+      (let ((parts (remove ""
+                           (uiop:split-string output
+                                              :separator '(#\Space #\Tab
+                                                           #\Newline #\Return))
+                           :test #'string=)))
+        (when (= (length parts) 2)
+          (let ((rows (parse-integer (first parts) :junk-allowed nil))
+                (columns (parse-integer (second parts) :junk-allowed nil)))
+            (when (and (plusp rows) (plusp columns))
+              (values columns rows)))))
+    (error ()
+      (values nil nil))))
+
+(defun positive-environment-integer (name)
+  "Return positive integer environment variable NAME, or NIL."
+  (let ((value (uiop:getenv name)))
+    (when value
+      (let ((number (ignore-errors (parse-integer value :junk-allowed nil))))
+        (and number (plusp number) number)))))
+
+(defun terminal-dimensions ()
+  "Return terminal columns and rows, with conservative portable fallbacks."
+  (let ((environment-columns (positive-environment-integer "COLUMNS"))
+        (environment-rows (positive-environment-integer "LINES")))
+    (let ((size
+            (ignore-errors
+              (when (and (not (uiop:os-windows-p))
+                         (probe-file #P"/dev/tty"))
+                (uiop:run-program '("stty" "size")
+                                  :input #P"/dev/tty"
+                                  :output :string
+                                  :ignore-error-status t)))))
+      (multiple-value-bind (columns rows)
+          (if size (parse-terminal-size size) (values nil nil))
+        ;; Query the device first so a running install responds to resizes.
+        ;; COLUMNS and LINES remain useful on platforms without stty.
+        (values (or columns environment-columns 80)
+                (or rows environment-rows 24))))))
+
+(defun install-download-concurrency (interactive)
+  "Return configured install concurrency for interactive or plain output."
+  (multiple-value-bind (columns rows)
+      (if interactive (terminal-dimensions) (values nil nil))
+    (declare (ignore columns))
+    (select-download-concurrency
+     (handler-case (serapeum:count-cpus :online t)
+       (error () 1))
+     rows
+     (uiop:getenv "OCICL_DOWNLOAD_CONCURRENCY"))))
+
+(defun format-byte-count (bytes)
+  "Format non-negative byte count BYTES compactly for a progress row."
+  (let ((bytes (max 0 bytes)))
+    (cond
+      ((< bytes 1024)
+       (format nil "~D B" bytes))
+      ((< bytes (* 1024 1024))
+       (format nil "~,1F KiB" (/ bytes 1024.0)))
+      ((< bytes (* 1024 1024 1024))
+       (format nil "~,1F MiB" (/ bytes 1048576.0)))
+      (t
+       (format nil "~,1F GiB" (/ bytes 1073741824.0))))))
+
+(defun truncate-progress-name (name width)
+  "Return NAME truncated to exactly fit at most WIDTH terminal cells."
+  (cond
+    ((<= width 0) "")
+    ((<= (length name) width) name)
+    ((= width 1) "…")
+    (t (concatenate 'string (subseq name 0 (1- width)) "…"))))
+
+(defun progress-color (state)
+  "Return the ANSI color associated with progress STATE."
+  (case state
+    (:done *color-bright-green*)
+    (:failed *color-bright-red*)
+    (otherwise *color-bright-cyan*)))
+
+(defun colorize-progress-text (text state color bold)
+  "Apply the progress STATE color to TEXT when COLOR is true."
+  (if color
+      (format nil "~A~A~A~A"
+              (if bold *color-bold* "")
+              (progress-color state)
+              text
+              *color-reset*)
+      text))
+
+(defun progress-suffix (downloaded total state)
+  "Build the textual status suffix for a progress row."
+  (case state
+    (:waiting "waiting")
+    (:verifying "verifying")
+    (:extracting "extracting")
+    (:ready "downloaded")
+    (:installing "installing")
+    (:done (format nil "done  ~A" (format-byte-count downloaded)))
+    (:failed (format nil "failed  ~A" (format-byte-count downloaded)))
+    (otherwise
+     (if (and total (plusp total))
+         (format nil "~3D%  ~A/~A"
+                 (min 100 (floor (* 100 downloaded) total))
+                 (format-byte-count downloaded)
+                 (format-byte-count total))
+         (format nil "~A received" (format-byte-count downloaded))))))
+
+(defun make-progress-bar-parts (downloaded total width state)
+  "Return filled and empty strings for a progress bar interior of WIDTH."
+  (let* ((fraction (cond
+                     ((eq state :done) 1)
+                     ((eq state :waiting) 0)
+                     ((and total (plusp total))
+                      (min 1 (/ downloaded total)))
+                     (t nil)))
+         (filled-count (if fraction
+                           (floor (* width fraction))
+                           0)))
+    (if fraction
+        (values (make-string filled-count :initial-element #\#)
+                (make-string (- width filled-count)
+                             :initial-element #\Space))
+        (let* ((pulse-width (min 3 width))
+               (pulse-start (if (plusp width)
+                                (mod (floor downloaded 65536) width)
+                                0))
+               (bar (make-string width
+                                 :initial-element #\Space)))
+          (dotimes (offset pulse-width)
+            (setf (char bar (mod (+ pulse-start offset) width))
+                  #\#))
+          (values bar "")))))
+
+(defun render-download-progress-row (name downloaded total width
+                                     &key (state :downloading) color)
+  "Render one colored download row occupying exactly WIDTH terminal columns."
+  (let* ((width (max 20 width))
+         (name-width (min 24 (max 4 (floor width 4))))
+         (status-width (min 30 (max 8 (floor width 3))))
+         (bar-width (- width name-width status-width 4))
+         (status (truncate-progress-name
+                  (progress-suffix downloaded total state)
+                  status-width))
+         (plain-status
+           (concatenate 'string
+                        (make-string (- status-width (length status))
+                                     :initial-element #\Space)
+                        status))
+         (plain-name (format nil "~vA" name-width
+                             (truncate-progress-name name name-width)))
+           (styled-name (colorize-progress-text plain-name state color t)))
+      (multiple-value-bind (filled empty)
+          (make-progress-bar-parts downloaded total bar-width state)
+        (let ((styled-bar
+                (if color
+                    (format nil "~A~A~A~A~A"
+                            (progress-color state) filled
+                            *color-reset* *color-dim* empty)
+                    (concatenate 'string filled empty))))
+          (format nil "~A [~A~A] ~A"
+                  styled-name styled-bar
+                  (if color *color-reset* "")
+                  plain-status)))))
+
+(defun pad-progress-line (line width)
+  "Truncate or space-pad plain LINE to exactly WIDTH columns."
+  (format nil "~vA" width (truncate-progress-name line width)))
+
+(defun render-download-progress-rows (progress width terminal-rows &key color)
+  "Render PROGRESS snapshots within 75 percent of TERMINAL-ROWS.
+
+When a resize leaves fewer rows than active downloads, the last row reports how
+many downloads are hidden instead of allowing the display to scroll."
+  (let* ((row-limit (max 1 (floor (* (max 1 terminal-rows) 3) 4)))
+         (count (length progress))
+         (overflow-p (> count row-limit))
+         (visible-count (if overflow-p (1- row-limit) count))
+         (visible (subseq progress 0 visible-count))
+         (rows
+           (mapcar (lambda (item)
+                     (render-download-progress-row
+                      (download-progress-name item)
+                      (download-progress-downloaded item)
+                      (download-progress-total item)
+                      width
+                      :state (download-progress-state item)
+                      :color color))
+                   visible)))
+    (if overflow-p
+        (append rows
+                (list
+                 (let ((summary
+                         (pad-progress-line
+                          (format nil "+~D more download~:P"
+                                  (- count visible-count))
+                          width)))
+                   (if color
+                       (format nil "~A~A~A" *color-dim* summary *color-reset*)
+                       summary))))
+        rows)))
+
+(defstruct progress-display
+  (stream uiop:*stderr*)
+  color
+  (drawn-lines 0)
+  (columns 80)
+  (rows 24)
+  (last-size-check 0))
+
+(defun progress-display-dimensions (display)
+  "Return cached display dimensions, refreshing them at most once per second."
+  (let ((now (get-internal-real-time)))
+    (when (>= (- now (progress-display-last-size-check display))
+              internal-time-units-per-second)
+      (multiple-value-bind (columns rows)
+          (terminal-dimensions)
+        (setf (progress-display-columns display) columns
+              (progress-display-rows display) rows
+              (progress-display-last-size-check display) now)))
+    (values (progress-display-columns display)
+            (progress-display-rows display))))
+
+(defun move-progress-cursor-up (stream lines)
+  "Move STREAM's ANSI cursor up LINES when LINES is positive."
+  (when (plusp lines)
+    (format stream "~C[~DA" (code-char 27) lines)))
+
+(defun progress-snapshots (progress)
+  "Return an atomic snapshot of every mutable progress item."
+  (mapcar #'snapshot-download-progress progress))
+
+(defun paint-progress-display (display progress)
+  "Redraw the live progress block owned by DISPLAY."
+  (multiple-value-bind (columns terminal-rows)
+      (progress-display-dimensions display)
+    ;; Keep the final column free: many terminals auto-wrap immediately after
+    ;; writing it, which would make cursor-relative repainting unstable.
+    (let* ((width (max 20 (1- columns)))
+           (rows (render-download-progress-rows
+                  (progress-snapshots progress) width terminal-rows
+                  :color (progress-display-color display)))
+           (stream (progress-display-stream display))
+           (old-lines (progress-display-drawn-lines display))
+           (block-lines (max old-lines (length rows))))
+      (move-progress-cursor-up stream old-lines)
+      (dotimes (index block-lines)
+        (format stream "~C[2K~C" (code-char 27) #\Return)
+        (when (< index (length rows))
+          (write-string (nth index rows) stream))
+        (terpri stream))
+      (setf (progress-display-drawn-lines display) block-lines)
+      (finish-output stream))))
+
+(defun clear-progress-display (display)
+  "Erase DISPLAY's live block and leave the cursor at its first row."
+  (let ((stream (progress-display-stream display))
+        (lines (progress-display-drawn-lines display)))
+    (move-progress-cursor-up stream lines)
+    (loop repeat lines
+          do
+      (format stream "~C[2K~C~%" (code-char 27) #\Return))
+    (move-progress-cursor-up stream lines)
+    (when (progress-display-color display)
+      (write-string *color-reset* stream))
+    (finish-output stream)
+    (setf (progress-display-drawn-lines display) 0)))
+
+(defun call-with-live-progress (progress function)
+  "Call FUNCTION while a single renderer thread displays PROGRESS."
+  (let* ((display (make-progress-display :color *progress-color*))
+         (stop nil)
+         (stop-lock (bt:make-lock "ocicl progress renderer stop"))
+         (renderer nil))
+    (labels ((stopped-p ()
+               (bt:with-lock-held (stop-lock) stop))
+             (stop-renderer ()
+               (bt:with-lock-held (stop-lock)
+                 (setf stop t)))
+             (render-loop ()
+               (loop until (stopped-p)
+                     do (paint-progress-display display progress)
+                        (sleep 0.1))))
+      (unwind-protect
+           (progn
+             (paint-progress-display display progress)
+             (setf renderer
+                   (bt:make-thread #'render-loop
+                                   :name "ocicl progress renderer"))
+             (funcall function))
+        (stop-renderer)
+        (when renderer
+          (bt:join-thread renderer))
+        (paint-progress-display display progress)
+        (clear-progress-display display)))))
+
+(defstruct parallel-result
+  value
+  error)
+
+(defun bounded-parallel-map (function items limit)
+  "Apply FUNCTION to ITEMS with at most LIMIT workers, preserving order.
+
+Worker failures are collected while the remaining independent work finishes,
+then the first failure is signaled in the coordinating thread."
+  (let* ((items (coerce items 'vector))
+         (count (length items)))
+    (when (zerop count)
+      (return-from bounded-parallel-map nil))
+    (let ((next-index 0)
+          (results (make-array count))
+          (lock (bt:make-lock "ocicl download work queue"))
+          (threads nil)
+          (joined nil))
+      (labels ((next-task ()
+                 (bt:with-lock-held (lock)
+                   (when (< next-index count)
+                     (prog1 next-index
+                       (incf next-index)))))
+               (worker ()
+                 (loop for index = (next-task)
+                       while index
+                       do (setf (aref results index)
+                                (handler-case
+                                    (make-parallel-result
+                                     :value (funcall function (aref items index)))
+                                  (error (condition)
+                                    (make-parallel-result :error condition)))))))
+        (unwind-protect
+             (progn
+               (setf threads
+                     (loop repeat (min count (max 1 limit))
+                           collect (bt:make-thread #'worker
+                                                   :name "ocicl download worker")))
+               (dolist (thread threads)
+                 (bt:join-thread thread))
+               (setf joined t))
+          (unless joined
+            (dolist (thread threads)
+              (when (bt:thread-alive-p thread)
+                (ignore-errors (bt:destroy-thread thread))))))
+        (loop for result across results
+              when (parallel-result-error result)
+                do (error (parallel-result-error result))
+              collect (parallel-result-value result))))))
 
 (version-string:define-version-parameter +version+ :ocicl)
 
@@ -625,6 +1024,9 @@ Tries bearer token first, falls back to Basic auth if credentials are configured
 (eval-when (:load-toplevel :execute)
   (setf *random-state* (make-random-state t)))
 
+(defvar *temp-download-lock*
+  (bt:make-lock "ocicl temporary download directory allocation"))
+
 (defun get-changes (system version)
   (loop for registry in *ocicl-registries*
         do (handler-case
@@ -699,6 +1101,66 @@ ocicl-managed systems directory (the local *SYSTEMS-DIR* or the shared global
             (error (e)
               (when *verbose*
                 (format t "; error processing ~A: ~A~%" d e)))))))))
+
+(defun dependency-download-frontier (names visited)
+  "Return new registry downloads and dependency names reachable from NAMES."
+  (let ((downloads nil)
+        (next nil)
+        (*inhibit-download-during-search* t))
+    (dolist (name names)
+      (handler-case
+          (let* ((system (quiet-find-system name))
+                 (dependencies (when system (asdf:system-depends-on system))))
+            (dolist (dependency dependencies)
+              (let* ((resolved (resolve-dependency-name dependency))
+                     (dependency-name
+                       (when resolved
+                         (ignore-errors (asdf:coerce-name resolved))))
+                     (key (and dependency-name (mangle dependency-name))))
+                (when (and key (not (gethash key visited)))
+                  (setf (gethash key visited) t)
+                  (push dependency-name next)
+                  (let* ((dependency-system
+                           (quiet-find-system dependency-name nil))
+                         (source-file
+                           (and dependency-system
+                                (asdf:system-source-file dependency-system)))
+                         (local-info (gethash key *ocicl-systems*))
+                         (local-asd
+                           (and local-info
+                                (merge-pathnames (cdr local-info)
+                                                 *systems-dir*))))
+                    (when (and
+                           (not (and local-asd (probe-file local-asd)))
+                           (or (null dependency-system)
+                               (and source-file
+                                    (not (subpath-p source-file *systems-dir*))
+                                    (not (and *global-systems-dir*
+                                              (subpath-p
+                                               source-file
+                                               *global-systems-dir*))))))
+                      (push dependency-name downloads)))))))
+        (asdf/find-component:missing-component (condition)
+          (declare (ignore condition)))
+        (error (condition)
+          (when *verbose*
+            (format t "; error examining dependencies of ~A: ~A~%"
+                    name condition)))))
+    (values (remove-duplicates (nreverse downloads) :test #'string=)
+            (nreverse next))))
+
+(defun download-system-dependencies-parallel (names)
+  "Download the dependency graph below NAMES in parallel breadth-first waves."
+  (let ((visited (make-hash-table :test #'equal))
+        (frontier (remove-duplicates names :test #'string=)))
+    (dolist (name frontier)
+      (setf (gethash (mangle name) visited) t))
+    (loop while frontier
+          do (multiple-value-bind (downloads next)
+                 (dependency-download-frontier frontier visited)
+               (when downloads
+                 (run-staged-system-downloads downloads))
+               (setf frontier next)))))
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
@@ -1111,53 +1573,93 @@ Returns (values check-only dry-run include-prerelease)."
   (uiop:ensure-all-directories-exist
    (list *systems-dir*))
   (if args
-      ;; Download the systems provided on the command line.
-      (dolist (system args)
-        (cond
-          ((git-source-p system)
-           (handler-case
-               (install-git-source system)
-             (error (e)
-               (format uiop:*stderr* "Error: can't install ~A: ~A~%" system e)
-               (uiop:quit 1))))
-          ((position #\@ system)
-           (unless (install-pinned-fullname system)
-             (progn
-               (format uiop:*stderr* "Error: can't download ~A.~%" system)
-               (uiop:quit))))
-          (t
-           (let* ((name-and-version (split-on-delimiter system #\:))
-                  (name (car name-and-version))
-                  (info (gethash (mangle name) *ocicl-systems*)))
-             (cond
-               ((and info (git-source-p (car info)))
-                (when (second name-and-version)
-                  (format uiop:*stderr* "Error: ~A is git-sourced; reinstall it with 'ocicl install git+URL[@REF]' to change its pin.~%"
-                          name)
-                  (uiop:quit))
-                (unless (probe-file (merge-pathnames (cdr info) *systems-dir*))
-                  (refetch-git-row (car info) (cdr info)))
-                (download-system-dependencies name))
-               ((download-system system)
-                (download-system-dependencies name)))))))
-      ;; Download all systems in systems.csv.
-      (maphash (lambda (key value)
-                 (unless (probe-file (concatenate 'string (namestring *systems-dir*) (cdr value)))
-                   (if (git-source-p (car value))
-                       (handler-case
-                           (refetch-git-row (car value) (cdr value))
-                         (error (e)
-                           (format *error-output* "; error fetching ~A: ~A~%"
-                                   (car value) e)))
-                       (if (install-pinned-fullname (car value))
-                           (if *color*
-                               (format t #?"${*color-dim*};${*color-reset*} downloaded ~
-                                            ${*color-bold*}${*color-bright-green*}${(unmangle key)}${*color-reset*} ~
-                                            from ${*color-dim*}${(car value)}${*color-reset*}~%")
-                               (format t "; downloaded ~A from ~A~%" (unmangle key) (car value)))
-                           (format *error-output* "; failed to install ~A from ~A~%"
-                                   (unmangle key) (car value))))))
-               *ocicl-systems*)))
+      ;; Git sources retain their existing serial path.  Registry systems are
+      ;; staged as one bounded batch and committed by this coordinating thread.
+      (let ((registry-systems nil)
+            (pinned-systems nil)
+            (dependency-roots nil))
+        (dolist (system args)
+          (cond
+            ((git-source-p system)
+             (handler-case
+                 (install-git-source system)
+               (error (condition)
+                 (format uiop:*stderr* "Error: can't install ~A: ~A~%"
+                         system condition)
+                 (uiop:quit 1))))
+            ((position #\@ system)
+             (push (cons (or (ignore-errors
+                               (system-name-from-fullname system))
+                             system)
+                         system)
+                   pinned-systems))
+            (t
+             (let* ((name-and-version (split-on-delimiter system #\:))
+                    (name (car name-and-version))
+                    (requested-version (second name-and-version))
+                    (info (gethash (mangle name) *ocicl-systems*))
+                    (asd-file
+                      (and info
+                           (merge-pathnames (cdr info) *systems-dir*))))
+               (cond
+                 ((and info (git-source-p (car info)))
+                  (when requested-version
+                    (format uiop:*stderr* "Error: ~A is git-sourced; reinstall it with 'ocicl install git+URL[@REF]' to change its pin.~%"
+                            name)
+                    (uiop:quit))
+                  (unless (probe-file asd-file)
+                    (refetch-git-row (car info) (cdr info)))
+                  (push name dependency-roots))
+                 ((and (not requested-version)
+                       info asd-file (probe-file asd-file) (not *force*))
+                  (if *color*
+                      (format t "~A;~A~A~A ~A~A:~A already exists~%"
+                              *color-dim* *color-reset* *color-bold*
+                              *color-bright-green* name *color-reset*
+                              (get-project-version (cdr info)))
+                      (format t "; ~A:~A already exists~%"
+                              name (get-project-version (cdr info))))
+                  (push name dependency-roots))
+                 (t
+                  (push system registry-systems)))))))
+        (handler-case
+            (let ((installed nil))
+              (when pinned-systems
+                (run-staged-pinned-downloads (nreverse pinned-systems)))
+              (when registry-systems
+                (setf installed
+                      (run-staged-system-downloads
+                       (nreverse registry-systems))))
+              (setf dependency-roots
+                    (nconc (nreverse dependency-roots) installed))
+              (when dependency-roots
+                (download-system-dependencies-parallel dependency-roots)))
+          (error (condition)
+            (format uiop:*stderr* "Error: ~A~%" condition)
+            (uiop:quit 1))))
+      ;; Restore every missing tree in systems.csv. Git stays serial; pinned OCI
+      ;; artifacts are deduplicated and restored concurrently.
+      (let ((git-rows nil)
+            (pinned-rows nil))
+        (maphash
+         (lambda (key value)
+           (unless (probe-file (merge-pathnames (cdr value) *systems-dir*))
+             (if (git-source-p (car value))
+                 (push value git-rows)
+                 (push (cons (unmangle key) (car value)) pinned-rows))))
+         *ocicl-systems*)
+        (dolist (value (nreverse git-rows))
+          (handler-case
+              (refetch-git-row (car value) (cdr value))
+            (error (condition)
+              (format *error-output* "; error fetching ~A: ~A~%"
+                      (car value) condition))))
+        (when pinned-rows
+          (handler-case
+              (run-staged-pinned-downloads (nreverse pinned-rows))
+            (error (condition)
+              (format uiop:*stderr* "Error: ~A~%" condition)
+              (uiop:quit 1)))))))
 
 (defun subpath-p (path root)
   "Return T if PATH lies under ROOT."
@@ -1954,28 +2456,24 @@ message and returns NIL options on a malformed option."
            (list (merge-pathnames "templates/" (get-ocicl-dir))))
   (setf *template-dirs* (remove-duplicates *template-dirs* :test #'equal)))
 
-(defun color-output-p (color-option)
-  "Decide whether to colorize output, honoring COLOR-OPTION (\"auto\",
-\"always\", \"never\", or NIL), NO_COLOR, and whether stdout is a tty."
-  (flet ((output-stream ()
-           (if (typep *standard-output* 'synonym-stream)
-               (symbol-value (synonym-stream-symbol *standard-output*))
-               *standard-output*)))
-    (let ((color-allowed?
-            (or (string= color-option "auto")
-                (and (not color-option)
-                     (not (uiop:getenvp "NO_COLOR")))))
-          (tty?
-            (handler-case
-                #+sbcl
-                (/= 0 (sb-unix:unix-isatty
-                        (sb-sys:fd-stream-fd
-                          (output-stream))))
-                #-sbcl
-                (interactive-stream-p (output-stream))
-              (error () nil))))
-      (or (string= color-option "always")
-          (and tty? color-allowed?)))))
+(defun stream-tty-p (stream)
+  "Return true when STREAM is attached to an interactive terminal."
+  (let ((stream (if (typep stream 'synonym-stream)
+                    (symbol-value (synonym-stream-symbol stream))
+                    stream)))
+    (handler-case
+        #+sbcl
+        (/= 0 (sb-unix:unix-isatty (sb-sys:fd-stream-fd stream)))
+        #-sbcl
+        (interactive-stream-p stream)
+      (error () nil))))
+
+(defun color-output-p (color-option &optional (stream *standard-output*))
+  "Decide whether to colorize STREAM, honoring COLOR-OPTION and NO_COLOR."
+  (or (string= color-option "always")
+      (and (not (string= color-option "never"))
+           (not (uiop:getenvp "NO_COLOR"))
+           (stream-tty-p stream))))
 
 (defun init-systems-tables (workdir)
   "Read the local (and, unless local-only, global) systems tables and
@@ -2067,7 +2565,9 @@ be WORKDIR."
            (when-option (options :global)
                         (setf workdir (or *ocicl-globaldir* (get-ocicl-dir))))
            (finalize-template-dirs)
-           (setf *color* (color-output-p (getf options :color)))
+           (setf *color* (color-output-p (getf options :color))
+                 *progress-color*
+                 (color-output-p (getf options :color) uiop:*stderr*))
 
            ;; TLS verification (default depends on platform); allow --insecure or OCICL_INSECURE
            (when (or (getf options :insecure)
@@ -2130,19 +2630,26 @@ be WORKDIR."
 temporary directory.  Requires actually creating the directory (a
 pre-existing one is rejected and a new name tried), so another local
 user cannot pre-create the path and plant files in it."
-  (loop repeat 100
-        for dir = (merge-pathnames
-                   (make-pathname
-                    :directory (list :relative
-                                     (format nil "ocicl-~:@(~36,8,'0R~)"
-                                             (random (expt 36 8) *random-state*))))
-                   (uiop:default-temporary-directory))
-        do (multiple-value-bind (path created) (ensure-directories-exist dir)
-             (declare (ignore path))
-             (when created
-               (return dir)))
-        finally (error "could not create a private temporary directory under ~A"
-                       (uiop:default-temporary-directory))))
+  ;; ENSURE-DIRECTORIES-EXIST does not make its existence check and mkdir one
+  ;; atomic operation.  Serialize this tiny allocation window so parallel
+  ;; workers can never be handed the same staging tree.
+  (bt:with-lock-held (*temp-download-lock*)
+    (loop repeat 100
+          for dir = (merge-pathnames
+                     (make-pathname
+                      :directory (list :relative
+                                       (format nil "ocicl-~:@(~36,8,'0R~)"
+                                               (random (expt 36 8)
+                                                       *random-state*))))
+                     (uiop:default-temporary-directory))
+          do (multiple-value-bind (path created)
+                 (ensure-directories-exist dir)
+               (declare (ignore path))
+               (when created
+                 (return dir)))
+          finally
+             (error "could not create a private temporary directory under ~A"
+                    (uiop:default-temporary-directory)))))
 
 
 (defun system-name-from-fullname (fullname)
@@ -2223,7 +2730,36 @@ user cannot pre-create the path and plant files in it."
            (let ((child-manifest (get-manifest registry system child-digest)))
              (%select-layer-digest child-manifest registry system))))))))
 
-(defun fetch-and-extract-layer (registry system tag dl-dir)
+(defun copy-http-response-to-file (input pathname &key total progress)
+  "Copy binary response stream INPUT to PATHNAME, then close INPUT.
+
+When PROGRESS is supplied, call it after every buffer with downloaded bytes and
+the optional TOTAL response size."
+  (unwind-protect
+       (with-open-file (out pathname :direction :output
+                                     :element-type '(unsigned-byte 8)
+                                     :if-exists :supersede)
+         (let ((buffer (make-array 65536 :element-type '(unsigned-byte 8)))
+               (downloaded 0))
+           (loop for count = (read-sequence buffer input)
+                 while (plusp count)
+                 do (write-sequence buffer out :end count)
+                    (incf downloaded count)
+                    (when progress
+                      (funcall progress downloaded total)))))
+    (when input
+      (ignore-errors (close input)))))
+
+(defun response-content-length (headers)
+  "Return a positive Content-Length from response HEADERS, or NIL."
+  (let ((value (and headers (gethash "content-length" headers))))
+    (when value
+      (let ((length (ignore-errors
+                      (parse-integer (princ-to-string value)
+                                     :junk-allowed nil))))
+        (and length (plusp length) length)))))
+
+(defun fetch-and-extract-layer (registry system tag dl-dir &key progress)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
          (server (registry-server registry))
@@ -2246,19 +2782,33 @@ user cannot pre-create the path and plant files in it."
           ;; extract.  This is the supply-chain integrity check: a
           ;; compromised registry/CDN cannot substitute tarball contents.
           (uiop:with-temporary-file (:pathname blob-file :type "blob")
-            (let ((input (ocicl.http:http-get #?"https://${server}/v2/${repository}/${safe-system}/blobs/${layer-digest}"
-                                              :force-binary t
-                                              :want-stream t
-                                              :verbose *verbose*
-                                              :headers headers)))
-              (with-open-file (out blob-file :direction :output
-                                             :element-type '(unsigned-byte 8)
-                                             :if-exists :supersede)
-                (uiop:copy-stream-to-stream input out :element-type '(unsigned-byte 8))))
+            (let ((downloaded 0))
+              (multiple-value-bind (input status response-headers)
+                  (ocicl.http:http-get
+                   #?"https://${server}/v2/${repository}/${safe-system}/blobs/${layer-digest}"
+                   :force-binary t
+                   :want-stream t
+                   :verbose *verbose*
+                   :headers headers)
+                (declare (ignore status))
+                (let ((total (response-content-length response-headers)))
+                  (when progress
+                    (funcall progress :downloading 0 total))
+                  (copy-http-response-to-file
+                   input blob-file
+                   :total total
+                   :progress (lambda (bytes expected)
+                               (setf downloaded bytes)
+                               (when progress
+                                 (funcall progress :downloading bytes expected))))
+                  (when progress
+                    (funcall progress :verifying downloaded total)))))
             (let ((actual (sha256-hex-of-file blob-file)))
               (unless (string= actual expected)
                 (error "blob digest mismatch for ~A:~A: expected sha256:~A, got sha256:~A"
                        system tag expected actual)))
+            (when progress
+              (funcall progress :extracting nil nil))
             (with-open-file (in blob-file :element-type '(unsigned-byte 8))
               (handler-bind
                   ((tar-simple-extract:broken-or-circular-links-error
@@ -2268,6 +2818,344 @@ user cannot pre-create the path and plant files in it."
                 (tar:with-open-archive (a in)
                   (tar-simple-extract:simple-extract-archive a :directory dl-dir)))))
           manifest-digest)))))
+
+(defstruct staged-download
+  requested
+  name
+  mangled-name
+  version
+  registry
+  manifest-digest
+  directory
+  relative-directory
+  (register-p t)
+  error)
+
+(defun stage-system-download (system &optional progress)
+  "Download and extract registry SYSTEM into a private directory.
+
+This worker-side operation never mutates *OCICL-SYSTEMS* or *SYSTEMS-DIR*.
+Call COMMIT-STAGED-DOWNLOAD from the coordinator to publish the result."
+  (let* ((name-and-version (split-on-delimiter system #\:))
+         (name (first name-and-version))
+         (requested-version (second name-and-version))
+         (mangled-name (mangle name))
+         (system-info (gethash mangled-name *ocicl-systems*))
+         (fullname (car system-info))
+         (existing-version
+           (when system-info
+             (cl-ppcre:register-groups-bind (registry stored-name digest)
+                 ("^([^/]+/[^/]+)/([^:@]+)?(?:@sha256:([a-fA-F0-9]+))?" fullname)
+               (declare (ignore registry stored-name))
+               (and digest (format nil "sha256:~A" digest)))))
+         (version (or requested-version existing-version "latest"))
+         (last-error nil))
+    (dolist (registry *ocicl-registries*)
+      (let ((directory (make-temp-ocicl-dl-directory))
+            (keep-directory nil))
+        (unwind-protect
+             (handler-case
+                 (progn
+                   (when progress
+                     (funcall progress :waiting 0 nil))
+                   (debug-log
+                    (format nil "attempting to pull ~A/~A:~A"
+                            registry mangled-name version))
+                   (let* ((manifest-digest
+                            (fetch-and-extract-layer
+                             registry mangled-name version directory
+                             :progress progress))
+                          (relative-directory
+                            (alexandria:when-let ((tree
+                                                   (first
+                                                    (uiop:subdirectories directory))))
+                              (last-directory-component tree))))
+                     (unless relative-directory
+                       (error "downloaded artifact ~A contains no source directory"
+                              system))
+                     (require-oci-digest manifest-digest
+                                         "registry manifest digest")
+                     (setf keep-directory t)
+                     (when progress
+                       (funcall progress :ready nil nil))
+                     (return-from stage-system-download
+                       (make-staged-download
+                        :requested system
+                        :name name
+                        :mangled-name mangled-name
+                        :version version
+                        :registry registry
+                        :manifest-digest manifest-digest
+                        :directory directory
+                        :relative-directory relative-directory))))
+               (error (condition)
+                 (setf last-error condition)
+                 (debug-log condition)))
+          (unless keep-directory
+            (uiop:delete-directory-tree directory :validate t)))))
+    (when progress
+      (funcall progress :failed nil nil))
+    (make-staged-download :requested system
+                          :name name
+                          :mangled-name mangled-name
+                          :version version
+                          :error (or last-error
+                                     (make-condition
+                                      'simple-error
+                                      :format-control "no registries configured"
+                                      :format-arguments nil)))))
+
+(defun stage-pinned-download (fullname name &optional progress)
+  "Stage pinned OCI FULLNAME for NAME without changing recorded CSV rows."
+  (let ((registry nil)
+        (image-name nil)
+        (digest nil))
+    (cl-ppcre:register-groups-bind (matched-registry matched-name matched-digest)
+        ("^([^/]+/[^/]+)/([^:@]+)@sha256:([a-fA-F0-9]{64})$" fullname)
+      (setf registry matched-registry
+            image-name matched-name
+            digest matched-digest))
+    (unless (and registry image-name digest)
+      (error "invalid pinned OCI fullname: ~A" fullname))
+    (let ((directory (make-temp-ocicl-dl-directory))
+          (keep-directory nil))
+      (unwind-protect
+           (handler-case
+               (progn
+                 (when progress
+                   (funcall progress :waiting 0 nil))
+                 (let* ((tag (format nil "sha256:~A" digest))
+                        (manifest-digest
+                          (fetch-and-extract-layer
+                           registry image-name tag directory
+                           :progress progress))
+                        (relative-directory
+                          (alexandria:when-let
+                              ((tree (first (uiop:subdirectories directory))))
+                            (last-directory-component tree))))
+                   (unless relative-directory
+                     (error "downloaded artifact ~A contains no source directory"
+                            fullname))
+                   (require-oci-digest manifest-digest
+                                       "registry manifest digest")
+                   (setf keep-directory t)
+                   (when progress
+                     (funcall progress :ready nil nil))
+                   (make-staged-download
+                    :requested fullname
+                    :name name
+                    :mangled-name image-name
+                    :version tag
+                    :registry registry
+                    :manifest-digest manifest-digest
+                    :directory directory
+                    :relative-directory relative-directory
+                    :register-p nil)))
+             (error (condition)
+               (when progress
+                 (funcall progress :failed nil nil))
+               (make-staged-download :requested fullname
+                                     :name name
+                                     :error condition
+                                     :register-p nil)))
+        (unless keep-directory
+          (uiop:delete-directory-tree directory :validate t))))))
+
+(defun commit-staged-download (staged &key (update-csv t) (print-result t))
+  "Publish STAGED into the shared systems tree and systems table."
+  (when (staged-download-error staged)
+    (return-from commit-staged-download nil))
+  (unwind-protect
+       (let* ((directory (staged-download-directory staged))
+              (relative-directory (staged-download-relative-directory staged))
+              (registry (staged-download-registry staged))
+              (mangled-name (staged-download-mangled-name staged))
+              (digest (require-oci-digest
+                       (staged-download-manifest-digest staged)
+                       "registry manifest digest")))
+         (copy-directory:copy directory *systems-dir*)
+         (when (staged-download-register-p staged)
+           (dolist (asd (find-asd-files
+                         (merge-pathnames relative-directory *systems-dir*)))
+             (debug-log (format nil "registering ~A" asd))
+             (setf (gethash (mangle (pathname-name asd)) *ocicl-systems*)
+                   (cons (format nil "~A/~A@~A" registry mangled-name digest)
+                         (enough-namestring (namestring asd) *systems-dir*)))))
+         (when (and update-csv (staged-download-register-p staged))
+           (write-systems-csv))
+         (when print-result
+           (let ((version-display
+                   (if (looks-like-dated-version-p
+                        (staged-download-version staged))
+                       (staged-download-version staged)
+                       "latest")))
+             (if *color*
+                 (format t "~A;~A downloaded ~A~A~A:~A~A~%"
+                         *color-dim* *color-reset*
+                         *color-bold* *color-bright-green*
+                         (staged-download-name staged)
+                         version-display *color-reset*)
+                 (format t "; downloaded ~A:~A~%"
+                         (staged-download-name staged) version-display))))
+         (if (staged-download-register-p staged)
+             (gethash (staged-download-mangled-name staged) *ocicl-systems*)
+             t))
+    (when (staged-download-directory staged)
+      (uiop:delete-directory-tree
+       (staged-download-directory staged) :validate t))))
+
+(defun report-installed-batch (installed)
+  "Report one compact interactive summary for INSTALLED system names."
+  (when installed
+    (let ((description (if (rest installed)
+                           (format nil "~D systems" (length installed))
+                           (first installed))))
+      (if *color*
+          (format t "~A;~A installed ~A~A~A~%"
+                  *color-dim* *color-reset* *color-bright-green*
+                  description *color-reset*)
+          (format t "; installed ~A~%" description)))))
+
+(defun report-pinned-download (download)
+  "Report one completed pinned DOWNLOAD for non-interactive logs."
+  (if *color*
+      (format t "~A;~A downloaded ~A~A~A~A from ~A~A~A~%"
+              *color-dim* *color-reset* *color-bold*
+              *color-bright-green* (staged-download-name download)
+              *color-reset* *color-dim*
+              (staged-download-requested download) *color-reset*)
+      (format t "; downloaded ~A from ~A~%"
+              (staged-download-name download)
+              (staged-download-requested download))))
+
+(defun run-staged-system-downloads (systems)
+  "Stage registry SYSTEMS concurrently, then commit them in request order."
+  (let* ((systems (remove-duplicates systems :test #'string=))
+         (interactive (and (not *verbose*)
+                           (stream-tty-p uiop:*stderr*)))
+         (limit (install-download-concurrency interactive))
+         (progress
+           (mapcar (lambda (system)
+                     (make-download-progress :name system))
+                   systems))
+         (work (mapcar #'cons systems progress))
+         (installed nil)
+         (failures nil)
+         (changed nil))
+    (labels ((stage-all ()
+               (bounded-parallel-map
+                (lambda (item)
+                  (let ((ocicl.http::*retry-output*
+                          (unless interactive uiop:*stderr*)))
+                    (stage-system-download
+                     (car item)
+                     (lambda (state downloaded total)
+                       (update-download-progress
+                        (cdr item) state downloaded total)))))
+                work limit))
+             (publish-all ()
+               (loop for download in (stage-all)
+                     for status in progress
+                     do
+                        (if (staged-download-error download)
+                            (push (cons (staged-download-requested download)
+                                        (staged-download-error download))
+                                  failures)
+                            (handler-case
+                                (progn
+                                  (update-download-progress
+                                   status :installing nil nil)
+                                  (when (commit-staged-download
+                                         download :update-csv nil
+                                         :print-result (not interactive))
+                                    (setf changed t)
+                                    (push (staged-download-name download)
+                                          installed)
+                                    (update-download-progress
+                                     status :done nil nil)))
+                              (error (condition)
+                                (update-download-progress
+                                 status :failed nil nil)
+                                (push
+                                 (cons (staged-download-requested download)
+                                       condition)
+                                 failures)))))
+               (when changed
+                 (write-systems-csv))))
+      (if interactive
+          (call-with-live-progress progress #'publish-all)
+          (publish-all)))
+    (setf installed (nreverse installed))
+    (dolist (failure (nreverse failures))
+      (format *error-output* "; error downloading ~A: ~A~%"
+              (car failure) (cdr failure)))
+    (when interactive
+      (report-installed-batch installed))
+    installed))
+
+(defun run-staged-pinned-downloads (entries)
+  "Restore pinned OCI ENTRIES of (display-name . fullname) concurrently."
+  (let* ((entries (remove-duplicates entries :test #'string= :key #'cdr))
+         (interactive (and (not *verbose*)
+                           (stream-tty-p uiop:*stderr*)))
+         (limit (install-download-concurrency interactive))
+         (progress
+           (mapcar (lambda (entry)
+                     (make-download-progress :name (car entry)))
+                   entries))
+         (work (mapcar #'cons entries progress))
+         (installed nil)
+         (failures nil))
+    (labels ((stage-all ()
+               (bounded-parallel-map
+                (lambda (item)
+                  (let ((ocicl.http::*retry-output*
+                          (unless interactive uiop:*stderr*)))
+                    (stage-pinned-download
+                     (cdr (car item))
+                     (car (car item))
+                     (lambda (state downloaded total)
+                       (update-download-progress
+                        (cdr item) state downloaded total)))))
+                work limit))
+             (publish-all ()
+               (loop for download in (stage-all)
+                     for status in progress
+                     do
+                        (if (staged-download-error download)
+                            (push (cons (staged-download-requested download)
+                                        (staged-download-error download))
+                                  failures)
+                            (handler-case
+                                (progn
+                                  (update-download-progress
+                                   status :installing nil nil)
+                                  (when (commit-staged-download
+                                         download :update-csv nil
+                                         :print-result nil)
+                                    (push (staged-download-name download)
+                                          installed)
+                                    (update-download-progress
+                                     status :done nil nil)
+                                    (unless interactive
+                                      (report-pinned-download download))))
+                              (error (condition)
+                                (update-download-progress
+                                 status :failed nil nil)
+                                (push
+                                 (cons (staged-download-requested download)
+                                       condition)
+                                 failures)))))))
+      (if interactive
+          (call-with-live-progress progress #'publish-all)
+          (publish-all)))
+    (setf installed (nreverse installed))
+    (dolist (failure (nreverse failures))
+      (format *error-output* "; failed to install ~A: ~A~%"
+              (car failure) (cdr failure)))
+    (when interactive
+      (report-installed-batch installed))
+    installed))
 
 (defun install-pinned-fullname (fullname)
   (let ((dl-dir (make-temp-ocicl-dl-directory)))
