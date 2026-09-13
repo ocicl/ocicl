@@ -61,6 +61,22 @@
   (let ((*test-failed* 0))
     (declare (special *test-failed*))
 
+    ;; resolve-dependency-name: ASDF dependency specs
+    (check "plain string dependency resolves to itself"
+           (equal (ocicl::resolve-dependency-name "alexandria") "alexandria"))
+    (check ":version form resolves to the system name"
+           (equal (ocicl::resolve-dependency-name '(:version "alexandria" "1.0"))
+                  "alexandria"))
+    (check ":require form resolves to the module name"
+           (equal (ocicl::resolve-dependency-name '(:require "sb-posix"))
+                  "sb-posix"))
+    (check ":feature form resolves to NIL even when the feature is present"
+           (null (ocicl::resolve-dependency-name
+                  (list :feature (car *features*) "some-system"))))
+    (check ":feature-wrapped :require resolves to NIL"
+           (null (ocicl::resolve-dependency-name
+                  '(:feature :dotcl (:require "dotcl-float")))))
+
     ;; parse-git-source: user-supplied sources
     (check "plain https URL"
            (source= "git+https://github.com/me/my-lib"

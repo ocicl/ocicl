@@ -1787,13 +1787,18 @@ RELATIVE-ASD-PATH (a systems-dir-relative .asd path)."
                   (format t "; removed ~A~A~%" (unmangle removed-name) version-sha)))))))))
 
 (defun resolve-dependency-name (dependency)
-  "Resolve ASDF dependency name."
+  "Resolve ASDF dependency name, or NIL for dependencies we don't manage.
+
+Feature-gated dependencies ((:feature ...) forms) resolve to NIL: whether
+the gate is satisfied depends on the Lisp that ultimately loads the system,
+not the one running ocicl, so we leave those for the user to install
+manually."
   (declare (optimize (speed 3) (safety 1)))
   (if (consp dependency)
-      (resolve-dependency-name (case (car dependency)
-                                 (:version (second dependency))
-                                 (:feature (third dependency))
-                                 (:require (second dependency))))
+      (case (car dependency)
+        (:version (resolve-dependency-name (second dependency)))
+        (:require (resolve-dependency-name (second dependency)))
+        (:feature nil))
       dependency))
 
 (defun full-dependency-table (system dependency-table)
@@ -1803,10 +1808,11 @@ RELATIVE-ASD-PATH (a systems-dir-relative .asd path)."
                (when (not (nth-value 1 (gethash system dependency-table)))
                  (let ((asdf-system (ignore-errors (quiet-find-system system nil))))
                    (when asdf-system
-                     (let ((dependencies (append (mapcar #'resolve-dependency-name
-                                                         (asdf:system-depends-on asdf-system))
-                                                 (mapcar #'resolve-dependency-name
-                                                         (asdf:system-defsystem-depends-on asdf-system)))))
+                     (let ((dependencies (remove nil
+                                                 (append (mapcar #'resolve-dependency-name
+                                                                 (asdf:system-depends-on asdf-system))
+                                                         (mapcar #'resolve-dependency-name
+                                                                 (asdf:system-defsystem-depends-on asdf-system))))))
                        (setf (gethash system dependency-table)
                              dependencies)
                        (mapc #'recurse-deps dependencies)))))))
@@ -2104,9 +2110,10 @@ RELATIVE-ASD-PATH (a systems-dir-relative .asd path)."
     (unless (eql (gethash system *tree-seen*) :expanded)
       (setf (gethash system *tree-seen*) :expanded)
       (let ((dependency-names (sort
-                               (mapcar
-                                #'resolve-dependency-name
-                                (asdf:system-depends-on system))
+                               (remove nil
+                                       (mapcar
+                                        #'resolve-dependency-name
+                                        (asdf:system-depends-on system)))
                                #'string<)))
         (mapcar
          (lambda (dependency)
