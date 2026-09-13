@@ -311,13 +311,14 @@ many downloads are hidden instead of allowing the display to scroll."
   (drawn-lines 0)
   (columns 80)
   (rows 24)
-  (last-size-check 0))
+  last-size-check)
 
 (defun progress-display-dimensions (display)
   "Return cached display dimensions, refreshing them at most once per second."
-  (let ((now (get-internal-real-time)))
-    (when (>= (- now (progress-display-last-size-check display))
-              internal-time-units-per-second)
+  (let ((now (get-internal-real-time))
+        (last-check (progress-display-last-size-check display)))
+    (when (or (null last-check)
+              (>= (- now last-check) internal-time-units-per-second))
       (multiple-value-bind (columns rows)
           (terminal-dimensions)
         (setf (progress-display-columns display) columns

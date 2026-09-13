@@ -322,6 +322,10 @@
         (ocicl::parse-terminal-size "not a size")
       (check "terminal size parser rejects malformed output"
              (and (null columns) (null rows))))
+    (check "new progress displays have no cached terminal dimensions"
+           (null
+            (ocicl::progress-display-last-size-check
+             (ocicl::make-progress-display))))
     (let* ((progress
              (loop for name in '("one" "two" "three" "four" "five")
                    collect (ocicl::make-download-progress
