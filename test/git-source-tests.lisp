@@ -635,5 +635,67 @@
         (setf (fdefinition 'ocicl.http::%http-get-once) real-once
               (fdefinition 'ocicl.http::%sleep-before-retry) real-sleep)))
 
+    ;; with-transient-retries covers the streamed-download body phase that
+    ;; http-get's internal retry cannot see (a mid-body connection reset).
+    (let ((real-sleep (fdefinition 'ocicl.http::%sleep-before-retry))
+          (calls 0))
+      (unwind-protect
+           (progn
+             (setf (fdefinition 'ocicl.http::%sleep-before-retry)
+                   (lambda (what url attempt)
+                     (declare (ignore what url attempt))))
+
+             (setf calls 0)
+             (check "with-transient-retries retries a mid-body stream error"
+                    (and (equal (ocicl.http:with-transient-retries
+                                    (:url "https://x/blob")
+                                  (incf calls)
+                                  (if (< calls 3)
+                                      (error 'stream-error :stream *terminal-io*)
+                                      :done))
+                                :done)
+                         (= calls 3)))
+
+             (setf calls 0)
+             (check "with-transient-retries retries a digest mismatch"
+                    (and (equal (ocicl.http:with-transient-retries
+                                    (:url "https://x/blob")
+                                  (incf calls)
+                                  (if (< calls 2)
+                                      (error "blob digest mismatch for x")
+                                      :verified))
+                                :verified)
+                         (= calls 2)))
+
+             (setf calls 0)
+             (check-errors "with-transient-retries rethrows after exhausting attempts"
+                           (ocicl.http:with-transient-retries
+                               (:url "https://x/blob")
+                             (incf calls)
+                             (error "always failing")))
+             (check "with-transient-retries stops after max retries"
+                    (= calls (1+ ocicl.http::*http-max-retries*)))
+
+             (setf calls 0)
+             (check-errors "with-transient-retries passes through TLS failures"
+                           (ocicl.http:with-transient-retries
+                               (:url "https://x/blob")
+                             (incf calls)
+                             (error 'ocicl.http::tls-verification-failure
+                                    :message "bad cert")))
+             (check "with-transient-retries never retries a TLS failure"
+                    (= calls 1))
+
+             (setf calls 0)
+             (check-errors "with-transient-retries passes through HTTP 404"
+                           (ocicl.http:with-transient-retries
+                               (:url "https://x/blob")
+                             (incf calls)
+                             (error 'ocicl.http::http-status-error
+                                    :status 404 :message "HTTP 404")))
+             (check "with-transient-retries never retries a 404"
+                    (= calls 1)))
+        (setf (fdefinition 'ocicl.http::%sleep-before-retry) real-sleep)))
+
     (format t "~%~D passed, ~D failed~%" *test-passed* *test-failed*)
     *test-failed*))

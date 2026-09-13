@@ -2788,32 +2788,43 @@ the optional TOTAL response size."
           ;; the layer digest from the verified manifest, and only then
           ;; extract.  This is the supply-chain integrity check: a
           ;; compromised registry/CDN cannot substitute tarball contents.
+          ;;
+          ;; The download-and-verify unit runs under WITH-TRANSIENT-RETRIES:
+          ;; HTTP-GET's own retry loop only covers the request/header phase of
+          ;; a :WANT-STREAM fetch, so a connection reset while the BODY is
+          ;; being copied used to fail the system with no retry.  Each attempt
+          ;; rewrites the temp file from scratch (:if-exists :supersede) and
+          ;; is digest-verified, so retrying is safe; a corrupted-but-complete
+          ;; transfer surfaces as a digest mismatch and is retried too.
           (uiop:with-temporary-file (:pathname blob-file :type "blob")
-            (let ((downloaded 0))
-              (multiple-value-bind (input status response-headers)
-                  (ocicl.http:http-get
-                   #?"https://${server}/v2/${repository}/${safe-system}/blobs/${layer-digest}"
-                   :force-binary t
-                   :want-stream t
-                   :verbose *verbose*
-                   :headers headers)
-                (declare (ignore status))
-                (let ((total (response-content-length response-headers)))
-                  (when progress
-                    (funcall progress :downloading 0 total))
-                  (copy-http-response-to-file
-                   input blob-file
-                   :total total
-                   :progress (lambda (bytes expected)
-                               (setf downloaded bytes)
-                               (when progress
-                                 (funcall progress :downloading bytes expected))))
-                  (when progress
-                    (funcall progress :verifying downloaded total)))))
-            (let ((actual (sha256-hex-of-file blob-file)))
-              (unless (string= actual expected)
-                (error "blob digest mismatch for ~A:~A: expected sha256:~A, got sha256:~A"
-                       system tag expected actual)))
+            (let ((blob-url
+                    #?"https://${server}/v2/${repository}/${safe-system}/blobs/${layer-digest}"))
+              (ocicl.http:with-transient-retries (:url blob-url)
+                (let ((downloaded 0))
+                  (multiple-value-bind (input status response-headers)
+                      (ocicl.http:http-get
+                       blob-url
+                       :force-binary t
+                       :want-stream t
+                       :verbose *verbose*
+                       :headers headers)
+                    (declare (ignore status))
+                    (let ((total (response-content-length response-headers)))
+                      (when progress
+                        (funcall progress :downloading 0 total))
+                      (copy-http-response-to-file
+                       input blob-file
+                       :total total
+                       :progress (lambda (bytes expected)
+                                   (setf downloaded bytes)
+                                   (when progress
+                                     (funcall progress :downloading bytes expected))))
+                      (when progress
+                        (funcall progress :verifying downloaded total)))))
+                (let ((actual (sha256-hex-of-file blob-file)))
+                  (unless (string= actual expected)
+                    (error "blob digest mismatch for ~A:~A: expected sha256:~A, got sha256:~A"
+                           system tag expected actual)))))
             (when progress
               (funcall progress :extracting nil nil))
             (with-open-file (in blob-file :element-type '(unsigned-byte 8))

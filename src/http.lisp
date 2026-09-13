@@ -16,7 +16,8 @@
                 #:when-let
                 #:if-let)
   (:export #:http-get #:configure-drakma-proxy-from-env
-           #:*verify-tls*))
+           #:*verify-tls*
+           #:call-with-transient-retries #:with-transient-retries))
 
 (in-package #:ocicl.http)
 
@@ -281,3 +282,38 @@
                   (error 'http-status-error
                          :status status
                          :message (format nil "HTTP ~A for ~A" status url))))))))
+
+(defun call-with-transient-retries (thunk &key url)
+  "Call THUNK, retrying transient failures with the same policy as HTTP-GET.
+
+HTTP-GET's internal retry loop only covers the connect/request/header phase
+of a :WANT-STREAM request — the caller reads the body from the returned
+socket stream, so a mid-transfer failure (e.g. a CDN sending RST during a
+blob download: \"Connection reset by peer\") escapes every retry path.
+Wrapping the whole download-and-verify unit in this function closes that
+gap; the unit must be idempotent (blob downloads are: each attempt writes a
+fresh temp file and is digest-verified afterward).
+
+Retries up to *HTTP-MAX-RETRIES* times with the shared exponential backoff.
+Never retried: TLS verification failures, and HTTP status errors that are
+not transient (4xx other than 408/429) — those are deterministic. Any other
+error (stream/socket errors, transient statuses that exhausted HTTP-GET's
+inner retries, digest mismatches from a corrupted transfer) is retried, and
+rethrown once attempts are exhausted."
+  (loop for attempt from 0 upto *http-max-retries*
+        do (handler-case (return (funcall thunk))
+             (tls-verification-failure (e)
+               (error e))
+             (http-status-error (e)
+               (if (and (< attempt *http-max-retries*)
+                        (%transient-http-status-p (http-status-error-status e)))
+                   (%sleep-before-retry e (or url "download") attempt)
+                   (error e)))
+             (error (e)
+               (when (>= attempt *http-max-retries*)
+                 (error e))
+               (%sleep-before-retry e (or url "download") attempt)))))
+
+(defmacro with-transient-retries ((&key url) &body body)
+  "Evaluate BODY via CALL-WITH-TRANSIENT-RETRIES."
+  `(call-with-transient-retries (lambda () ,@body) :url ,url))
