@@ -1671,17 +1671,23 @@ Returns (values check-only dry-run include-prerelease)."
     (or (not enough-directory)
         (eql :relative (first enough-directory)))))
 
-(defun strictly-under-systems-dir-p (path)
-  "Return T only if PATH is genuinely contained within *SYSTEMS-DIR*.
+(defun strictly-under-p (path root)
+  "Return T only if PATH is genuinely contained within ROOT.
 Unlike a bare :relative check, this rejects upward escapes: a path such
-as <systems-dir>/../ has an enough-namestring of \"../\", whose
-directory list is (:relative :up) — still :relative, but not contained.
-Used as the deletion guard so a crafted ocicl.csv path column cannot
-steer delete-directory-tree outside the systems directory."
-  (let ((dirs (pathname-directory (enough-namestring path *systems-dir*))))
-    (and (eql (first dirs) :relative)
+as <root>/../ has an enough-namestring of \"../\", whose directory list
+is (:relative :up) — still :relative, but not contained."
+  (let ((dirs (pathname-directory (enough-namestring path root))))
+    (and (or (null dirs) (eql (first dirs) :relative))
          (not (member :up dirs))
          (not (member :back dirs)))))
+
+(defun strictly-under-systems-dir-p (path)
+  "Return T only if PATH is genuinely contained within *SYSTEMS-DIR*.
+Used as the deletion guard so a crafted ocicl.csv path column cannot
+steer delete-directory-tree outside the systems directory, so
+*SYSTEMS-DIR* itself — an empty enough-namestring — is rejected too."
+  (and (pathname-directory (enough-namestring path *systems-dir*))
+       (strictly-under-p path *systems-dir*)))
 
 (declaim (inline find-asd-files))
 (defun find-asd-files (dir)
@@ -2767,6 +2773,79 @@ the optional TOTAL response size."
                                      :junk-allowed nil))))
         (and length (plusp length) length)))))
 
+(defun realize-archive-link (link-path target root)
+  "Copy TARGET's contents to LINK-PATH, standing in for a link the archive
+carried.  Return T when the link needs no further attempt: either it was
+copied, or it points at something we refuse to copy.  Return NIL when
+TARGET does not exist yet, since a link to another link only resolves once
+that one has been realized."
+  (let ((resolved (uiop:truename* target)))
+    (cond ((null resolved) nil)
+          ;; A link to a directory cannot be turned into a file — source
+          ;; trees carry these (Eclector's documentation/presentation-slides
+          ;; points at a slides directory) — and a link resolving outside
+          ;; ROOT would smuggle a host file into the staging tree.
+          ((or (uiop:directory-pathname-p resolved)
+               (not (strictly-under-p resolved root)))
+           (debug-log (format nil "not dereferencing link ~A -> ~A"
+                              link-path resolved))
+           t)
+          (t
+           (ensure-directories-exist link-path)
+           (uiop:copy-file resolved link-path)
+           t))))
+
+(defun realize-archive-links (links root)
+  "Realize LINKS, a list of (LINK-PATH . TARGET) pairs collected while
+extracting an archive into ROOT.  Passes repeat while progress is made so
+that links pointing at other links resolve; whatever is left over is
+broken or circular, and is dropped the way tar-simple-extract's
+CONTINUE restart used to drop it."
+  (loop for pending = links then remaining
+        for remaining = (remove-if (lambda (link)
+                                     (realize-archive-link (car link) (cdr link) root))
+                                   pending)
+        while remaining
+        when (= (length remaining) (length pending))
+          do (dolist (link remaining)
+               (debug-log (format nil "skipping broken or circular link ~A -> ~A"
+                                  (car link) (cdr link))))
+             (return)))
+
+(defun extract-source-archive (stream directory)
+  "Extract the tar archive on STREAM into DIRECTORY.
+
+TAR-SIMPLE-EXTRACT dereferences link entries by copying the bytes of
+whatever they name, which fails the whole extraction when a source tree
+links to a directory, and would copy a file from outside DIRECTORY when a
+link escapes it.  So skip link entries during the archive pass, recording
+where each one pointed, and realize them ourselves afterwards."
+  (let* ((root (uiop:ensure-directory-pathname directory))
+         (links '()))
+    (tar:with-open-archive (archive stream)
+      (tar-simple-extract:simple-extract-archive
+       archive
+       :directory root
+       ;; A symbolic link names its target relative to its own directory;
+       ;; a hard link names it relative to the root of the archive.
+       :filter (lambda (entry pathname)
+                 (let* ((link-path (merge-pathnames pathname root))
+                        (base (typecase entry
+                                (tar:symbolic-link-entry link-path)
+                                (tar:hard-link-entry root))))
+                   (cond (base
+                          (push (cons link-path
+                                      (merge-pathnames (tar:linkname entry) base))
+                                links)
+                          nil)
+                         (t t))))))
+    ;; Compare resolved paths against a resolved root: on macOS the staging
+    ;; directory sits under /tmp, itself a symlink to /private/tmp, so an
+    ;; unresolved root would make every legitimate link look like an escape.
+    (realize-archive-links (nreverse links)
+                           (uiop:ensure-directory-pathname
+                            (or (uiop:truename* root) root)))))
+
 (defun fetch-and-extract-layer (registry system tag dl-dir &key progress)
   (let* ((safe-system (validate-system-name system))
          (safe-tag (validate-system-name tag))
@@ -2829,13 +2908,7 @@ the optional TOTAL response size."
             (when progress
               (funcall progress :extracting nil nil))
             (with-open-file (in blob-file :element-type '(unsigned-byte 8))
-              (handler-bind
-                  ((tar-simple-extract:broken-or-circular-links-error
-                    (lambda (condition)
-                      (declare (ignore condition))
-                      (invoke-restart 'continue))))
-                (tar:with-open-archive (a in)
-                  (tar-simple-extract:simple-extract-archive a :directory dl-dir)))))
+              (extract-source-archive in dl-dir)))
           manifest-digest)))))
 
 (defstruct staged-download
