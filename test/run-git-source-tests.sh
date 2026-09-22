@@ -13,9 +13,9 @@ sbcl --non-interactive --no-userinit \
   --eval "(load \"test/git-source-tests.lisp\")" \
   --eval "(uiop:quit (if (zerop (ocicl-git-source-tests:run-all-tests)) 0 1))"
 
-OCICL="$(pwd)/ocicl"
+OCICL="$(pwd)/${OCICL_BIN:-ocicl}"
 if [ ! -x "$OCICL" ]; then
-  echo "no ./ocicl binary; build it first (sbcl --load setup.lisp)"
+  echo "no ./${OCICL_BIN:-ocicl} binary; build it first (sbcl --load setup.lisp)"
   exit 1
 fi
 
@@ -23,7 +23,16 @@ echo ""
 echo "=== git+ source integration tests ==="
 
 TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
+# Read-only pack files can outlive a clone on Windows; cleanup failing there
+# should not fail the run.
+trap 'rm -rf "$TMP" 2>/dev/null || true' EXIT
+
+# git on Windows is a native program and cannot read the MSYS paths this
+# shell deals in, so spell the upstream repositories the Windows way there.
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) UPSTREAM="file:///$(cygpath -m "$TMP")/upstream" ;;
+  *)                    UPSTREAM="file://$TMP/upstream" ;;
+esac
 GIT="git -c user.email=test@test -c user.name=test -c commit.gpgsign=false"
 
 fail() { echo "FAIL  $1"; exit 1; }
@@ -52,8 +61,8 @@ cd "$TMP/proj"
 touch ocicl.csv
 
 # install git+URL@REF pins the resolved commit
-$OCICL install "git+file://$TMP/upstream@main"
-grep -q "testlib, git+file://$TMP/upstream@$SHA1#ref=main" ocicl.csv \
+$OCICL install "git+$UPSTREAM@main"
+grep -q "testlib, git+$UPSTREAM@$SHA1#ref=main" ocicl.csv \
   || fail "install: pinned fullname in ocicl.csv"
 [ -f "ocicl/upstream-${SHA1:0:7}/testlib.asd" ] \
   || fail "install: tree at <basename>-<shortsha>"
@@ -67,12 +76,12 @@ $OCICL install
 pass "install re-fetches a missing tree"
 
 # subdirectory install lives in its own tree
-$OCICL install "git+file://$TMP/upstream#subdirectory=libs/inner"
+$OCICL install "git+$UPSTREAM#subdirectory=libs/inner"
 [ -f "ocicl/inner-${SHA1:0:7}/innerlib.asd" ] \
   || fail "subdirectory: tree named after the subdirectory"
 [ -f "ocicl/upstream-${SHA1:0:7}/testlib.asd" ] \
   || fail "subdirectory: full-tree install left alone"
-grep -q "innerlib, git+file://$TMP/upstream@$SHA1#subdirectory=libs/inner" ocicl.csv \
+grep -q "innerlib, git+$UPSTREAM@$SHA1#subdirectory=libs/inner" ocicl.csv \
   || fail "subdirectory: fullname records the subdirectory"
 pass "install git+URL#subdirectory=PATH"
 
@@ -87,7 +96,7 @@ $OCICL latest
   || fail "latest: tree advanced to new commit"
 [ ! -d "ocicl/upstream-${SHA1:0:7}" ] \
   || fail "latest: old tree removed"
-grep -q "testlib, git+file://$TMP/upstream@$SHA2#ref=main" ocicl.csv \
+grep -q "testlib, git+$UPSTREAM@$SHA2#ref=main" ocicl.csv \
   || fail "latest: pin advanced in ocicl.csv"
 [ -f "ocicl/inner-${SHA2:0:7}/innerlib.asd" ] \
   || fail "latest: subdirectory tree advanced along default branch"
@@ -99,9 +108,9 @@ $OCICL remove innerlib
 ! grep -q "innerlib" ocicl.csv || fail "remove: rows deleted"
 pass "remove deletes a git-sourced tree"
 
-$OCICL install "git+file://$TMP/upstream@$SHA1#subdirectory=libs/inner"
+$OCICL install "git+$UPSTREAM@$SHA1#subdirectory=libs/inner"
 $OCICL latest
-grep -q "innerlib, git+file://$TMP/upstream@$SHA1#ref=$SHA1" ocicl.csv \
+grep -q "innerlib, git+$UPSTREAM@$SHA1#ref=$SHA1" ocicl.csv \
   || fail "sha pin: still pinned after latest"
 [ -d "ocicl/inner-${SHA1:0:7}" ] || fail "sha pin: tree untouched"
 pass "commit-SHA pins survive latest"
@@ -125,7 +134,7 @@ pass "remove refuses a '..' path in ocicl.csv"
 # Same crafted row via the git+ refetch path ('ocicl install' with no args).
 cd "$TMP/victim"
 cat > ocicl.csv <<EOF
-evil, git+file://$TMP/upstream@$SHA1, ../evil.asd
+evil, git+$UPSTREAM@$SHA1, ../evil.asd
 EOF
 $OCICL install >/dev/null 2>&1 || true
 [ -f canary.txt ] || fail "install: canary above ocicl/ was deleted (traversal!)"

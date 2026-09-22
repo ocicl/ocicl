@@ -140,6 +140,12 @@ jobs:
         $OCICL_BIN setup > ~/.sbclrc
         echo "(setf ocicl-runtime:*verbose* nil)" >> ~/.sbclrc
 
+    - name: Test git+ package sources
+      # Runs before the systems tree is cleared, since the unit-test half
+      # loads :ocicl straight out of it.  On Windows this is what covers
+      # deleting a clone whose pack files git left read-only (gh#209).
+      run: bash test/run-git-source-tests.sh
+
     - name: Prepare test env
       run: rm -rf systems systems.csv
 
