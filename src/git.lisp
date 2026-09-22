@@ -300,6 +300,30 @@ commit SHA via ls-remote, without cloning.  Annotated tags are peeled."
           (error "cannot resolve ~A on ~A" (or ref "HEAD") url))
         sha)))
 
+(defun clear-read-only-attributes (directory)
+  "Clear the attributes that stop Windows from deleting a file throughout
+DIRECTORY.  Git marks the pack files it writes under .git/objects/pack
+read-only, and Windows refuses to delete a read-only file, so a temporary
+clone cannot be removed until the attribute is gone.  Hidden and system
+come off alongside it (git hides .git itself), matching the shape attrib
+expects.  A no-op on every other platform, where deletion depends on the
+containing directory rather than the file's own mode."
+  (when (uiop:os-windows-p)
+    (ignore-errors
+     (uiop:run-program (list "attrib" "-R" "-H" "-S"
+                             (concatenate 'string
+                                          (uiop:native-namestring directory)
+                                          "*")
+                             "/S" "/D")
+                       :output nil
+                       :error-output nil
+                       :ignore-error-status t))))
+
+(defun delete-git-tree-directory (directory)
+  "Delete DIRECTORY, a tree that may contain a git repository."
+  (clear-read-only-attributes directory)
+  (uiop:delete-directory-tree directory :validate t))
+
 (defun fetch-git-tree (url &key ref subdir dirname)
   "Clone URL, check out REF (a branch, tag, or commit SHA; the remote's
 default branch when NIL), and place the requested tree (SUBDIR when
@@ -346,7 +370,7 @@ RELATIVE-DIRNAME)."
                (unless subdir
                  (let ((git-meta (merge-pathnames ".git/" tmp-dir)))
                    (when (uiop:directory-exists-p git-meta)
-                     (uiop:delete-directory-tree git-meta :validate t))))
+                     (delete-git-tree-directory git-meta))))
                (unless (strictly-under-systems-dir-p target-dir)
                  (error "refusing to write tree outside the systems directory: ~A"
                         rel-dirname))
@@ -358,7 +382,12 @@ RELATIVE-DIRNAME)."
                (copy-directory:copy source-dir target-dir)
                (values resolved rel-dirname))))
       (when (uiop:directory-exists-p tmp-dir)
-        (uiop:delete-directory-tree tmp-dir :validate t)))))
+        ;; A clone we could not clean up is litter, not a failed install.
+        (handler-case (delete-git-tree-directory tmp-dir)
+          (error (e)
+            (format *error-output*
+                    "; warning: could not remove temporary directory ~A: ~A~%"
+                    (uiop:native-namestring tmp-dir) e)))))))
 
 (defun register-git-tree (fullname rel-dirname)
   "Register every .asd file under <systems-dir>/REL-DIRNAME/ with FULLNAME

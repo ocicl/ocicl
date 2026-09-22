@@ -208,6 +208,21 @@
       (check "guard rejects an absolute path outside"
              (not (ocicl::strictly-under-systems-dir-p #p"/etc/"))))
 
+    ;; Temporary git clones must come back out, read-only pack files and
+    ;; all (ocicl-7ql / gh#209).
+    (let* ((tree (ocicl::make-temp-ocicl-dl-directory))
+           (pack (merge-pathnames ".git/objects/pack/" tree))
+           (idx (merge-pathnames "pack-deadbeef.idx" pack)))
+      (ensure-directories-exist pack)
+      (with-open-file (stream idx :direction :output :if-exists :supersede)
+        (write-string "pack" stream))
+      (ocicl::clear-read-only-attributes tree)
+      (check "clearing read-only attributes leaves the tree in place"
+             (uiop:file-exists-p idx))
+      (ocicl::delete-git-tree-directory tree)
+      (check "a clone with a read-only pack file is deleted"
+             (not (uiop:directory-exists-p tree))))
+
     ;; Registry digest verification helpers (ocicl-01j)
     (check "sha256 of \"abc\" matches the known vector"
            (string= (ocicl::sha256-hex-of-octets
