@@ -285,13 +285,16 @@ meaning unset, restoring every previous value afterwards."
              (not (ocicl::systems-dir-blocked-by-file clear-dir)))
       (with-open-file (stream blocker :direction :output :if-exists :supersede)
         (write-string "a binary, say" stream))
+      ;; The helper answers with a truename, which on macOS (/var -> /private/var)
+      ;; and Windows (short path names) is not the pathname we built.  Compare
+      ;; what the two designate, not how they are spelled.
       (check "a file holding the name is reported as the blocker"
-             (equal (namestring (pathname (ocicl::systems-dir-blocked-by-file blocked-dir)))
-                    (namestring blocker)))
+             (let ((found (ocicl::systems-dir-blocked-by-file blocked-dir)))
+               (and found (equal (truename found) (truename blocker)))))
       (check-errors "ensure-systems-dir refuses to create over a file"
                     (ocicl::ensure-systems-dir blocked-dir))
       (check "the error names the file that is in the way"
-             (search (namestring blocker)
+             (search (uiop:native-namestring (truename blocker))
                      (handler-case (progn (ocicl::ensure-systems-dir blocked-dir) "")
                        (error (e) (princ-to-string e)))))
       (uiop:delete-directory-tree parent :validate t))
