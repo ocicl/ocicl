@@ -271,6 +271,31 @@ meaning unset, restoring every previous value afterwards."
                (equal (namestring (pathname (ocicl.http::%resolve-ca-locations))) bundle-name)))
       (uiop:delete-directory-tree (uiop:pathname-directory-pathname bundle) :validate t))
 
+    ;; A file where the systems directory goes has to say so (ocicl-8dm).
+    (let* ((parent (ocicl::make-temp-ocicl-dl-directory))
+           (clear-dir (merge-pathnames "ocicl/" parent))
+           (blocked-dir (merge-pathnames "blocked/" parent))
+           (blocker (merge-pathnames "blocked" parent)))
+      (check "a clear path is not reported as blocked"
+             (not (ocicl::systems-dir-blocked-by-file clear-dir)))
+      (check "ensure-systems-dir creates the directory"
+             (progn (ocicl::ensure-systems-dir clear-dir)
+                    (uiop:directory-exists-p clear-dir)))
+      (check "an existing directory is not reported as blocked"
+             (not (ocicl::systems-dir-blocked-by-file clear-dir)))
+      (with-open-file (stream blocker :direction :output :if-exists :supersede)
+        (write-string "a binary, say" stream))
+      (check "a file holding the name is reported as the blocker"
+             (equal (namestring (pathname (ocicl::systems-dir-blocked-by-file blocked-dir)))
+                    (namestring blocker)))
+      (check-errors "ensure-systems-dir refuses to create over a file"
+                    (ocicl::ensure-systems-dir blocked-dir))
+      (check "the error names the file that is in the way"
+             (search (namestring blocker)
+                     (handler-case (progn (ocicl::ensure-systems-dir blocked-dir) "")
+                       (error (e) (princ-to-string e)))))
+      (uiop:delete-directory-tree parent :validate t))
+
     ;; Registry digest verification helpers (ocicl-01j)
     (check "sha256 of \"abc\" matches the known vector"
            (string= (ocicl::sha256-hex-of-octets

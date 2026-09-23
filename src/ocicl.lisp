@@ -834,6 +834,30 @@ E.g. prefix=/data/ocicl, dir=/home/user/proj/ocicl/
     (uiop:ensure-all-directories-exist (list prefixed-dir))
     prefixed-dir))
 
+(defun systems-dir-blocked-by-file (dir)
+  "Return the offending pathname when DIR cannot be created because a file
+already holds that name, or NIL when the path is clear."
+  (let* ((dir (uiop:ensure-directory-pathname dir))
+         (name (first (last (pathname-directory dir)))))
+    (and (stringp name)
+         (not (uiop:directory-exists-p dir))
+         (uiop:file-exists-p
+          (merge-pathnames name (uiop:pathname-parent-directory-pathname dir))))))
+
+(defun ensure-systems-dir (&optional (dir *systems-dir*))
+  "Create the systems directory DIR, reporting the one failure that reads as
+nonsense -- a file already holding that name -- in terms of what is actually
+wrong.  Building ocicl leaves its binary at ./ocicl, which is exactly the name
+a project's systems directory wants, so the collision is easy to walk into and
+the file error it used to raise named the path twice and the problem not at all."
+  (if-let ((blocker (systems-dir-blocked-by-file dir)))
+    (error "cannot create the systems directory ~A: ~A is a file, not a directory.~%~
+            Move or remove it, or run ocicl from another directory."
+           (uiop:native-namestring (uiop:ensure-directory-pathname dir))
+           (uiop:native-namestring blocker))
+    (uiop:ensure-all-directories-exist (list dir)))
+  dir)
+
 (defun registry-server (registry)
   "Return the server part of REGISTRY (the text before the first slash),
 and as a second value the slash position (-1 if there is none)."
@@ -1165,8 +1189,7 @@ ocicl-managed systems directory (the local *SYSTEMS-DIR* or the shared global
 
 (defun do-latest (args)
   ;; Make sure the systems directory exists
-  (uiop:ensure-all-directories-exist
-   (list *systems-dir*))
+  (ensure-systems-dir)
   (if args
       ;; Download latest systems provided on the command line.
       (let ((csv-changed nil))
@@ -1533,8 +1556,7 @@ Returns (values check-only dry-run include-prerelease)."
 
 (defun do-changes (args)
   ;; Make sure the systems directory exists
-  (uiop:ensure-all-directories-exist
-   (list *systems-dir*))
+  (ensure-systems-dir)
   (if args
       ;; Report on all the systems provided on the command line.
       (dolist (system-maybe-version args)
@@ -1571,8 +1593,7 @@ Returns (values check-only dry-run include-prerelease)."
 
 (defun do-install (args)
   ;; Make sure the systems directory exists
-  (uiop:ensure-all-directories-exist
-   (list *systems-dir*))
+  (ensure-systems-dir)
   (if args
       ;; Git sources retain their existing serial path.  Registry systems are
       ;; staged as one bounded batch and committed by this coordinating thread.

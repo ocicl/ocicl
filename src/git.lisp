@@ -333,7 +333,7 @@ RELATIVE-DIRNAME)."
   (let ((tmp-dir (make-temp-ocicl-dl-directory)))
     (unwind-protect
          (progn
-           (uiop:ensure-all-directories-exist (list *systems-dir*))
+           (ensure-systems-dir)
            (let ((tmp (uiop:native-namestring tmp-dir)))
              ;; A blobless clone is cheap and still lets us check out any
              ;; pinned commit; fall back to a full clone for servers
