@@ -2634,6 +2634,15 @@ be WORKDIR."
       (format *error-output* "ocicl: stream error during output~%")
       (when *verbose*
         (format *error-output* "~a~&" e))
+      (uiop:quit 1))
+    (error (e)
+      ;; Anything that reaches here used to land in SBCL's debugger, which
+      ;; asks a person running a command line tool to pick a restart.  Say
+      ;; what went wrong and leave.  OCICL_DEBUG hands the condition back for
+      ;; whoever is working on ocicl itself.
+      (when (uiop:getenvp "OCICL_DEBUG")
+        (error e))
+      (format *error-output* "ocicl: ~A~%" e)
       (uiop:quit 1))))
 
 

@@ -152,5 +152,28 @@ pass "install refuses ext:: transport source"
 if $OCICL install "git+-upload-pack=touch" >/dev/null 2>&1; then fail "'-'-prefixed URL was accepted"; fi
 pass "install refuses '-'-prefixed URL"
 
+# A file sitting where the systems directory goes is named as the problem, and
+# the CLI says so and leaves instead of dropping into the Lisp debugger
+# (ocicl-8dm, ocicl-x69).  Building ocicl leaves its binary at exactly this
+# name, so this is a collision people walk into.
+mkdir "$TMP/blocked"
+cd "$TMP/blocked"
+touch ocicl.csv
+touch ocicl
+set +e
+blocked_out=$($OCICL install str 2>&1)
+blocked_code=$?
+set -e
+[ "$blocked_code" -eq 1 ] \
+  || fail "blocked systems dir: expected exit 1, got $blocked_code"
+case "$blocked_out" in
+  *"debugger invoked"*) fail "blocked systems dir: dropped into the Lisp debugger" ;;
+esac
+case "$blocked_out" in
+  *"is a file, not a directory"*) ;;
+  *) fail "blocked systems dir: error did not name the collision" ;;
+esac
+pass "a file blocking the systems directory is reported, not debugged"
+
 echo ""
 echo "All git+ source tests passed."
