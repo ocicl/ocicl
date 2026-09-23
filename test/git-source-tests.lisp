@@ -10,6 +10,26 @@
 
 (in-package :ocicl-git-source-tests)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :sb-posix))
+
+(defmacro with-environment ((&rest bindings) &body body)
+  "Run BODY with each (NAME VALUE) of BINDINGS in the environment, NIL
+meaning unset, restoring every previous value afterwards."
+  (let ((saved (gensym "SAVED")))
+    `(let ((,saved (list ,@(loop for (name nil) in bindings
+                                 collect `(cons ,name (uiop:getenv ,name))))))
+       (flet ((%apply-env (name value)
+                (if value
+                    (sb-posix:setenv name value 1)
+                    (sb-posix:unsetenv name))))
+         (unwind-protect
+              (progn ,@(loop for (name value) in bindings
+                             collect `(%apply-env ,name ,value))
+                     ,@body)
+           (dolist (entry ,saved)
+             (%apply-env (car entry) (cdr entry))))))))
+
 (defvar *test-failed* 0)
 (defvar *test-passed* 0)
 
@@ -222,6 +242,34 @@
       (ocicl::delete-git-tree-directory tree)
       (check "a clone with a read-only pack file is deleted"
              (not (uiop:directory-exists-p tree))))
+
+    ;; CA discovery: the standard OpenSSL variables have to work, or one
+    ;; binary answers the same question two ways (ocicl-6pg / gh#208).
+    (let* ((bundle (merge-pathnames "ca-fixture.pem" (ocicl::make-temp-ocicl-dl-directory)))
+           (bundle-name (namestring bundle))
+           (bundle-dir (namestring (uiop:pathname-directory-pathname bundle))))
+      (with-open-file (stream bundle :direction :output :if-exists :supersede)
+        (write-string "-- not a real certificate --" stream))
+      (with-environment (("OCICL_CA_FILE" nil) ("OCICL_CA_DIR" nil)
+                         ("SSL_CERT_FILE" bundle-name) ("SSL_CERT_DIR" bundle-dir))
+        (multiple-value-bind (ca-file ca-dir) (ocicl.http::%resolve-ca-locations)
+          (check "SSL_CERT_FILE is used as the CA bundle"
+                 (equal (namestring (pathname ca-file)) bundle-name))
+          (check "SSL_CERT_DIR is used as the CA directory"
+                 (equal (namestring (pathname ca-dir)) bundle-dir))))
+      (with-environment (("OCICL_CA_FILE" bundle-name) ("OCICL_CA_DIR" nil)
+                         ("SSL_CERT_FILE" "/nonexistent/ocicl-test.pem") ("SSL_CERT_DIR" nil))
+        (check "OCICL_CA_FILE outranks SSL_CERT_FILE"
+               (equal (ocicl.http::%resolve-ca-locations) bundle-name)))
+      (with-environment (("OCICL_CA_FILE" nil) ("OCICL_CA_DIR" nil)
+                         ("SSL_CERT_FILE" "/nonexistent/ocicl-test.pem") ("SSL_CERT_DIR" nil))
+        (check "a dangling SSL_CERT_FILE falls through to the built-in locations"
+               (not (equal (ocicl.http::%resolve-ca-locations) "/nonexistent/ocicl-test.pem"))))
+      (with-environment (("OCICL_CA_FILE" "") ("OCICL_CA_DIR" nil)
+                         ("SSL_CERT_FILE" bundle-name) ("SSL_CERT_DIR" nil))
+        (check "an empty OCICL_CA_FILE is ignored, not treated as a path"
+               (equal (namestring (pathname (ocicl.http::%resolve-ca-locations))) bundle-name)))
+      (uiop:delete-directory-tree (uiop:pathname-directory-pathname bundle) :validate t))
 
     ;; Registry digest verification helpers (ocicl-01j)
     (check "sha256 of \"abc\" matches the known vector"

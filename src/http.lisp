@@ -34,25 +34,39 @@
         when (and path (uiop:directory-exists-p path))
           return path))
 
+(defun %env-path (name)
+  "Return the value of environment variable NAME, or NIL when unset or empty."
+  (let ((value (uiop:getenv name)))
+    (and value (string/= value "") value)))
+
 (defun %resolve-ca-locations ()
-  "Return two values: CA-FILE and CA-DIRECTORY for TLS verification."
-  (let* ((env-ca-file (uiop:getenv "OCICL_CA_FILE"))
-         (env-ca-dir (uiop:getenv "OCICL_CA_DIR"))
-         (ca-file (and env-ca-file (string/= env-ca-file "") env-ca-file))
-         (ca-dir (and env-ca-dir (string/= env-ca-dir "") env-ca-dir)))
+  "Return two values: CA-FILE and CA-DIRECTORY for TLS verification.
+
+OCICL_CA_FILE and OCICL_CA_DIR win outright, wrong or not: someone who
+sets them wants to hear about a bad path rather than have ocicl quietly
+trust something else.  SSL_CERT_FILE and SSL_CERT_DIR come next, ahead of
+the built-in locations.  They are what OpenSSL itself reads, they are how
+Guix and NixOS point tools at a trust store that lives in the store rather
+than under /etc, and pure-tls already honours them on the self-update path
+-- so ocicl has to read them too, or one binary answers the same question
+two different ways depending on the subcommand."
+  (let ((ca-file (%env-path "OCICL_CA_FILE"))
+        (ca-dir (%env-path "OCICL_CA_DIR")))
     (unless ca-file
       (setf ca-file
             (%first-existing-file
-             '("/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
-               "/etc/pki/tls/certs/ca-bundle.crt"
-               "/etc/ssl/certs/ca-certificates.crt"
-               "/etc/ssl/cert.pem"))))
+             (cons (%env-path "SSL_CERT_FILE")
+                   '("/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
+                     "/etc/pki/tls/certs/ca-bundle.crt"
+                     "/etc/ssl/certs/ca-certificates.crt"
+                     "/etc/ssl/cert.pem")))))
     (unless ca-dir
       (setf ca-dir
             (%first-existing-dir
-             '("/etc/ssl/certs"
-               "/etc/pki/ca-trust/extracted/pem"
-               "/etc/pki/ca-trust/extracted/openssl"))))
+             (cons (%env-path "SSL_CERT_DIR")
+                   '("/etc/ssl/certs"
+                     "/etc/pki/ca-trust/extracted/pem"
+                     "/etc/pki/ca-trust/extracted/openssl")))))
     (values ca-file ca-dir)))
 
 (defun %split-userinfo (authority)
@@ -189,7 +203,7 @@
                      #+pure-tls
                      (pure-tls:tls-verification-error (e)
                        (let* ((host (ignore-errors (puri:uri-host (puri:parse-uri url))))
-                              (msg (format nil "TLS verification failed for ~A: ~A. Ensure CA certificates are installed (e.g., 'sudo dnf install ca-certificates'). You can also set OCICL_CA_FILE or rebuild with USE_LEGACY_OPENSSL=1." ; lint:suppress max-line-length
+                              (msg (format nil "TLS verification failed for ~A: ~A. Ensure CA certificates are installed, or point ocicl at them with SSL_CERT_FILE, SSL_CERT_DIR, OCICL_CA_FILE or OCICL_CA_DIR. You can also rebuild with USE_LEGACY_OPENSSL=1." ; lint:suppress max-line-length
                                            (or host url) e)))
                          (when verbose
                            (format verbose "; underlying error: ~A~%" e))
