@@ -175,5 +175,19 @@ case "$blocked_out" in
 esac
 pass "a file blocking the systems directory is reported, not debugged"
 
+# A download that fails is a failed install, whatever the command managed along
+# the way, and the exit status has to say so (ocicl-23i).  ghcr.invalid cannot
+# resolve -- RFC 2606 reserves .invalid -- so this needs no working network.
+mkdir "$TMP/unreachable"
+cd "$TMP/unreachable"
+printf 'str, ghcr.invalid/ocicl/str@sha256:%064d, str-1/str.asd\n' 0 > ocicl.csv
+set +e
+$OCICL install >/dev/null 2>&1
+unreachable_code=$?
+set -e
+[ "$unreachable_code" -ne 0 ] \
+  || fail "unreachable registry: install reported success after failing to download"
+pass "a failed download makes install exit non-zero"
+
 echo ""
 echo "All git+ source tests passed."

@@ -16,7 +16,8 @@
                 #:when-let
                 #:if-let)
   (:export #:http-get #:configure-drakma-proxy-from-env
-           #:*verify-tls*
+           #:configure-retries-from-env
+           #:*verify-tls* #:*http-max-retries*
            #:call-with-transient-retries #:with-transient-retries))
 
 (in-package #:ocicl.http)
@@ -233,6 +234,20 @@ two different ways depending on the subcommand."
 
 (defvar *http-max-retries* 3
   "How many times to retry a transient HTTP failure, beyond the first attempt.")
+
+(defun configure-retries-from-env ()
+  "Let OCICL_HTTP_RETRIES raise or lower the retry budget.  The default of
+three suits a person waiting at a terminal, who would rather hear that the
+registry is unreachable than watch a minute of backoff.  Somewhere unattended
+-- CI, where a reset connection costs a whole red build -- patience is worth
+more, and this is the knob for it."
+  (when-let ((value (uiop:getenv "OCICL_HTTP_RETRIES")))
+    (let ((retries (ignore-errors (parse-integer value))))
+      (if (and retries (<= 0 retries 16))
+          (setf *http-max-retries* retries)
+          (format *error-output*
+                  "ocicl: ignoring OCICL_HTTP_RETRIES=~A (want a whole number from 0 to 16)~%"
+                  value)))))
 
 (defvar *retry-output* *error-output*
   "Stream for retry diagnostics, or NIL to suppress them during live UI use.")

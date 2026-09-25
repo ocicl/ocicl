@@ -803,6 +803,11 @@ parse their own options.")
         (write-string (cdr help))
         (uiop:quit 0)))))
 
+(defvar *download-failures* 0
+  "How many systems this run asked for and could not get.  A package manager
+that cannot fetch what it was asked for has not succeeded, whatever it managed
+along the way, so MAIN turns any of these into a non-zero exit.")
+
 (defvar *systems-dir* "")
 (defvar *systems-dir-prefix* nil)
 
@@ -2574,6 +2579,7 @@ be WORKDIR."
   (setf *default-pathname-defaults* (truename "."))
   (setf *random-state* (make-random-state t))
   (ocicl.http:configure-drakma-proxy-from-env)
+  (ocicl.http:configure-retries-from-env)
 
   (handler-case
       (with-user-abort:with-user-abort
@@ -2628,7 +2634,9 @@ be WORKDIR."
                        (init-systems-tables workdir)
                        (if cmd
                            (dispatch-command cmd cmd-args)
-                           (usage))))))))))
+                           (usage))
+                       (when (plusp *download-failures*)
+                         (uiop:quit 1))))))))))
     (with-user-abort:user-abort () (uiop:quit 130))
     (stream-error (e)
       (format *error-output* "ocicl: stream error during output~%")
@@ -3209,6 +3217,7 @@ Call COMMIT-STAGED-DOWNLOAD from the coordinator to publish the result."
           (publish-all)))
     (setf installed (nreverse installed))
     (dolist (failure (nreverse failures))
+      (incf *download-failures*)
       (format *error-output* "; error downloading ~A: ~A~%"
               (car failure) (cdr failure)))
     (when interactive
@@ -3273,6 +3282,7 @@ Call COMMIT-STAGED-DOWNLOAD from the coordinator to publish the result."
           (publish-all)))
     (setf installed (nreverse installed))
     (dolist (failure (nreverse failures))
+      (incf *download-failures*)
       (format *error-output* "; failed to install ~A: ~A~%"
               (car failure) (cdr failure)))
     (when interactive

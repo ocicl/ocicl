@@ -299,6 +299,34 @@ meaning unset, restoring every previous value afterwards."
                        (error (e) (princ-to-string e)))))
       (uiop:delete-directory-tree parent :validate t))
 
+    ;; The retry budget is tunable: a person at a terminal wants to hear that
+    ;; the registry is unreachable, CI would rather wait it out (ocicl-23i).
+    (let ((original ocicl.http:*http-max-retries*))
+      (unwind-protect
+           (progn
+             (with-environment (("OCICL_HTTP_RETRIES" "7"))
+               (ocicl.http:configure-retries-from-env)
+               (check "OCICL_HTTP_RETRIES sets the retry budget"
+                      (= ocicl.http:*http-max-retries* 7)))
+             (setf ocicl.http:*http-max-retries* original)
+             (with-environment (("OCICL_HTTP_RETRIES" "banana"))
+               (let ((complaint (with-output-to-string (*error-output*)
+                                  (ocicl.http:configure-retries-from-env))))
+                 (check "a non-numeric budget leaves the default alone"
+                        (= ocicl.http:*http-max-retries* original))
+                 (check "and the refusal is said out loud"
+                        (search "ignoring OCICL_HTTP_RETRIES" complaint))))
+             (with-environment (("OCICL_HTTP_RETRIES" "99"))
+               (with-output-to-string (*error-output*)
+                 (ocicl.http:configure-retries-from-env))
+               (check "an out-of-range budget leaves the default alone"
+                      (= ocicl.http:*http-max-retries* original)))
+             (with-environment (("OCICL_HTTP_RETRIES" nil))
+               (ocicl.http:configure-retries-from-env)
+               (check "an unset budget leaves the default alone"
+                      (= ocicl.http:*http-max-retries* original))))
+        (setf ocicl.http:*http-max-retries* original)))
+
     ;; Registry digest verification helpers (ocicl-01j)
     (check "sha256 of \"abc\" matches the known vector"
            (string= (ocicl::sha256-hex-of-octets

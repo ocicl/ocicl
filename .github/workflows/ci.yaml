@@ -19,6 +19,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
 
+    # Runner egress to ghcr.io resets connections in bursts (ocicl-23i), and an
+    # unattended build would rather wait one out than go red over it.  The
+    # default of three suits someone watching a terminal, not this.
+    env:
+      OCICL_HTTP_RETRIES: 6
+
     defaults:      # use bash everywhere (Git Bash on Windows)
       run:
         shell: bash
