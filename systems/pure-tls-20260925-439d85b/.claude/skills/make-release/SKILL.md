@@ -1,0 +1,140 @@
+---
+name: make-release
+description: Cut a new pure-tls release. Bumps version in pure-tls.asd, verifies the build and tests pass, generates release notes, commits, tags, and pushes. Use when asked to "release", "cut a release", "bump version", or "tag a new version".
+argument-hint: "[version]"
+disable-model-invocation: true
+allowed-tools: Bash Read Edit Write Grep Glob
+---
+
+# Release pure-tls
+
+Follow these steps exactly, stopping on any failure.
+
+## 1. Determine version
+
+If the user provided a version (`$ARGUMENTS`), validate that it matches `MAJOR.MINOR.PATCH` where each component is a non-negative integer (e.g. `1.12.0`). If it doesn't, stop and tell the user.
+
+If no version was provided, suggest one:
+
+1. Read the current version from `:version` in `pure-tls.asd` (the first occurrence — the main system definition).
+2. Review commits since the last tag:
+   ```bash
+   git log $(git describe --tags --abbrev=0)..HEAD --oneline
+   ```
+3. Apply semver rules:
+   - **MAJOR** bump: commits contain breaking changes (removed features, changed APIs, incompatible behavior)
+   - **MINOR** bump: commits add new features, new protocol capabilities, new API surface
+   - **PATCH** bump: commits are only bug fixes, documentation, or internal improvements
+4. Present the suggested version with a one-line rationale and ask the user to confirm or override.
+
+Use the confirmed version as VERSION for all subsequent steps.
+
+**Check the tag doesn't already exist:**
+```bash
+git tag -l "vVERSION"
+```
+If output is non-empty, stop — this version has already been released.
+
+**Ensure clean working tree:**
+```bash
+git status --porcelain
+```
+If there are staged or unstaged changes to **tracked** files, stop and ask the user to commit or stash first.
+
+Then check untracked files. If any look like they don't belong in the repo (log files, binaries, build artifacts, temp files, editor backups, etc.), list them and ask the user whether to clean up, add to `.gitignore`, or proceed anyway. Benign untracked files (e.g. `.claude/`, local config) are fine to ignore silently.
+
+**Verify git identity:**
+```bash
+git config user.email
+```
+If the result is not `green@moxielogic.com`, stop and tell the user their git email is misconfigured for this repository.
+
+**Ensure we're on master and synced with remote:**
+```bash
+git branch --show-current
+git fetch origin master
+git rev-list HEAD..origin/master --count
+```
+If the branch is not `master`, or there are upstream commits not yet pulled, stop and tell the user.
+
+**Check CI is green on HEAD:**
+```bash
+gh run list --branch master --limit 1 --json conclusion --jq '.[0].conclusion'
+```
+If the result is not `success`, stop and warn the user that CI is failing on master. Ask whether to proceed anyway.
+
+## 2. Update version
+
+Edit `pure-tls.asd` and update ALL `:version` fields to `"VERSION"`. There are multiple system definitions in the file (pure-tls, pure-tls/cl+ssl-compat, pure-tls/test) — update each one.
+
+## 3. Build and test
+
+```bash
+make clean && make load 2>&1 | tail -10
+```
+
+If the build fails, stop and report the failure. Do NOT continue.
+
+```bash
+make unit-tests
+```
+
+If any tests fail, stop and report the failure. Do NOT continue.
+
+## 4. Update CHANGELOG.md
+
+Release notes live in `CHANGELOG.md` at the repo root, in
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. There are no
+per-release files; `docs/release-notes/` was consolidated into this file.
+
+Ordinarily the work is already described under `## [Unreleased]`, and releasing
+is just a matter of promoting that section:
+
+1. Change the `## [Unreleased]` heading to `## [VERSION] - YYYY-MM-DD` using
+   today's date.
+2. Add a fresh, empty `## [Unreleased]` heading above it.
+3. Update the link references at the bottom of the file:
+   - point `[Unreleased]` at `compare/vVERSION...HEAD`
+   - add `[VERSION]: .../compare/vPREVIOUS...vVERSION`
+
+If `[Unreleased]` is thin or empty, fill it in first. To decide what belongs,
+diff against the most recent tag:
+
+```bash
+git log $(git describe --tags --abbrev=0)..HEAD --oneline
+```
+
+Include ONLY user-facing changes, under the standard headings — `Added`,
+`Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`:
+- Security fixes (reference CL-SEC advisory IDs if applicable, link to https://cl-sec.github.io/cl-sec-advisories/)
+- Bug fixes
+- New features
+- Breaking changes (if any) — under `Changed`, led with **BREAKING**
+
+Do NOT include internal changes (refactors, lint fixes, doc updates, CI changes, directory reorganization). Those are visible in the git log for anyone who needs them.
+
+Match the voice of the existing entries: prose that explains what was wrong and
+why it mattered, not bare one-liners.
+
+The release workflow extracts this version's section from `CHANGELOG.md` for
+the GitHub release body, and FAILS the release if no `## [VERSION]` section
+exists — so the heading must be in place before the tag is pushed.
+
+## 5. Commit
+
+```bash
+git add pure-tls.asd CHANGELOG.md
+git commit -m "Bump version to VERSION"
+```
+
+## 6. Tag and push
+
+Ask the user for confirmation before pushing, then:
+
+```bash
+git tag -s vVERSION -m "Release VERSION"
+git push origin master
+git push origin vVERSION
+```
+
+Pushing the tag triggers GitHub Actions which automatically creates the GitHub release with release notes.
