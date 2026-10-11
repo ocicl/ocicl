@@ -665,7 +665,7 @@ meaning unset, restoring every previous value afterwards."
                (and (= (length lines) 20)
                     (every (lambda (line)
                              (and (search "temporary failure" line)
-                                  (search "retrying in 1s" line)))
+                                  (search "retrying in 1.0s" line)))
                            lines)))))
 
     (let ((real-request (fdefinition 'drakma:http-request))
@@ -819,6 +819,22 @@ meaning unset, restoring every previous value afterwards."
              (check "with-transient-retries never retries a 404"
                     (= calls 1)))
         (setf (fdefinition 'ocicl.http::%sleep-before-retry) real-sleep)))
+
+    ;; Retry delays are jittered.  A fixed (expt 2 attempt) is the same number
+    ;; for every worker, so a CDN edge resetting several concurrent blob
+    ;; downloads at once used to send them all back in the same instant
+    ;; (ocicl-zdh).
+    (let ((ocicl.http::*retry-jitter* nil))
+      (check "without jitter the delay is plain exponential backoff"
+             (and (= (ocicl.http::%retry-delay 0) 1)
+                  (= (ocicl.http::%retry-delay 1) 2)
+                  (= (ocicl.http::%retry-delay 2) 4))))
+
+    (let ((samples (loop repeat 200 collect (ocicl.http::%retry-delay 3))))
+      (check "a jittered delay keeps half the backoff as a floor"
+             (every (lambda (delay) (<= 4 delay 8)) samples))
+      (check "and spreads the other half, so concurrent retries decorrelate"
+             (> (length (remove-duplicates samples :test #'=)) 1)))
 
     (format t "~%~D passed, ~D failed~%" *test-passed* *test-failed*)
     *test-failed*))

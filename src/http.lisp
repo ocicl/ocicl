@@ -17,7 +17,7 @@
                 #:if-let)
   (:export #:http-get #:configure-drakma-proxy-from-env
            #:configure-retries-from-env
-           #:*verify-tls* #:*http-max-retries*
+           #:*verify-tls* #:*http-max-retries* #:*retry-jitter*
            #:call-with-transient-retries #:with-transient-retries))
 
 (in-package #:ocicl.http)
@@ -258,15 +258,41 @@ more, and this is the knob for it."
   "Write one indivisible retry diagnostic when retry output is enabled."
   (when *retry-output*
     (bt:with-lock-held (*retry-output-lock*)
-      (format *retry-output* "; ~A for ~A; retrying in ~As~%"
+      (format *retry-output* "; ~A for ~A; retrying in ~,1Fs~%"
               what url delay)
       (finish-output *retry-output*))))
 
 (defun %transient-http-status-p (status)
   (member status '(408 429 500 502 503 504)))
 
+(defvar *retry-jitter* t
+  "Whether retry delays are spread randomly.  Bound to NIL where a predictable
+delay matters more than decorrelation.")
+
+(defvar *retry-jitter-lock* (bt:make-lock "ocicl HTTP retry jitter")
+  "Guards RANDOM, which download workers would otherwise call on one shared
+*RANDOM-STATE* concurrently.")
+
+(defun %retry-delay (attempt)
+  "Seconds to wait before retrying, for a zero-based ATTEMPT.
+
+Exponential backoff with half the interval randomized.  A plain
+(expt 2 attempt) is the same number for every caller, which is fine for one
+download and wrong for an install: a non-interactive install fetches blobs
+twice CPU-count at a time, so when a CDN edge resets several connections at
+once, every affected worker sleeps the identical interval and they all come
+back in the same instant -- the herd the backoff existed to break up.  Half
+the interval stays fixed, so a reset still costs a real pause; the other half
+is random, so the workers fan out instead of retrying in step (ocicl-zdh)."
+  (let ((nominal (expt 2 attempt)))
+    (if *retry-jitter*
+        (let ((half (/ nominal 2.0)))
+          (+ half (bt:with-lock-held (*retry-jitter-lock*)
+                    (random half))))
+        nominal)))
+
 (defun %sleep-before-retry (what url attempt)
-  (let ((delay (expt 2 attempt)))
+  (let ((delay (%retry-delay attempt)))
     (%write-retry-diagnostic what url delay)
     (sleep delay)))
 
