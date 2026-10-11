@@ -17,7 +17,7 @@
                 #:if-let)
   (:export #:http-get #:configure-drakma-proxy-from-env
            #:configure-retries-from-env
-           #:*verify-tls* #:*http-max-retries*
+           #:*verify-tls* #:*http-max-retries* #:*retry-jitter*
            #:call-with-transient-retries #:with-transient-retries))
 
 (in-package #:ocicl.http)
@@ -232,15 +232,38 @@ two different ways depending on the subcommand."
                              body)))
                (values body status-code (header-alist->hash-table response-headers))))))
 
-(defvar *http-max-retries* 3
+(defparameter *attended-http-retries* 3
+  "Retry budget for someone waiting at a terminal, who would rather hear that
+the registry is unreachable than watch a minute of backoff.")
+
+(defparameter *unattended-http-retries* 6
+  "Retry budget for a build nobody is watching, where a reset connection costs
+the whole run and the clock is worth less than finishing.")
+
+(defvar *http-max-retries* *attended-http-retries*
   "How many times to retry a transient HTTP failure, beyond the first attempt.")
 
+(defun %unattended-p ()
+  "True when CI marks this run as an unattended build.
+
+GitHub Actions, GitLab CI, CircleCI, Travis and Azure Pipelines all set CI;
+the explicit falsehoods are spelled out because a shell exporting CI=false
+means the opposite of a shell exporting CI."
+  (when-let ((value (uiop:getenv "CI")))
+    (not (member (string-downcase (string-trim " " value))
+                 '("" "0" "false" "no")
+                 :test #'string=))))
+
 (defun configure-retries-from-env ()
-  "Let OCICL_HTTP_RETRIES raise or lower the retry budget.  The default of
-three suits a person waiting at a terminal, who would rather hear that the
-registry is unreachable than watch a minute of backoff.  Somewhere unattended
--- CI, where a reset connection costs a whole red build -- patience is worth
-more, and this is the knob for it."
+  "Choose this run's retry budget.
+
+Three retries suits a person at a terminal.  Unattended the arithmetic
+reverses -- a reset connection costs a whole red build, and nobody is
+watching the clock -- so a CI run gets six without having to discover the
+knob first, which is how ocicl#210 came to be filed against the terminal
+default.  OCICL_HTTP_RETRIES still overrides either baseline (ocicl-23i)."
+  (setf *http-max-retries*
+        (if (%unattended-p) *unattended-http-retries* *attended-http-retries*))
   (when-let ((value (uiop:getenv "OCICL_HTTP_RETRIES")))
     (let ((retries (ignore-errors (parse-integer value))))
       (if (and retries (<= 0 retries 16))
@@ -258,15 +281,41 @@ more, and this is the knob for it."
   "Write one indivisible retry diagnostic when retry output is enabled."
   (when *retry-output*
     (bt:with-lock-held (*retry-output-lock*)
-      (format *retry-output* "; ~A for ~A; retrying in ~As~%"
+      (format *retry-output* "; ~A for ~A; retrying in ~,1Fs~%"
               what url delay)
       (finish-output *retry-output*))))
 
 (defun %transient-http-status-p (status)
   (member status '(408 429 500 502 503 504)))
 
+(defvar *retry-jitter* t
+  "Whether retry delays are spread randomly.  Bound to NIL where a predictable
+delay matters more than decorrelation.")
+
+(defvar *retry-jitter-lock* (bt:make-lock "ocicl HTTP retry jitter")
+  "Guards RANDOM, which download workers would otherwise call on one shared
+*RANDOM-STATE* concurrently.")
+
+(defun %retry-delay (attempt)
+  "Seconds to wait before retrying, for a zero-based ATTEMPT.
+
+Exponential backoff with half the interval randomized.  A plain
+(expt 2 attempt) is the same number for every caller, which is fine for one
+download and wrong for an install: a non-interactive install fetches blobs
+twice CPU-count at a time, so when a CDN edge resets several connections at
+once, every affected worker sleeps the identical interval and they all come
+back in the same instant -- the herd the backoff existed to break up.  Half
+the interval stays fixed, so a reset still costs a real pause; the other half
+is random, so the workers fan out instead of retrying in step (ocicl-zdh)."
+  (let ((nominal (expt 2 attempt)))
+    (if *retry-jitter*
+        (let ((half (/ nominal 2.0)))
+          (+ half (bt:with-lock-held (*retry-jitter-lock*)
+                    (random half))))
+        nominal)))
+
 (defun %sleep-before-retry (what url attempt)
-  (let ((delay (expt 2 attempt)))
+  (let ((delay (%retry-delay attempt)))
     (%write-retry-diagnostic what url delay)
     (sleep delay)))
 

@@ -299,32 +299,52 @@ meaning unset, restoring every previous value afterwards."
                        (error (e) (princ-to-string e)))))
       (uiop:delete-directory-tree parent :validate t))
 
-    ;; The retry budget is tunable: a person at a terminal wants to hear that
-    ;; the registry is unreachable, CI would rather wait it out (ocicl-23i).
-    (let ((original ocicl.http:*http-max-retries*))
+    ;; The retry budget is tunable, and its baseline depends on who is waiting:
+    ;; a person at a terminal, or a build nobody is watching (ocicl-23i).
+    (let ((original ocicl.http:*http-max-retries*)
+          (attended ocicl.http::*attended-http-retries*)
+          (unattended ocicl.http::*unattended-http-retries*))
       (unwind-protect
            (progn
-             (with-environment (("OCICL_HTTP_RETRIES" "7"))
+             (with-environment (("OCICL_HTTP_RETRIES" "7") ("CI" nil))
                (ocicl.http:configure-retries-from-env)
                (check "OCICL_HTTP_RETRIES sets the retry budget"
                       (= ocicl.http:*http-max-retries* 7)))
-             (setf ocicl.http:*http-max-retries* original)
-             (with-environment (("OCICL_HTTP_RETRIES" "banana"))
+             (with-environment (("OCICL_HTTP_RETRIES" "banana") ("CI" nil))
                (let ((complaint (with-output-to-string (*error-output*)
                                   (ocicl.http:configure-retries-from-env))))
-                 (check "a non-numeric budget leaves the default alone"
-                        (= ocicl.http:*http-max-retries* original))
+                 (check "a non-numeric budget leaves the baseline alone"
+                        (= ocicl.http:*http-max-retries* attended))
                  (check "and the refusal is said out loud"
                         (search "ignoring OCICL_HTTP_RETRIES" complaint))))
-             (with-environment (("OCICL_HTTP_RETRIES" "99"))
+             (with-environment (("OCICL_HTTP_RETRIES" "99") ("CI" nil))
                (with-output-to-string (*error-output*)
                  (ocicl.http:configure-retries-from-env))
-               (check "an out-of-range budget leaves the default alone"
-                      (= ocicl.http:*http-max-retries* original)))
-             (with-environment (("OCICL_HTTP_RETRIES" nil))
+               (check "an out-of-range budget leaves the baseline alone"
+                      (= ocicl.http:*http-max-retries* attended)))
+             (with-environment (("OCICL_HTTP_RETRIES" nil) ("CI" nil))
                (ocicl.http:configure-retries-from-env)
-               (check "an unset budget leaves the default alone"
-                      (= ocicl.http:*http-max-retries* original))))
+               (check "an attended run gets the terminal baseline"
+                      (= ocicl.http:*http-max-retries* attended)))
+
+             ;; ocicl#210 was filed because a CI run got the terminal default
+             ;; and failed on ghcr.io resets, with no hint a knob existed.
+             (with-environment (("OCICL_HTTP_RETRIES" nil) ("CI" "true"))
+               (ocicl.http:configure-retries-from-env)
+               (check "an unattended run waits longer without being asked"
+                      (= ocicl.http:*http-max-retries* unattended)))
+             (with-environment (("OCICL_HTTP_RETRIES" "2") ("CI" "true"))
+               (ocicl.http:configure-retries-from-env)
+               (check "OCICL_HTTP_RETRIES still overrides in CI"
+                      (= ocicl.http:*http-max-retries* 2)))
+             (with-environment (("OCICL_HTTP_RETRIES" nil) ("CI" "false"))
+               (ocicl.http:configure-retries-from-env)
+               (check "CI=false means what it says"
+                      (= ocicl.http:*http-max-retries* attended)))
+             (with-environment (("OCICL_HTTP_RETRIES" nil) ("CI" ""))
+               (ocicl.http:configure-retries-from-env)
+               (check "an empty CI is not a CI"
+                      (= ocicl.http:*http-max-retries* attended))))
         (setf ocicl.http:*http-max-retries* original)))
 
     ;; Registry digest verification helpers (ocicl-01j)
@@ -665,7 +685,7 @@ meaning unset, restoring every previous value afterwards."
                (and (= (length lines) 20)
                     (every (lambda (line)
                              (and (search "temporary failure" line)
-                                  (search "retrying in 1s" line)))
+                                  (search "retrying in 1.0s" line)))
                            lines)))))
 
     (let ((real-request (fdefinition 'drakma:http-request))
@@ -819,6 +839,22 @@ meaning unset, restoring every previous value afterwards."
              (check "with-transient-retries never retries a 404"
                     (= calls 1)))
         (setf (fdefinition 'ocicl.http::%sleep-before-retry) real-sleep)))
+
+    ;; Retry delays are jittered.  A fixed (expt 2 attempt) is the same number
+    ;; for every worker, so a CDN edge resetting several concurrent blob
+    ;; downloads at once used to send them all back in the same instant
+    ;; (ocicl-zdh).
+    (let ((ocicl.http::*retry-jitter* nil))
+      (check "without jitter the delay is plain exponential backoff"
+             (and (= (ocicl.http::%retry-delay 0) 1)
+                  (= (ocicl.http::%retry-delay 1) 2)
+                  (= (ocicl.http::%retry-delay 2) 4))))
+
+    (let ((samples (loop repeat 200 collect (ocicl.http::%retry-delay 3))))
+      (check "a jittered delay keeps half the backoff as a floor"
+             (every (lambda (delay) (<= 4 delay 8)) samples))
+      (check "and spreads the other half, so concurrent retries decorrelate"
+             (> (length (remove-duplicates samples :test #'=)) 1)))
 
     (format t "~%~D passed, ~D failed~%" *test-passed* *test-failed*)
     *test-failed*))

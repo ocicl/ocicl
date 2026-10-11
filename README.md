@@ -428,6 +428,13 @@ count.  When output is redirected, it uses the processor-based limit and emits
 ordinary log lines.  Set ``OCICL_DOWNLOAD_CONCURRENCY`` to a positive integer to
 lower the automatic limit; use ``1`` for serial downloads.
 
+A download interrupted by a transient failure -- a connection reset by a
+registry CDN, say -- is retried with exponential backoff.  The budget is three
+retries for someone at a terminal, who would rather hear that the registry is
+unreachable than wait, and six when ``CI`` is set in the environment, where a
+reset connection costs a whole build and nobody is watching the clock.  Set
+``OCICL_HTTP_RETRIES`` to a whole number from 0 to 16 to override either.
+
 This downloads the latest version of trivial-garbage, which is the OCI
 image with the ``latest`` tag, and is equivalent to ``ocicl install
 trivial-garbage:latest``.
