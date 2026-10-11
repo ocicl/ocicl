@@ -232,15 +232,38 @@ two different ways depending on the subcommand."
                              body)))
                (values body status-code (header-alist->hash-table response-headers))))))
 
-(defvar *http-max-retries* 3
+(defparameter *attended-http-retries* 3
+  "Retry budget for someone waiting at a terminal, who would rather hear that
+the registry is unreachable than watch a minute of backoff.")
+
+(defparameter *unattended-http-retries* 6
+  "Retry budget for a build nobody is watching, where a reset connection costs
+the whole run and the clock is worth less than finishing.")
+
+(defvar *http-max-retries* *attended-http-retries*
   "How many times to retry a transient HTTP failure, beyond the first attempt.")
 
+(defun %unattended-p ()
+  "True when CI marks this run as an unattended build.
+
+GitHub Actions, GitLab CI, CircleCI, Travis and Azure Pipelines all set CI;
+the explicit falsehoods are spelled out because a shell exporting CI=false
+means the opposite of a shell exporting CI."
+  (when-let ((value (uiop:getenv "CI")))
+    (not (member (string-downcase (string-trim " " value))
+                 '("" "0" "false" "no")
+                 :test #'string=))))
+
 (defun configure-retries-from-env ()
-  "Let OCICL_HTTP_RETRIES raise or lower the retry budget.  The default of
-three suits a person waiting at a terminal, who would rather hear that the
-registry is unreachable than watch a minute of backoff.  Somewhere unattended
--- CI, where a reset connection costs a whole red build -- patience is worth
-more, and this is the knob for it."
+  "Choose this run's retry budget.
+
+Three retries suits a person at a terminal.  Unattended the arithmetic
+reverses -- a reset connection costs a whole red build, and nobody is
+watching the clock -- so a CI run gets six without having to discover the
+knob first, which is how ocicl#210 came to be filed against the terminal
+default.  OCICL_HTTP_RETRIES still overrides either baseline (ocicl-23i)."
+  (setf *http-max-retries*
+        (if (%unattended-p) *unattended-http-retries* *attended-http-retries*))
   (when-let ((value (uiop:getenv "OCICL_HTTP_RETRIES")))
     (let ((retries (ignore-errors (parse-integer value))))
       (if (and retries (<= 0 retries 16))
