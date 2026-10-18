@@ -2793,7 +2793,16 @@ the optional TOTAL response size."
                                      :if-exists :supersede)
          (let ((buffer (make-array 65536 :element-type '(unsigned-byte 8)))
                (downloaded 0))
-           (loop for count = (read-sequence buffer input)
+           ;; Stop at TOTAL when the response declared a length.  A server
+           ;; may keep the connection open after the body despite our
+           ;; "Connection: close" (GitHub's package CDN answers keep-alive),
+           ;; and reading on to end-of-file then never returns.
+           (loop for want = (if total
+                                (min (length buffer) (- total downloaded))
+                                (length buffer))
+                 for count = (if (plusp want)
+                                 (read-sequence buffer input :end want)
+                                 0)
                  while (plusp count)
                  do (write-sequence buffer out :end count)
                     (incf downloaded count)
