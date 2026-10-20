@@ -46,6 +46,57 @@
               (setf newest-time time
                     newest-file file))))))))
 
+(defun build-dynamic-space-size ()
+  "Return the SBCL dynamic space size, in MB, for building ocicl."
+  (if (boundp 'common-lisp-user::+dynamic-space-size+)
+      (symbol-value 'common-lisp-user::+dynamic-space-size+)
+      3072))
+
+#+egcl
+(defun fetch-egcl-forks ()
+  "Check out the EGCL library forks pinned in egcl-forks.txt under egcl-systems/."
+  (with-open-file (in "egcl-forks.txt")
+    (loop for line = (read-line in nil)
+          while line
+          do (let ((fields (remove "" (uiop:split-string line :separator '(#\Space #\Tab))
+                                   :test #'string=)))
+               (when (and fields (char/= #\# (char (first fields) 0)))
+                 (destructuring-bind (name branch commit) fields
+                   (declare (ignore branch))
+                   (let ((dir (format nil "egcl-systems/~A" name))
+                         (url (format nil "https://github.com/atgreen/~A" name)))
+                     (unless (probe-file (format nil "~A/.git/" dir)) ; lint:suppress use-uiop-file-exists-p
+                       (format t "Cloning ~A~%" url)
+                       (uiop:run-program (list "git" "clone" "--quiet" url dir)
+                                         :output *standard-output* :error-output *error-output*))
+                     (unless (string= commit
+                                      (uiop:run-program (list "git" "-C" dir "rev-parse" "HEAD")
+                                                        :output '(:string :stripped t)))
+                       (uiop:run-program (list "git" "-C" dir "fetch" "--quiet" "origin")
+                                         :output *standard-output* :error-output *error-output*)
+                       (uiop:run-program (list "git" "-C" dir "checkout" "--quiet" "--detach" commit)
+                                         :output *standard-output* :error-output *error-output*)))))))))
+
+(defun build-command ()
+  "Return the command line that builds the ocicl binary with this Lisp implementation."
+  #+egcl
+  (list (or (uiop:getenv "EGCL") "egcl") ; lint:suppress
+        "--no-init"
+        "--eval"
+        ;; The EGCL library forks shadow the vendored systems they replace.
+        "(asdf:initialize-source-registry (list :source-registry (list :directory (uiop:getcwd)) (list :tree (uiop:subpathname (uiop:getcwd) \"egcl-systems/\")) (list :tree (uiop:subpathname (uiop:getcwd) \"systems/\")) :ignore-inherited-configuration))" ; lint:suppress max-line-length
+        "--eval"
+        "(progn (asdf:make :ocicl) (uiop:quit))")
+  #-egcl
+  (list (or (uiop:getenv "SBCL") "sbcl") ; lint:suppress
+        "--dynamic-space-size"
+        (format nil "~A" (build-dynamic-space-size))
+        "--no-userinit"
+        "--eval"
+        "(load \"runtime/asdf.lisp\")"
+        "--eval"
+        "(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :also-exclude \"egcl-systems\") (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))")) ; lint:suppress max-line-length
+
 (defun make-ocicl ()
   "Build the ocicl binary if source files are newer than the existing binary."
   (let ((ocicl-timestamp (safe-timestamp "ocicl"))
@@ -55,27 +106,12 @@
       (safe-delete-file "ocicl")
       ;; (safe-delete-file "systems.csv")
       ;; (safe-delete-directory "systems/")
-      (format t "~A --dynamic-space-size ~A --no-userinit ~
-                 --eval \"(load \\\"runtime/asdf.lisp\\\")\" ~
-                 --eval \"(progn (asdf:initialize-source-registry ~
-                         (list :source-registry :inherit-configuration ~
-                         (list :tree (uiop:getcwd)))) ~
-                         (asdf:make :ocicl) (sb-ext:quit))\""
-              (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl")) ; lint:suppress
-              (if (boundp 'common-lisp-user::+dynamic-space-size+)
-                  (symbol-value 'common-lisp-user::+dynamic-space-size+)
-                  3072))
-      (terpri)
-      (uiop:run-program
-       (list (let ((sbcl (uiop:getenv "SBCL"))) (if sbcl sbcl "sbcl")) ; lint:suppress
-             "--dynamic-space-size"
-             (format nil "~A" (if (boundp 'common-lisp-user::+dynamic-space-size+) (symbol-value 'common-lisp-user::+dynamic-space-size+) 3072))
-             "--no-userinit"
-             "--eval"
-             "(load \"runtime/asdf.lisp\")"
-             "--eval"
-             "(progn (asdf:initialize-source-registry (list :source-registry :inherit-configuration (list :tree (uiop:getcwd)))) (asdf:make :ocicl) (sb-ext:quit))")
-       :output *standard-output* :error *standard-output*))))
+      #+egcl (fetch-egcl-forks)
+      (let ((command (build-command)))
+        (format t "~{~A~^ ~}~%" (mapcar (lambda (arg)
+                                          (if (find #\Space arg) (format nil "~S" arg) arg))
+                                        command))
+        (uiop:run-program command :output *standard-output* :error *standard-output*)))))
 
 (setf *random-state* (make-random-state t))
 
@@ -105,4 +141,4 @@
                                            (merge-pathnames (make-pathname :directory '(:relative "bin")) +destdir+)))
                   :output *standard-output* :error-output *error-output*)
 
-(sb-ext:quit)
+(uiop:quit)

@@ -18,6 +18,7 @@ TLS & Proxies
 - TLS verification must be ON by default. Provide `-k/--insecure` and `OCICL_INSECURE` only for debugging.
 - Respect `OCICL_CA_FILE` and `OCICL_CA_DIR` for custom trust roots.
 - Proxy configuration is read from `HTTPS_PROXY`/`HTTP_PROXY` (`NO_PROXY` supported). Proxy Basic auth is derived from `user:pass@host` in the proxy URI. Configure Drakma proxy settings at startup.
+- ocicl never uses the real cl+ssl (OpenSSL FFI). `ocicl.asd` loads `pure-tls/cl+ssl-compat` and registers `"cl+ssl"` as an immutable system, so dependencies that name `:cl+ssl` (Drakma) are satisfied by pure-tls. cl+ssl is deliberately not vendored. When loading Drakma or any part of ocicl's dependency tree outside `ocicl.asd` (REPL experiments, bisection scripts, other Lisps), do the same first: `(asdf:load-system :pure-tls/cl+ssl-compat) (asdf:register-immutable-system "cl+ssl")`. Otherwise ASDF signals MISSING-DEPENDENCY for cl+ssl, which is a test-setup error, not a real failure. `USE_LEGACY_OPENSSL=1` is the only path that uses real cl+ssl.
 
 OCI Layer Selection
 - Our OCI images are tarballs of source. When resolving a tag:
@@ -42,6 +43,8 @@ OCICL is a modern alternative to Quicklisp for Common Lisp system distribution a
 
 Development Commands
 - Build and install: `sbcl --load setup.lisp`
+- Build with Evergreen Common Lisp: `egcl --no-init --load setup.lisp`. This fetches the EGCL library forks pinned in `egcl-forks.txt` into `egcl-systems/` (gitignored), which shadow the vendored copies in `systems/`. Re-pin with `releng/update-egcl-forks.sh`.
+- EGCL compiles slowly on a cold cache, and named-readtables (pulled in by cl-interpol) has no EGCL readtable iterator, so it falls back to scanning every character code. Expect the first EGCL build to take 20+ minutes; a long silence after `named-readtables.lisp` compiles is that scan, not a hang.
 - Binary location: `~/.local/bin/ocicl` (after installation)
 - Memory configuration: Uses 3072MB dynamic space by default
 - Better error messages: `sbcl --eval "(asdf:load-system :ocicl)"` gives clearer compilation errors than setup.lisp
@@ -115,7 +118,7 @@ Recent Changes
 
 Build System
 - No traditional Makefile in root directory
-- Uses SBCL-specific compilation with core compression
+- Builds with SBCL (with core compression) or Evergreen Common Lisp; see Development Commands
 - CI/CD runs on Ubuntu, Windows, and MacOS with proxy testing
 
 Security

@@ -10,3 +10,6 @@ RCS
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# EGCL library forks fetched by setup.lisp
+/egcl-systems/

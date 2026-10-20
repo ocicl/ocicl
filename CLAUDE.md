@@ -60,12 +60,11 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
 ## Build & Test
 
-_Add your build and test commands here_
+See AGENTS.md ("Development Commands" and "Testing").
 
 ```bash
-# Example:
-# npm install
-# npm test
+sbcl --load setup.lisp               # build with SBCL
+egcl --no-init --load setup.lisp     # build with Evergreen Common Lisp (fetches egcl-forks.txt into egcl-systems/)
 ```
 
 ## Architecture Overview
@@ -74,4 +73,6 @@ _Add a brief overview of your project architecture_
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+See AGENTS.md for the full project conventions. In particular:
+
+- ocicl never uses the real cl+ssl (OpenSSL FFI). `ocicl.asd` loads `pure-tls/cl+ssl-compat` and registers `"cl+ssl"` as an immutable system, so dependencies that name `:cl+ssl` (Drakma) are satisfied by pure-tls. cl+ssl is deliberately not vendored. When loading Drakma or any part of ocicl's dependency tree outside `ocicl.asd` (REPL experiments, bisection scripts, other Lisps), do the same first: `(asdf:load-system :pure-tls/cl+ssl-compat) (asdf:register-immutable-system "cl+ssl")`. Otherwise ASDF signals MISSING-DEPENDENCY for cl+ssl, which is a test-setup error, not a real failure. `USE_LEGACY_OPENSSL=1` is the only path that uses real cl+ssl.

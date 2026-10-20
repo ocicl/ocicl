@@ -29,6 +29,9 @@ This guide covers how to set up your development environment and contribute to o
    sbcl --load setup.lisp
    ```
    This creates the `./ocicl` binary in your working directory.
+   To build with Evergreen Common Lisp instead, run
+   `egcl --no-init --load setup.lisp` (see "Building with Evergreen
+   Common Lisp" in the README).
 
 ## Development Workflow
 
