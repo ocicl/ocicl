@@ -10,7 +10,7 @@
 #
 # NAME                  BRANCH          COMMIT
 trivial-features        master          651e8ea90db0b143d39b9a414ee382ec62efad2f
-trivial-gray-streams    master          f5eccc2167be13af9084e541db9b34bda3b9633f
+trivial-gray-streams    master          f15b62e261236cb7b27df7f3724861d54197d9ba
 trivial-cltl2           master          cf3253050711277e847a9dc445a45fa7170dc9cb
 trivial-garbage         master          3c4f9c86d4d3454dcd4f8d19113b4101c3add032
 bordeaux-threads        master          2f736ed7ef61d1856f2c6a5aefde9a5ee7b3b66f
