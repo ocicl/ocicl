@@ -1393,7 +1393,7 @@ Returns (values check-only dry-run include-prerelease)."
                             :direction :output
                             :if-exists :supersede)
       (write-string *runtime* stream)
-      (format t ";; Present the following code to your LISP system at startup, either~%;; by adding it to your implementation's startup file~%;;~T(~~/.sbclrc, ~~/.eclrc, ~~/.abclrc, ~~/.clinit.cl, or ~~/.roswell/init.lisp)~%;; or overriding it completely on the command line~%;;~T(eg. sbcl --userinit init.lisp)~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%(asdf:initialize-source-registry~%  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))~%" runtime-source runtime-source)))) ; lint:suppress max-line-length
+      (format t ";; Present the following code to your LISP system at startup, either~%;; by adding it to your implementation's startup file~%;;~T(~~/.sbclrc, ~~/.egclrc, ~~/.eclrc, ~~/.abclrc, ~~/.clinit.cl, or ~~/.roswell/init.lisp)~%;; or overriding it completely on the command line~%;;~T(eg. sbcl --userinit init.lisp)~%~%#-ocicl~%(when (probe-file ~S)~%  (load ~S))~%(asdf:initialize-source-registry~%  (list :source-registry (list :directory (uiop:getcwd)) :inherit-configuration))~%" runtime-source runtime-source)))) ; lint:suppress max-line-length
 
 (defun get-versions-since (system version)
   (loop for registry in *ocicl-registries*

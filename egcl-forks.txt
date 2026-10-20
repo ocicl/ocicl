@@ -1,0 +1,26 @@
+# EGCL compatibility forks used in place of the vendored copies in
+# systems/ when ocicl is built with Evergreen Common Lisp (egcl).
+#
+# Each fork lives at https://github.com/atgreen/NAME.  The inventory
+# comes from the evergreen repository's docs/library-forks.md and
+# scripts/install-egcl-forks; only forks of systems that ocicl vendors
+# are listed here.  setup.lisp clones them into egcl-systems/ at the
+# pinned commit.  Run releng/update-egcl-forks.sh to re-pin to the
+# current branch tips.
+#
+# NAME                  BRANCH          COMMIT
+trivial-features        master          651e8ea90db0b143d39b9a414ee382ec62efad2f
+trivial-gray-streams    master          f5eccc2167be13af9084e541db9b34bda3b9633f
+trivial-cltl2           master          cf3253050711277e847a9dc445a45fa7170dc9cb
+trivial-garbage         master          3c4f9c86d4d3454dcd4f8d19113b4101c3add032
+bordeaux-threads        master          2f736ed7ef61d1856f2c6a5aefde9a5ee7b3b66f
+atomics                 egcl            738ddccd7a6f3c44e83335ac5e3615e76972dfd2
+cl-fad                  master          060807adb9df17faf231485a2b410308c7fcba62
+usocket                 egcl-support    1318d92e817a8912e86233444af63038f37bf621
+precise-time            main            045df7c4cddc84d775610cbecf47b462aaea29d6
+ironclad                egcl            57db5ee19708a72b9b7a405e5b620bb39f7439b2
+pure-tls                egcl            480bbab6635d65cb74aa6c66f19f0d249beeb537
+chipz                   egcl            a48e6e741a353a14ab4430eb1519e2f3d5b94aef
+closer-mop              egcl            e9f6d94ff7bb91768841339c87a89bf70b52b95f
+cffi                    master          ee7e4ea5238efce6ce4be7d6f0f29699884ad791
+iolib                   master          57bc68250f498d48a6d0a3d07ccd2b36b8a561ea

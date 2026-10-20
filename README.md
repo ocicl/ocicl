@@ -183,6 +183,32 @@ dynamic memory space.  If you need a different amount, run it like so:
 sbcl --eval "(defconstant +dynamic-space-size+ 2048)" --load setup.lisp
 ```
 
+#### Building with Evergreen Common Lisp
+
+`ocicl` can also be built with [Evergreen Common Lisp](https://github.com/atgreen/evergreen)
+(`egcl`).  Run `setup.lisp` with `egcl` instead of `sbcl`:
+```
+egcl --no-init --load setup.lisp
+```
+
+Some vendored systems need EGCL-specific changes that live in forks
+under https://github.com/atgreen.  When run with `egcl`, `setup.lisp`
+clones the forks listed in `egcl-forks.txt` into `egcl-systems/` (this
+requires `git`), checks out the pinned commits, and builds against
+them in place of the copies in `systems/`.  The SBCL build ignores
+`egcl-systems/`.  Set the `EGCL` environment variable to use an `egcl`
+executable that is not on your `PATH`, and run
+`releng/update-egcl-forks.sh` to re-pin the forks to their current
+branch tips.
+
+Delete the `ocicl` binary before switching between `sbcl` and `egcl`;
+`setup.lisp` only rebuilds when sources are newer than the binary.
+
+EGCL support is new.  The first EGCL build takes 20 minutes or more,
+and an EGCL-built `ocicl` is much slower than an SBCL-built one at
+HTTPS downloads and at unpacking packages, so use SBCL for everyday
+work.
+
 #### TLS Library Selection
 
 By default, `ocicl` is built with [pure-tls](https://github.com/atgreen/pure-tls),
