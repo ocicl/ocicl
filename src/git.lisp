@@ -352,6 +352,13 @@ RELATIVE-DIRNAME)."
              (if ref
                  (run-git (list "-C" tmp "checkout" "--quiet" ref))
                  (run-git (list "-C" tmp "checkout" "--quiet" "--detach" "HEAD")))
+             ;; Initialise any submodules the checked-out tree pins, so a
+             ;; system that vendors a dependency as a submodule installs with
+             ;; its sources in place rather than an empty directory.  A tree
+             ;; with no .gitmodules makes this a no-op.  Skipped for a sparse
+             ;; SUBDIR checkout, whose submodules (if any) lie outside it.
+             (unless subdir
+               (run-git (list "-C" tmp "submodule" "update" "--init" "--recursive")))
              (let* ((resolved (run-git (list "-C" tmp "rev-parse" "HEAD")))
                     (rel-dirname (or dirname (git-tree-dirname url resolved subdir)))
                     (target-dir (merge-pathnames
