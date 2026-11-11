@@ -189,5 +189,41 @@ set -e
   || fail "unreachable registry: install reported success after failing to download"
 pass "a failed download makes install exit non-zero"
 
+# A system that vendors a dependency as a git submodule installs with the
+# submodule's sources in place, not an empty directory (ocicl-56y, #216).
+# git gates file:// submodule transports (CVE-2022-39253), so allow it for
+# this test's clones only, via a scoped GIT_CONFIG_GLOBAL.
+SUBCFG="$TMP/submodule-gitconfig"
+printf '[protocol "file"]\n\tallow = always\n' > "$SUBCFG"
+mkdir -p "$TMP/submod-upstream"
+cd "$TMP/submod-upstream"
+$GIT init -q -b main .
+echo '(defpackage :vendored-lib (:use :cl))' > vendored-lib.lisp
+echo 'sentinel' > SENTINEL
+$GIT add -A && $GIT commit -q -m "submodule upstream"
+mkdir -p "$TMP/hasmod-upstream"
+cd "$TMP/hasmod-upstream"
+$GIT init -q -b main .
+cat > hasmod.asd <<'EOF'
+(defsystem "hasmod" :components ((:file "hasmod")))
+EOF
+echo '(defpackage :hasmod (:use :cl))' > hasmod.lisp
+GIT_CONFIG_GLOBAL="$SUBCFG" $GIT submodule add -q "$TMP/submod-upstream" vendored
+$GIT add -A && $GIT commit -q -m "parent with submodule"
+MODSHA=$(git rev-parse HEAD)
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) MODUP="file:///$(cygpath -m "$TMP")/hasmod-upstream" ;;
+  *)                    MODUP="file://$TMP/hasmod-upstream" ;;
+esac
+mkdir "$TMP/modproj"
+cd "$TMP/modproj"
+touch ocicl.csv
+GIT_CONFIG_GLOBAL="$SUBCFG" $OCICL install "git+$MODUP@main"
+[ -f "ocicl/hasmod-upstream-${MODSHA:0:7}/hasmod.asd" ] \
+  || fail "submodule: parent tree installed"
+[ -f "ocicl/hasmod-upstream-${MODSHA:0:7}/vendored/vendored-lib.lisp" ] \
+  || fail "submodule: vendored sources fetched into the submodule directory"
+pass "install fetches git submodules"
+
 echo ""
 echo "All git+ source tests passed."
