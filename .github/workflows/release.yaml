@@ -669,7 +669,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build repodata
-        run: createrepo_c /tmp/rpms
+        # Force gzip metadata: current createrepo_c defaults to zstd
+        # (*-primary.xml.zst), but the rewrite step below expects *.xml.gz.
+        run: createrepo_c --general-compress-type gz /tmp/rpms
 
       - name: Rewrite package locations to release asset URLs
         run: |
