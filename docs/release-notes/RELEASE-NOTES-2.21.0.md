@@ -1,6 +1,6 @@
 # ocicl 2.21.0 Release Notes
 
-**Release Date:** October 2026
+**Release Date:** November 2026
 
 ## Summary
 
@@ -14,6 +14,10 @@ A CI build that hit a connection reset from the registry failed more often than 
 
 Worth being straight about what this does and does not do. It does not stop a registry CDN resetting connections. It makes ocicl ride those resets out instead of converging on the instant that just failed, and gives an unwatched build enough patience to get through them.
 
+- **git+https installs now fetch submodules.** `fetch-git-tree` cloned the upstream with `--no-checkout`, checked out the ref, then deleted `.git` and copied the tree — never initialising submodules. A system that vendors a dependency as a submodule (for example cl-webview, which pins webview/webview) installed with an empty submodule directory and failed at load. The install now runs `git submodule update --init --recursive` after the checkout and before `.git` is removed — a no-op when there is no `.gitmodules`, and skipped for a sparse subdirectory checkout whose submodules lie outside it. A submodule that cannot be fetched now fails the install loudly rather than leaving a silently empty directory, mirroring the registry build, which already inits submodules. (Reported as [#216](https://github.com/ocicl/ocicl/issues/216).)
+
+- **`ocicl install` no longer hangs at its first download.** The copy from the HTTP response to disk read the stream until end of file. Drakma sets no length bound on a `:want-stream` response, so the copy only finished when the server closed the connection — and GitHub's package CDN answers `Connection: keep-alive` even when the request says `Connection: close`, so in some network setups the connection stayed open after the body and the final read waited forever. When the response declares a length, ocicl now reads exactly that many bytes and stops; without one it reads to end of file as before.
+
 ## Changed Defaults
 
 - **`OCICL_HTTP_RETRIES` now defaults to 6 when `CI` is set**, and remains 3 otherwise. Setting the variable explicitly overrides either baseline, as before, and choosing the baseline before reading the variable makes the whole thing idempotent, which it was not previously. The retry policy is now documented in the README next to `OCICL_DOWNLOAD_CONCURRENCY`, so the next person hitting a flaky registry finds it without reading release notes for a version they are already past.
@@ -21,6 +25,12 @@ Worth being straight about what this does and does not do. It does not stop a re
   This is why the release is minor rather than a patch. Nothing here breaks, but a CI job that previously gave up after about seven seconds will now spend up to a minute before it does, and a run that used to fail fast against a genuinely unreachable registry will take longer to say so. That is the intended trade — a build nobody is watching should prefer finishing to finishing early — but it is a change in observable behaviour, and it happens without anyone asking for it.
 
 - The retry diagnostic prints a fractional delay (`retrying in 1.4s`) now that the interval is no longer a whole number. It still reports the number it actually sleeps.
+
+## Also in This Release
+
+- **Bundled dependencies refreshed** to their current registry builds: pure-tls 1.15.1, serapeum, trivial-indent, cl-cancel and drakma.
+
+- **Builds with Evergreen Common Lisp.** `egcl --no-init --load setup.lisp` now builds ocicl with Evergreen Common Lisp alongside SBCL, using EGCL-specific forks of several vendored systems pinned in `egcl-forks.txt` (cloned into a gitignored `egcl-systems/` that shadows `systems/` for the EGCL build only). See `docs/HACKING.md` for the details and caveats.
 
 ## Upgrade Notes
 
