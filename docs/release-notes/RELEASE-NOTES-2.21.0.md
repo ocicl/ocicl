@@ -16,7 +16,7 @@ ocicl 2.21.0 is mostly about surviving a flaky registry, with a handful of insta
 
 - **An unattended run gets the patient retry budget by default.** The default of three retries — about seven seconds of total patience — suits a person at a prompt, who would rather hear that the registry is unreachable than watch a minute of backoff. In CI the arithmetic reverses: a reset connection costs the whole run, and nobody is watching the clock. ocicl's own CI has been setting `OCICL_HTTP_RETRIES=6` since 2.20.0 for exactly that reason, and nobody else knew to, because the knob was documented only in the 2.20.0 release notes — not the README, not the manpage. A default that every user has to discover and re-set is not a default. ocicl now reads `CI`, which GitHub Actions, GitLab, CircleCI, Travis and Azure all set, and takes six retries there: roughly sixty-three seconds of patience. `CI=false` and an empty `CI` mean what they say.
 
-Worth being straight about what this does and does not do. It does not stop a registry CDN resetting connections. It makes ocicl ride those resets out instead of converging on the instant that just failed, and gives an unwatched build enough patience to get through them.
+These changes do not stop a registry CDN from resetting connections; they let ocicl ride those resets out instead of converging on the instant that just failed, and give an unwatched build enough patience to get through them.
 
 ## Changed Defaults
 
